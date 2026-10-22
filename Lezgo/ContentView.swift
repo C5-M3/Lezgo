@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  MainProject
+//  Lezgo
 //
 //  Created by Nathan Sudiara on 20/10/26.
 //

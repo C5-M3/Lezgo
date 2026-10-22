@@ -18,7 +18,7 @@ failedCount=0
 MakeProject() {
   local projectDir="$workDir/$1"
   mkdir -p "$projectDir/App.xcodeproj" "$projectDir/App/Assets.xcassets"
-  cp "$repoRoot/MainProject.xcodeproj/project.pbxproj" "$projectDir/App.xcodeproj/project.pbxproj"
+  cp "$repoRoot/Lezgo.xcodeproj/project.pbxproj" "$projectDir/App.xcodeproj/project.pbxproj"
   echo '{ "info" : { "author" : "xcode", "version" : 1 } }' > "$projectDir/App/Assets.xcassets/Contents.json"
   echo "$projectDir"
 }

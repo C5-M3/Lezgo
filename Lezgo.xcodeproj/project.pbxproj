@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		D81FC5FE30871E5800EC9E22 /* MainProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MainProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D81FC5FE30871E5800EC9E22 /* Lezgo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lezgo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D81FC60030871E5800EC9E22 /* MainProject */ = {
+		D81FC60030871E5800EC9E22 /* Lezgo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MainProject;
+			path = Lezgo;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -30,7 +30,7 @@
 		D81FC5F530871E5800EC9E22 = {
 			isa = PBXGroup;
 			children = (
-				D81FC60030871E5800EC9E22 /* MainProject */,
+				D81FC60030871E5800EC9E22 /* Lezgo */,
 				D81FC5FF30871E5800EC9E22 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -38,7 +38,7 @@
 		D81FC5FF30871E5800EC9E22 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D81FC5FE30871E5800EC9E22 /* MainProject.app */,
+				D81FC5FE30871E5800EC9E22 /* Lezgo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -46,9 +46,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D81FC5FD30871E5800EC9E22 /* MainProject */ = {
+		D81FC5FD30871E5800EC9E22 /* Lezgo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D81FC60B30871E5800EC9E22 /* Build configuration list for PBXNativeTarget "MainProject" */;
+			buildConfigurationList = D81FC60B30871E5800EC9E22 /* Build configuration list for PBXNativeTarget "Lezgo" */;
 			buildPhases = (
 				D81FC5FA30871E5800EC9E22 /* Sources */,
 				D81FC5FB30871E5800EC9E22 /* Frameworks */,
@@ -57,11 +57,11 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				D81FC60030871E5800EC9E22 /* MainProject */,
+				D81FC60030871E5800EC9E22 /* Lezgo */,
 			);
-			name = MainProject;
-			productName = MainProject;
-			productReference = D81FC5FE30871E5800EC9E22 /* MainProject.app */;
+			name = Lezgo;
+			productName = Lezgo;
+			productReference = D81FC5FE30871E5800EC9E22 /* Lezgo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -79,7 +79,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D81FC5F930871E5800EC9E22 /* Build configuration list for PBXProject "MainProject" */;
+			buildConfigurationList = D81FC5F930871E5800EC9E22 /* Build configuration list for PBXProject "Lezgo" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -93,7 +93,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D81FC5FD30871E5800EC9E22 /* MainProject */,
+				D81FC5FD30871E5800EC9E22 /* Lezgo */,
 			);
 		};
 /* End PBXProject section */
@@ -115,7 +115,7 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		D81FC60930871E5800EC9E22 /* Debug configuration for PBXProject "MainProject" */ = {
+		D81FC60930871E5800EC9E22 /* Debug configuration for PBXProject "Lezgo" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -179,7 +179,7 @@
 			};
 			name = Debug;
 		};
-		D81FC60A30871E5800EC9E22 /* Release configuration for PBXProject "MainProject" */ = {
+		D81FC60A30871E5800EC9E22 /* Release configuration for PBXProject "Lezgo" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -236,7 +236,7 @@
 			};
 			name = Release;
 		};
-		D81FC60C30871E5800EC9E22 /* Debug configuration for PBXNativeTarget "MainProject" */ = {
+		D81FC60C30871E5800EC9E22 /* Debug configuration for PBXNativeTarget "Lezgo" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -256,7 +256,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nathansudiara.MainProject;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nathansudiara.Lezgo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -268,7 +268,7 @@
 			};
 			name = Debug;
 		};
-		D81FC60D30871E5800EC9E22 /* Release configuration for PBXNativeTarget "MainProject" */ = {
+		D81FC60D30871E5800EC9E22 /* Release configuration for PBXNativeTarget "Lezgo" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -288,7 +288,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.nathansudiara.MainProject;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nathansudiara.Lezgo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -303,19 +303,19 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D81FC5F930871E5800EC9E22 /* Build configuration list for PBXProject "MainProject" */ = {
+		D81FC5F930871E5800EC9E22 /* Build configuration list for PBXProject "Lezgo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				D81FC60930871E5800EC9E22 /* Debug configuration for PBXProject "MainProject" */,
-				D81FC60A30871E5800EC9E22 /* Release configuration for PBXProject "MainProject" */,
+				D81FC60930871E5800EC9E22 /* Debug configuration for PBXProject "Lezgo" */,
+				D81FC60A30871E5800EC9E22 /* Release configuration for PBXProject "Lezgo" */,
 			);
 			defaultConfigurationName = Release;
 		};
-		D81FC60B30871E5800EC9E22 /* Build configuration list for PBXNativeTarget "MainProject" */ = {
+		D81FC60B30871E5800EC9E22 /* Build configuration list for PBXNativeTarget "Lezgo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				D81FC60C30871E5800EC9E22 /* Debug configuration for PBXNativeTarget "MainProject" */,
-				D81FC60D30871E5800EC9E22 /* Release configuration for PBXNativeTarget "MainProject" */,
+				D81FC60C30871E5800EC9E22 /* Debug configuration for PBXNativeTarget "Lezgo" */,
+				D81FC60D30871E5800EC9E22 /* Release configuration for PBXNativeTarget "Lezgo" */,
 			);
 			defaultConfigurationName = Release;
 		};

@@ -1,6 +1,6 @@
 //
-//  MainProjectApp.swift
-//  MainProject
+//  LezgoApp.swift
+//  Lezgo
 //
 //  Created by Nathan Sudiara on 20/10/26.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct MainProjectApp: App {
+struct LezgoApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Item.self,
