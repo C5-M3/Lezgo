@@ -5,7 +5,8 @@ import Testing
 
 struct ItemTests {
     @Test func SavedItemKeepsItsTimestamp() throws {
-        let container = try ModelContainer(for: Item.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try ModelContainer(for: Item.self, configurations: configuration)
         let context = container.mainContext
         let timestamp = Date(timeIntervalSince1970: 1_000)
 
