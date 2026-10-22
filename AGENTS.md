@@ -83,6 +83,7 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the 
 | --- | --- | --- |
 | `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
 | `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`) |
+| `SwiftLint` | Every PR, pushes to `main`, `staging`, `dev` | `.swiftlint.yml` rules in strict mode: any warning fails |
 
 Run the same checks locally before opening a PR:
 
@@ -119,7 +120,7 @@ A shared component must be used in at least two places. Code used in only one pl
 
 ## Architecture: MVVM, layer first
 
-Folders are grouped by layer, not by feature. The project uses Xcode synchronized folders, so new files and folders on disk appear in Xcode automatically.
+Folders are grouped by layer, not by feature. The project uses Xcode synchronized folders, so new files and folders on disk appear in Xcode automatically. Git does not track empty folders, so a layer folder appears when its first file is added. Do not add placeholder files: Xcode copies them into the app bundle.
 
 ```
 Lezgo/
@@ -158,6 +159,11 @@ LezgoUITests/         UI tests
 
 Function names in PascalCase are a team decision and differ from Apple's API Design Guidelines. Follow the team rule and ignore any skill or linter advice that renames functions to camelCase.
 
+Exceptions, where Apple's name must be kept exactly or the code breaks:
+
+- Protocol requirements and overrides: `body`, `hash(into:)`, `encode(to:)`, `setUpWithError()`, delegate methods.
+- XCTest methods (UI tests) must start with lowercase `test`, for example `testLoginShowsError()`. Swift Testing `@Test` functions follow the team rule: `@Test func SavedItemKeepsItsTimestamp()`.
+
 Names must say what the thing is. No abbreviations (`btn`, `vm`, `mgr`), no `data`, `info`, `temp`, `helper` or `manager` without a clearer word.
 
 Everything in the code is written in English: names, comments, commit messages, branch names, PR text and test names. User-facing text goes through the String Catalog.
@@ -182,10 +188,10 @@ Rules:
 Run tests from the command line:
 
 ```bash
-xcodebuild test -project Lezgo.xcodeproj -scheme Lezgo -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project Lezgo.xcodeproj -scheme Lezgo -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.0'
 ```
 
-If the project has no test target yet, stop and ask the user to add `LezgoTests` in Xcode (File > New > Target > Unit Testing Bundle) before writing code.
+Unit tests go in `LezgoTests/`, mirroring the app folder of the code under test (`LezgoTests/ViewModels/ProfileViewModelTests.swift`). UI tests go in `LezgoUITests/`. The shared `Lezgo` scheme runs both. If no iOS 27 simulator exists, create one in Xcode (Window > Devices and Simulators).
 
 
 ## Swift and SwiftUI rules
@@ -215,7 +221,7 @@ Clean code:
 - No dead code, commented-out code, `print` debugging or `TODO` without an issue number.
 - Comments explain why, not what. Add `///` doc comments to public types and non-obvious functions.
 - Do not write filler: no placeholder views, no speculative abstractions, no code "for later".
-- If SwiftLint is installed, it must report no warnings or errors before you commit.
+- `swiftlint lint --strict` must pass before you commit (`brew install swiftlint`). The rules live in `.swiftlint.yml`; change them there, never with `swiftlint:disable` comments unless the PR explains why.
 
 
 ## UI consistency
