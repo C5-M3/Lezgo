@@ -33,7 +33,6 @@ Closes #
 ### Code
 
 - [ ] Tests were written first and all tests pass
-- [ ] Reused existing components; a new shared component is used in at least 2 places
 - [ ] Follows MVVM and the naming rules in AGENTS.md
 - [ ] No warnings, debug prints or commented-out code
 
