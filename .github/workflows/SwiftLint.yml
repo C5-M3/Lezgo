@@ -1,0 +1,34 @@
+# Lints Swift code with the rules in .swiftlint.yml. Warnings fail the check (--strict),
+# matching the AGENTS.md rule that SwiftLint reports nothing before a commit.
+
+name: SwiftLint
+
+on:
+  push:
+    branches: [main, staging, dev]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swiftlint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swiftlint:
+    name: SwiftLint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Official SwiftLint image, pinned to the digest of version 0.65.0.
+    container:
+      image: ghcr.io/realm/swiftlint:0.65.0@sha256:a482729f4b58741875af1566f23397f3f6db300372756fc31606d0a4527fab9e
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint
+        run: swiftlint lint --strict --reporter github-actions-logging
