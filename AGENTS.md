@@ -75,6 +75,25 @@ Never push directly to `main`, `staging` or `dev`. Never merge your own PR.
    ```
 
 
+## Continuous integration
+
+Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the source:
+
+| Workflow | Runs on | Checks |
+| --- | --- | --- |
+| `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
+| `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`) |
+
+Run the same checks locally before opening a PR:
+
+```bash
+Scripts/ScanForXcsset.sh .
+git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git branch --show-current)" dev "<PR title>"
+```
+
+Never add a build script phase, scheme pre/post action or build rule without explaining it in the PR. The scanner warns on each one so a reviewer reads it. Pin every third-party GitHub Action to a full commit SHA, and give workflows read-only permissions unless a job needs more.
+
+
 ## Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org): `<type>(<optional scope>): <summary>`.
