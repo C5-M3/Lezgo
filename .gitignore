@@ -1,12 +1,124 @@
-# Xcode
+# --------------------------------------------------
+# macOS metadata
+# --------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# --------------------------------------------------
+# Xcode user-specific files
+# Local UI state, breakpoints, and personal settings.
+# Do not share these in Git.
+# --------------------------------------------------
 xcuserdata/
 *.xcuserstate
-DerivedData/
-build/
-*.moved-aside
-*.xccheckout
 *.xcscmblueprint
-.swiftpm/
+*.xccheckout
+
+# Legacy Xcode 3 per-user files
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.moved-aside
+
+# --------------------------------------------------
+# Build output
+# Generated locally by Xcode.
+# --------------------------------------------------
+build/
+DerivedData/
+.derivedData/
+*.hmap
+*.xcresult
+
+# --------------------------------------------------
+# App archives and debug symbol artifacts
+# --------------------------------------------------
+*.ipa
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+
+# --------------------------------------------------
+# Swift Package Manager
+# Package.resolved is committed so every machine and
+# CI resolves the same dependency versions.
+# --------------------------------------------------
 .build/
-# macOS
-.DS_Store
+.swiftpm/
+Packages/
+
+# --------------------------------------------------
+# CocoaPods / Carthage
+# Podfile.lock and Cartfile.resolved stay tracked.
+# --------------------------------------------------
+Pods/
+Carthage/Build/
+Carthage/Checkouts/
+
+# --------------------------------------------------
+# Swift Playgrounds
+# --------------------------------------------------
+timeline.xctimeline
+playground.xcworkspace
+
+# --------------------------------------------------
+# Fastlane generated artifacts
+# --------------------------------------------------
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+
+# --------------------------------------------------
+# Code injection (InjectionIII)
+# --------------------------------------------------
+iOSInjectionProject/
+
+# --------------------------------------------------
+# Editor / temporary files
+# --------------------------------------------------
+*.swp
+*~
+.idea/
+.vscode/
+docs/
+Docs/
+
+# --------------------------------------------------
+# AI agent tooling
+# Per-developer setup. Only AGENTS.md and CLAUDE.md
+# are tracked; everything else agent-related stays
+# local so the repo stays clean.
+# --------------------------------------------------
+.claude/
+.agents/
+.agent/
+.codex/
+.worktrees/
+.cursor/
+.gemini/
+.mcp.json
+.gemini-swarm/
+skills-lock.json
+
+# --------------------------------------------------
+# Secrets files
+# --------------------------------------------------
+Secrets.swift
+Config/Secrets.xcconfig
+.env
+.env.*
+!.env.example
+
+# --------------------------------------------------
+# Agent-generated reports
+# Local working documents, not part of the codebase.
+# --------------------------------------------------
+CODE_AUDIT.md
