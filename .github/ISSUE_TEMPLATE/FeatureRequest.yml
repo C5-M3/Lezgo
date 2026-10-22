@@ -1,0 +1,33 @@
+name: Feature
+description: A new feature or a change to an existing one.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User story
+      description: Who needs this, and why?
+      placeholder: As a <type of user>, I want <goal> so that <reason>.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What must be true for this to be done? These become the first tests.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Design
+      description: Link the design or attach screenshots. Include empty, loading and error states.
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Existing components to reuse, edge cases, accessibility or security concerns.

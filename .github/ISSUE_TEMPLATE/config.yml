@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Project board
+    url: https://github.com/orgs/C5-M3/projects/1
+    about: Planned tasks start as draft items here. Convert a draft to an issue instead of creating a duplicate.

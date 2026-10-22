@@ -1,0 +1,44 @@
+name: Bug report
+description: Something in the app does not work as expected.
+title: "fix: "
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect to happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+        3. See ...
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device, iOS version and app build
+      placeholder: iPhone 17 Pro, iOS 27.0, build 1.0 (12) from TestFlight
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How bad is it?
+      options:
+        - Crash or data loss
+        - A feature does not work
+        - Works, but looks or feels wrong
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots, recordings or logs
+      description: Do not paste tokens, passwords or personal data.
