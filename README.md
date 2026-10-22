@@ -1,74 +1,131 @@
-## Getting Started
-Halo teman - teman semua, berikut tutorial untuk development nyaaa :D
+# Lezgo
 
-## Install Software Update
-Teman teman bisa update OS nya dulu yeaah (kalo ada)!
+Lezgo is an iOS app built with SwiftUI and SwiftData.
 
-## Menjalankan aplikasi
-- Clone terlebih dahulu github repository <br/>
-```c
-git clone https://github.com/C5-M3/MainProject.git
-```
-- Buka folder project <br/>
-```c
-cd Pawsona
-```
-## Github Projects Flow
-1. Jangan lupa untuk selalu rely dan update [Github Projects](https://github.com/orgs/C5-M3/projects/1)
-2. Di github project, pilih draft issue yang ingin dikerjakan, lalu bisa diklik titlenya
-3. Di bagian kanan bawah, terdapat tombol convert to issue, jangan lupa untuk membuat memilih repo utama
-4. Setelah issue berhasil tercreate, maka kita bisa memulai development phase dengan membuat branch dari issue tersebut, dengan klik "Create a branch" di bagian "Development" di kanan bawah issue tersebut.
-5. Pastikan untuk ikuti peraturan dibawah untuk penamaan branch agar menjaga konsistensi <br>
-6. Selanjutnya, kalian bisa melakukan `git checkout <nama-branch>` untuk memulai development di branch tersebut <br> 
-7. Jika sudah selesai development di issue tersebut, lakukan commit dan push dengan penamaan commit sesuai conventional commit.
-8. Selesai pengerjaan pada branch, bisa lanjut melakukan Pull Request dengan source branch adalah branch di issue tersebut, dan target branch adalah ke `staging` <br>
+- **Tasks:** [GitHub Project](https://github.com/orgs/C5-M3/projects/1)
+- **Coding rules for humans and AI agents:** [AGENTS.md](AGENTS.md)
 
-## Penamaan Branch
-Branch names follow this structure:
-```
-<type>/<description>
-```
-Purpose Prefixes — describe the intent of the work:
-- `feature/`: For new features (e.g., `feature/add-login-page`)
-- `bugfix/`: For bug fixes (e.g., `bugfix/fix-header-bug`)
-- `hotfix/`: For urgent fixes (e.g., `hotfix/security-patch`)
-- `release/`: For branches preparing a release (e.g., `release/v1.2.0`)
-- `chore/`: For non-code tasks like dependency, docs updates (e.g., `chore/update-dependencies`)
-Trunk branches (`main`, `staging`, `dev`) do not require a prefix.
 
-## Cara Commit / Push ke Github
-```
-git add .
-git commit -m "feat: adding Home Page"
-git push origin <nama-branch>
-```
-Harus menggunakan [`conventional commits`](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13)! <br/>
-dengan format ``tipe: deskripsi``
+## Requirements
 
-<h3>Berikut Tipenya</h3>
+- macOS and Xcode 27.1 or later (update both first if an update is available)
+- An iOS 27 simulator (Xcode > Settings > Components)
+- [GitHub CLI](https://cli.github.com) (`brew install gh`), optional but used in the commands below
 
-- API or UI relevant changes
-    - `feat` Commits, that add or remove a new feature to the API or UI
-    - `fix` Commits, that fix an API or UI bug of a preceded `feat` commit
-- `refactor` Commits, that rewrite/restructure your code, however do not change any API or UI behaviour
-    - `perf` Commits are special `refactor` commits, that improve performance
-- `style` Commits, that do not affect the meaning (white-space, formatting, missing semi-colons, etc)
-- `test` Commits, that add missing tests or correcting existing tests
-- `docs` Commits, that affect documentation only
-- `build` Commits, that affect build components like build tools, dependencies, project version, ...
-- `ci` Commits, that affect CI configuration files and scripts (e.g. GitHub Actions workflows, `.github/workflows`)
-- `ops` Commits, that affect operational components like infrastructure, deployment, backup, recovery, ...
-- `chore` Miscellaneous commits e.g. modifying `.gitignore`
 
-## Cara Pull / Mengambil Data Terbaru dari Github ke Lokal
-```c
-git pull
-git pull origin (branch) // untuk pull dari branch lain
+## Getting started
+
+```bash
+git clone https://github.com/C5-M3/Lezgo.git
+cd Lezgo
+git switch dev
+open Lezgo.xcodeproj
 ```
 
-## Cara rebase branch dari target branch
-```c
-git pull --rebase origin <nama-branch>
+If you work with AI agents (Claude Code, Codex, Cursor), install the shared Swift skills once:
+
+```bash
+./Scripts/InstallAgentSkills.sh
+```
+
+
+## Branches
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Production / App Store. The last branch anything is merged into. |
+| `staging` | External TestFlight builds. Merged from `dev` when a feature needs testing. |
+| `dev` | Development. Feature branches are merged here after review. |
+| `<type>/<description>` | One issue's work. Deleted after it is merged. |
+
+Feature work always starts from `dev` and goes back into `dev` through a pull request.
+
+
+## Workflow
+
+1. Open the [GitHub Project](https://github.com/orgs/C5-M3/projects/1) and pick a draft item to work on.
+2. Open the draft and click **Convert to issue**. Choose the `C5-M3/Lezgo` repository.
+3. On the new issue, under **Development** in the sidebar, click **Create a branch**. Set the source branch to `dev` and name the branch using the [naming rules](#branch-names).
+4. Pull the latest `dev` and check out the branch:
+   ```bash
+   git switch dev
+   git pull origin dev
+   git fetch origin
+   git switch <branch-name>
+   ```
+5. Commit and push small changes often, using [Conventional Commits](#commit-messages).
+6. When the work is done, open a pull request from your branch into `dev`. Fill in the template and link the issue.
+7. Wait for a review. Merge only after approval, then delete the branch.
+
+
+## Branch names
+
+Branch names follow [Conventional Branch](https://conventionalbranch.org): `<type>/<description>`, in lowercase, with words joined by hyphens. Include the issue number when there is one.
+
+| Type | Use for | Example |
+| --- | --- | --- |
+| `feature/` | New features | `feature/issue-12-add-login-page` |
+| `bugfix/` | Bug fixes | `bugfix/issue-31-fix-header-bug` |
+| `hotfix/` | Urgent fixes | `hotfix/security-patch` |
+| `release/` | Preparing a release | `release/v1.2.0` |
+| `chore/` | Non-code tasks such as dependencies or docs | `chore/update-dependencies` |
+
+The trunk branches `main`, `staging` and `dev` have no prefix.
+
+
+## Commit messages
+
+Commits follow [Conventional Commits](https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13): `<type>(<optional scope>): <description>`.
+
+```bash
+git add <files>
+git commit -m "feat(home): add home page"
+git push origin <branch-name>
+```
+
+| Type | Use for |
+| --- | --- |
+| `feat` | Adding or removing a feature |
+| `fix` | Fixing a bug |
+| `refactor` | Restructuring code without changing behavior |
+| `perf` | A refactor that improves performance |
+| `style` | Formatting only (white space, line breaks) |
+| `test` | Adding or correcting tests |
+| `docs` | Documentation only |
+| `build` | Build tools, dependencies, project version |
+| `ci` | CI configuration (`.github/workflows`) |
+| `ops` | Infrastructure, deployment, backup, recovery |
+| `chore` | Anything else, such as editing `.gitignore` |
+
+
+## Staying up to date
+
+Pull the latest changes:
+
+```bash
+git pull origin <branch-name>
+```
+
+Rebase your branch on the latest `dev` before opening a pull request:
+
+```bash
+git pull --rebase origin dev
 git push --force-with-lease
 ```
-- Pastikan untuk meresolve semua conflict jika ada.
+
+Resolve any conflicts during the rebase. Never force-push `main`, `staging` or `dev`.
+
+
+## Automated checks
+
+Xcode Cloud builds the app and ships TestFlight. GitHub Actions checks every pull request:
+
+- **Security Checks:** scans Xcode projects for XCSSET malware and the git history for leaked secrets.
+- **Pull Request Checks:** checks the branch name, the target branch, the PR title and every commit message.
+
+Run the same checks locally before you open a pull request:
+
+```bash
+Scripts/ScanForXcsset.sh .
+git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git branch --show-current)" dev "<PR title>"
+```
