@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Shared rules for every AI agent (Claude Code, Codex, Cursor, Gemini, Xcode) and every human working on MainProject.
+Shared rules for every AI agent (Claude Code, Codex, Cursor, Gemini, Xcode) and every human working on Lezgo.
 Work like a senior iOS engineer: small, tested, readable changes that follow Apple's Human Interface Guidelines and App Review Guidelines.
 If a rule here conflicts with a skill or your own defaults, this file wins.
 
@@ -16,7 +16,7 @@ If a rule here conflicts with a skill or your own defaults, this file wins.
 | Strings | String Catalog (`Localizable.xcstrings`) with generated symbols |
 | Architecture | MVVM, layer-first folders |
 | Tests | Swift Testing for unit tests, XCTest only for UI tests |
-| Remote | `github.com/C5-M3/MainProject`, tasks live in the GitHub Project "Project Management" (#1, org `C5-M3`) |
+| Remote | `github.com/C5-M3/Lezgo`, tasks live in the GitHub Project "Project Management" (#1, org `C5-M3`) |
 
 Do not add third-party dependencies without asking first.
 
@@ -45,9 +45,9 @@ Never push directly to `main`, `staging` or `dev`. Never merge your own PR.
 
 ## Workflow for every task
 
-1. **Find the issue.** Tasks start as draft items in the [GitHub Project](https://github.com/orgs/C5-M3/projects/1). If the task is still a draft, convert it to an issue in `C5-M3/MainProject` (in the web UI: open the draft, then "Convert to issue"). If it is not in the project at all, create the issue and add it:
+1. **Find the issue.** Tasks start as draft items in the [GitHub Project](https://github.com/orgs/C5-M3/projects/1). If the task is still a draft, convert it to an issue in `C5-M3/Lezgo` (in the web UI: open the draft, then "Convert to issue"). If it is not in the project at all, create the issue and add it:
    ```bash
-   gh issue create --repo C5-M3/MainProject --title "<short title>" --body "<what and why>"
+   gh issue create --repo C5-M3/Lezgo --title "<short title>" --body "<what and why>"
    gh project item-add 1 --owner C5-M3 --url <issue-url>
    ```
    Move the item to "In Progress" in the project when you start.
@@ -122,8 +122,8 @@ A shared component must be used in at least two places. Code used in only one pl
 Folders are grouped by layer, not by feature. The project uses Xcode synchronized folders, so new files and folders on disk appear in Xcode automatically.
 
 ```
-MainProject/
-├── App/              MainProjectApp.swift, app-wide setup
+Lezgo/
+├── App/              LezgoApp.swift, app-wide setup
 ├── Models/           SwiftData @Model types and plain value types
 ├── ViewModels/       One @Observable view model per screen
 ├── Views/
@@ -132,8 +132,8 @@ MainProject/
 ├── Services/         Networking, persistence and system access behind protocols
 ├── Extensions/       Small extensions on Apple types
 └── Resources/        Assets.xcassets, Localizable.xcstrings
-MainProjectTests/     Unit tests, mirroring the folders above
-MainProjectUITests/   UI tests
+LezgoTests/           Unit tests, mirroring the folders above
+LezgoUITests/         UI tests
 ```
 
 - Each screen has a pair: `ProfileView` and `ProfileViewModel`. The test is `ProfileViewModelTests`.
@@ -182,10 +182,10 @@ Rules:
 Run tests from the command line:
 
 ```bash
-xcodebuild test -project MainProject.xcodeproj -scheme MainProject -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+xcodebuild test -project Lezgo.xcodeproj -scheme Lezgo -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
-If the project has no test target yet, stop and ask the user to add `MainProjectTests` in Xcode (File > New > Target > Unit Testing Bundle) before writing code.
+If the project has no test target yet, stop and ask the user to add `LezgoTests` in Xcode (File > New > Target > Unit Testing Bundle) before writing code.
 
 
 ## Swift and SwiftUI rules
