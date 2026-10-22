@@ -1,7 +1,5 @@
 # Lezgo
 
-Lezgo is an iOS app built with SwiftUI and SwiftData.
-
 - **Tasks:** [GitHub Project](https://github.com/orgs/C5-M3/projects/1)
 - **Coding rules for humans and AI agents:** [AGENTS.md](AGENTS.md)
 
