@@ -12,19 +12,14 @@ If a rule here conflicts with a skill or your own defaults, this file wins.
 
 How the app works:
 
-- One phone is one car. Every trip has exactly one **Leader** (the lead driver); everyone else is a **Member**.
-- The Leader plans the route (start point, 0 or more checkpoints, destination) and opens a **Trip Room**. Members join with a 6-character room code or an invite link.
+- One car is one person with one phone: only one person per car joins. There are only two roles: one **Leader** per trip (the lead car) and **Members** (everyone else). A member driving alone is still just a member.
+- The Leader plans the route (start point, 0 or more checkpoints, destination) and opens a **Trip Room**. Members join with a 6-digit room code (numbers only) or an invite link.
 - In the Trip Room the group reviews the route and the participant list. The Leader can remove participants, hand over the lead and start the trip.
 - During the trip everyone sees the shared route and every car on the map. Tapping a car shows its driver, status, street and ETA. Members get silent visual alerts when they leave the route, pass a checkpoint, or drive ahead of the Leader.
-- If the Leader leaves the route, the route is recalculated for everyone. The Leader can edit the route, add a new destination on arrival, or end the trip; Members can exit on their own.
+- If the Leader leaves the route, the route is recalculated for everyone. The Leader can edit the route, pick a New Destination on arrival, or End Trip; Members can Exit Trip on their own. When the Leader leaves, the trip ends for everyone (with a warning); to leave without ending it, the Leader hands over the lead first.
 - Safety first: the driver must not be distracted. Alerts are visual, controls are large, and destructive actions ask for confirmation.
 
-Local planning material (git-ignored, shared outside Git; ask the team if you do not have it):
-
-| Folder | Contents |
-| --- | --- |
-| `context/` | Lo-fi screens of every flow (PNG). Treat them as the source of truth for screens and copy. |
-| `tasks/` | User stories (`US-01` to `US-08`) and the task backlog. |
+Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done are in its GitHub issue. Read the issue before you start.
 
 
 ## Project snapshot
