@@ -34,6 +34,7 @@ Closes #
 
 - [ ] Tests were written first and all tests pass
 - [ ] Follows MVVM and the naming rules in AGENTS.md
+- [ ] New or changed architecture decisions are recorded in `docs/adr/` (or none were made)
 - [ ] No warnings, debug prints or commented-out code
 
 ### UI and accessibility
