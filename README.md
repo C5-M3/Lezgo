@@ -2,6 +2,7 @@
 
 - **Tasks:** [GitHub Project](https://github.com/orgs/C5-M3/projects/1)
 - **Coding rules for humans and AI agents:** [AGENTS.md](AGENTS.md)
+- **Past decisions and why we made them:** [docs/adr](docs/adr/README.md)
 
 
 ## Requirements
@@ -119,11 +120,12 @@ Resolve any conflicts during the rebase. Never force-push `main`, `staging` or `
 Xcode Cloud builds the app and ships TestFlight. GitHub Actions checks every pull request:
 
 - **Security Checks:** scans Xcode projects for XCSSET malware and the git history for leaked secrets.
-- **Pull Request Checks:** checks the branch name, the target branch, the PR title and every commit message.
+- **Pull Request Checks:** checks the branch name, the target branch, the PR title, every commit message and the architecture decision records.
 
 Run the same checks locally before you open a pull request:
 
 ```bash
 Scripts/ScanForXcsset.sh .
+Scripts/CheckDecisionRecords.sh
 git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git branch --show-current)" dev "<PR title>"
 ```
