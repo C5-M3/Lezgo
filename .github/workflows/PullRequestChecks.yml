@@ -1,22 +1,27 @@
 # Checks that every pull request follows the team workflow in AGENTS.md:
-# branch name, branch flow (feature -> dev -> staging -> main), PR title and commits.
+# branch name, branch flow (feature -> dev -> staging -> main), PR title and commits,
+# and that the architecture decision records in docs/adr stay valid.
 
 name: Pull Request Checks
 
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
+  # Pushes to trunk branches only run the ADR check; the other rules need a pull request.
+  push:
+    branches: [main, staging, dev]
 
 permissions:
   contents: read
 
 concurrency:
-  group: pull-request-${{ github.event.pull_request.number }}
+  group: pull-request-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   rules:
     name: Branch, Title and Commit Rules
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -39,3 +44,19 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: git log --format=%s "$BASE_SHA..$HEAD_SHA" | Scripts/CheckPullRequestRules.sh "$HEAD_BRANCH" "$BASE_BRANCH" "$PR_TITLE"
+
+  decision-records:
+    name: Architecture Decision Records
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test the ADR checker
+        run: Scripts/Tests/CheckDecisionRecordsTests.sh
+
+      - name: Check the ADRs
+        run: Scripts/CheckDecisionRecords.sh docs/adr
