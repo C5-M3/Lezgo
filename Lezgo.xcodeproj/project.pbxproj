@@ -6,6 +6,23 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		D82A00000000000000001006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D81FC5F630871E5800EC9E22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D81FC5FD30871E5800EC9E22;
+			remoteInfo = Lezgo;
+		};
+		D82A00000000000000001011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D81FC5F630871E5800EC9E22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D81FC5FD30871E5800EC9E22;
+			remoteInfo = Lezgo;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		D81FC5FE30871E5800EC9E22 /* Lezgo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lezgo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D82A00000000000000001001 /* LezgoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LezgoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -29,36 +46,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXContainerItemProxy section */
-		D82A00000000000000001006 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D81FC5F630871E5800EC9E22 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = D81FC5FD30871E5800EC9E22;
-			remoteInfo = Lezgo;
-		};
-		D82A00000000000000001011 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = D81FC5F630871E5800EC9E22 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = D81FC5FD30871E5800EC9E22;
-			remoteInfo = Lezgo;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXTargetDependency section */
-		D82A00000000000000001007 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = D81FC5FD30871E5800EC9E22 /* Lezgo */;
-			targetProxy = D82A00000000000000001006 /* PBXContainerItemProxy */;
-		};
-		D82A00000000000000001012 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = D81FC5FD30871E5800EC9E22 /* Lezgo */;
-			targetProxy = D82A00000000000000001011 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		D81FC5FB30871E5800EC9E22 /* Frameworks */ = {
@@ -241,6 +228,19 @@
 			);
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D82A00000000000000001007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D81FC5FD30871E5800EC9E22 /* Lezgo */;
+			targetProxy = D82A00000000000000001006 /* PBXContainerItemProxy */;
+		};
+		D82A00000000000000001012 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D81FC5FD30871E5800EC9E22 /* Lezgo */;
+			targetProxy = D82A00000000000000001011 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		D81FC60930871E5800EC9E22 /* Debug configuration for PBXProject "Lezgo" */ = {
