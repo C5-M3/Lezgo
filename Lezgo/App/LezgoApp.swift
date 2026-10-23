@@ -14,7 +14,13 @@ struct LezgoApp: App {
         let schema = Schema([
             Item.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // The app has a CloudKit entitlement for trip sync (ADR 0014). Without `.none`, SwiftData would also
+        // try to mirror this local store to the private database and fail on models CloudKit cannot store.
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .none
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
