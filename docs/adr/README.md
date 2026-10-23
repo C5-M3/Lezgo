@@ -28,3 +28,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0011](0011-XcodeCloudAndGitHubActions.md) | Xcode Cloud for builds, GitHub Actions for source checks | Accepted | 2026-10-22 |
 | [0012](0012-PinnedAgentSkills.md) | Pinned agent skills, installed per developer | Accepted | 2026-10-22 |
 | [0013](0013-AppNameAndBundleIdentifier.md) | App name Lezgo and bundle identifier | Accepted | 2026-10-22 |
+| [0014](0014-CloudKitPublicDatabaseForTripSync.md) | CloudKit public database for trip sync | Proposed | 2026-10-23 |
