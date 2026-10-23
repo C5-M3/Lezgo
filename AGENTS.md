@@ -43,7 +43,19 @@ Local planning material (git-ignored, shared outside Git; ask the team if you do
 Do not add third-party dependencies without asking first.
 
 
+## Architecture decisions
+
+Past decisions and their reasons are recorded in [`docs/adr/`](docs/adr/README.md) as architecture decision records (ADRs). AGENTS.md holds the rules; the ADRs hold why.
+
+- Read the [ADR index](docs/adr/README.md) before starting a task. Do not work against an Accepted record, and do not reopen a settled question without a reason.
+- If a task needs a different decision, stop and write a new ADR from `docs/adr/Template.md` with status Proposed. Ask the user to approve it before writing code.
+- Write an ADR when you add a dependency or framework, change the architecture or folder layout, go against Apple's conventions, change the workflow or CI, or make any choice that is hard to undo.
+- Never rewrite an accepted ADR. A new ADR supersedes it, and the old one's status becomes `Superseded by NNNN`.
+
+
 ## Branches
+
+Decision record: [0005](docs/adr/0005-TrunkBranchesAndConventionalBranch.md).
 
 | Branch | Purpose | Who merges into it |
 | --- | --- | --- |
@@ -67,6 +79,8 @@ Never push directly to `main`, `staging` or `dev`. Never merge your own PR.
 
 ## Workflow for every task
 
+Decision record: [0007](docs/adr/0007-IssueBranchPullRequestWorkflow.md).
+
 1. **Find the issue.** Tasks start as draft items in the [GitHub Project](https://github.com/orgs/C5-M3/projects/1). If the task is still a draft, convert it to an issue in `C5-M3/Lezgo` (in the web UI: open the draft, then "Convert to issue"). If it is not in the project at all, create the issue and add it:
    ```bash
    gh issue create --repo C5-M3/Lezgo --title "<short title>" --body "<what and why>"
@@ -80,7 +94,7 @@ Never push directly to `main`, `staging` or `dev`. Never merge your own PR.
    gh issue develop <number> --base dev --name feature/issue-<number>-<short-description> --checkout
    ```
    While working, keep the branch current with `git pull --rebase origin dev`, resolve any conflicts, then `git push --force-with-lease`. Never force-push a trunk branch.
-3. **Look for existing code before writing new code** (see [Reuse before you build](#reuse-before-you-build)).
+3. **Look for existing code and decisions before writing new code** (see [Reuse before you build](#reuse-before-you-build) and [Architecture decisions](#architecture-decisions)).
 4. **Write the failing test first**, then the code (see [Test-driven development](#test-driven-development)).
 5. **Commit and push every small step.** One logical change per commit. Do not save work up for one big commit.
 6. **Check the UI and the edge cases** in the simulator (see [UI checks after coding](#ui-checks-after-coding)).
@@ -99,18 +113,21 @@ Never push directly to `main`, `staging` or `dev`. Never merge your own PR.
 
 ## Continuous integration
 
+Decision record: [0011](docs/adr/0011-XcodeCloudAndGitHubActions.md).
+
 Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the source:
 
 | Workflow | Runs on | Checks |
 | --- | --- | --- |
 | `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
-| `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`) |
+| `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`), ADR format and index (`Scripts/CheckDecisionRecords.sh`) |
 | `SwiftLint` | Every PR, pushes to `main`, `staging`, `dev` | `.swiftlint.yml` rules in strict mode: any warning fails |
 
 Run the same checks locally before opening a PR:
 
 ```bash
 Scripts/ScanForXcsset.sh .
+Scripts/CheckDecisionRecords.sh
 git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git branch --show-current)" dev "<PR title>"
 ```
 
@@ -118,6 +135,8 @@ Never add a build script phase, scheme pre/post action or build rule without exp
 
 
 ## Commits
+
+Decision record: [0006](docs/adr/0006-ConventionalCommits.md).
 
 Use [Conventional Commits](https://www.conventionalcommits.org): `<type>(<optional scope>): <summary>`.
 
@@ -141,6 +160,8 @@ A shared component must be used in at least two places. Code used in only one pl
 
 
 ## Architecture: MVVM, layer first
+
+Decision record: [0003](docs/adr/0003-MvvmLayerFirst.md).
 
 Folders are grouped by layer, not by feature. The project uses Xcode synchronized folders, so new files and folders on disk appear in Xcode automatically. Git does not track empty folders, so a layer folder appears when its first file is added. Do not add placeholder files: Xcode copies them into the app bundle.
 
@@ -169,6 +190,8 @@ LezgoUITests/         UI tests
 
 ## Naming
 
+Decision record: [0004](docs/adr/0004-PascalCaseFunctionNames.md).
+
 | What | Style | Example |
 | --- | --- | --- |
 | Files | PascalCase | `ProfileViewModel.swift` |
@@ -192,6 +215,8 @@ Everything in the code is written in English: names, comments, commit messages, 
 
 
 ## Test-driven development
+
+Decision record: [0008](docs/adr/0008-TestDrivenDevelopment.md).
 
 Every change follows red, green, refactor:
 
@@ -270,6 +295,8 @@ Attach screenshots of the changed screens to the PR.
 
 ## Accessibility (minimum bar)
 
+Decision record: [0009](docs/adr/0009-AccessibilityMinimumBar.md).
+
 - **Dynamic Type:** text uses text styles and scales. Layouts adapt at large sizes (stack vertically, allow wrapping, use `ViewThatFits`), and nothing is clipped or truncated without a way to read it.
 - **Color contrast:** at least 4.5:1 for body text and 3:1 for large text and icons, in light and dark mode. Never use color as the only way to show meaning.
 - **VoiceOver:** every control has a clear label (`"Close"`, not `"Close button"`). Decorative images are hidden; meaningful ones have labels. Related elements are grouped.
@@ -280,6 +307,8 @@ Check with Xcode's Accessibility Inspector and the Dynamic Type size slider in t
 
 
 ## Security
+
+Decision record: [0010](docs/adr/0010-SecurityBaseline.md).
 
 - Never commit secrets: API keys, tokens, certificates, `.env` files, `Secrets.swift`, `Secrets.xcconfig`. They are in `.gitignore`; keep it that way. If a secret is committed, tell the user immediately so it can be rotated.
 - Store credentials and tokens in the Keychain, never in `UserDefaults`, plists, SwiftData or files.
@@ -303,6 +332,8 @@ Keep it short and simple. Use small code snippets only when they make the idea c
 
 
 ## Agent skills
+
+Decision record: [0012](docs/adr/0012-PinnedAgentSkills.md).
 
 These skills give agents up-to-date Swift knowledge. They are installed per developer, not committed (`.agents/` and `.claude/` are git-ignored). Install them once after cloning:
 
