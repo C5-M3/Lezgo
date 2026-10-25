@@ -51,6 +51,8 @@ struct HomeView: View {
                         isSearchFocused = false
                         hideKeyboard()
                     }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel("Tutup pencarian")
             }
             
             locationInfoCard
@@ -78,6 +80,7 @@ struct HomeView: View {
                     Image(systemName: "location.slash.fill")
                         .font(.title2)
                         .foregroundStyle(.red)
+                        .accessibilityHidden(true)
                     
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Akses Lokasi Ditolak")
