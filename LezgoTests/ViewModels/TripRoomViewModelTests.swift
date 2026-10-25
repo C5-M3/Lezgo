@@ -227,4 +227,19 @@ struct TripRoomViewModelTests {
 
         #expect(viewModel.RemoveParticipantConfirmationTitle(for: member) == "Remove Matthew from the trip?")
     }
+
+    @Test func CanKickReturnsTrueOnlyForMembersWhenLeaderAndNotInSelectionMode() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let member = Participant(name: "Member", description: "Car 2", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: true)
+
+        #expect(viewModel.CanKick(participant: member) == true)
+        #expect(viewModel.CanKick(participant: leader) == false)
+
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.CanKick(participant: member) == false)
+
+        let memberViewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: false)
+        #expect(memberViewModel.CanKick(participant: member) == false)
+    }
 }

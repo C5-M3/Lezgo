@@ -8,6 +8,7 @@ public struct TripRoomView: View {
     @State private var showingStartTripConfirmation = false
     @State private var showingRemoveConfirmation = false
     @State private var showingSetLeaderSheet = false
+    @State private var participantToKick: Participant?
     @Environment(\.dismiss) private var dismiss
 
     public init(viewModel: TripRoomViewModel) {
@@ -25,12 +26,8 @@ public struct TripRoomView: View {
 
                 VStack(spacing: 20) {
                     TopBarView(
-                        isSelectionMode: viewModel.isSelectionMode,
-                        selectAllTitle: viewModel.selectAllButtonTitle,
+                        viewModel: viewModel,
                         onLeave: { showingLeaveConfirmation = true },
-                        onSelect: viewModel.ToggleSelectionMode,
-                        onSelectAll: viewModel.SelectAll,
-                        onDoneSelection: viewModel.ToggleSelectionMode,
                         onSetLeader: { showingSetLeaderSheet = true }
                     )
 
@@ -52,42 +49,29 @@ public struct TripRoomView: View {
                                             .font(.system(size: 14, weight: .bold))
                                             .frame(width: 32, height: 32)
                                             .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                            .clipShape(.rect(cornerRadius: 8))
-                                            .accessibilityHidden(true)
+                                            .clipShape(.rect(cornerRadius: 8)).accessibilityHidden(true)
                                     }
-                                    .buttonStyle(.plain)
-                                    .frame(minWidth: 44, minHeight: 44)
+                                    .buttonStyle(.plain).frame(minWidth: 44, minHeight: 44)
                                     .accessibilityLabel("Invite participant")
                                 }
 
-                                ParticipantsCardView(
-                                    participants: viewModel.participants,
-                                    isSelectionMode: viewModel.isSelectionMode,
-                                    selectedParticipantIds: viewModel.selectedParticipantIds,
-                                    onToggleSelection: viewModel.ToggleParticipantSelection(id:)
-                                )
+                                ParticipantsCardView(viewModel: viewModel, onKick: { participantToKick = $0 })
                             }
                         }
                         .padding(.horizontal, 16)
                     }
 
                     BottomActionView(
-                        isSelectionMode: viewModel.isSelectionMode,
-                        isLeader: viewModel.isCurrentUserLeader,
-                        canRemove: viewModel.canRemove,
+                        viewModel: viewModel,
                         onStartTrip: { showingStartTripConfirmation = true },
                         onRemove: { showingRemoveConfirmation = true }
                     )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, 16).padding(.bottom, 8)
                 }
             }
             .navigationBarBackButtonHidden(true)
             .confirmationDialog("Leave Trip Room?", isPresented: $showingLeaveConfirmation, titleVisibility: .visible) {
-                Button("Leave Trip Room", role: .destructive) {
-                    viewModel.LeaveRoom()
-                    dismiss()
-                }
+                Button("Leave Trip Room", role: .destructive) { viewModel.LeaveRoom(); dismiss() }
                 Button("Cancel", role: .cancel) { }
             } message: {
                 Text("Leaving without handing over the lead will end the trip for everyone.")
@@ -98,20 +82,27 @@ public struct TripRoomView: View {
             }
             .alert(viewModel.removeConfirmationTitle, isPresented: $showingRemoveConfirmation) {
                 Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) { viewModel.RemoveSelectedParticipants() }
+            }
+            .alert(
+                viewModel.RemoveParticipantConfirmationTitle(
+                    for: participantToKick ?? Participant(name: "", description: "")
+                ),
+                isPresented: Binding(get: { participantToKick != nil }, set: { if !$0 { participantToKick = nil } })
+            ) {
+                Button("Cancel", role: .cancel) { participantToKick = nil }
                 Button("Remove", role: .destructive) {
-                    viewModel.RemoveSelectedParticipants()
+                    if let member = participantToKick {
+                        viewModel.RemoveParticipant(id: member.id)
+                        participantToKick = nil
+                    }
                 }
             }
             .sheet(isPresented: $showingInviteSheet) {
                 InviteSheetView(roomCode: viewModel.roomCode, inviteURL: viewModel.inviteURL)
             }
             .sheet(isPresented: $showingSetLeaderSheet) {
-                SetLeaderSheetView(
-                    participants: viewModel.participants,
-                    onSelectLeader: { newLeader in
-                        viewModel.SetLeader(to: newLeader)
-                    }
-                )
+                SetLeaderSheetView(participants: viewModel.participants, onSelectLeader: viewModel.SetLeader(to:))
             }
         }
     }
@@ -120,18 +111,14 @@ public struct TripRoomView: View {
 // MARK: - Local Subviews
 
 private struct TopBarView: View {
-    let isSelectionMode: Bool
-    let selectAllTitle: String
+    let viewModel: TripRoomViewModel
     let onLeave: () -> Void
-    let onSelect: () -> Void
-    let onSelectAll: () -> Void
-    let onDoneSelection: () -> Void
     let onSetLeader: () -> Void
 
     var body: some View {
         HStack {
-            if isSelectionMode {
-                Button(selectAllTitle, action: onSelectAll)
+            if viewModel.isSelectionMode {
+                Button(viewModel.selectAllButtonTitle, action: viewModel.SelectAll)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 16)
@@ -141,7 +128,7 @@ private struct TopBarView: View {
                     .buttonStyle(.plain)
             } else {
                 Button(action: onLeave) {
-                    Image(systemName: "door.left.hand.open").modifier(TopBarCircleIconStyle())
+                    Image(systemName: "door.left.hand.open").circleBarButtonStyle()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Leave trip room")
@@ -149,18 +136,18 @@ private struct TopBarView: View {
 
             Spacer()
 
-            if isSelectionMode {
-                Button(action: onDoneSelection) {
-                    Image(systemName: "checkmark").modifier(TopBarCircleIconStyle())
+            if viewModel.isSelectionMode {
+                Button(action: viewModel.ToggleSelectionMode) {
+                    Image(systemName: "checkmark").circleBarButtonStyle()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Done selecting")
             } else {
                 Menu {
-                    Button("Select", action: onSelect)
+                    Button("Select", action: viewModel.ToggleSelectionMode)
                     Button("Set leader", action: onSetLeader)
                 } label: {
-                    Image(systemName: "ellipsis").modifier(TopBarCircleIconStyle())
+                    Image(systemName: "ellipsis").circleBarButtonStyle()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Room options")
@@ -171,10 +158,9 @@ private struct TopBarView: View {
     }
 }
 
-private struct TopBarCircleIconStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .font(.system(size: 18, weight: .semibold))
+private extension View {
+    func circleBarButtonStyle() -> some View {
+        font(.system(size: 18, weight: .semibold))
             .foregroundStyle(.primary)
             .frame(width: 44, height: 44)
             .background(Color(uiColor: .secondarySystemGroupedBackground))
@@ -190,73 +176,46 @@ private struct RouteCardView: View {
         VStack(spacing: 0) {
             ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
                 HStack(spacing: 12) {
-                    StopIcon(for: stop.kind).frame(width: 20, height: 20)
+                    Image(systemName: stop.kind.iconName)
+                        .font(stop.kind == .checkpoint ? .system(size: 8) : .system(size: 16, weight: .semibold))
+                        .foregroundStyle(stop.kind == .checkpoint ? .secondary : .primary)
+                        .frame(width: 20, height: 20)
+                        .accessibilityHidden(true)
 
-                    Text(stop.name)
-                        .font(.body)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
+                    Text(stop.name).font(.body).lineLimit(2)
                     Spacer()
                 }
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
+                .padding(.vertical, 14).padding(.horizontal, 16)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("\(stop.kind.accessibilityPrefix): \(stop.name)")
-
-                if index < stops.count - 1 {
-                    Divider().padding(.leading, 48)
-                }
+                if index < stops.count - 1 { Divider().padding(.leading, 48) }
             }
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: 16))
     }
-
-    @ViewBuilder
-    private func StopIcon(for kind: TripRoomViewModel.RouteStopKind) -> some View {
-        switch kind {
-        case .start:
-            Image(systemName: "house.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .accessibilityHidden(true)
-        case .checkpoint:
-            Image(systemName: "circle.fill")
-                .font(.system(size: 8))
-                .foregroundStyle(.secondary)
-                .accessibilityHidden(true)
-        case .destination:
-            Image(systemName: "mappin.and.ellipse")
-                .font(.system(size: 16, weight: .semibold))
-                .accessibilityHidden(true)
-        }
-    }
 }
 
 private struct ParticipantsCardView: View {
-    let participants: [Participant]
-    let isSelectionMode: Bool
-    let selectedParticipantIds: Set<UUID>
-    let onToggleSelection: (UUID) -> Void
+    let viewModel: TripRoomViewModel
+    let onKick: (Participant) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            if participants.isEmpty {
-                Text("No participants yet")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 24)
+            if viewModel.participants.isEmpty {
+                Text("No participants yet").font(.subheadline).foregroundStyle(.secondary).padding(.vertical, 24)
             } else {
-                ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
+                ForEach(Array(viewModel.participants.enumerated()), id: \.element.id) { index, participant in
                     ParticipantRowView(
                         participant: participant,
-                        isSelectionMode: isSelectionMode,
-                        isSelected: selectedParticipantIds.contains(participant.id),
-                        onToggleSelection: { onToggleSelection(participant.id) }
+                        isSelectionMode: viewModel.isSelectionMode,
+                        isSelected: viewModel.selectedParticipantIds.contains(participant.id),
+                        canSwipeToKick: viewModel.CanKick(participant: participant),
+                        onToggleSelection: { viewModel.ToggleParticipantSelection(id: participant.id) },
+                        onKick: { onKick(participant) }
                     )
-
-                    if index < participants.count - 1 {
-                        Divider().padding(.leading, isSelectionMode ? 92 : 56)
+                    if index < viewModel.participants.count - 1 {
+                        Divider().padding(.leading, viewModel.isSelectionMode ? 92 : 56)
                     }
                 }
             }
@@ -270,44 +229,89 @@ private struct ParticipantRowView: View {
     let participant: Participant
     let isSelectionMode: Bool
     let isSelected: Bool
+    let canSwipeToKick: Bool
     let onToggleSelection: () -> Void
+    let onKick: () -> Void
+
+    @State private var offset: CGFloat = 0
+    @State private var isSwiped = false
 
     var body: some View {
-        Button(action: onToggleSelection) {
-            HStack(spacing: 12) {
-                if isSelectionMode { selectionIndicator }
-
-                Circle()
-                    .fill(Color.secondary.opacity(0.3))
-                    .frame(width: 36, height: 36)
-                    .overlay {
-                        Text(String(participant.name.prefix(1))).font(.subheadline.bold())
+        ZStack(alignment: .trailing) {
+            if canSwipeToKick {
+                Button(action: onKick) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "trash").font(.system(size: 16, weight: .semibold))
+                        Text("Kick").font(.caption2.weight(.medium))
                     }
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(participant.name).font(.body.weight(.medium)).foregroundStyle(.primary)
-                    Text(participant.description).font(.caption).foregroundStyle(.secondary)
+                    .foregroundStyle(.white)
+                    .frame(width: 68)
+                    .frame(maxHeight: .infinity)
+                    .background(Color(uiColor: .systemGray))
                 }
-
-                Spacer()
-
-                if participant.isLeader {
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.primary)
-                        .accessibilityLabel("Leader")
-                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Kick \(participant.name)")
             }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .contentShape(Rectangle())
+
+            Button {
+                if isSwiped {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { offset = 0; isSwiped = false }
+                } else if isSelectionMode {
+                    onToggleSelection()
+                }
+            } label: {
+                rowContent
+            }
+            .buttonStyle(.plain)
+            .disabled(!isSelectionMode && !isSwiped)
+            .offset(x: offset)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .simultaneousGesture(canSwipeToKick ? dragGesture : nil)
         }
-        .buttonStyle(.plain)
-        .disabled(!isSelectionMode || participant.isLeader)
+        .clipped()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityRowLabel)
         .accessibilityAddTraits(isSelectionMode && !participant.isLeader ? .isButton : [])
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 15, coordinateSpace: .local)
+            .onChanged { value in
+                if value.translation.width < 0 {
+                    offset = max(-68, value.translation.width)
+                } else if isSwiped {
+                    offset = min(0, -68 + value.translation.width)
+                }
+            }
+            .onEnded { value in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isSwiped = value.translation.width < -30
+                    offset = isSwiped ? -68 : 0
+                }
+            }
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
+            if isSelectionMode { selectionIndicator }
+
+            Circle().fill(Color.secondary.opacity(0.3)).frame(width: 36, height: 36)
+                .overlay { Text(String(participant.name.prefix(1))).font(.subheadline.bold()) }
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(participant.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                Text(participant.description).font(.caption).foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if participant.isLeader {
+                Image(systemName: "crown.fill").font(.system(size: 16)).accessibilityLabel("Leader")
+            }
+        }
+        .padding(.vertical, 12).padding(.horizontal, 16)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder
@@ -337,28 +341,29 @@ private struct ParticipantRowView: View {
 }
 
 private struct BottomActionView: View {
-    let isSelectionMode: Bool
-    let isLeader: Bool
-    let canRemove: Bool
+    let viewModel: TripRoomViewModel
     let onStartTrip: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
-        if isSelectionMode {
+        if viewModel.isSelectionMode {
             HStack {
                 Spacer()
                 Button("Remove", action: onRemove)
                     .font(.headline)
-                    .foregroundStyle(canRemove ? .primary : .secondary)
+                    .foregroundStyle(viewModel.canRemove ? .primary : .secondary)
                     .padding(.horizontal, 24)
                     .frame(height: 44)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(canRemove ? 1.0 : 0.6))
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground)
+                            .opacity(viewModel.canRemove ? 1.0 : 0.6)
+                    )
                     .clipShape(Capsule())
                     .buttonStyle(.plain)
-                    .disabled(!canRemove)
+                    .disabled(!viewModel.canRemove)
                     .accessibilityLabel("Remove selected participants")
             }
-        } else if isLeader {
+        } else if viewModel.isCurrentUserLeader {
             Button("Start Trip", action: onStartTrip)
                 .font(.headline)
                 .foregroundStyle(.white)
@@ -369,10 +374,8 @@ private struct BottomActionView: View {
                 .accessibilityLabel("Start Trip")
         } else {
             Text("Waiting for leader to start...")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 52)
+                .font(.subheadline).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity).frame(minHeight: 52)
                 .background(Color(uiColor: .secondarySystemGroupedBackground))
                 .clipShape(.rect(cornerRadius: 14))
         }

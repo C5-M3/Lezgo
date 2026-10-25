@@ -25,6 +25,14 @@ public final class TripRoomViewModel {
             case .destination: return "Destination"
             }
         }
+
+        public var iconName: String {
+            switch self {
+            case .start: return "house.fill"
+            case .checkpoint: return "circle.fill"
+            case .destination: return "mappin.and.ellipse"
+            }
+        }
     }
 
     /// Represents a stop along the planned trip route.
@@ -186,6 +194,11 @@ public final class TripRoomViewModel {
     /// Generates the confirmation dialog title for removing a single participant.
     public func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
         "Remove \(participant.name) from the trip?"
+    }
+
+    /// Determines if the current user can swipe to kick a specific participant.
+    public func CanKick(participant: Participant) -> Bool {
+        isCurrentUserLeader && !isSelectionMode && !participant.isLeader
     }
 
     /// Designates a participant as the new leader and clears leadership from others.
