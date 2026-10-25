@@ -50,6 +50,20 @@ struct TripRoomViewModelTests {
 
         #expect(viewModel.participants[0].isLeader == false)
         #expect(viewModel.participants[1].isLeader == true)
+        #expect(viewModel.isCurrentUserLeader == false)
+    }
+
+    @Test func SetLeaderWithNonMemberLeavesStateUnchanged() {
+        let p1 = Participant(name: "Leader 1", description: "Car 1", isLeader: true)
+        let p2 = Participant(name: "Member 2", description: "Car 2", isLeader: false)
+        let nonMember = Participant(name: "Non Member", description: "Car 99", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [p1, p2], isCurrentUserLeader: true)
+
+        viewModel.SetLeader(to: nonMember)
+
+        #expect(viewModel.participants[0].isLeader == true)
+        #expect(viewModel.participants[1].isLeader == false)
+        #expect(viewModel.isCurrentUserLeader == true)
     }
 
     @Test func LeaveRoomSetsStatusToCancelled() {

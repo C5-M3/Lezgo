@@ -16,6 +16,7 @@ public final class TripRoomViewModel {
     public var destinationName: String
     public var participants: [Participant]
     public var isCurrentUserLeader: Bool
+    public var currentUserId: UUID
     public var isSelectionMode: Bool
     public var tripStatus: TripStatus
 
@@ -23,12 +24,22 @@ public final class TripRoomViewModel {
         originName: String = "Cilandak Town Square, Jakarta",
         destinationName: String = "Puncak Pass Resort, Bogor",
         participants: [Participant] = [],
-        isCurrentUserLeader: Bool = true
+        isCurrentUserLeader: Bool = true,
+        currentUserId: UUID? = nil
     ) {
         self.originName = originName
         self.destinationName = destinationName
         self.participants = participants
         self.isCurrentUserLeader = isCurrentUserLeader
+        if let currentUserId {
+            self.currentUserId = currentUserId
+        } else if isCurrentUserLeader, let initialLeader = participants.first(where: { $0.isLeader }) {
+            self.currentUserId = initialLeader.id
+        } else if !isCurrentUserLeader, let firstMember = participants.first(where: { !$0.isLeader }) {
+            self.currentUserId = firstMember.id
+        } else {
+            self.currentUserId = UUID()
+        }
         self.isSelectionMode = false
         self.tripStatus = .waiting
     }
@@ -49,6 +60,9 @@ public final class TripRoomViewModel {
         guard participants.contains(where: { $0.id == participant.id }) else { return }
         for index in participants.indices {
             participants[index].isLeader = (participants[index].id == participant.id)
+        }
+        if let leader = participants.first(where: { $0.isLeader }) {
+            isCurrentUserLeader = (leader.id == currentUserId)
         }
     }
 

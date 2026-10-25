@@ -4,6 +4,7 @@ import SwiftUI
 public struct TripRoomView: View {
     @State private var viewModel: TripRoomViewModel
     @State private var showingInviteSheet = false
+    @State private var showingLeaveConfirmation = false
     @Environment(\.dismiss) private var dismiss
 
     public init(viewModel: TripRoomViewModel) {
@@ -24,8 +25,7 @@ public struct TripRoomView: View {
                     // Top Bar
                     TopBarView(
                         onLeave: {
-                            viewModel.LeaveRoom()
-                            dismiss()
+                            showingLeaveConfirmation = true
                         },
                         onSelect: viewModel.ToggleSelectionMode,
                         onSetLeader: {
@@ -71,13 +71,14 @@ public struct TripRoomView: View {
                                     .accessibilityLabel("Invite participant")
                                 }
 
-                                ParticipantsCardView(participants: viewModel.participants)
+                                ParticipantsCardView(
+                                    participants: viewModel.participants,
+                                    isSelectionMode: viewModel.isSelectionMode
+                                )
                             }
                         }
                         .padding(.horizontal, 16)
                     }
-
-                    Spacer()
 
                     // Bottom Action Area
                     BottomActionView(
@@ -89,6 +90,19 @@ public struct TripRoomView: View {
                 }
             }
             .navigationBarBackButtonHidden(true)
+            .confirmationDialog(
+                "Leave Trip Room?",
+                isPresented: $showingLeaveConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Leave Trip Room", role: .destructive) {
+                    viewModel.LeaveRoom()
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Leaving without handing over the lead will end the trip for everyone.")
+            }
             .sheet(isPresented: $showingInviteSheet) {
                 InvitePlaceholderSheet()
             }
@@ -145,11 +159,13 @@ private struct RouteCardView: View {
                 Circle()
                     .fill(Color.secondary)
                     .frame(width: 12, height: 12)
+                    .accessibilityHidden(true)
 
                 Text(origin)
                     .font(.body)
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
             }
@@ -163,11 +179,13 @@ private struct RouteCardView: View {
                 Circle()
                     .fill(Color.secondary)
                     .frame(width: 12, height: 12)
+                    .accessibilityHidden(true)
 
                 Text(destination)
                     .font(.body)
                     .foregroundStyle(.primary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Spacer()
             }
@@ -181,6 +199,7 @@ private struct RouteCardView: View {
 
 private struct ParticipantsCardView: View {
     let participants: [Participant]
+    let isSelectionMode: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -191,7 +210,10 @@ private struct ParticipantsCardView: View {
                     .padding(.vertical, 24)
             } else {
                 ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
-                    ParticipantRowView(participant: participant)
+                    ParticipantRowView(
+                        participant: participant,
+                        isSelectionMode: isSelectionMode
+                    )
 
                     if index < participants.count - 1 {
                         Divider()
@@ -207,9 +229,17 @@ private struct ParticipantsCardView: View {
 
 private struct ParticipantRowView: View {
     let participant: Participant
+    let isSelectionMode: Bool
 
     var body: some View {
         HStack(spacing: 12) {
+            if isSelectionMode {
+                Image(systemName: "circle")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
+            }
+
             Circle()
                 .fill(Color.secondary.opacity(0.3))
                 .frame(width: 36, height: 36)
@@ -218,6 +248,7 @@ private struct ParticipantRowView: View {
                         .font(.subheadline.bold())
                         .foregroundStyle(.primary)
                 }
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(participant.name)
@@ -241,6 +272,7 @@ private struct ParticipantRowView: View {
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -255,7 +287,8 @@ private struct BottomActionView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(minHeight: 52)
+                    .padding(.vertical, 8)
                     .background(Color.accentColor)
                     .clipShape(.rect(cornerRadius: 14))
             }
@@ -266,9 +299,12 @@ private struct BottomActionView: View {
                 Text("Waiting for leader to start...")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
                 Spacer()
             }
-            .frame(height: 52)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 52)
+            .padding(.vertical, 8)
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             .clipShape(.rect(cornerRadius: 14))
         }
