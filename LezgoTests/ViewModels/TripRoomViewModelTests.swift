@@ -106,4 +106,93 @@ struct TripRoomViewModelTests {
         #expect(viewModel.roomCode == "5JUV83")
         #expect(viewModel.inviteURL.absoluteString == "lezgo://join?code=5JUV83")
     }
+
+    @Test func SelectionModeTogglesAndClearsSelection() {
+        let p1 = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let p2 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [p1, p2])
+
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.isSelectionMode == true)
+
+        viewModel.ToggleParticipantSelection(id: p2.id)
+        #expect(viewModel.selectedParticipantIds.contains(p2.id))
+
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.isSelectionMode == false)
+        #expect(viewModel.selectedParticipantIds.isEmpty)
+    }
+
+    @Test func LeaderCannotBeSelectedForRemoval() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let viewModel = TripRoomViewModel(participants: [leader])
+
+        viewModel.ToggleSelectionMode()
+        viewModel.ToggleParticipantSelection(id: leader.id)
+
+        #expect(viewModel.selectedParticipantIds.isEmpty)
+    }
+
+    @Test func SelectAllTogglesSelectionOfAllMembers() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let m1 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
+        let m2 = Participant(name: "Member 2", description: "Car 3", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [leader, m1, m2])
+
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.areAllMembersSelected == false)
+
+        viewModel.SelectAll()
+        #expect(viewModel.selectedParticipantIds.count == 2)
+        #expect(viewModel.selectedParticipantIds.contains(m1.id))
+        #expect(viewModel.selectedParticipantIds.contains(m2.id))
+        #expect(!viewModel.selectedParticipantIds.contains(leader.id))
+        #expect(viewModel.areAllMembersSelected == true)
+        #expect(viewModel.canRemove == true)
+
+        viewModel.SelectAll()
+        #expect(viewModel.selectedParticipantIds.isEmpty)
+        #expect(viewModel.areAllMembersSelected == false)
+        #expect(viewModel.canRemove == false)
+    }
+
+    @Test func RemoveConfirmationTitleFormatsCorrectly() {
+        let p1 = Participant(name: "Matthew", description: "Civic", isLeader: false)
+        let p2 = Participant(name: "Farr", description: "HRV", isLeader: false)
+        let p3 = Participant(name: "Doni", description: "Yaris", isLeader: false)
+        let p4 = Participant(name: "Rian", description: "Avanza", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [p1, p2, p3, p4])
+
+        #expect(viewModel.removeConfirmationTitle == "Remove participants from the trip?")
+
+        viewModel.ToggleParticipantSelection(id: p1.id)
+        #expect(viewModel.removeConfirmationTitle == "Remove Matthew from the trip?")
+
+        viewModel.ToggleParticipantSelection(id: p2.id)
+        #expect(viewModel.removeConfirmationTitle == "Remove Matthew and 1 other from the trip?")
+
+        viewModel.ToggleParticipantSelection(id: p3.id)
+        viewModel.ToggleParticipantSelection(id: p4.id)
+        #expect(viewModel.removeConfirmationTitle == "Remove Matthew and 3 others from the trip?")
+    }
+
+    @Test func RemoveSelectedParticipantsRemovesOnlySelectedMembersAndExitsMode() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let m1 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
+        let m2 = Participant(name: "Member 2", description: "Car 3", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [leader, m1, m2])
+
+        viewModel.ToggleSelectionMode()
+        viewModel.ToggleParticipantSelection(id: m1.id)
+        #expect(viewModel.canRemove == true)
+
+        viewModel.RemoveSelectedParticipants()
+
+        #expect(viewModel.participants.count == 2)
+        #expect(viewModel.participants.contains(where: { $0.id == leader.id }))
+        #expect(viewModel.participants.contains(where: { $0.id == m2.id }))
+        #expect(!viewModel.participants.contains(where: { $0.id == m1.id }))
+        #expect(viewModel.selectedParticipantIds.isEmpty)
+        #expect(viewModel.isSelectionMode == false)
+    }
 }
