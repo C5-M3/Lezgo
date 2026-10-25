@@ -58,7 +58,9 @@ public struct TripRoomView: View {
 
                                     Spacer()
 
-                                    Button(action: { showingInviteSheet = true }) {
+                                    Button {
+                                        showingInviteSheet = true
+                                    } label: {
                                         Image(systemName: "plus")
                                             .font(.system(size: 14, weight: .bold))
                                             .padding(8)
