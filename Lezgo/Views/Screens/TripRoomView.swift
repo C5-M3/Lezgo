@@ -7,6 +7,7 @@ public struct TripRoomView: View {
     @State private var showingLeaveConfirmation = false
     @State private var showingStartTripConfirmation = false
     @State private var showingRemoveConfirmation = false
+    @State private var showingSetLeaderSheet = false
     @Environment(\.dismiss) private var dismiss
 
     public init(viewModel: TripRoomViewModel) {
@@ -30,11 +31,7 @@ public struct TripRoomView: View {
                         onSelect: viewModel.ToggleSelectionMode,
                         onSelectAll: viewModel.SelectAll,
                         onDoneSelection: viewModel.ToggleSelectionMode,
-                        onSetLeader: {
-                            if let member = viewModel.participants.first(where: { !$0.isLeader }) {
-                                viewModel.SetLeader(to: member)
-                            }
-                        }
+                        onSetLeader: { showingSetLeaderSheet = true }
                     )
 
                     ScrollView {
@@ -107,6 +104,14 @@ public struct TripRoomView: View {
             }
             .sheet(isPresented: $showingInviteSheet) {
                 InviteSheetView(roomCode: viewModel.roomCode, inviteURL: viewModel.inviteURL)
+            }
+            .sheet(isPresented: $showingSetLeaderSheet) {
+                SetLeaderSheetView(
+                    participants: viewModel.participants,
+                    onSelectLeader: { newLeader in
+                        viewModel.SetLeader(to: newLeader)
+                    }
+                )
             }
         }
     }

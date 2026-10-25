@@ -185,6 +185,11 @@ public final class TripRoomViewModel {
         }
     }
 
+    /// Generates the confirmation dialog title for transferring leadership to a participant.
+    public func SetLeaderConfirmationTitle(for participant: Participant) -> String {
+        "Set \(participant.name) as Trip Leader?"
+    }
+
     /// Cancels or exits the trip room.
     public func LeaveRoom() {
         tripStatus = .cancelled
