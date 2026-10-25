@@ -116,7 +116,10 @@ public struct TripRoomView: View {
                 }
             }
             .sheet(isPresented: $showingInviteSheet) {
-                InvitePlaceholderSheet()
+                InviteSheetView(
+                    roomCode: viewModel.roomCode,
+                    inviteURL: viewModel.inviteURL
+                )
             }
         }
     }
@@ -336,27 +339,6 @@ private struct BottomActionView: View {
             .padding(.vertical, 8)
             .background(Color(uiColor: .secondarySystemGroupedBackground))
             .clipShape(.rect(cornerRadius: 14))
-        }
-    }
-}
-
-private struct InvitePlaceholderSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
-                Text("Invite Members")
-                    .font(.title2.bold())
-                Text("Room Code: 839201")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
         }
     }
 }

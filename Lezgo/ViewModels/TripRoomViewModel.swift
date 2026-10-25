@@ -32,12 +32,24 @@ public final class TripRoomViewModel {
         }
     }
 
+    public var roomCode: String
     public var routeStops: [RouteStop]
     public var participants: [Participant]
     public var isCurrentUserLeader: Bool
     public var currentUserId: UUID
     public var isSelectionMode: Bool
     public var tripStatus: TripStatus
+
+    public var inviteURL: URL {
+        if let deepLink = URL(string: "lezgo://join?code=\(roomCode)") {
+            return deepLink
+        }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = "lezgo.app"
+        components.path = "/join/\(roomCode)"
+        return components.url ?? URL(fileURLWithPath: "/")
+    }
 
     public var originName: String {
         routeStops.first(where: { $0.kind == .start })?.name ?? ""
@@ -48,6 +60,7 @@ public final class TripRoomViewModel {
     }
 
     public init(
+        roomCode: String = "5JUV83",
         routeStops: [RouteStop]? = nil,
         originName: String = "Cilandak Town Square, Jakarta",
         destinationName: String = "Puncak Pass Resort, Bogor",
@@ -55,6 +68,7 @@ public final class TripRoomViewModel {
         isCurrentUserLeader: Bool = true,
         currentUserId: UUID? = nil
     ) {
+        self.roomCode = roomCode
         if let routeStops {
             self.routeStops = routeStops
         } else {
