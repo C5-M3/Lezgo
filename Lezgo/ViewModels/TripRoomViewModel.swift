@@ -174,6 +174,20 @@ public final class TripRoomViewModel {
         isSelectionMode = false
     }
 
+    /// Removes a single member participant from the trip room.
+    public func RemoveParticipant(id: UUID) {
+        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else {
+            return
+        }
+        participants.removeAll(where: { $0.id == id })
+        selectedParticipantIds.remove(id)
+    }
+
+    /// Generates the confirmation dialog title for removing a single participant.
+    public func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
+        "Remove \(participant.name) from the trip?"
+    }
+
     /// Designates a participant as the new leader and clears leadership from others.
     public func SetLeader(to participant: Participant) {
         guard participants.contains(where: { $0.id == participant.id }) else { return }
