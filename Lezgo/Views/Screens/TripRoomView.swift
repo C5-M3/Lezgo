@@ -60,10 +60,13 @@ public struct TripRoomView: View {
                                     } label: {
                                         Image(systemName: "plus")
                                             .font(.system(size: 14, weight: .bold))
-                                            .padding(8)
-                                            .background(Color(uiColor: .secondarySystemBackground))
+                                            .foregroundStyle(.primary)
+                                            .frame(width: 32, height: 32)
+                                            .background(Color(uiColor: .secondarySystemGroupedBackground))
                                             .clipShape(.rect(cornerRadius: 8))
+                                            .accessibilityHidden(true)
                                     }
+                                    .buttonStyle(.plain)
                                     .frame(minWidth: 44, minHeight: 44)
                                     .accessibilityLabel("Invite participant")
                                 }
@@ -119,11 +122,13 @@ private struct TopBarView: View {
             Button(action: onLeave) {
                 Image(systemName: "door.left.hand.open")
                     .font(.system(size: 18, weight: .semibold))
-//                    .foregroundStyle(.primary)
+                    .foregroundStyle(.primary)
                     .frame(width: 44, height: 44)
-//                    .background(Color(uiColor: .secondarySystemBackground))
-//                    .clipShape(Circle())
+                    .background(Color(uiColor: .secondarySystemGroupedBackground))
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("Leave trip room")
 
             Spacer()
@@ -136,9 +141,11 @@ private struct TopBarView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(.primary)
                     .frame(width: 44, height: 44)
-                    .background(Color(uiColor: .secondarySystemBackground))
+                    .background(Color(uiColor: .secondarySystemGroupedBackground))
                     .clipShape(Circle())
+                    .accessibilityHidden(true)
             }
+            .buttonStyle(.plain)
             .accessibilityLabel("Room options")
         }
         .padding(.horizontal, 16)
