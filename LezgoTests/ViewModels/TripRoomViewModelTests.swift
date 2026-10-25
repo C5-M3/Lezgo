@@ -99,4 +99,11 @@ struct TripRoomViewModelTests {
         #expect(viewModel.originName == "Rumah")
         #expect(viewModel.destinationName == "Hotel Bandung")
     }
+
+    @Test func RoomCodeAndInviteURLAreAvailable() {
+        let viewModel = TripRoomViewModel(roomCode: "5JUV83")
+
+        #expect(viewModel.roomCode == "5JUV83")
+        #expect(viewModel.inviteURL.absoluteString == "lezgo://join?code=5JUV83")
+    }
 }
