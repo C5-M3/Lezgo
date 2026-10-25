@@ -73,4 +73,30 @@ struct TripRoomViewModelTests {
 
         #expect(viewModel.tripStatus == .cancelled)
     }
+
+    @Test func RouteStopsDefaultsIncludeStartCheckpointAndDestination() {
+        let viewModel = TripRoomViewModel()
+
+        #expect(viewModel.routeStops.count >= 3)
+        #expect(viewModel.routeStops.first?.kind == .start)
+        #expect(viewModel.routeStops.contains(where: { $0.kind == .checkpoint }))
+        #expect(viewModel.routeStops.last?.kind == .destination)
+        #expect(viewModel.originName == viewModel.routeStops.first?.name)
+        #expect(viewModel.destinationName == viewModel.routeStops.last?.name)
+    }
+
+    @Test func RouteStopsCanBeInitializedWithMultipleCheckpoints() {
+        let stops: [TripRoomViewModel.RouteStop] = [
+            .init(name: "Rumah", kind: .start),
+            .init(name: "SPBU KM 19", kind: .checkpoint),
+            .init(name: "Rest Area KM 57", kind: .checkpoint),
+            .init(name: "Hotel Bandung", kind: .destination)
+        ]
+        let viewModel = TripRoomViewModel(routeStops: stops)
+
+        #expect(viewModel.routeStops.count == 4)
+        #expect(viewModel.routeStops.filter({ $0.kind == .checkpoint }).count == 2)
+        #expect(viewModel.originName == "Rumah")
+        #expect(viewModel.destinationName == "Hotel Bandung")
+    }
 }
