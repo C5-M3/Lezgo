@@ -6,6 +6,7 @@ public struct TripRoomView: View {
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
     @State private var showingStartTripConfirmation = false
+    @State private var showingRemoveConfirmation = false
     @Environment(\.dismiss) private var dismiss
 
     public init(viewModel: TripRoomViewModel) {
@@ -19,49 +20,39 @@ public struct TripRoomView: View {
     public var body: some View {
         NavigationStack {
             ZStack {
-                Color(uiColor: .systemGroupedBackground)
-                    .ignoresSafeArea()
+                Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
 
                 VStack(spacing: 20) {
-                    // Top Bar
                     TopBarView(
-                        onLeave: {
-                            showingLeaveConfirmation = true
-                        },
+                        isSelectionMode: viewModel.isSelectionMode,
+                        selectAllTitle: viewModel.selectAllButtonTitle,
+                        onLeave: { showingLeaveConfirmation = true },
                         onSelect: viewModel.ToggleSelectionMode,
+                        onSelectAll: viewModel.SelectAll,
+                        onDoneSelection: viewModel.ToggleSelectionMode,
                         onSetLeader: {
-                            if let firstMember = viewModel.participants.first(where: { !$0.isLeader }) {
-                                viewModel.SetLeader(to: firstMember)
+                            if let member = viewModel.participants.first(where: { !$0.isLeader }) {
+                                viewModel.SetLeader(to: member)
                             }
                         }
                     )
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
-                            // Route Trip Section
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Route Trip")
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-
+                                Text("Route Trip").font(.headline)
                                 RouteCardView(stops: viewModel.routeStops)
                             }
 
-                            // Participants Section
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
-                                    Text("Participants")
-                                        .font(.headline)
-                                        .foregroundStyle(.primary)
-
+                                    Text("Participants").font(.headline)
                                     Spacer()
-
                                     Button {
                                         showingInviteSheet = true
                                     } label: {
                                         Image(systemName: "plus")
                                             .font(.system(size: 14, weight: .bold))
-                                            .foregroundStyle(.primary)
                                             .frame(width: 32, height: 32)
                                             .background(Color(uiColor: .secondarySystemGroupedBackground))
                                             .clipShape(.rect(cornerRadius: 8))
@@ -74,30 +65,28 @@ public struct TripRoomView: View {
 
                                 ParticipantsCardView(
                                     participants: viewModel.participants,
-                                    isSelectionMode: viewModel.isSelectionMode
+                                    isSelectionMode: viewModel.isSelectionMode,
+                                    selectedParticipantIds: viewModel.selectedParticipantIds,
+                                    onToggleSelection: viewModel.ToggleParticipantSelection(id:)
                                 )
                             }
                         }
                         .padding(.horizontal, 16)
                     }
 
-                    // Bottom Action Area
                     BottomActionView(
+                        isSelectionMode: viewModel.isSelectionMode,
                         isLeader: viewModel.isCurrentUserLeader,
-                        onStartTrip: {
-                            showingStartTripConfirmation = true
-                        }
+                        canRemove: viewModel.canRemove,
+                        onStartTrip: { showingStartTripConfirmation = true },
+                        onRemove: { showingRemoveConfirmation = true }
                     )
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
                 }
             }
             .navigationBarBackButtonHidden(true)
-            .confirmationDialog(
-                "Leave Trip Room?",
-                isPresented: $showingLeaveConfirmation,
-                titleVisibility: .visible
-            ) {
+            .confirmationDialog("Leave Trip Room?", isPresented: $showingLeaveConfirmation, titleVisibility: .visible) {
                 Button("Leave Trip Room", role: .destructive) {
                     viewModel.LeaveRoom()
                     dismiss()
@@ -106,65 +95,86 @@ public struct TripRoomView: View {
             } message: {
                 Text("Leaving without handing over the lead will end the trip for everyone.")
             }
-            .alert(
-                "Start trip?",
-                isPresented: $showingStartTripConfirmation
-            ) {
+            .alert("Start trip?", isPresented: $showingStartTripConfirmation) {
                 Button("Cancel", role: .cancel) { }
-                Button("Start") {
-                    viewModel.StartTrip()
+                Button("Start") { viewModel.StartTrip() }
+            }
+            .alert(viewModel.removeConfirmationTitle, isPresented: $showingRemoveConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) {
+                    viewModel.RemoveSelectedParticipants()
                 }
             }
             .sheet(isPresented: $showingInviteSheet) {
-                InviteSheetView(
-                    roomCode: viewModel.roomCode,
-                    inviteURL: viewModel.inviteURL
-                )
+                InviteSheetView(roomCode: viewModel.roomCode, inviteURL: viewModel.inviteURL)
             }
         }
     }
 }
 
-// MARK: - Local Subviews (Kept local per AGENTS.md single-use rule)
+// MARK: - Local Subviews
 
 private struct TopBarView: View {
+    let isSelectionMode: Bool
+    let selectAllTitle: String
     let onLeave: () -> Void
     let onSelect: () -> Void
+    let onSelectAll: () -> Void
+    let onDoneSelection: () -> Void
     let onSetLeader: () -> Void
 
     var body: some View {
         HStack {
-            Button(action: onLeave) {
-                Image(systemName: "door.left.hand.open")
-                    .font(.system(size: 18, weight: .semibold))
+            if isSelectionMode {
+                Button(selectAllTitle, action: onSelectAll)
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.primary)
-                    .frame(width: 44, height: 44)
+                    .padding(.horizontal, 16)
+                    .frame(height: 44)
                     .background(Color(uiColor: .secondarySystemGroupedBackground))
-                    .clipShape(Circle())
-                    .accessibilityHidden(true)
+                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
+            } else {
+                Button(action: onLeave) {
+                    Image(systemName: "door.left.hand.open").modifier(TopBarCircleIconStyle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Leave trip room")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Leave trip room")
 
             Spacer()
 
-            Menu {
-                Button("Select", action: onSelect)
-                Button("Set leader", action: onSetLeader)
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .frame(width: 44, height: 44)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground))
-                    .clipShape(Circle())
-                    .accessibilityHidden(true)
+            if isSelectionMode {
+                Button(action: onDoneSelection) {
+                    Image(systemName: "checkmark").modifier(TopBarCircleIconStyle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Done selecting")
+            } else {
+                Menu {
+                    Button("Select", action: onSelect)
+                    Button("Set leader", action: onSetLeader)
+                } label: {
+                    Image(systemName: "ellipsis").modifier(TopBarCircleIconStyle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Room options")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Room options")
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+    }
+}
+
+private struct TopBarCircleIconStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(.primary)
+            .frame(width: 44, height: 44)
+            .background(Color(uiColor: .secondarySystemGroupedBackground))
+            .clipShape(Circle())
+            .accessibilityHidden(true)
     }
 }
 
@@ -175,28 +185,10 @@ private struct RouteCardView: View {
         VStack(spacing: 0) {
             ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
                 HStack(spacing: 12) {
-                    Group {
-                        switch stop.kind {
-                        case .start:
-                            Image(systemName: "house.fill")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.primary)
-                        case .checkpoint:
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 8))
-                                .foregroundStyle(.secondary)
-                        case .destination:
-                            Image(systemName: "mappin.and.ellipse")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.primary)
-                        }
-                    }
-                    .frame(width: 20, height: 20)
-                    .accessibilityHidden(true)
+                    StopIcon(for: stop.kind).frame(width: 20, height: 20)
 
                     Text(stop.name)
                         .font(.body)
-                        .foregroundStyle(.primary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -205,11 +197,10 @@ private struct RouteCardView: View {
                 .padding(.vertical, 14)
                 .padding(.horizontal, 16)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("\(AccessibilityPrefix(for: stop.kind)): \(stop.name)")
+                .accessibilityLabel("\(stop.kind.accessibilityPrefix): \(stop.name)")
 
                 if index < stops.count - 1 {
-                    Divider()
-                        .padding(.leading, 48)
+                    Divider().padding(.leading, 48)
                 }
             }
         }
@@ -217,14 +208,22 @@ private struct RouteCardView: View {
         .clipShape(.rect(cornerRadius: 16))
     }
 
-    private func AccessibilityPrefix(for kind: TripRoomViewModel.RouteStopKind) -> String {
+    @ViewBuilder
+    private func StopIcon(for kind: TripRoomViewModel.RouteStopKind) -> some View {
         switch kind {
         case .start:
-            return "Starting point"
+            Image(systemName: "house.fill")
+                .font(.system(size: 15, weight: .semibold))
+                .accessibilityHidden(true)
         case .checkpoint:
-            return "Checkpoint"
+            Image(systemName: "circle.fill")
+                .font(.system(size: 8))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
         case .destination:
-            return "Destination"
+            Image(systemName: "mappin.and.ellipse")
+                .font(.system(size: 16, weight: .semibold))
+                .accessibilityHidden(true)
         }
     }
 }
@@ -232,6 +231,8 @@ private struct RouteCardView: View {
 private struct ParticipantsCardView: View {
     let participants: [Participant]
     let isSelectionMode: Bool
+    let selectedParticipantIds: Set<UUID>
+    let onToggleSelection: (UUID) -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -244,12 +245,13 @@ private struct ParticipantsCardView: View {
                 ForEach(Array(participants.enumerated()), id: \.element.id) { index, participant in
                     ParticipantRowView(
                         participant: participant,
-                        isSelectionMode: isSelectionMode
+                        isSelectionMode: isSelectionMode,
+                        isSelected: selectedParticipantIds.contains(participant.id),
+                        onToggleSelection: { onToggleSelection(participant.id) }
                     )
 
                     if index < participants.count - 1 {
-                        Divider()
-                            .padding(.leading, 56)
+                        Divider().padding(.leading, isSelectionMode ? 92 : 56)
                     }
                 }
             }
@@ -262,90 +264,119 @@ private struct ParticipantsCardView: View {
 private struct ParticipantRowView: View {
     let participant: Participant
     let isSelectionMode: Bool
+    let isSelected: Bool
+    let onToggleSelection: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            if isSelectionMode {
-                Image(systemName: "circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(.secondary)
+        Button(action: onToggleSelection) {
+            HStack(spacing: 12) {
+                if isSelectionMode { selectionIndicator }
+
+                Circle()
+                    .fill(Color.secondary.opacity(0.3))
+                    .frame(width: 36, height: 36)
+                    .overlay {
+                        Text(String(participant.name.prefix(1))).font(.subheadline.bold())
+                    }
                     .accessibilityHidden(true)
-            }
 
-            Circle()
-                .fill(Color.secondary.opacity(0.3))
-                .frame(width: 36, height: 36)
-                .overlay {
-                    Text(String(participant.name.prefix(1)))
-                        .font(.subheadline.bold())
-                        .foregroundStyle(.primary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(participant.name).font(.body.weight(.medium)).foregroundStyle(.primary)
+                    Text(participant.description).font(.caption).foregroundStyle(.secondary)
                 }
-                .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(participant.name)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.primary)
+                Spacer()
 
-                Text(participant.description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if participant.isLeader {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.primary)
+                        .accessibilityLabel("Leader")
+                }
             }
-
-            Spacer()
-
-            if participant.isLeader {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.primary)
-                    .accessibilityLabel("Leader")
-            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
+        .buttonStyle(.plain)
+        .disabled(!isSelectionMode || participant.isLeader)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityRowLabel)
+        .accessibilityAddTraits(isSelectionMode && !participant.isLeader ? .isButton : [])
+    }
+
+    @ViewBuilder
+    private var selectionIndicator: some View {
+        if !participant.isLeader {
+            ZStack {
+                Circle().fill(Color(uiColor: .systemGray4)).frame(width: 24, height: 24)
+                if isSelected {
+                    Image(systemName: "checkmark").font(.system(size: 12, weight: .bold)).foregroundStyle(.primary)
+                }
+            }
+            .accessibilityHidden(true)
+        } else {
+            Color.clear.frame(width: 24, height: 24).accessibilityHidden(true)
+        }
+    }
+
+    private var accessibilityRowLabel: String {
+        var label = "\(participant.name), \(participant.description)"
+        if participant.isLeader {
+            label += ", Leader"
+        } else if isSelectionMode {
+            label += isSelected ? ", Selected" : ", Not selected"
+        }
+        return label
     }
 }
 
 private struct BottomActionView: View {
+    let isSelectionMode: Bool
     let isLeader: Bool
+    let canRemove: Bool
     let onStartTrip: () -> Void
+    let onRemove: () -> Void
 
     var body: some View {
-        if isLeader {
-            Button(action: onStartTrip) {
-                Text("Start Trip")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 52)
-                    .padding(.vertical, 8)
-                    .background(Color.accentColor)
-                    .clipShape(.rect(cornerRadius: 14))
-            }
-            .accessibilityLabel("Start Trip")
-        } else {
+        if isSelectionMode {
             HStack {
                 Spacer()
-                Text("Waiting for leader to start...")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                Spacer()
+                Button("Remove", action: onRemove)
+                    .font(.headline)
+                    .foregroundStyle(canRemove ? .primary : .secondary)
+                    .padding(.horizontal, 24)
+                    .frame(height: 44)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground).opacity(canRemove ? 1.0 : 0.6))
+                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
+                    .disabled(!canRemove)
+                    .accessibilityLabel("Remove selected participants")
             }
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 52)
-            .padding(.vertical, 8)
-            .background(Color(uiColor: .secondarySystemGroupedBackground))
-            .clipShape(.rect(cornerRadius: 14))
+        } else if isLeader {
+            Button("Start Trip", action: onStartTrip)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 52)
+                .background(Color.accentColor)
+                .clipShape(.rect(cornerRadius: 14))
+                .accessibilityLabel("Start Trip")
+        } else {
+            Text("Waiting for leader to start...")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 52)
+                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                .clipShape(.rect(cornerRadius: 14))
         }
     }
 }
 
 // MARK: - Previews
 
-#Preview("Leader with Participants") {
+#Preview {
     TripRoomView(
         viewModel: TripRoomViewModel(
             participants: [
@@ -354,19 +385,6 @@ private struct BottomActionView: View {
                 Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false)
             ],
             isCurrentUserLeader: true
-        )
-    )
-}
-
-#Preview("Member Waiting") {
-    TripRoomView(
-        viewModel: TripRoomViewModel(
-            participants: [
-                Participant(name: "Matthew", description: "Civic Putih - B 8888 XY", isLeader: true),
-                Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: false),
-                Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false)
-            ],
-            isCurrentUserLeader: false
         )
     )
 }
