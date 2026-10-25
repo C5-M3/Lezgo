@@ -1,0 +1,62 @@
+import Foundation
+import Testing
+@testable import Lezgo
+
+@MainActor
+struct TripRoomViewModelTests {
+    @Test func InitialStateDefaults() {
+        let viewModel = TripRoomViewModel()
+
+        #expect(!viewModel.originName.isEmpty)
+        #expect(!viewModel.destinationName.isEmpty)
+        #expect(viewModel.participants.isEmpty)
+        #expect(viewModel.isCurrentUserLeader == true)
+        #expect(viewModel.isSelectionMode == false)
+        #expect(viewModel.tripStatus == .waiting)
+    }
+
+    @Test func StartTripUpdatesStatusWhenLeader() {
+        let viewModel = TripRoomViewModel(isCurrentUserLeader: true)
+
+        viewModel.StartTrip()
+
+        #expect(viewModel.tripStatus == .inTrip)
+    }
+
+    @Test func StartTripDoesNothingWhenNotLeader() {
+        let viewModel = TripRoomViewModel(isCurrentUserLeader: false)
+
+        viewModel.StartTrip()
+
+        #expect(viewModel.tripStatus == .waiting)
+    }
+
+    @Test func ToggleSelectionModeTogglesFlag() {
+        let viewModel = TripRoomViewModel()
+
+        #expect(viewModel.isSelectionMode == false)
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.isSelectionMode == true)
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.isSelectionMode == false)
+    }
+
+    @Test func SetLeaderTransfersCrownToSelectedParticipant() {
+        let p1 = Participant(name: "Leader 1", description: "Car 1", isLeader: true)
+        let p2 = Participant(name: "Member 2", description: "Car 2", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [p1, p2], isCurrentUserLeader: true)
+
+        viewModel.SetLeader(to: p2)
+
+        #expect(viewModel.participants[0].isLeader == false)
+        #expect(viewModel.participants[1].isLeader == true)
+    }
+
+    @Test func LeaveRoomSetsStatusToCancelled() {
+        let viewModel = TripRoomViewModel()
+
+        viewModel.LeaveRoom()
+
+        #expect(viewModel.tripStatus == .cancelled)
+    }
+}
