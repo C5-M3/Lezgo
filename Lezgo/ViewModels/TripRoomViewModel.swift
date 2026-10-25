@@ -17,6 +17,14 @@ public final class TripRoomViewModel {
         case start
         case checkpoint
         case destination
+
+        public var accessibilityPrefix: String {
+            switch self {
+            case .start: return "Starting point"
+            case .checkpoint: return "Checkpoint"
+            case .destination: return "Destination"
+            }
+        }
     }
 
     /// Represents a stop along the planned trip route.
@@ -38,7 +46,36 @@ public final class TripRoomViewModel {
     public var isCurrentUserLeader: Bool
     public var currentUserId: UUID
     public var isSelectionMode: Bool
+    public var selectedParticipantIds: Set<UUID>
     public var tripStatus: TripStatus
+
+    public var areAllMembersSelected: Bool {
+        let memberIds = participants.filter { !$0.isLeader }.map(\.id)
+        return !memberIds.isEmpty && selectedParticipantIds.count == memberIds.count
+    }
+
+    public var canRemove: Bool {
+        !selectedParticipantIds.isEmpty
+    }
+
+    public var selectAllButtonTitle: String {
+        areAllMembersSelected ? "Deselect all" : "Select all"
+    }
+
+    public var removeConfirmationTitle: String {
+        let selected = participants.filter { selectedParticipantIds.contains($0.id) }
+        guard let first = selected.first else {
+            return "Remove participants from the trip?"
+        }
+        let remainingCount = selected.count - 1
+        if remainingCount == 0 {
+            return "Remove \(first.name) from the trip?"
+        } else if remainingCount == 1 {
+            return "Remove \(first.name) and 1 other from the trip?"
+        } else {
+            return "Remove \(first.name) and \(remainingCount) others from the trip?"
+        }
+    }
 
     public var inviteURL: URL {
         if let deepLink = URL(string: "lezgo://join?code=\(roomCode)") {
@@ -90,6 +127,7 @@ public final class TripRoomViewModel {
             self.currentUserId = UUID()
         }
         self.isSelectionMode = false
+        self.selectedParticipantIds = []
         self.tripStatus = .waiting
     }
 
@@ -102,6 +140,38 @@ public final class TripRoomViewModel {
     /// Toggles the multi-selection mode for managing participants.
     public func ToggleSelectionMode() {
         isSelectionMode.toggle()
+        if !isSelectionMode {
+            selectedParticipantIds.removeAll()
+        }
+    }
+
+    /// Toggles the selection state for an individual participant.
+    public func ToggleParticipantSelection(id: UUID) {
+        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else {
+            return
+        }
+        if selectedParticipantIds.contains(id) {
+            selectedParticipantIds.remove(id)
+        } else {
+            selectedParticipantIds.insert(id)
+        }
+    }
+
+    /// Selects all members, or deselects all if all members are already selected.
+    public func SelectAll() {
+        let memberIds = participants.filter { !$0.isLeader }.map(\.id)
+        if selectedParticipantIds.count == memberIds.count {
+            selectedParticipantIds.removeAll()
+        } else {
+            selectedParticipantIds = Set(memberIds)
+        }
+    }
+
+    /// Removes all selected participants from the room and exits selection mode.
+    public func RemoveSelectedParticipants() {
+        participants.removeAll(where: { selectedParticipantIds.contains($0.id) && !$0.isLeader })
+        selectedParticipantIds.removeAll()
+        isSelectionMode = false
     }
 
     /// Designates a participant as the new leader and clears leadership from others.
