@@ -106,6 +106,7 @@ iOSInjectionProject/
 .gemini-swarm/
 skills-lock.json
 docs/superpowers/
+.superpowers/
 
 # --------------------------------------------------
 # Secrets files
