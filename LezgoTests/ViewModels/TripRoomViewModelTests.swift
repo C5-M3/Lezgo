@@ -202,4 +202,29 @@ struct TripRoomViewModelTests {
 
         #expect(viewModel.SetLeaderConfirmationTitle(for: member) == "Set Matthew as Trip Leader?")
     }
+
+    @Test func RemoveParticipantRemovesMemberAndPreservesLeader() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let m1 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
+        let m2 = Participant(name: "Member 2", description: "Car 3", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [leader, m1, m2])
+
+        viewModel.RemoveParticipant(id: m1.id)
+
+        #expect(viewModel.participants.count == 2)
+        #expect(!viewModel.participants.contains(where: { $0.id == m1.id }))
+        #expect(viewModel.participants.contains(where: { $0.id == leader.id }))
+        #expect(viewModel.participants.contains(where: { $0.id == m2.id }))
+
+        viewModel.RemoveParticipant(id: leader.id)
+        #expect(viewModel.participants.count == 2)
+        #expect(viewModel.participants.contains(where: { $0.id == leader.id }))
+    }
+
+    @Test func RemoveParticipantConfirmationTitleFormatsCorrectly() {
+        let member = Participant(name: "Matthew", description: "Civic", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [member])
+
+        #expect(viewModel.RemoveParticipantConfirmationTitle(for: member) == "Remove Matthew from the trip?")
+    }
 }
