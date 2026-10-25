@@ -195,4 +195,11 @@ struct TripRoomViewModelTests {
         #expect(viewModel.selectedParticipantIds.isEmpty)
         #expect(viewModel.isSelectionMode == false)
     }
+
+    @Test func SetLeaderConfirmationTitleFormatsCorrectly() {
+        let member = Participant(name: "Matthew", description: "Civic", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [member])
+
+        #expect(viewModel.SetLeaderConfirmationTitle(for: member) == "Set Matthew as Trip Leader?")
+    }
 }
