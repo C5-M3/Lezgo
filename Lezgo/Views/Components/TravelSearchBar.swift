@@ -15,10 +15,10 @@ struct TravelSearchBar: View {
     @Binding var text: String
     var placeholder: String = "Where do you want to travel ?"
     var isSearching: Bool = false
-    var isFocused: FocusState<Bool>.Binding? = nil
-    var onSearch: (() -> Void)? = nil
-    var onSubmit: (() -> Void)? = nil
-    
+    var isFocused: FocusState<Bool>.Binding?
+    var onSearch: (() -> Void)?
+    var onSubmit: (() -> Void)?
+
     var body: some View {
         if #available(iOS 18.0, *) {
             liquidGlassSearchBar
@@ -26,9 +26,9 @@ struct TravelSearchBar: View {
             legacyMaterialSearchBar
         }
     }
-    
+
     // MARK: - iOS 18+ Liquid Glass Implementation
-    
+
     @available(iOS 18.0, *)
     private var liquidGlassSearchBar: some View {
         HStack(spacing: 8) {
@@ -39,13 +39,13 @@ struct TravelSearchBar: View {
             .padding(.horizontal, 18)
             .frame(height: 48)
             .glassEffect(.regular.interactive(), in: Capsule())
-            
+
             // Tombol ikon pencarian dengan tombol kaca HIG
-            Button(action: {
+            Button {
                 isFocused?.wrappedValue = false
                 hideKeyboard()
                 onSearch?()
-            }) {
+            } label: {
                 searchIconView
                     .frame(width: 30, height: 40)
             }
@@ -59,9 +59,9 @@ struct TravelSearchBar: View {
         }
         .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 5)
     }
-    
+
     // MARK: - Pre-iOS 18 Standard Material Implementation
-    
+
     private var legacyMaterialSearchBar: some View {
         HStack(spacing: 8) {
             // Kolom input pencarian dengan Material standar
@@ -71,13 +71,13 @@ struct TravelSearchBar: View {
             .padding(.horizontal, 18)
             .frame(height: 48)
             .background(.ultraThinMaterial, in: Capsule())
-            
+
             // Tombol ikon pencarian dengan material bundar
-            Button(action: {
+            Button {
                 isFocused?.wrappedValue = false
                 hideKeyboard()
                 onSearch?()
-            }) {
+            } label: {
                 searchIconView
                     .foregroundStyle(Color(uiColor: .label).opacity(0.85))
                     .frame(width: 30, height: 40)
@@ -97,9 +97,9 @@ struct TravelSearchBar: View {
         }
         .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 5)
     }
-    
+
     // MARK: - Shared Views
-    
+
     private var textFieldView: some View {
         HStack(spacing: 8) {
             Group {
@@ -110,19 +110,22 @@ struct TravelSearchBar: View {
                     textFieldInput
                 }
             }
-            
+
             if !text.isEmpty {
-                Button(action: { text = "" }) {
+                Button {
+                    text = ""
+                } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 20))
                         .foregroundStyle(Color(uiColor: .tertiaryLabel))
+                        .accessibilityHidden(true)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Hapus teks pencarian")
             }
         }
     }
-    
+
     private var textFieldInput: some View {
         TextField(
             "",
@@ -142,7 +145,7 @@ struct TravelSearchBar: View {
             onSubmit?()
         }
     }
-    
+
     @ViewBuilder
     private var searchIconView: some View {
         if isSearching {
@@ -151,6 +154,7 @@ struct TravelSearchBar: View {
         } else {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 20, weight: .medium))
+                .accessibilityHidden(true)
         }
     }
 }
@@ -159,7 +163,7 @@ struct TravelSearchBar: View {
 struct LocationSuggestionsListView: View {
     var suggestions: [MKLocalSearchCompletion]
     var onSelect: (MKLocalSearchCompletion) -> Void
-    
+
     var body: some View {
         if #available(iOS 18.0, *) {
             content
@@ -171,26 +175,27 @@ struct LocationSuggestionsListView: View {
                 .shadow(color: .black.opacity(0.14), radius: 12, x: 0, y: 6)
         }
     }
-    
+
     private var content: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(suggestions.prefix(6).enumerated()), id: \.offset) { index, item in
-                    Button(action: {
+                    Button {
                         onSelect(item)
-                    }) {
+                    } label: {
                         HStack(spacing: 12) {
                             Image(systemName: "mappin.circle.fill")
                                 .font(.system(size: 22))
                                 .foregroundStyle(.blue)
-                            
+                                .accessibilityHidden(true)
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.title)
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                     .foregroundStyle(Color.primary)
                                     .lineLimit(1)
-                                
+
                                 if !item.subtitle.isEmpty {
                                     Text(item.subtitle)
                                         .font(.caption)
@@ -198,19 +203,20 @@ struct LocationSuggestionsListView: View {
                                         .lineLimit(1)
                                 }
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "arrow.up.left")
                                 .font(.system(size: 12))
                                 .foregroundStyle(Color(uiColor: .tertiaryLabel))
+                                .accessibilityHidden(true)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 11)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    
+
                     if index < min(suggestions.count, 6) - 1 {
                         Divider()
                             .padding(.leading, 50)
@@ -228,13 +234,14 @@ struct LocationSuggestionsListView: View {
 /// Menggunakan Liquid Glass pada iOS 18+ dan Material standar pada iOS di bawahnya.
 struct MapDoorButton: View {
     var action: () -> Void = {}
-    
+
     var body: some View {
         if #available(iOS 18.0, *) {
             Button(action: action) {
                 Image(systemName: "door.left.hand.closed")
                     .font(.system(size: 20, weight: .medium))
                     .frame(width: 30, height: 40)
+                    .accessibilityHidden(true)
             }
             .buttonStyle(.glass)
             .accessibilityLabel("Kembali ke Lokasi Pengguna atau Reset")
@@ -246,6 +253,7 @@ struct MapDoorButton: View {
                     .frame(width: 30, height: 40)
                     .background(.ultraThinMaterial, in: Circle())
                     .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
+                    .accessibilityHidden(true)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Kembali ke Lokasi Pengguna atau Reset")
@@ -260,12 +268,12 @@ struct TravelMapControlsView: View {
     var placeholder: String = "Where do you want to travel ?"
     var suggestions: [MKLocalSearchCompletion] = []
     var isSearching: Bool = false
-    var isFocused: FocusState<Bool>.Binding? = nil
-    var onDoorTapped: (() -> Void)? = nil
-    var onSearch: (() -> Void)? = nil
-    var onSubmit: (() -> Void)? = nil
-    var onSelectSuggestion: ((MKLocalSearchCompletion) -> Void)? = nil
-    
+    var isFocused: FocusState<Bool>.Binding?
+    var onDoorTapped: (() -> Void)?
+    var onSearch: (() -> Void)?
+    var onSubmit: (() -> Void)?
+    var onSelectSuggestion: ((MKLocalSearchCompletion) -> Void)?
+
     var body: some View {
         if #available(iOS 18.0, *) {
             GlassEffectContainer(spacing: 14) {
@@ -275,7 +283,7 @@ struct TravelMapControlsView: View {
             controlsStack
         }
     }
-    
+
     private var controlsStack: some View {
         VStack(alignment: .trailing, spacing: 12) {
             // Tombol pintu melayang di kanan atas
@@ -284,7 +292,7 @@ struct TravelMapControlsView: View {
                 hideKeyboard()
                 onDoorTapped?()
             }
-            
+
             // Daftar saran autocomplete yang muncul ketika ada hasil saran dan kolom pencarian aktif
             if (isFocused?.wrappedValue ?? true) && !suggestions.isEmpty {
                 LocationSuggestionsListView(suggestions: suggestions) { suggestion in
@@ -294,7 +302,7 @@ struct TravelMapControlsView: View {
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
             }
-            
+
             // Bilah pencarian di bagian bawah
             TravelSearchBar(
                 text: $searchText,
@@ -326,7 +334,7 @@ extension View {
     ZStack(alignment: .bottom) {
         Map()
             .ignoresSafeArea()
-        
+
         TravelMapControlsView(searchText: .constant(""))
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
