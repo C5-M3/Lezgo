@@ -5,6 +5,7 @@ public struct TripRoomView: View {
     @State private var viewModel: TripRoomViewModel
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
+    @State private var showingStartTripConfirmation = false
     @Environment(\.dismiss) private var dismiss
 
     public init(viewModel: TripRoomViewModel) {
@@ -83,7 +84,9 @@ public struct TripRoomView: View {
                     // Bottom Action Area
                     BottomActionView(
                         isLeader: viewModel.isCurrentUserLeader,
-                        onStartTrip: viewModel.StartTrip
+                        onStartTrip: {
+                            showingStartTripConfirmation = true
+                        }
                     )
                     .padding(.horizontal, 16)
                     .padding(.bottom, 8)
@@ -102,6 +105,15 @@ public struct TripRoomView: View {
                 Button("Cancel", role: .cancel) { }
             } message: {
                 Text("Leaving without handing over the lead will end the trip for everyone.")
+            }
+            .alert(
+                "Start trip?",
+                isPresented: $showingStartTripConfirmation
+            ) {
+                Button("Cancel", role: .cancel) { }
+                Button("Start") {
+                    viewModel.StartTrip()
+                }
             }
             .sheet(isPresented: $showingInviteSheet) {
                 InvitePlaceholderSheet()
