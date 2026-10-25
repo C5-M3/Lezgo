@@ -43,10 +43,7 @@ public struct TripRoomView: View {
                                     .font(.headline)
                                     .foregroundStyle(.primary)
 
-                                RouteCardView(
-                                    origin: viewModel.originName,
-                                    destination: viewModel.destinationName
-                                )
+                                RouteCardView(stops: viewModel.routeStops)
                             }
 
                             // Participants Section
@@ -122,10 +119,10 @@ private struct TopBarView: View {
             Button(action: onLeave) {
                 Image(systemName: "door.left.hand.open")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.primary)
+//                    .foregroundStyle(.primary)
                     .frame(width: 44, height: 44)
-                    .background(Color(uiColor: .secondarySystemBackground))
-                    .clipShape(Circle())
+//                    .background(Color(uiColor: .secondarySystemBackground))
+//                    .clipShape(Circle())
             }
             .accessibilityLabel("Leave trip room")
 
@@ -150,50 +147,63 @@ private struct TopBarView: View {
 }
 
 private struct RouteCardView: View {
-    let origin: String
-    let destination: String
+    let stops: [TripRoomViewModel.RouteStop]
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(Color.secondary)
-                    .frame(width: 12, height: 12)
+            ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
+                HStack(spacing: 12) {
+                    Group {
+                        switch stop.kind {
+                        case .start:
+                            Image(systemName: "house.fill")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(.primary)
+                        case .checkpoint:
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 8))
+                                .foregroundStyle(.secondary)
+                        case .destination:
+                            Image(systemName: "mappin.and.ellipse")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                    .frame(width: 20, height: 20)
                     .accessibilityHidden(true)
 
-                Text(origin)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(stop.name)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Spacer()
+                    Spacer()
+                }
+                .padding(.vertical, 14)
+                .padding(.horizontal, 16)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(AccessibilityPrefix(for: stop.kind)): \(stop.name)")
+
+                if index < stops.count - 1 {
+                    Divider()
+                        .padding(.leading, 48)
+                }
             }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 16)
-
-            Divider()
-                .padding(.leading, 40)
-
-            HStack(spacing: 12) {
-                Circle()
-                    .fill(Color.secondary)
-                    .frame(width: 12, height: 12)
-                    .accessibilityHidden(true)
-
-                Text(destination)
-                    .font(.body)
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Spacer()
-            }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 16)
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground))
         .clipShape(.rect(cornerRadius: 16))
+    }
+
+    private func AccessibilityPrefix(for kind: TripRoomViewModel.RouteStopKind) -> String {
+        switch kind {
+        case .start:
+            return "Starting point"
+        case .checkpoint:
+            return "Checkpoint"
+        case .destination:
+            return "Destination"
+        }
     }
 }
 
@@ -340,7 +350,7 @@ private struct InvitePlaceholderSheet: View {
             participants: [
                 Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: true),
                 Participant(name: "Matthew", description: "Civic Putih - B 8888 XY", isLeader: false),
-                Participant(name: "Val", description: "HR-V Abu-abu - B 4321 EF", isLeader: false)
+                Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false)
             ],
             isCurrentUserLeader: true
         )
@@ -352,7 +362,8 @@ private struct InvitePlaceholderSheet: View {
         viewModel: TripRoomViewModel(
             participants: [
                 Participant(name: "Matthew", description: "Civic Putih - B 8888 XY", isLeader: true),
-                Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: false)
+                Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: false),
+                Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false)
             ],
             isCurrentUserLeader: false
         )

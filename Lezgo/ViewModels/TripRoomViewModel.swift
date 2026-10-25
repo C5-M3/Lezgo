@@ -12,23 +12,58 @@ public final class TripRoomViewModel {
         case cancelled
     }
 
-    public var originName: String
-    public var destinationName: String
+    /// Represents the kind of stop along a trip route.
+    public enum RouteStopKind: Equatable, Sendable {
+        case start
+        case checkpoint
+        case destination
+    }
+
+    /// Represents a stop along the planned trip route.
+    public struct RouteStop: Identifiable, Equatable, Hashable, Sendable {
+        public let id: UUID
+        public var name: String
+        public var kind: RouteStopKind
+
+        public init(id: UUID = UUID(), name: String, kind: RouteStopKind) {
+            self.id = id
+            self.name = name
+            self.kind = kind
+        }
+    }
+
+    public var routeStops: [RouteStop]
     public var participants: [Participant]
     public var isCurrentUserLeader: Bool
     public var currentUserId: UUID
     public var isSelectionMode: Bool
     public var tripStatus: TripStatus
 
+    public var originName: String {
+        routeStops.first(where: { $0.kind == .start })?.name ?? ""
+    }
+
+    public var destinationName: String {
+        routeStops.last(where: { $0.kind == .destination })?.name ?? ""
+    }
+
     public init(
+        routeStops: [RouteStop]? = nil,
         originName: String = "Cilandak Town Square, Jakarta",
         destinationName: String = "Puncak Pass Resort, Bogor",
         participants: [Participant] = [],
         isCurrentUserLeader: Bool = true,
         currentUserId: UUID? = nil
     ) {
-        self.originName = originName
-        self.destinationName = destinationName
+        if let routeStops {
+            self.routeStops = routeStops
+        } else {
+            self.routeStops = [
+                .init(name: originName, kind: .start),
+                .init(name: "Rest Area KM 45 Jagorawi", kind: .checkpoint),
+                .init(name: destinationName, kind: .destination)
+            ]
+        }
         self.participants = participants
         self.isCurrentUserLeader = isCurrentUserLeader
         if let currentUserId {
