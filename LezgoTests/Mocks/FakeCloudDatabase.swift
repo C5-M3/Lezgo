@@ -25,11 +25,16 @@ final class FakeCloudDatabase: CloudDatabase {
         return record
     }
 
+    func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
+        []
+    }
+
     func Query(
         recordType: String,
         matching conditions: [String: any CKRecordValueProtocol]
     ) async throws -> [CKRecord] {
         try server.ThrowFailure()
+        server.CountQuery()
         return server.records.values
             .filter { $0.recordType == recordType && Matches($0, conditions) }
             .compactMap { server.HandOut($0.recordID) }

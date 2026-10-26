@@ -26,6 +26,10 @@ final class LiveCloudDatabase: CloudDatabase {
         try await Send { try await $0.record(for: recordID) }
     }
 
+    func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
+        []
+    }
+
     func Query(
         recordType: String,
         matching conditions: [String: any CKRecordValueProtocol]

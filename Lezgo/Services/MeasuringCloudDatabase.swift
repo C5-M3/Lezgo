@@ -20,6 +20,10 @@ final class MeasuringCloudDatabase: CloudDatabase {
         try await Measure("fetch") { try await database.Fetch(recordID) }
     }
 
+    func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
+        []
+    }
+
     func Query(
         recordType: String,
         matching conditions: [String: any CKRecordValueProtocol]

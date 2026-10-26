@@ -10,7 +10,11 @@ struct TripRecordReader {
 
     /// The trip with its waypoints, members and current route. When `previous` has the same route version, its
     /// waypoints and route are reused, so a poll costs two requests (sent together) instead of four.
-    func LoadState(tripID: UUID, reusing previous: TripState? = nil) async throws -> TripState {
+    func LoadState(
+        tripID: UUID,
+        reusing previous: TripState? = nil,
+        discoverMembers: Bool = true
+    ) async throws -> TripState {
         // The trip and its members are independent requests, so they run at the same time.
         async let tripRecord = database.Fetch(TripRecordMapper.RecordID(tripID))
         async let members = Participants(of: tripID)

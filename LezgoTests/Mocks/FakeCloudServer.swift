@@ -11,6 +11,7 @@ final class FakeCloudServer {
     private(set) var records: [CKRecord.ID: CKRecord] = [:]
     private(set) var saveCount = 0
     private(set) var handOutCount = 0
+    private(set) var queryCount = 0
     private var versions: [CKRecord.ID: Int] = [:]
     private var handedOut: [ObjectIdentifier: (record: CKRecord, version: Int)] = [:]
 
@@ -41,6 +42,10 @@ final class FakeCloudServer {
         records[recordID] = target
         versions[recordID, default: 0] += 1
         saveCount += 1
+    }
+
+    func CountQuery() {
+        queryCount += 1
     }
 
     func Delete(_ recordID: CKRecord.ID) {
