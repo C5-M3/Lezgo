@@ -128,8 +128,9 @@ CODE_AUDIT.md
 
 # --------------------------------------------------
 # Local planning material
-# Lo-fi screens (context/) and user stories / task
-# backlog (tasks/) are shared outside Git. Never push.
+# Lo-fi screens (context/) and the task backlog (tasks/)
+# are shared outside Git. Never push. The user stories
+# are tracked in specs/ (see docs/adr/0016).
 # --------------------------------------------------
 context/
 tasks/

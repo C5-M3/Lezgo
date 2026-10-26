@@ -21,6 +21,8 @@ How the app works:
 
 Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done are in its GitHub issue. Read the issue before you start.
 
+The rules, copy, data model and Gherkin scenarios of every user story are in [`specs/UserStories.md`](specs/UserStories.md) (decision record: [0016](docs/adr/0016-UserStoriesInTheRepository.md)). Build models and copy from it word for word. If the code needs a different field or text, change the spec in the same PR and tell the team.
+
 
 ## Who owns which screen
 
