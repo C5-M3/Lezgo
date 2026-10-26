@@ -8,7 +8,7 @@
 import SwiftUI
 
 @MainActor
-public struct TripRoomView: View {
+struct TripRoomView: View {
     @State private var viewModel: TripRoomViewModel
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
@@ -20,10 +20,10 @@ public struct TripRoomView: View {
     @State private var participantToEdit: Participant?
     @Environment(\.dismiss) private var dismiss
 
-    public init(viewModel: TripRoomViewModel) { _viewModel = State(initialValue: viewModel) }
-    public init() { self.init(viewModel: TripRoomViewModel()) }
+    init(viewModel: TripRoomViewModel) { _viewModel = State(initialValue: viewModel) }
+    init() { self.init(viewModel: TripRoomViewModel()) }
 
-    public var body: some View {
+    var body: some View {
         NavigationStack {
             ZStack {
                 Color(uiColor: .systemGroupedBackground).ignoresSafeArea()

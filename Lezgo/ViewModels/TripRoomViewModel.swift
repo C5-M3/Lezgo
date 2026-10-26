@@ -11,19 +11,19 @@ import Observation
 /// View model managing state and actions for the Trip Room screen.
 @Observable
 @MainActor
-public final class TripRoomViewModel {
-    public enum TripStatus: Equatable, Sendable {
+final class TripRoomViewModel {
+    enum TripStatus: Equatable, Sendable {
         case waiting
         case inTrip
         case cancelled
     }
 
-    public enum RouteStopKind: Equatable, Sendable {
+    enum RouteStopKind: Equatable, Sendable {
         case start
         case checkpoint
         case destination
 
-        public var accessibilityPrefix: String {
+        var accessibilityPrefix: String {
             switch self {
             case .start: return "Starting point"
             case .checkpoint: return "Checkpoint"
@@ -31,7 +31,7 @@ public final class TripRoomViewModel {
             }
         }
 
-        public var iconName: String {
+        var iconName: String {
             switch self {
             case .start: return "house.fill"
             case .checkpoint: return "circle.fill"
@@ -40,39 +40,39 @@ public final class TripRoomViewModel {
         }
     }
 
-    public struct RouteStop: Identifiable, Equatable, Hashable, Sendable {
-        public let id: UUID
-        public var name: String
-        public var kind: RouteStopKind
+    struct RouteStop: Identifiable, Equatable, Hashable, Sendable {
+        let id: UUID
+        var name: String
+        var kind: RouteStopKind
 
-        public init(id: UUID = UUID(), name: String, kind: RouteStopKind) {
+        init(id: UUID = UUID(), name: String, kind: RouteStopKind) {
             self.id = id
             self.name = name
             self.kind = kind
         }
     }
 
-    public var roomCode: String
-    public var routeStops: [RouteStop]
-    public var participants: [Participant]
-    public var isCurrentUserLeader: Bool
-    public var currentUserId: UUID
-    public var isSelectionMode: Bool
-    public var selectedParticipantIds: Set<UUID>
-    public var tripStatus: TripStatus
+    var roomCode: String
+    var routeStops: [RouteStop]
+    var participants: [Participant]
+    var isCurrentUserLeader: Bool
+    var currentUserId: UUID
+    var isSelectionMode: Bool
+    var selectedParticipantIds: Set<UUID>
+    var tripStatus: TripStatus
 
-    public var areAllMembersSelected: Bool {
+    var areAllMembersSelected: Bool {
         let memberIds = participants.filter { !$0.isLeader }.map(\.id)
         return !memberIds.isEmpty && selectedParticipantIds.count == memberIds.count
     }
 
-    public var canRemove: Bool { !selectedParticipantIds.isEmpty }
+    var canRemove: Bool { !selectedParticipantIds.isEmpty }
 
-    public var selectAllButtonTitle: String {
+    var selectAllButtonTitle: String {
         areAllMembersSelected ? "Deselect all" : "Select all"
     }
 
-    public var removeConfirmationTitle: String {
+    var removeConfirmationTitle: String {
         let selected = participants.filter { selectedParticipantIds.contains($0.id) }
         guard let first = selected.first else { return "Remove participants from the trip?" }
         let remaining = selected.count - 1
@@ -85,11 +85,11 @@ public final class TripRoomViewModel {
         }
     }
 
-    public var inviteURL: URL {
+    var inviteURL: URL {
         URL(string: "lezgo://join?code=\(roomCode)") ?? URL(fileURLWithPath: "/")
     }
 
-    public static var defaultDummyParticipants: [Participant] {
+    static var defaultDummyParticipants: [Participant] {
         [
             Participant(name: "Faishal (You)", description: "Innova Hitam - H 1234 CD", isLeader: true),
             Participant(name: "Matthew", description: "Civic Putih - W 8888 XY", isLeader: false),
@@ -99,7 +99,7 @@ public final class TripRoomViewModel {
         ]
     }
 
-    public init(
+    init(
         roomCode: String = "5JUV83",
         routeStops: [RouteStop]? = nil,
         participants: [Participant]? = nil,
@@ -129,17 +129,17 @@ public final class TripRoomViewModel {
         self.tripStatus = .waiting
     }
 
-    public func StartTrip() {
+    func StartTrip() {
         guard isCurrentUserLeader else { return }
         tripStatus = .inTrip
     }
 
-    public func ToggleSelectionMode() {
+    func ToggleSelectionMode() {
         isSelectionMode.toggle()
         if !isSelectionMode { selectedParticipantIds.removeAll() }
     }
 
-    public func ToggleParticipantSelection(id: UUID) {
+    func ToggleParticipantSelection(id: UUID) {
         guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else { return }
         if selectedParticipantIds.contains(id) {
             selectedParticipantIds.remove(id)
@@ -148,36 +148,36 @@ public final class TripRoomViewModel {
         }
     }
 
-    public func SelectAll() {
+    func SelectAll() {
         let memberIds = participants.filter { !$0.isLeader }.map(\.id)
         selectedParticipantIds = (selectedParticipantIds.count == memberIds.count) ? [] : Set(memberIds)
     }
 
-    public func RemoveSelectedParticipants() {
+    func RemoveSelectedParticipants() {
         participants.removeAll(where: { selectedParticipantIds.contains($0.id) && !$0.isLeader })
         selectedParticipantIds.removeAll()
         isSelectionMode = false
     }
 
-    public func RemoveParticipant(id: UUID) {
+    func RemoveParticipant(id: UUID) {
         guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else { return }
         participants.removeAll(where: { $0.id == id })
         selectedParticipantIds.remove(id)
     }
 
-    public func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
+    func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
         "Remove \(participant.name) from the trip?"
     }
 
-    public func CanKick(participant: Participant) -> Bool {
+    func CanKick(participant: Participant) -> Bool {
         isCurrentUserLeader && !isSelectionMode && !participant.isLeader
     }
 
-    public func CanSetLeader(participant: Participant) -> Bool {
+    func CanSetLeader(participant: Participant) -> Bool {
         CanKick(participant: participant)
     }
 
-    public func SetLeader(to participant: Participant) {
+    func SetLeader(to participant: Participant) {
         guard participants.contains(where: { $0.id == participant.id }) else { return }
         for index in participants.indices {
             participants[index].isLeader = (participants[index].id == participant.id)
@@ -187,21 +187,21 @@ public final class TripRoomViewModel {
         }
     }
 
-    public func SetLeaderConfirmationTitle(for participant: Participant) -> String {
+    func SetLeaderConfirmationTitle(for participant: Participant) -> String {
         "Set \(participant.name) as Trip Leader?"
     }
 
-    public func CanEdit(participant: Participant) -> Bool {
+    func CanEdit(participant: Participant) -> Bool {
         !isSelectionMode && (isCurrentUserLeader || participant.id == currentUserId)
     }
 
-    public func UpdateParticipant(id: UUID, name: String, description: String) {
+    func UpdateParticipant(id: UUID, name: String, description: String) {
         guard let index = participants.firstIndex(where: { $0.id == id }) else { return }
         participants[index].name = name
         participants[index].description = description
     }
 
-    public func LeaveRoom() {
+    func LeaveRoom() {
         tripStatus = .cancelled
     }
 }

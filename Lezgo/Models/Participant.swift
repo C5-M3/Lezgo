@@ -3,42 +3,42 @@ import Foundation
 /// One person in a trip, which is also one car and one phone.
 ///
 /// Whether they lead is not stored here: compare with `Trip.leaderParticipantID` through `IsLeader(in:)`.
-public struct Participant: Identifiable, Hashable, Codable, Sendable {
+struct Participant: Identifiable, Hashable, Codable, Sendable {
     /// How long a phone may go without sending a location before it counts as offline.
-    public static let offlineAfter: TimeInterval = 120
+    static let offlineAfter: TimeInterval = 120
 
     /// The CloudKit record name.
-    public let id: UUID
-    public var tripID: UUID
+    let id: UUID
+    var tripID: UUID
     /// The iCloud user. Unique per trip: joining again with the same account returns this record.
-    public var userRecordID: String
-    public var displayName: String
-    public var carDescription: String
+    var userRecordID: String
+    var displayName: String
+    var carDescription: String
     /// `nil` until the phone sends its first location.
-    public var coordinate: Coordinate?
-    public var speedKmh: Double
-    public var motionState: MotionState
-    public var alert: FormationAlert
-    public var lastSeenAt: Date
+    var coordinate: Coordinate?
+    var speedKmh: Double
+    var motionState: MotionState
+    var alert: FormationAlert
+    var lastSeenAt: Date
 
-    public var name: String {
+    var name: String {
         get { displayName }
         set { displayName = newValue }
     }
 
-    public var description: String {
+    var description: String {
         get { carDescription }
         set { carDescription = newValue }
     }
 
-    public var isLeader: Bool
+    var isLeader: Bool
 
     enum CodingKeys: String, CodingKey {
         case id, tripID, userRecordID, displayName, carDescription
         case coordinate, speedKmh, motionState, alert, lastSeenAt
     }
 
-    public init(
+    init(
         id: UUID = UUID(),
         tripID: UUID = UUID(),
         userRecordID: String = "",
@@ -66,7 +66,7 @@ public struct Participant: Identifiable, Hashable, Codable, Sendable {
         self.lastSeenAt = lastSeenAt
     }
 
-    public init(from decoder: Decoder) throws {
+    init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         tripID = try container.decode(UUID.self, forKey: .tripID)
@@ -81,7 +81,7 @@ public struct Participant: Identifiable, Hashable, Codable, Sendable {
         isLeader = false
     }
 
-    public func encode(to encoder: Encoder) throws {
+    func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(tripID, forKey: .tripID)
@@ -95,18 +95,18 @@ public struct Participant: Identifiable, Hashable, Codable, Sendable {
         try container.encode(lastSeenAt, forKey: .lastSeenAt)
     }
 
-    public func IsLeader(in trip: Trip) -> Bool {
+    func IsLeader(in trip: Trip) -> Bool {
         id == trip.leaderParticipantID
     }
 
     /// Online until the last location is older than 2 minutes; exactly 2 minutes is still online.
-    public func IsOnline(at date: Date) -> Bool {
+    func IsOnline(at date: Date) -> Bool {
         date.timeIntervalSince(lastSeenAt) <= Self.offlineAfter
     }
 
     /// Someone who just created or joined a trip: no location yet, stopped, no alert.
     /// - Parameter profile: `nil` uses "Member" plus the end of the iCloud user ID.
-    public static func Joining(
+    static func Joining(
         tripID: UUID,
         userRecordID: String,
         profile: ParticipantProfile?,
