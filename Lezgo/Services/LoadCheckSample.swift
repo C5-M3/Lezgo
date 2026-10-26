@@ -6,5 +6,11 @@ struct LoadCheckSample: Hashable {
     var duration: Duration
     /// The `CKError` code name, such as `requestRateLimited`, or `nil` when the request worked.
     var errorCode: String?
+
+    init(operation: String, duration: Duration, errorCode: String? = nil) {
+        self.operation = operation
+        self.duration = duration
+        self.errorCode = errorCode
+    }
 }
 #endif

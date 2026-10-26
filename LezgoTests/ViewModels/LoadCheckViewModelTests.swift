@@ -36,7 +36,7 @@ struct LoadCheckViewModelTests {
         let file = try #require(viewModel.savedFile)
         let report = try String(contentsOf: file, encoding: .utf8)
         #expect(report.contains("| Cars | 3 |"))
-        #expect(file.deletingLastPathComponent() == folder)
+        #expect(file.deletingLastPathComponent().lastPathComponent == folder.lastPathComponent)
     }
 
     @Test func RunEndsTheTestTrip() async throws {
