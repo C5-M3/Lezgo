@@ -11,7 +11,7 @@ import MapKit
 
 struct MainMapScreen: View {
     @State private var viewModel = MapViewModel()
-    @State private var selectedDetent: PresentationDetent = .fraction(0.24)
+    @State private var selectedDetent: PresentationDetent = .fraction(0.28)
 
     var body: some View {
         @Bindable var boundViewModel = viewModel
@@ -19,19 +19,27 @@ struct MainMapScreen: View {
         Map(position: $boundViewModel.cameraPosition) {
             UserAnnotation()
 
-            // Only show a custom start marker if the user edited it away from "Current Location"
+            // Custom start marker if not GPS default
             if let start = viewModel.startPoint, start.name != "Current Location" {
                 Marker(start.name, coordinate: start.coordinate)
                     .tint(.blue)
             }
 
+            // Intermediate Stop Markers
+            ForEach(Array(viewModel.intermediateStops.enumerated()), id: \.element.id) { index, stop in
+                Marker("\(index + 1). \(stop.name)", systemImage: "\(index + 1).circle", coordinate: stop.coordinate)
+                    .tint(.purple)
+            }
+
+            // Destination Marker
             if let destination = viewModel.destinationPoint {
                 Marker(destination.name, coordinate: destination.coordinate)
                     .tint(.red)
             }
 
-            if let route = viewModel.route {
-                MapPolyline(route.polyline)
+            // Multi-segment polyline path
+            if let trip = viewModel.tripResult {
+                MapPolyline(trip.combinedPolyline)
                     .stroke(.tint, lineWidth: 6)
             }
         }
@@ -45,9 +53,9 @@ struct MainMapScreen: View {
                 .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                     LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
                 }
-                .presentationDetents([.fraction(0.24), .medium], selection: $selectedDetent)
+                .presentationDetents([.fraction(0.28), .medium], selection: $selectedDetent)
                 .presentationDragIndicator(.visible)
-                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.24)))
+                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.28)))
                 .interactiveDismissDisabled()
         }
         .onAppear {
@@ -64,3 +72,4 @@ struct MainMapScreen: View {
 #Preview {
     MainMapScreen()
 }
+
