@@ -24,6 +24,6 @@ We will read the signing team and the bundle identifier prefix from `Config/Base
 
 - A developer builds on their own account by copying `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and setting their team and prefix. No tracked file changes. Without the local file, the build uses Nathan's identifiers, which is what Xcode Cloud needs.
 - Each developer's build uses its own CloudKit container (`iCloud.<prefix>.Lezgo`) with its own public database. Phones running different developers' builds cannot see each other's trips, so tests with several phones must all run one build, normally the TestFlight build from Xcode Cloud.
-- Each developer's container has its own schema. Schema changes are made in `Lezgo/Resources/CloudKitSchema.ckdb` (see 0014), imported into each developer's container, and deployed to production only from Nathan's container.
+- Each developer's container has its own schema. Schema changes are made in `CloudKit/Schema.ckdb` (see 0014), imported into each developer's container, and deployed to production only from Nathan's container.
 - Code must never hard-code the container identifier: use `CKContainer.default()`, which reads it from the entitlements.
 - Release identifiers stay as decided in 0013. [Signing on your own account](../../AGENTS.md#signing-on-your-own-account) turns this into day-to-day rules.
