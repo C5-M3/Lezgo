@@ -57,7 +57,10 @@ enum DebugScreen: String, CaseIterable {
     ///
     /// An unknown name also returns `nil`, so a typo starts the normal app instead of crashing it.
     static func FromLaunchArguments(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> DebugScreen? {
-        nil
+        guard let flagIndex = arguments.firstIndex(of: launchArgument), flagIndex + 1 < arguments.count else {
+            return nil
+        }
+        return DebugScreen(rawValue: arguments[flagIndex + 1])
     }
 
     /// The screen to show instead of the normal first screen.
