@@ -18,9 +18,9 @@ struct TripMapTurnCard: View {
             VStack(alignment: .leading) {
                 Text(guidance.distanceToTurn.formatted(.measurement(width: .abbreviated, usage: .road)))
                     .font(.largeTitle.bold())
+                // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
                 Text(guidance.instruction)
                     .font(.title3)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding()

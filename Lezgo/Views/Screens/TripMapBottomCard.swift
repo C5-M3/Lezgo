@@ -12,8 +12,8 @@ struct TripMapBottomCard: View {
                 .font(.headline)
             if let timeLeft {
                 Text(timeLeft.formatted(.units(allowed: [.hours, .minutes], width: .abbreviated)))
+                    // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding()

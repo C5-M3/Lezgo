@@ -11,6 +11,8 @@ struct TripMapWaypointPinView: View {
             .symbolRenderingMode(.palette)
             .foregroundStyle(AnyShapeStyle(.background), isVisited ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
             .frame(minWidth: 44, minHeight: 44)
+            // A map graphic: keep it from covering the route at the largest text sizes.
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: waypoint.name))
             .accessibilityValue(Text(Description().formatted(.list(type: .and, width: .narrow))))

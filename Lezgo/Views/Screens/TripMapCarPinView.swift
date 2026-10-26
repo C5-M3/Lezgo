@@ -18,9 +18,13 @@ struct TripMapCarPinView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .background(.background, in: .circle)
+                        .accessibilityHidden(true)
                 }
             }
             .opacity(pin.isOffline ? 0.4 : 1)
+            // The pin is a map graphic with a fixed 44 pt circle; a bigger symbol would spill out of it.
+            // VoiceOver still reads the name and status at any text size.
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: pin.displayName))
             .accessibilityValue(Text(Statuses().formatted(.list(type: .and, width: .narrow))))
