@@ -1,0 +1,76 @@
+DEFINE SCHEMA
+
+    RECORD TYPE Trip (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP QUERYABLE SORTABLE,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        roomCode             STRING QUERYABLE,
+        status               STRING QUERYABLE,
+        leaderParticipantID  STRING,
+        currentWaypointIndex INT64,
+        routeVersion         INT64,
+        createdAt            TIMESTAMP,
+        startedAt            TIMESTAMP,
+        endedAt              TIMESTAMP,
+        GRANT WRITE TO "_icloud",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Waypoint (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP QUERYABLE SORTABLE,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        tripID     REFERENCE QUERYABLE,
+        orderIndex INT64 QUERYABLE SORTABLE,
+        kind       STRING,
+        name       STRING,
+        latitude   DOUBLE,
+        longitude  DOUBLE,
+        GRANT WRITE TO "_icloud",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Participant (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP QUERYABLE SORTABLE,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        tripID         REFERENCE QUERYABLE,
+        userRecordID   STRING QUERYABLE,
+        displayName    STRING,
+        carDescription STRING,
+        latitude       DOUBLE,
+        longitude      DOUBLE,
+        speedKmh       DOUBLE,
+        motionState    STRING,
+        alert          STRING,
+        lastSeenAt     TIMESTAMP,
+        GRANT WRITE TO "_icloud",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Route (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP QUERYABLE SORTABLE,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        tripID   REFERENCE QUERYABLE,
+        version  INT64 QUERYABLE SORTABLE,
+        polyline BYTES,
+        GRANT WRITE TO "_icloud",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
