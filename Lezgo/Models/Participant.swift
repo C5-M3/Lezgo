@@ -1,0 +1,32 @@
+import Foundation
+
+/// One person in a trip, which is also one car and one phone.
+///
+/// Whether they lead is not stored here: compare with `Trip.leaderParticipantID` through `IsLeader(in:)`.
+struct Participant: Identifiable, Hashable, Codable {
+    /// How long a phone may go without sending a location before it counts as offline.
+    static let offlineAfter: TimeInterval = 120
+
+    /// The CloudKit record name.
+    let id: UUID
+    var tripID: UUID
+    /// The iCloud user. Unique per trip: joining again with the same account returns this record.
+    var userRecordID: String
+    var displayName: String
+    var carDescription: String
+    /// `nil` until the phone sends its first location.
+    var coordinate: Coordinate?
+    var speedKmh: Double
+    var motionState: MotionState
+    var alert: FormationAlert
+    var lastSeenAt: Date
+
+    func IsLeader(in trip: Trip) -> Bool {
+        false
+    }
+
+    /// Online until the last location is older than 2 minutes; exactly 2 minutes is still online.
+    func IsOnline(at date: Date) -> Bool {
+        true
+    }
+}
