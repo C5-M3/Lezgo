@@ -35,7 +35,18 @@ struct LezgoApp: App {
 
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            // Launched with `-DebugScreen <name>`: open that screen with simulated data. See `DebugScreen` for how
+            // to set this up in your own unshared scheme. Without the argument, and in every release build, the app
+            // starts normally.
+            if let debugScreen = DebugScreen.FromLaunchArguments() {
+                debugScreen.MakeView()
+            } else {
+                ContentView()
+            }
+            #else
             ContentView()
+            #endif
         }
         .modelContainer(sharedModelContainer)
         .environment(\.tripService, tripService)
