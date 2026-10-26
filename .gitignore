@@ -107,6 +107,11 @@ iOSInjectionProject/
 skills-lock.json
 
 # --------------------------------------------------
+# Per-developer signing settings (ADR 0015)
+# --------------------------------------------------
+Config/Local.xcconfig
+
+# --------------------------------------------------
 # Secrets files
 # --------------------------------------------------
 Secrets.swift

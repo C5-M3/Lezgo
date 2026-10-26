@@ -1,0 +1,9 @@
+// Your own signing settings (ADR 0015).
+// Copy this file to Config/Local.xcconfig (git-ignored) and fill in your values.
+
+// Your team ID: developer.apple.com > Account > Membership details.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID
+
+// A reverse-DNS prefix you own, for example com.yourname.
+// The app becomes <prefix>.Lezgo and its iCloud container iCloud.<prefix>.Lezgo.
+BUNDLE_IDENTIFIER_PREFIX = com.yourname
