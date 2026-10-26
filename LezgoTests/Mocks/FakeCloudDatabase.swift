@@ -26,7 +26,8 @@ final class FakeCloudDatabase: CloudDatabase {
     }
 
     func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
-        []
+        try server.ThrowFailure()
+        return recordIDs.compactMap { server.HandOut($0) }
     }
 
     func Query(

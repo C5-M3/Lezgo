@@ -27,7 +27,16 @@ final class LiveCloudDatabase: CloudDatabase {
     }
 
     func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
-        []
+        guard recordIDs.isEmpty == false else { return [] }
+        let results = try await Send { try await $0.records(for: recordIDs) }
+        return try recordIDs.compactMap { recordID in
+            do {
+                return try results[recordID]?.get()
+            } catch let error as CKError where error.code == .unknownItem {
+                // Deleted, for example a member who left.
+                return nil
+            }
+        }
     }
 
     func Query(

@@ -21,7 +21,7 @@ final class MeasuringCloudDatabase: CloudDatabase {
     }
 
     func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
-        []
+        try await Measure("fetchMany") { try await database.Fetch(recordIDs) }
     }
 
     func Query(
