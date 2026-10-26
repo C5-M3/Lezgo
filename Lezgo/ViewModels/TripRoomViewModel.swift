@@ -107,11 +107,11 @@ public final class TripRoomViewModel {
     /// Default sample participants for preview and testing.
     public static var defaultDummyParticipants: [Participant] {
         [
-            Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: true),
-            Participant(name: "Matthew", description: "Civic Putih - B 8888 XY", isLeader: false),
-            Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false),
-            Participant(name: "Nat", description: "Ioniq 5 Silver - B 5678 GH", isLeader: false),
-            Participant(name: "Zal", description: "Ioniq 5 Silver - B 5678 GH", isLeader: false)
+            Participant(name: "Faishal (You)", description: "Innova Hitam - H 1234 CD", isLeader: true),
+            Participant(name: "Matthew", description: "Civic Putih - W 8888 XY", isLeader: false),
+            Participant(name: "Farr", description: "HR-V Abu-abu - L 4321 EF", isLeader: false),
+            Participant(name: "Nat", description: "Ioniq 5 Silver - DK 5678 GH", isLeader: false),
+            Participant(name: "Zal", description: "Ioniq 7 Black - H 28947 HUO", isLeader: false)
         ]
     }
 
