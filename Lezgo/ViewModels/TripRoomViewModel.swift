@@ -104,12 +104,23 @@ public final class TripRoomViewModel {
         routeStops.last(where: { $0.kind == .destination })?.name ?? ""
     }
 
+    /// Default sample participants for preview and testing.
+    public static var defaultDummyParticipants: [Participant] {
+        [
+            Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: true),
+            Participant(name: "Matthew", description: "Civic Putih - B 8888 XY", isLeader: false),
+            Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false),
+            Participant(name: "Nat", description: "Ioniq 5 Silver - B 5678 GH", isLeader: false),
+            Participant(name: "Zal", description: "Ioniq 5 Silver - B 5678 GH", isLeader: false)
+        ]
+    }
+
     public init(
         roomCode: String = "5JUV83",
         routeStops: [RouteStop]? = nil,
         originName: String = "Cilandak Town Square, Jakarta",
         destinationName: String = "Puncak Pass Resort, Bogor",
-        participants: [Participant] = [],
+        participants: [Participant]? = nil,
         isCurrentUserLeader: Bool = true,
         currentUserId: UUID? = nil
     ) {
@@ -123,13 +134,14 @@ public final class TripRoomViewModel {
                 .init(name: destinationName, kind: .destination)
             ]
         }
-        self.participants = participants
+        let resolvedParticipants = participants ?? Self.defaultDummyParticipants
+        self.participants = resolvedParticipants
         self.isCurrentUserLeader = isCurrentUserLeader
         if let currentUserId {
             self.currentUserId = currentUserId
-        } else if isCurrentUserLeader, let initialLeader = participants.first(where: { $0.isLeader }) {
+        } else if isCurrentUserLeader, let initialLeader = resolvedParticipants.first(where: { $0.isLeader }) {
             self.currentUserId = initialLeader.id
-        } else if !isCurrentUserLeader, let firstMember = participants.first(where: { !$0.isLeader }) {
+        } else if !isCurrentUserLeader, let firstMember = resolvedParticipants.first(where: { !$0.isLeader }) {
             self.currentUserId = firstMember.id
         } else {
             self.currentUserId = UUID()

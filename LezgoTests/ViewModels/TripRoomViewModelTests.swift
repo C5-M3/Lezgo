@@ -9,10 +9,16 @@ struct TripRoomViewModelTests {
 
         #expect(!viewModel.originName.isEmpty)
         #expect(!viewModel.destinationName.isEmpty)
-        #expect(viewModel.participants.isEmpty)
+        #expect(viewModel.participants.count >= 4)
+        #expect(viewModel.participants.first?.isLeader == true)
         #expect(viewModel.isCurrentUserLeader == true)
         #expect(viewModel.isSelectionMode == false)
         #expect(viewModel.tripStatus == .waiting)
+    }
+
+    @Test func ExplicitEmptyParticipantsAllowsEmptyList() {
+        let viewModel = TripRoomViewModel(participants: [])
+        #expect(viewModel.participants.isEmpty)
     }
 
     @Test func StartTripUpdatesStatusWhenLeader() {

@@ -159,11 +159,7 @@ private struct LeaderCandidateRow: View {
 
 #Preview {
     SetLeaderSheetView(
-        participants: [
-            Participant(name: "Faishal (You)", description: "Innova Hitam - B 1234 CD", isLeader: true),
-            Participant(name: "Matthew", description: "Civic Putih - B 8888 XY", isLeader: false),
-            Participant(name: "Farr", description: "HR-V Abu-abu - B 4321 EF", isLeader: false)
-        ],
+        participants: TripRoomViewModel.defaultDummyParticipants,
         onSelectLeader: { _ in }
     )
 }
