@@ -57,5 +57,23 @@ struct LoadCheckViewModelTests {
         #expect(viewModel.isRunning == false)
         #expect(try #require(viewModel.summary).rateLimitedCount >= 1)
     }
+
+    @Test func OneCarMeasuresItsOwnPositions() async throws {
+        // One car per phone is the real load. Its own position, read back from the server, takes the same path as
+        // the one another phone sees.
+        viewModel.carCount = 1
+
+        await viewModel.Run(for: .milliseconds(300))
+
+        let summary = try #require(viewModel.summary)
+        #expect(summary.carCount == 1)
+        #expect(summary.delayCount > 0)
+    }
+
+    @Test func OneCarIsTheDefault() {
+        let fresh = LoadCheckViewModel(database: FakeCloudDatabase(server: server, userRecordName: "_load"))
+
+        #expect(fresh.carCount == 1)
+    }
 }
 #endif
