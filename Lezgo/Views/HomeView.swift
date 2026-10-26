@@ -10,11 +10,15 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var viewModel = HomeViewModel()
+    @State private var isJoinTripPresented: Bool = false
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Map(position: $viewModel.cameraPosition) {
+            Map(
+                position: $viewModel.cameraPosition,
+                interactionModes: isJoinTripPresented ? [] : .all
+            ) {
                 UserAnnotation()
 
                 if let selectedMapItem = viewModel.selectedMapItem {
@@ -41,7 +45,9 @@ struct HomeView: View {
                 MapScaleView()
                 MapPitchToggle()
             }
-            .mapControlVisibility(.visible)
+            .mapControlVisibility(isJoinTripPresented ? .hidden : .visible)
+            .disabled(isJoinTripPresented)
+            .allowsHitTesting(!isJoinTripPresented)
 
             if isSearchFocused {
                 Color.clear
@@ -55,7 +61,30 @@ struct HomeView: View {
                     .accessibilityLabel("Tutup pencarian")
             }
 
-            locationInfoCard
+            // Menyembunyikan seluruh kontrol pencarian dan tombol room saat pop up aktif
+            if !isJoinTripPresented {
+                locationInfoCard
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            }
+        }
+        .overlay {
+            // Pop up modal Apple HIG component untuk memasukkan room code
+            if isJoinTripPresented {
+                JoinTripView(
+                    isPresented: $isJoinTripPresented,
+                    onEnter: { roomCode in
+                        // Logika aksi saat kode ruangan dimasukkan
+                        #if DEBUG
+                        print("Kode ruangan dimasukkan: \(roomCode)")
+                        #endif
+                    }
+                )
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.94)),
+                    removal: .identity
+                ))
+                .zIndex(100)
+            }
         }
         .onAppear {
             viewModel.onAppear()
@@ -116,7 +145,9 @@ struct HomeView: View {
                 onDoorTapped: {
                     isSearchFocused = false
                     hideKeyboard()
-                    viewModel.resetSearchAndCenterOnUser()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        isJoinTripPresented = true
+                    }
                 },
                 onSearch: {
                     performSearch()
