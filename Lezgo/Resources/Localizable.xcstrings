@@ -13,6 +13,162 @@
         }
       }
     },
+    "tripMapCarDriving" : {
+      "comment" : "VoiceOver status of a car pin: the car is moving.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Driving"
+          }
+        }
+      }
+    },
+    "tripMapCarLeader" : {
+      "comment" : "VoiceOver status of a car pin: the car of the trip's leader.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leader"
+          }
+        }
+      }
+    },
+    "tripMapCarOffline" : {
+      "comment" : "VoiceOver status of a car pin: the car sent no location for more than 2 minutes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
+          }
+        }
+      }
+    },
+    "tripMapCarStopped" : {
+      "comment" : "VoiceOver status of a car pin: the car has had speed 0 for 30 seconds.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stopped"
+          }
+        }
+      }
+    },
+    "tripMapCarYou" : {
+      "comment" : "VoiceOver status of a car pin: this phone's own car.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        }
+      }
+    },
+    "tripMapCheckpoint" : {
+      "comment" : "VoiceOver kind of a waypoint pin on the trip map.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checkpoint"
+          }
+        }
+      }
+    },
+    "tripMapDestination" : {
+      "comment" : "VoiceOver kind of a waypoint pin on the trip map.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination"
+          }
+        }
+      }
+    },
+    "tripMapFollowMyCar" : {
+      "comment" : "Round map button that keeps the map centred on this phone's car while it moves.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow my car"
+          }
+        }
+      }
+    },
+    "tripMapLoading" : {
+      "comment" : "Shown on the trip map until the first trip update arrives.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading the trip…"
+          }
+        }
+      }
+    },
+    "tripMapShowWholeRoute" : {
+      "comment" : "Round map button that zooms out to show the whole route of the trip.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show whole route"
+          }
+        }
+      }
+    },
+    "tripMapStartPoint" : {
+      "comment" : "VoiceOver kind of a waypoint pin on the trip map.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start point"
+          }
+        }
+      }
+    },
+    "tripMapToDestination" : {
+      "comment" : "Bottom card on the trip map. The placeholder is the destination name, for example \"To Pakuwon mall\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To %@"
+          }
+        }
+      }
+    },
+    "tripMapVisited" : {
+      "comment" : "VoiceOver status of a checkpoint the leader has already passed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visited"
+          }
+        }
+      }
+    },
     "tripServiceErrorConflict" : {
       "comment" : "Error when two phones change the same thing at once, for example picking a new leader. Copy not in the user stories yet; needs a copy check.",
       "extractionState" : "manual",

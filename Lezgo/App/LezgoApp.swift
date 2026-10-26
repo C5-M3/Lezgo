@@ -29,13 +29,24 @@ struct LezgoApp: App {
         }
     }()
 
-    /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips stay on this phone until
-    /// `LiveTripService` (#65) replaces it here.
-    private let tripService: any TripService = InMemoryTripService()
+    /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips sync through CloudKit
+    /// (ADR 0014); previews and tests use `InMemoryTripService` instead.
+    private let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            #if DEBUG
+            // Launched with `-DebugScreen <name>`: open that screen with simulated data. See `DebugScreen` for how
+            // to set this up in your own unshared scheme. Without the argument, and in every release build, the app
+            // starts normally.
+            if let debugScreen = DebugScreen.FromLaunchArguments() {
+                debugScreen.MakeView()
+            } else {
+                ContentView()
+            }
+            #else
+            ContentView()
+            #endif
         }
         .modelContainer(sharedModelContainer)
         .environment(\.tripService, tripService)
