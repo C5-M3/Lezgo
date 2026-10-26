@@ -5,6 +5,10 @@ import Foundation
 /// Previews, `DebugScreen`, unit tests and the app use it until `LiveTripService` lands. It follows the same rules
 /// as the live service, so a screen that works with it works with iCloud. It cannot sync between phones.
 final class InMemoryTripService: TripService {
+    /// The service a screen gets from `@Environment(\.tripService)` when nothing above it set one, for example in
+    /// a preview. One shared instance, so every read in the same preview sees the same trips.
+    static let fallback = InMemoryTripService()
+
     /// When set, every call except `TripUpdates` throws this error, so previews and tests can show error states.
     var simulatedFailure: TripServiceError?
 
