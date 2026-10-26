@@ -22,6 +22,23 @@ How the app works:
 Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done are in its GitHub issue. Read the issue before you start.
 
 
+## Who owns which screen
+
+The team splits the work by screen, not by the tasks in the GitHub Project. The screens are the blue boxes in the team's app flow diagram. Each developer builds their screens and everything that branches off them in the flow, and the screens are joined together afterwards. The GitHub Project tasks are kept for the record only.
+
+| Screens | Owner | GitHub |
+| --- | --- | --- |
+| Home, Insert Code (join route), Draft Trip | R | `zalllrizalll` |
+| Set Route | F | `fsudjatmiko` |
+| Trip Room | O | `okyfaishal` |
+| Trip Started | N | `Vallykrie` |
+
+- Work only on your own screens. If you need a change in a screen someone else owns, ask its owner first.
+- Agree on the data passed between screens (for example the route and the participant list handed from Trip Room to Trip Started) with the owner of the other screen before you build on it.
+- Shared code (models, services, components) is used by more than one screen. Tell the team before you change it, so that nobody's screen breaks when the work is joined.
+- The workflow, branch, TDD and PR rules below still apply to each screen's work.
+
+
 ## Project snapshot
 
 | Item | Value |
