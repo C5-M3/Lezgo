@@ -30,7 +30,30 @@ struct LoadCheckSummary: Hashable {
 
     /// The summary as Markdown, ready to paste into the GitHub issue.
     func Markdown() -> String {
-        ""
+        let english = Locale(identifier: "en_US")
+        let number = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...2)).locale(english)
+        let percent = FloatingPointFormatStyle<Double>.Percent.percent.precision(.fractionLength(0)).locale(english)
+        let units = Duration.UnitsFormatStyle(allowedUnits: [.hours, .minutes, .seconds], width: .abbreviated)
+        let otherErrors = errorCounts
+            .filter { $0.key != "requestRateLimited" }
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key): \($0.value)" }
+            .joined(separator: ", ")
+        let requestTimes = [requestMillisecondsP50, requestMillisecondsP95].map { $0.formatted(number) }
+        let delays = [delaySecondsP50, delaySecondsP95, delaySecondsMax].map { $0.formatted(number) }
+        let rows = [
+            ("Cars", "\(carCount)"),
+            ("Duration", elapsed.formatted(units.locale(english))),
+            ("Requests", "\(requestCount) (\(requestsPerSecond.formatted(number)) per second)"),
+            ("Throttled (`requestRateLimited`)", "\(rateLimitedCount)"),
+            ("Other errors", otherErrors.isEmpty ? "none" : otherErrors),
+            ("Request time p50 / p95", requestTimes.joined(separator: " / ") + " ms"),
+            ("Delay to another car p50 / p95 / max", delays.joined(separator: " / ") + " s"),
+            ("Seen within 2 s", delayWithinTarget.formatted(percent)),
+            ("Positions measured", "\(delayCount)")
+        ]
+        return (["| Measure | Result |", "| --- | --- |"] + rows.map { "| \($0.0) | \($0.1) |" })
+            .joined(separator: "\n")
     }
 }
 #endif
