@@ -16,6 +16,12 @@ enum TripRecordMapper {
 
     static func MakeRecord(_ trip: Trip) -> CKRecord {
         let record = CKRecord(recordType: tripType, recordID: RecordID(trip.id))
+        Write(trip, into: record)
+        return record
+    }
+
+    /// Writes the trip's fields into an existing record, for example one fetched for a conditional save.
+    static func Write(_ trip: Trip, into record: CKRecord) {
         record["roomCode"] = trip.roomCode
         record["status"] = trip.status.rawValue
         record["leaderParticipantID"] = trip.leaderParticipantID.uuidString
@@ -24,7 +30,6 @@ enum TripRecordMapper {
         record["createdAt"] = trip.createdAt
         record["startedAt"] = trip.startedAt
         record["endedAt"] = trip.endedAt
-        return record
     }
 
     static func MakeTrip(from record: CKRecord) throws -> Trip {
@@ -71,6 +76,12 @@ enum TripRecordMapper {
 
     static func MakeRecord(_ participant: Participant) -> CKRecord {
         let record = CKRecord(recordType: participantType, recordID: RecordID(participant.id))
+        Write(participant, into: record)
+        return record
+    }
+
+    /// Writes the participant's fields into an existing record.
+    static func Write(_ participant: Participant, into record: CKRecord) {
         record["tripID"] = TripReference(participant.tripID)
         record["userRecordID"] = participant.userRecordID
         record["displayName"] = participant.displayName
@@ -81,7 +92,6 @@ enum TripRecordMapper {
         record["motionState"] = participant.motionState.rawValue
         record["alert"] = participant.alert.rawValue
         record["lastSeenAt"] = participant.lastSeenAt
-        return record
     }
 
     static func MakeParticipant(from record: CKRecord) throws -> Participant {
