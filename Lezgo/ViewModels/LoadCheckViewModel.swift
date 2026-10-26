@@ -3,7 +3,7 @@ import CloudKit
 import Foundation
 import Observation
 
-/// Runs a CloudKit load check (#69) from one phone: several simulated cars, each saving its location and fetching
+/// Runs a CloudKit load check (#69) from one phone: one or more simulated cars, each saving its location and fetching
 /// the trip every second through `LiveTripService`, while every request and delay is recorded.
 ///
 /// Open it with `-DebugScreen loadCheck`. Debug builds only; its text is for developers and is not localized.
@@ -14,7 +14,9 @@ final class LoadCheckViewModel {
     private(set) var summary: LoadCheckSummary?
     private(set) var errorMessage: String?
     private(set) var savedFile: URL?
-    var carCount = 5
+    /// One car per phone is the real load: about 3 requests per second. More cars on one phone queue up in that
+    /// phone's CloudKit client and measure the phone, not the server.
+    var carCount = 1
     var minutes = 30
 
     private let database: any CloudDatabase
@@ -91,7 +93,7 @@ final class LoadCheckViewModel {
         await withTaskGroup(of: Void.self) { group in
             for (index, car) in cars.enumerated() {
                 group.addTask { await self.SendPositions(of: car, place: index, tripID: tripID) }
-                group.addTask { await self.WatchOtherCars(from: car, tripID: tripID, recorder: recorder) }
+                group.addTask { await self.WatchCars(from: car, tripID: tripID, recorder: recorder) }
             }
             group.addTask { await self.TrackProgress(since: start, recorder: recorder) }
             try? await Task.sleep(for: duration)
@@ -124,8 +126,9 @@ final class LoadCheckViewModel {
         }
     }
 
-    /// Records, for every new position of another car, the time between that car saving it and this car seeing it.
-    private func WatchOtherCars(
+    /// Records, for every new position of any car (this one included), the time between the car saving it and this
+    /// car seeing it. A car's own position comes back from the server the same way another phone would see it.
+    private func WatchCars(
         from car: (service: LiveTripService, participantID: UUID),
         tripID: UUID,
         recorder: LoadCheckRecorder
@@ -133,7 +136,7 @@ final class LoadCheckViewModel {
         var lastSeen: [UUID: Date] = [:]
         for await state in car.service.TripUpdates(tripID: tripID) {
             let now = Date.now
-            for other in state.participants where other.id != car.participantID && other.coordinate != nil {
+            for other in state.participants where other.coordinate != nil {
                 guard other.lastSeenAt > lastSeen[other.id, default: .distantPast] else { continue }
                 recorder.RecordDelay(seconds: now.timeIntervalSince(other.lastSeenAt))
                 lastSeen[other.id] = other.lastSeenAt
