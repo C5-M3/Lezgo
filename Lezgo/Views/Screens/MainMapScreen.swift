@@ -19,7 +19,8 @@ struct MainMapScreen: View {
         Map(position: $boundViewModel.cameraPosition) {
             UserAnnotation()
 
-            if let start = viewModel.startPoint {
+            // Only show a custom start marker if the user edited it away from "Current Location"
+            if let start = viewModel.startPoint, start.name != "Current Location" {
                 Marker(start.name, coordinate: start.coordinate)
                     .tint(.blue)
             }
@@ -39,7 +40,6 @@ struct MainMapScreen: View {
             MapCompass()
             MapScaleView()
         }
-        // Persistent bottom sheet drawer
         .sheet(isPresented: .constant(true)) {
             RouteSummaryDrawer(viewModel: boundViewModel)
                 .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
@@ -49,6 +49,9 @@ struct MainMapScreen: View {
                 .presentationDragIndicator(.visible)
                 .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.24)))
                 .interactiveDismissDisabled()
+        }
+        .onAppear {
+            viewModel.onAppear()
         }
         .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.errorMessage = nil }

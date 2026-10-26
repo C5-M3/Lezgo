@@ -17,6 +17,28 @@ struct LocationSearchSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                // If editing the start point, offer a 1-tap "Current Location" reset option
+                if selectionType == .start && viewModel.locationService.userLocation != nil {
+                    Section {
+                        Button {
+                            viewModel.selectCurrentLocationAsStart()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "location.fill")
+                                    .foregroundStyle(.tint)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Current Location")
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                    Text("Use GPS position")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if viewModel.searchService.isSearching {
                     HStack {
                         Spacer()
@@ -26,19 +48,21 @@ struct LocationSearchSheet: View {
                     .listRowBackground(Color.clear)
                 }
 
-                ForEach(viewModel.searchService.searchResults, id: \.self) { result in
-                    Button {
-                        viewModel.selectSearchResult(result)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(result.title)
-                                .font(.body)
-                                .foregroundStyle(.primary)
+                Section(selectionType == .start ? "Search Places" : "") {
+                    ForEach(viewModel.searchService.searchResults, id: \.self) { result in
+                        Button {
+                            viewModel.selectSearchResult(result)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(result.title)
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
 
-                            if !result.subtitle.isEmpty {
-                                Text(result.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                if !result.subtitle.isEmpty {
+                                    Text(result.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -49,7 +73,7 @@ struct LocationSearchSheet: View {
             .searchable(
                 text: $viewModel.searchQuery,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Search street, venue, or address"
+                prompt: selectionType == .start ? "Change start location" : "Where to?"
             )
             .onChange(of: viewModel.searchQuery) { _, newValue in
                 viewModel.onSearchQueryChanged(newValue)
