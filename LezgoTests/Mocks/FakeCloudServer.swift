@@ -10,6 +10,7 @@ final class FakeCloudServer {
     var failure: (any Error)?
     private(set) var records: [CKRecord.ID: CKRecord] = [:]
     private(set) var saveCount = 0
+    private(set) var handOutCount = 0
     private var versions: [CKRecord.ID: Int] = [:]
     private var handedOut: [ObjectIdentifier: (record: CKRecord, version: Int)] = [:]
 
@@ -21,6 +22,7 @@ final class FakeCloudServer {
     func HandOut(_ recordID: CKRecord.ID) -> CKRecord? {
         guard let stored = records[recordID], let copy = stored.copy() as? CKRecord else { return nil }
         handedOut[ObjectIdentifier(copy)] = (copy, versions[recordID, default: 0])
+        handOutCount += 1
         return copy
     }
 

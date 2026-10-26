@@ -40,7 +40,8 @@ struct MeasuringCloudDatabaseTests {
         (.networkUnavailable, "networkUnavailable"),
         (.serviceUnavailable, "serviceUnavailable"),
         (.serverRecordChanged, "serverRecordChanged"),
-        (.unknownItem, "unknownItem")
+        (.unknownItem, "unknownItem"),
+        (.operationCancelled, "operationCancelled")
     ])
     func ErrorNamesMatchCloudKit(code: CKError.Code, name: String) {
         #expect(MeasuringCloudDatabase.ErrorName(CKError(code)) == name)
@@ -49,6 +50,26 @@ struct MeasuringCloudDatabaseTests {
     @Test func OtherErrorsKeepTheirNumber() {
         #expect(MeasuringCloudDatabase.ErrorName(CKError(.quotaExceeded)) == "CKError 25")
         #expect(MeasuringCloudDatabase.ErrorName(URLError(.timedOut)) == "other")
+    }
+
+    @Test func RequestCancelledBecauseTheCheckStoppedIsNotAnError() async {
+        server.failure = CKError(.operationCancelled)
+        let database = database
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            _ = try? await database.Fetch(CKRecord.ID(recordName: "any"))
+        }
+        await task.value
+
+        #expect(recorder.samples.isEmpty)
+    }
+
+    @Test func CancelledRequestWhileRunningIsStillCounted() async {
+        server.failure = CKError(.operationCancelled)
+
+        _ = try? await database.Fetch(CKRecord.ID(recordName: "any"))
+
+        #expect(recorder.samples.map(\.errorCode) == ["operationCancelled"])
     }
 }
 #endif
