@@ -38,6 +38,17 @@ Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done
 Do not add third-party dependencies without asking first.
 
 
+## Signing on your own account
+
+Decision record: [0015](docs/adr/0015-PerDeveloperSigningSettings.md).
+
+- Each developer signs with their own Apple Developer account. Copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and set your team ID and bundle identifier prefix there. `Local.xcconfig` is git-ignored.
+- Never commit a change to `DEVELOPMENT_TEAM`, `PRODUCT_BUNDLE_IDENTIFIER`, the iCloud container or the URL type name. `Config/Base.xcconfig` holds the release values that Xcode Cloud uses.
+- Never hard-code the iCloud container in code. Use `CKContainer.default()`.
+- Your build uses your own CloudKit container, so it cannot see trips from other developers' builds. Tests with several phones must all run the same build (normally TestFlight).
+- Change the CloudKit schema in the exported schema file, not only in your own CloudKit Dashboard.
+
+
 ## Architecture decisions
 
 Past decisions and their reasons are recorded in [`docs/adr/`](docs/adr/README.md) as architecture decision records (ADRs). AGENTS.md holds the rules; the ADRs hold why.
