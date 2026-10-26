@@ -40,7 +40,7 @@ final class InMemoryTripService: TripService {
         try ThrowSimulatedFailure()
         try Validate(plan)
         let tripID = UUID()
-        let leader = NewParticipant(tripID: tripID, profile: profile)
+        let leader = Participant.Joining(tripID: tripID, userRecordID: userRecordID, profile: profile, at: clock())
         let trip = Trip(
             id: tripID,
             roomCode: try UnusedRoomCode(),
@@ -54,7 +54,7 @@ final class InMemoryTripService: TripService {
         )
         let state = TripState(
             trip: trip,
-            waypoints: Waypoints(from: plan, tripID: tripID),
+            waypoints: plan.MakeWaypoints(tripID: tripID),
             participants: [leader],
             route: Route(id: UUID(), tripID: tripID, version: 1, polyline: plan.polyline)
         )
@@ -66,12 +66,17 @@ final class InMemoryTripService: TripService {
         try ThrowSimulatedFailure()
         let matches = store.trips.values.filter { $0.trip.roomCode == roomCode }
         guard matches.isEmpty == false else { throw TripServiceError.notFound }
-        guard var state = matches.first(where: { IsOpen($0.trip.status) }) else { throw TripServiceError.tripEnded }
+        guard var state = matches.first(where: { $0.trip.status.isOpen }) else { throw TripServiceError.tripEnded }
 
         if let existing = state.participants.first(where: { $0.userRecordID == userRecordID }) {
             return TripSession(myParticipantID: existing.id, state: state)
         }
-        let member = NewParticipant(tripID: state.trip.id, profile: profile)
+        let member = Participant.Joining(
+            tripID: state.trip.id,
+            userRecordID: userRecordID,
+            profile: profile,
+            at: clock()
+        )
         state.participants.append(member)
         store.Save(state)
         return TripSession(myParticipantID: member.id, state: state)
@@ -126,7 +131,7 @@ final class InMemoryTripService: TripService {
         try ThrowSimulatedFailure()
         guard let state = store.trips[tripID] else { throw TripServiceError.notFound }
         // Ending twice is harmless: a second phone may still show the button for a moment.
-        guard IsOpen(state.trip.status) else { return }
+        guard state.trip.status.isOpen else { return }
         try Change(tripID: tripID, by: leaderID) { state in
             state.trip.status = state.trip.status == .lobby ? .cancelled : .ended
             state.trip.endedAt = clock()
@@ -193,16 +198,12 @@ final class InMemoryTripService: TripService {
         if let simulatedFailure { throw simulatedFailure }
     }
 
-    private func IsOpen(_ status: TripStatus) -> Bool {
-        status == .lobby || status == .inTrip
-    }
-
     /// Applies a change to an open trip and saves it, so every listener sees it.
     /// - Parameter leaderID: when given, the change is allowed only for the trip's leader.
     private func Change(tripID: UUID, by leaderID: UUID? = nil, _ change: (inout TripState) throws -> Void) throws {
         try ThrowSimulatedFailure()
         guard var state = store.trips[tripID] else { throw TripServiceError.notFound }
-        guard IsOpen(state.trip.status) else { throw TripServiceError.tripEnded }
+        guard state.trip.status.isOpen else { throw TripServiceError.tripEnded }
         if let leaderID, state.trip.leaderParticipantID != leaderID { throw TripServiceError.notAllowed }
         try change(&state)
         store.Save(state)
@@ -225,45 +226,16 @@ final class InMemoryTripService: TripService {
         guard plan.isValid else { throw TripServiceError.notAllowed }
     }
 
-    private func Waypoints(from plan: TripPlan, tripID: UUID) -> [Waypoint] {
-        plan.waypoints.enumerated().map { index, planned in
-            Waypoint(
-                id: UUID(),
-                tripID: tripID,
-                orderIndex: index,
-                kind: planned.kind,
-                name: planned.name,
-                coordinate: planned.coordinate
-            )
-        }
-    }
-
     private func ReplaceRoute(in state: inout TripState, with plan: TripPlan) {
         let version = state.trip.routeVersion + 1
         state.trip.routeVersion = version
-        state.waypoints = Waypoints(from: plan, tripID: state.trip.id)
+        state.waypoints = plan.MakeWaypoints(tripID: state.trip.id)
         state.route = Route(id: UUID(), tripID: state.trip.id, version: version, polyline: plan.polyline)
-    }
-
-    private func NewParticipant(tripID: UUID, profile: ParticipantProfile?) -> Participant {
-        let profile = profile ?? ParticipantProfile.Default(forUserRecordID: userRecordID)
-        return Participant(
-            id: UUID(),
-            tripID: tripID,
-            userRecordID: userRecordID,
-            displayName: profile.displayName,
-            carDescription: profile.carDescription,
-            coordinate: nil,
-            speedKmh: 0,
-            motionState: .stopped,
-            alert: .none,
-            lastSeenAt: clock()
-        )
     }
 
     /// A room code that no open trip uses. Ended trips may keep theirs: joining checks open trips first.
     private func UnusedRoomCode() throws -> String {
-        let codesInUse = Set(store.trips.values.filter { IsOpen($0.trip.status) }.map(\.trip.roomCode))
+        let codesInUse = Set(store.trips.values.filter { $0.trip.status.isOpen }.map(\.trip.roomCode))
         for _ in 0..<100 {
             let candidate = makeRoomCode()
             if codesInUse.contains(candidate) == false { return candidate }

@@ -29,4 +29,27 @@ struct Participant: Identifiable, Hashable, Codable {
     func IsOnline(at date: Date) -> Bool {
         date.timeIntervalSince(lastSeenAt) <= Self.offlineAfter
     }
+
+    /// Someone who just created or joined a trip: no location yet, stopped, no alert.
+    /// - Parameter profile: `nil` uses "Member" plus the end of the iCloud user ID.
+    static func Joining(
+        tripID: UUID,
+        userRecordID: String,
+        profile: ParticipantProfile?,
+        at date: Date
+    ) -> Participant {
+        let profile = profile ?? ParticipantProfile.Default(forUserRecordID: userRecordID)
+        return Participant(
+            id: UUID(),
+            tripID: tripID,
+            userRecordID: userRecordID,
+            displayName: profile.displayName,
+            carDescription: profile.carDescription,
+            coordinate: nil,
+            speedKmh: 0,
+            motionState: .stopped,
+            alert: .none,
+            lastSeenAt: date
+        )
+    }
 }
