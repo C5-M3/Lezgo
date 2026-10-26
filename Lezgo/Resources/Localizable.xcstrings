@@ -1,0 +1,90 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "participantDefaultName" : {
+      "comment" : "Name of a new member who has no saved profile yet (US-02). The placeholder is the last 4 characters of their iCloud user ID, for example \"Member 7F3A\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Member %@"
+          }
+        }
+      }
+    },
+    "tripServiceErrorConflict" : {
+      "comment" : "Error when two phones change the same thing at once, for example picking a new leader. Copy not in the user stories yet; needs a copy check.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Someone else changed this first. Try again."
+          }
+        }
+      }
+    },
+    "tripServiceErrorNoNetwork" : {
+      "comment" : "Error when iCloud cannot be reached. Copy not in the user stories yet; needs a copy check.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No internet connection. Check your connection and try again."
+          }
+        }
+      }
+    },
+    "tripServiceErrorNotAllowed" : {
+      "comment" : "Error when a person tries an action they may not do, for example a member removing someone. Copy not in the user stories yet; needs a copy check.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can't do this in this trip."
+          }
+        }
+      }
+    },
+    "tripServiceErrorNotFound" : {
+      "comment" : "Error when no trip has the entered room code (US-02).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No trip found with this code."
+          }
+        }
+      }
+    },
+    "tripServiceErrorNotSignedInToICloud" : {
+      "comment" : "Error when the phone is not signed in to iCloud. Copy not in the user stories yet; needs a copy check.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to iCloud in Settings to use trips."
+          }
+        }
+      }
+    },
+    "tripServiceErrorTripEnded" : {
+      "comment" : "Error when joining a trip that is ENDED or CANCELLED (US-02).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This trip has already ended."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

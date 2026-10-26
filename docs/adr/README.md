@@ -31,3 +31,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0014](0014-CloudKitPublicDatabaseForTripSync.md) | CloudKit public database for trip sync | Proposed | 2026-10-23 |
 | [0015](0015-PerDeveloperSigningSettings.md) | Per-developer signing settings | Proposed | 2026-10-26 |
 | [0016](0016-UserStoriesInTheRepository.md) | User stories in the repository | Proposed | 2026-10-26 |
+| [0017](0017-TripServiceContractFirst.md) | Trip service contract first, with an in-memory service | Proposed | 2026-10-26 |

@@ -29,10 +29,15 @@ struct LezgoApp: App {
         }
     }()
 
+    /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips stay on this phone until
+    /// `LiveTripService` (#65) replaces it here.
+    private let tripService: any TripService = InMemoryTripService()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+        .environment(\.tripService, tripService)
     }
 }

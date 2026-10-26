@@ -65,7 +65,7 @@ Decision record: [0015](docs/adr/0015-PerDeveloperSigningSettings.md).
 - Never commit a change to `DEVELOPMENT_TEAM`, `PRODUCT_BUNDLE_IDENTIFIER`, the iCloud container or the URL type name. `Config/Base.xcconfig` holds the release values that Xcode Cloud uses.
 - Never hard-code the iCloud container in code. Use `CKContainer.default()`.
 - Your build uses your own CloudKit container, so it cannot see trips from other developers' builds. Tests with several phones must all run the same build (normally TestFlight).
-- Change the CloudKit schema in the exported schema file, not only in your own CloudKit Dashboard.
+- Change the CloudKit schema in the exported schema file (`CloudKit/Schema.ckdb`), not only in your own CloudKit Dashboard.
 
 
 ## Architecture decisions
@@ -209,6 +209,7 @@ LezgoUITests/         UI tests
 - Views stay thin: layout, bindings and calls into the view model. No business logic, networking or persistence in a view.
 - View models are `@Observable final class` types. They hold screen state and logic, and receive services through their initializer so tests can pass in fakes.
 - Services are defined by a protocol (`AuthService`) with a real implementation (`LiveAuthService`) and a test fake (`MockAuthService`).
+- Trip data goes through the shared `TripService` and the models in `Models/` (decision record: [0017](docs/adr/0017-TripServiceContractFirst.md)). Do not define your own trip, participant or route types. A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer. `InMemoryTripService` runs every screen without iCloud in previews, `DebugScreen` and tests.
 - Models do not import SwiftUI.
 - One type per file. The file is named after the type.
 
