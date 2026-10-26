@@ -21,6 +21,25 @@ How the app works:
 
 Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done are in its GitHub issue. Read the issue before you start.
 
+The rules, copy, data model and Gherkin scenarios of every user story are in [`specs/UserStories.md`](specs/UserStories.md) (decision record: [0016](docs/adr/0016-UserStoriesInTheRepository.md)). Build models and copy from it word for word. If the code needs a different field or text, change the spec in the same PR and tell the team.
+
+
+## Who owns which screen
+
+The team splits the work by screen, not by the tasks in the GitHub Project. The screens are the blue boxes in the team's app flow diagram. Each developer builds their screens and everything that branches off them in the flow, and the screens are joined together afterwards. The GitHub Project tasks are kept for the record only.
+
+| Screens | Owner | GitHub |
+| --- | --- | --- |
+| Home, Insert Code (join route), Draft Trip | R | `zalllrizalll` |
+| Set Route | F | `fsudjatmiko` |
+| Trip Room | O | `okyfaishal` |
+| Trip Started | N | `Vallykrie` |
+
+- Work only on your own screens. If you need a change in a screen someone else owns, ask its owner first.
+- Agree on the data passed between screens (for example the route and the participant list handed from Trip Room to Trip Started) with the owner of the other screen before you build on it.
+- Shared code (models, services, components) is used by more than one screen. Tell the team before you change it, so that nobody's screen breaks when the work is joined.
+- The workflow, branch, TDD and PR rules below still apply to each screen's work.
+
 
 ## Project snapshot
 
@@ -36,6 +55,17 @@ Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done
 | Remote | `github.com/C5-M3/Lezgo`, tasks live in the GitHub Project "Project Management" (#1, org `C5-M3`) |
 
 Do not add third-party dependencies without asking first.
+
+
+## Signing on your own account
+
+Decision record: [0015](docs/adr/0015-PerDeveloperSigningSettings.md).
+
+- Each developer signs with their own Apple Developer account. Copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and set your team ID and bundle identifier prefix there. `Local.xcconfig` is git-ignored.
+- Never commit a change to `DEVELOPMENT_TEAM`, `PRODUCT_BUNDLE_IDENTIFIER`, the iCloud container or the URL type name. `Config/Base.xcconfig` holds the release values that Xcode Cloud uses.
+- Never hard-code the iCloud container in code. Use `CKContainer.default()`.
+- Your build uses your own CloudKit container, so it cannot see trips from other developers' builds. Tests with several phones must all run the same build (normally TestFlight).
+- Change the CloudKit schema in the exported schema file (`CloudKit/Schema.ckdb`), not only in your own CloudKit Dashboard.
 
 
 ## Architecture decisions
@@ -179,6 +209,7 @@ LezgoUITests/         UI tests
 - Views stay thin: layout, bindings and calls into the view model. No business logic, networking or persistence in a view.
 - View models are `@Observable final class` types. They hold screen state and logic, and receive services through their initializer so tests can pass in fakes.
 - Services are defined by a protocol (`AuthService`) with a real implementation (`LiveAuthService`) and a test fake (`MockAuthService`).
+- Trip data goes through the shared `TripService` and the models in `Models/` (decision record: [0017](docs/adr/0017-TripServiceContractFirst.md)). Do not define your own trip, participant or route types. A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer. `InMemoryTripService` runs every screen without iCloud in previews, `DebugScreen` and tests.
 - Models do not import SwiftUI.
 - One type per file. The file is named after the type.
 

@@ -1,0 +1,9 @@
+// Signing settings shared by every target (ADR 0015).
+// These are the release values that Xcode Cloud uses. To build on your own Apple Developer account,
+// copy Local.xcconfig.example to Local.xcconfig and override them there instead of editing this file.
+
+DEVELOPMENT_TEAM = K64G2J8QL7
+BUNDLE_IDENTIFIER_PREFIX = com.nathansudiara
+
+// Optional: the build still works when Local.xcconfig does not exist.
+#include? "Local.xcconfig"

@@ -6,7 +6,7 @@
 
 ## Context
 
-Every car in a trip runs its own phone, and the phones must share one trip: the route, the participant list, the trip status and each car's position. "Sync and timing" in `tasks/UserStories.md` sets the targets: each phone sends its location every 1 second, other phones see a new position or status change within 2 seconds, and Start Trip reaches every phone within 1 second.
+Every car in a trip runs its own phone, and the phones must share one trip: the route, the participant list, the trip status and each car's position. "Sync and timing" in `specs/UserStories.md` sets the targets: each phone sends its location every 1 second, other phones see a new position or status change within 2 seconds, and Start Trip reaches every phone within 1 second.
 The cars can be far apart on a highway, so the phones cannot rely on being near each other. The team has six days, no server engineer and no budget for hosting, and AGENTS.md asks for no third-party dependencies without approval.
 
 ## Decision
@@ -28,5 +28,6 @@ We will sync trips through the CloudKit public database of container `iCloud.com
 
 - No server to run or pay for, and no new dependency. Every person in a trip needs to be signed in to iCloud; the app must explain this clearly when they are not (`TripServiceError` "not signed in to iCloud").
 - The public database has request limits that grow with the number of active users. One write per second per car is near the edge of what CloudKit is meant for, so task 0.8 (sync load check) measures real latency and throttling with a full group before the convoy test. If it fails the 2-second target, a new ADR supersedes this one.
-- Record types, indexes and security roles live in the CloudKit Dashboard. The schema is exported to `Lezgo/Resources/CloudKitSchema.ckdb` (task 0.10) so changes are reviewed in pull requests, and it must be deployed to production before release.
+- Record types, indexes and security roles live in the CloudKit Dashboard. The schema is exported with `xcrun cktool export-schema` to `CloudKit/Schema.ckdb` at the repository root (task 0.10) so changes are reviewed in pull requests. It stays outside `Lezgo/`, because files in that synchronized folder are copied into the app bundle. It must be deployed to production before the first TestFlight build, because TestFlight and App Store builds use the production environment.
+- **Security roles:** any user can read, and any user signed in to iCloud can create and write all four record types. The leader must remove other members' `Participant` records, and after a hand-over the new leader must update a `Trip` they did not create, so "creator only" write access does not work. The app checks leader-only actions itself. The risk is small: record names are random UUIDs that a phone only learns by joining with the room code.
 - The app needs the iCloud (CloudKit) capability, the location-updates and remote-notifications background modes, and "Always" location permission (task 0.2). See [Architecture: MVVM, layer first](../../AGENTS.md#architecture-mvvm-layer-first) for the service-behind-a-protocol rule.
