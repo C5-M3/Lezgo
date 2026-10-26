@@ -10,4 +10,9 @@ enum TripStatus: String, Hashable, Codable, CaseIterable {
     case ended = "ENDED"
     /// The leader left the Trip Room before the trip started.
     case cancelled = "CANCELLED"
+
+    /// Open trips can still be joined and changed: `LOBBY` and `IN_TRIP`.
+    var isOpen: Bool {
+        self == .lobby || self == .inTrip
+    }
 }
