@@ -91,23 +91,9 @@ final class LiveTripService: TripService {
         try await Run { try await reader.LoadState(tripID: tripID) }
     }
 
-    /// Fetches the trip every `pollInterval` and sends it when it changed. A failed fetch (no network) is retried at
-    /// the next interval, so the stream keeps going while the phone is offline.
+    /// Fetches the trip every `pollInterval` and sends it when it changed (see `TripRecordReader.Updates`).
     func TripUpdates(tripID: UUID) -> AsyncStream<TripState> {
-        AsyncStream { continuation in
-            let task = Task {
-                var last: TripState?
-                while Task.isCancelled == false {
-                    if let state = try? await reader.LoadState(tripID: tripID, reusing: last), state != last {
-                        continuation.yield(state)
-                        last = state
-                    }
-                    try? await Task.sleep(for: pollInterval)
-                }
-                continuation.finish()
-            }
-            continuation.onTermination = { _ in task.cancel() }
-        }
+        reader.Updates(tripID: tripID, every: pollInterval)
     }
 
     // MARK: Leader actions in the Trip Room
@@ -173,14 +159,17 @@ final class LiveTripService: TripService {
 
     // MARK: On the road
 
-    /// One read and one write per update. The trip status is not checked again, to stay within CloudKit's limits
-    /// at one update per second per car.
+    /// One request per update: only the location fields are saved, without fetching the participant first. If the
+    /// participant was removed a moment ago, the save makes a stray record without a trip, which no phone ever
+    /// reads, so the member does not come back.
     func UpdateLocation(_ update: LocationUpdate, participantID: UUID, tripID: UUID) async throws {
-        try await ChangeParticipant(participantID, tripID: tripID) { participant in
-            participant.coordinate = update.coordinate
-            participant.speedKmh = update.speedKmh
-            participant.motionState = update.motionState
-            participant.lastSeenAt = update.recordedAt
+        try await Run {
+            let record = CKRecord(
+                recordType: TripRecordMapper.participantType,
+                recordID: TripRecordMapper.RecordID(participantID)
+            )
+            TripRecordMapper.WriteLocation(update, into: record)
+            try await database.Save([record], savePolicy: .changedKeys)
         }
     }
 

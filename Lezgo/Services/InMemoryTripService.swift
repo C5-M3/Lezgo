@@ -141,6 +141,8 @@ final class InMemoryTripService: TripService {
     // MARK: On the road
 
     func UpdateLocation(_ update: LocationUpdate, participantID: UUID, tripID: UUID) async throws {
+        // A removed member's phone may send one more position before it notices; it must not add them back.
+        guard store.trips[tripID]?.participants.contains(where: { $0.id == participantID }) == true else { return }
         try ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.coordinate = update.coordinate
             participant.speedKmh = update.speedKmh

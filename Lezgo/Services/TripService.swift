@@ -53,6 +53,7 @@ protocol TripService {
     // MARK: On the road
 
     /// Saves this phone's location, speed, motion state and `lastSeenAt` (about once per second).
+    /// For a participant who was removed or left, the update is ignored: it never adds them back to the trip.
     func UpdateLocation(_ update: LocationUpdate, participantID: UUID, tripID: UUID) async throws
 
     /// Saves this phone's current formation alert. Members only; the leader never has one.

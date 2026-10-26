@@ -114,6 +114,16 @@ enum TripRecordMapper {
         )
     }
 
+    /// Writes only a location update's fields, so a position is saved with one request and without fetching the
+    /// participant first. Saved with `.changedKeys`, it updates those fields of the existing record.
+    static func WriteLocation(_ update: LocationUpdate, into record: CKRecord) {
+        record["latitude"] = update.coordinate.latitude
+        record["longitude"] = update.coordinate.longitude
+        record["speedKmh"] = update.speedKmh
+        record["motionState"] = update.motionState.rawValue
+        record["lastSeenAt"] = update.recordedAt
+    }
+
     // MARK: Route
 
     static func MakeRecord(_ route: Route) -> CKRecord {
