@@ -73,9 +73,9 @@ public struct TripRoomView: View {
                 }
             }
             .navigationBarBackButtonHidden(true)
-            .confirmationDialog("Leave Trip Room?", isPresented: $showingLeaveConfirmation, titleVisibility: .visible) {
-                Button("Leave Trip Room", role: .destructive) { viewModel.LeaveRoom(); dismiss() }
+            .alert("Leave Trip Room?", isPresented: $showingLeaveConfirmation) {
                 Button("Cancel", role: .cancel) { }
+                Button("Leave Trip Room", role: .destructive) { viewModel.LeaveRoom(); dismiss() }
             } message: { Text("Leaving without handing over the lead will end the trip for everyone.") }
             .alert("Start trip?", isPresented: $showingStartTripConfirmation) {
                 Button("Cancel", role: .cancel) { }
@@ -89,7 +89,10 @@ public struct TripRoomView: View {
                 viewModel.RemoveParticipantConfirmationTitle(
                     for: participantToKick ?? Participant(name: "", description: "")
                 ),
-                isPresented: Binding(get: { participantToKick != nil }, set: { if !$0 { participantToKick = nil } })
+                isPresented: Binding(
+                    get: { participantToKick != nil },
+                    set: { if !$0 { participantToKick = nil } }
+                )
             ) {
                 Button("Cancel", role: .cancel) { participantToKick = nil }
                 Button("Remove", role: .destructive) {
@@ -186,7 +189,7 @@ private struct RouteCardView: View {
                     if index < stops.count - 1 { Divider().padding(.leading, 48) }
                 }
             }
-            .background(Color(uiColor: .secondarySystemGroupedBackground)).clipShape(.rect(cornerRadius: 16))
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
         }
     }
 }
@@ -212,7 +215,7 @@ private struct ParticipantsCardView: View {
                 }
             }
         }
-        .background(Color(uiColor: .secondarySystemGroupedBackground)).clipShape(.rect(cornerRadius: 16))
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
     }
 }
 
@@ -247,13 +250,9 @@ private struct ParticipantRowView: View {
             } else if viewModel.isSelectionMode {
                 viewModel.ToggleParticipantSelection(id: participant.id)
             }
-        } label: {
-            rowContent
-        }
-        .buttonStyle(.plain)
-        .disabled(!viewModel.isSelectionMode && offset == 0)
-        .offset(x: offset)
-        .background(Color(uiColor: .secondarySystemGroupedBackground))
+        } label: { rowContent }
+        .buttonStyle(.plain).disabled(!viewModel.isSelectionMode && offset == 0)
+        .offset(x: offset).background(Color(uiColor: .secondarySystemGroupedBackground))
         .simultaneousGesture((canKick || canSwipeLeader) ? dragGesture : nil)
     }
 
