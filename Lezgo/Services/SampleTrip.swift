@@ -38,6 +38,16 @@ enum SampleTrip {
         pakuwonMall
     ]
 
+    /// The sample route as a plan, for creating a new trip with it.
+    static let plan = TripPlan(
+        waypoints: [
+            PlannedWaypoint(kind: .start, name: "Tunjungan Plaza", coordinate: tunjunganPlaza),
+            PlannedWaypoint(kind: .checkpoint, name: "Ciputra World", coordinate: ciputraWorld),
+            PlannedWaypoint(kind: .destination, name: "Pakuwon mall", coordinate: pakuwonMall)
+        ],
+        polyline: polyline
+    )
+
     /// An in-memory service whose store holds the sample trip, used from the phone of `me`.
     static func Service(status: TripStatus = .lobby, me participantID: UUID = agusID) -> InMemoryTripService {
         InMemoryTripService(

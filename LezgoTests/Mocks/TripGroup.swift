@@ -1,7 +1,7 @@
 import Foundation
 
-/// The IDs of a trip made by `InMemoryPhones.MakeGroup()`: Agus leads, Budi and Citra are members.
-struct InMemoryGroup {
+/// The IDs of a trip made by `TripPhones.MakeGroup()`: Agus leads, Budi and Citra are members.
+struct TripGroup {
     let tripID: UUID
     let roomCode: String
     let agusID: UUID

@@ -2,11 +2,11 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// How joining, fetching and listening behave. `LiveTripService` must follow the same rules (ADR 0017).
-struct InMemoryTripServiceJoinTests {
-    let phones = InMemoryPhones()
-
-    @Test func MemberJoinsTheLobby() async throws {
+/// How joining, fetching and listening behave, for both implementations (ADR 0017).
+struct TripServiceJoinTests {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberJoinsTheLobby(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let created = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
 
         let joined = try await phones.budi.JoinTrip(
@@ -22,7 +22,9 @@ struct InMemoryTripServiceJoinTests {
         #expect(budi.motionState == .stopped)
     }
 
-    @Test func MemberJoinsLateWhileTheTripIsOnTheRoad() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberJoinsLateWhileTheTripIsOnTheRoad(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let created = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
         try await phones.agus.StartTrip(tripID: created.state.trip.id, by: created.myParticipantID)
 
@@ -31,7 +33,9 @@ struct InMemoryTripServiceJoinTests {
         #expect(joined.state.trip.status == .inTrip)
     }
 
-    @Test func JoiningAgainReturnsTheSameCar() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func JoiningAgainReturnsTheSameCar(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         let again = try await phones.budi.JoinTrip(roomCode: group.roomCode, profile: TripPlanFixtures.budiProfile)
@@ -40,14 +44,17 @@ struct InMemoryTripServiceJoinTests {
         #expect(again.state.participants.count == 3)
     }
 
-    @Test func UnknownRoomCodeIsNotFound() async {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func UnknownRoomCodeIsNotFound(kind: TripPhones.Kind) async {
+        let phones = TripPhones(kind)
         await #expect(throws: TripServiceError.notFound) {
             try await phones.budi.JoinTrip(roomCode: "000000", profile: nil)
         }
     }
 
-    @Test(arguments: [TripStatus.ended, .cancelled])
-    func ClosedTripCannotBeJoined(status: TripStatus) async throws {
+    @Test(arguments: TripPhones.Kind.allCases, [TripStatus.ended, .cancelled])
+    func ClosedTripCannotBeJoined(kind: TripPhones.Kind, status: TripStatus) async throws {
+        let phones = TripPhones(kind)
         let created = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
         let tripID = created.state.trip.id
         if status == .ended {
@@ -60,7 +67,9 @@ struct InMemoryTripServiceJoinTests {
         }
     }
 
-    @Test func FetchReturnsTheTripAsItIsNow() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func FetchReturnsTheTripAsItIsNow(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         let state = try await phones.budi.FetchTrip(tripID: group.tripID)
@@ -68,13 +77,17 @@ struct InMemoryTripServiceJoinTests {
         #expect(state.participants.count == 3)
     }
 
-    @Test func FetchingAnUnknownTripIsNotFound() async {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func FetchingAnUnknownTripIsNotFound(kind: TripPhones.Kind) async {
+        let phones = TripPhones(kind)
         await #expect(throws: TripServiceError.notFound) {
             try await phones.budi.FetchTrip(tripID: UUID())
         }
     }
 
-    @Test func UpdatesSendTheTripRightAwayThenEveryChange() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func UpdatesSendTheTripRightAwayThenEveryChange(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
         var updates = phones.budi.TripUpdates(tripID: group.tripID).makeAsyncIterator()
 

@@ -2,11 +2,11 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// How start, group actions, exit and end behave. `LiveTripService` must follow the same rules (ADR 0017).
-struct InMemoryTripServiceGroupTests {
-    let phones = InMemoryPhones()
-
-    @Test func StartTripPutsEveryoneOnTheRoad() async throws {
+/// How start, group actions, exit and end behave, for both implementations (ADR 0017).
+struct TripServiceGroupTests {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func StartTripPutsEveryoneOnTheRoad(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         try await phones.agus.StartTrip(tripID: group.tripID, by: group.agusID)
@@ -17,7 +17,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(trip.currentWaypointIndex == 1)
     }
 
-    @Test func MemberCannotStartTheTrip() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberCannotStartTheTrip(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -25,7 +27,9 @@ struct InMemoryTripServiceGroupTests {
         }
     }
 
-    @Test func LeaderRemovesMembers() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderRemovesMembers(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         try await phones.agus.RemoveParticipants([group.budiID, group.citraID], tripID: group.tripID, by: group.agusID)
@@ -34,7 +38,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(state.participants.map(\.id) == [group.agusID])
     }
 
-    @Test func MemberCannotRemoveAnyone() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberCannotRemoveAnyone(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -42,7 +48,9 @@ struct InMemoryTripServiceGroupTests {
         }
     }
 
-    @Test func LeaderCannotRemoveThemselves() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderCannotRemoveThemselves(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -50,7 +58,9 @@ struct InMemoryTripServiceGroupTests {
         }
     }
 
-    @Test func LeaderHandsOverTheLead() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderHandsOverTheLead(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         try await phones.agus.SetLeader(group.budiID, tripID: group.tripID, replacing: group.agusID)
@@ -58,7 +68,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(try await phones.agus.FetchTrip(tripID: group.tripID).leader?.id == group.budiID)
     }
 
-    @Test func SecondPickOfANewLeaderLoses() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func SecondPickOfANewLeaderLoses(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         try await phones.budi.SetLeader(group.citraID, tripID: group.tripID, replacing: group.agusID)
@@ -69,7 +81,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(try await phones.agus.FetchTrip(tripID: group.tripID).leader?.id == group.citraID)
     }
 
-    @Test func NewLeaderMustBeInTheTrip() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewLeaderMustBeInTheTrip(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         await #expect(throws: TripServiceError.notFound) {
@@ -77,7 +91,9 @@ struct InMemoryTripServiceGroupTests {
         }
     }
 
-    @Test func MemberExitsAndDisappearsFromTheTrip() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberExitsAndDisappearsFromTheTrip(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         try await phones.budi.ExitTrip(tripID: group.tripID, participantID: group.budiID)
@@ -87,7 +103,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(state.trip.status == .lobby)
     }
 
-    @Test func LeaderCannotExitWithoutEndingOrHandingOver() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderCannotExitWithoutEndingOrHandingOver(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -95,7 +113,9 @@ struct InMemoryTripServiceGroupTests {
         }
     }
 
-    @Test func LeaderEndingTheTripRoomCancelsIt() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderEndingTheTripRoomCancelsIt(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         try await phones.agus.EndTrip(tripID: group.tripID, by: group.agusID)
@@ -105,7 +125,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(trip.endedAt == TripFixtures.now)
     }
 
-    @Test func LeaderEndingTheTripOnTheRoadEndsIt() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderEndingTheTripOnTheRoadEndsIt(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
 
         try await phones.agus.EndTrip(tripID: group.tripID, by: group.agusID)
@@ -113,7 +135,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(try await phones.budi.FetchTrip(tripID: group.tripID).trip.status == .ended)
     }
 
-    @Test func EndingAnEndedTripChangesNothing() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func EndingAnEndedTripChangesNothing(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
         try await phones.agus.EndTrip(tripID: group.tripID, by: group.agusID)
 
@@ -122,7 +146,9 @@ struct InMemoryTripServiceGroupTests {
         #expect(try await phones.budi.FetchTrip(tripID: group.tripID).trip.status == .cancelled)
     }
 
-    @Test func MemberCannotEndTheTrip() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberCannotEndTheTrip(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -130,7 +156,9 @@ struct InMemoryTripServiceGroupTests {
         }
     }
 
-    @Test func EndedTripCannotBeChanged() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func EndedTripCannotBeChanged(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
         try await phones.agus.EndTrip(tripID: group.tripID, by: group.agusID)
 

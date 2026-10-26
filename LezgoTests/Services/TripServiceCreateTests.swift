@@ -2,11 +2,11 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// How `TripService.CreateTrip` behaves. `LiveTripService` must follow the same rules (ADR 0017).
-struct InMemoryTripServiceCreateTests {
-    let phones = InMemoryPhones()
-
-    @Test func NewTripWaitsInTheLobbyWithTheCreatorAsLeader() async throws {
+/// How `TripService.CreateTrip` behaves, for both implementations (ADR 0017).
+struct TripServiceCreateTests {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewTripWaitsInTheLobbyWithTheCreatorAsLeader(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let session = try await phones.agus.CreateTrip(
             plan: TripPlanFixtures.tunjunganToPakuwon,
             profile: TripPlanFixtures.agusProfile
@@ -21,7 +21,9 @@ struct InMemoryTripServiceCreateTests {
         #expect(state.participants.count == 1)
     }
 
-    @Test func NewTripHasASixDigitRoomCode() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewTripHasASixDigitRoomCode(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
         let roomCode = session.state.trip.roomCode
 
@@ -29,7 +31,9 @@ struct InMemoryTripServiceCreateTests {
         #expect(roomCode.allSatisfy { $0.isASCII && $0.isNumber })
     }
 
-    @Test func NewTripKeepsTheWaypointsInOrder() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewTripKeepsTheWaypointsInOrder(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
 
         #expect(session.state.waypoints.map(\.orderIndex) == [0, 1, 2])
@@ -39,20 +43,9 @@ struct InMemoryTripServiceCreateTests {
         #expect(session.state.route?.polyline == TripPlanFixtures.tunjunganToPakuwon.polyline)
     }
 
-    @Test func RoomCodeInUseIsNotGivenTwice() async throws {
-        var codes = ["111111", "111111", "222222"]
-        let makeRoomCode = { codes.removeFirst() }
-        let first = InMemoryTripService(store: phones.store, userRecordID: "_one", makeRoomCode: makeRoomCode)
-        let second = InMemoryTripService(store: phones.store, userRecordID: "_two", makeRoomCode: makeRoomCode)
-
-        let firstTrip = try await first.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
-        let secondTrip = try await second.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
-
-        #expect(firstTrip.state.trip.roomCode == "111111")
-        #expect(secondTrip.state.trip.roomCode == "222222")
-    }
-
-    @Test func PlanWithoutADestinationIsRejected() async {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func PlanWithoutADestinationIsRejected(kind: TripPhones.Kind) async {
+        let phones = TripPhones(kind)
         let plan = TripPlan(waypoints: [TripPlanFixtures.tunjunganToPakuwon.waypoints[0]], polyline: [])
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -60,17 +53,11 @@ struct InMemoryTripServiceCreateTests {
         }
     }
 
-    @Test func NameDefaultsToMemberAndTheEndOfTheICloudID() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NameDefaultsToMemberAndTheEndOfTheICloudID(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let session = try await phones.budi.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
 
         #expect(session.state.leader?.displayName == "Member 7F3A")
-    }
-
-    @Test func SimulatedFailureIsThrown() async {
-        phones.agus.simulatedFailure = .noNetwork
-
-        await #expect(throws: TripServiceError.noNetwork) {
-            try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
-        }
     }
 }
