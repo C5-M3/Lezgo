@@ -1,3 +1,10 @@
+//
+//  TripRoomViewModel.swift
+//  Lezgo
+//
+//  Created by Oky Faishal on 26/10/26.
+//
+
 import Foundation
 import Observation
 
@@ -5,14 +12,12 @@ import Observation
 @Observable
 @MainActor
 public final class TripRoomViewModel {
-    /// Represents the current lifecycle status of the trip room.
     public enum TripStatus: Equatable, Sendable {
         case waiting
         case inTrip
         case cancelled
     }
 
-    /// Represents the kind of stop along a trip route.
     public enum RouteStopKind: Equatable, Sendable {
         case start
         case checkpoint
@@ -35,7 +40,6 @@ public final class TripRoomViewModel {
         }
     }
 
-    /// Represents a stop along the planned trip route.
     public struct RouteStop: Identifiable, Equatable, Hashable, Sendable {
         public let id: UUID
         public var name: String
@@ -62,9 +66,7 @@ public final class TripRoomViewModel {
         return !memberIds.isEmpty && selectedParticipantIds.count == memberIds.count
     }
 
-    public var canRemove: Bool {
-        !selectedParticipantIds.isEmpty
-    }
+    public var canRemove: Bool { !selectedParticipantIds.isEmpty }
 
     public var selectAllButtonTitle: String {
         areAllMembersSelected ? "Deselect all" : "Select all"
@@ -72,39 +74,21 @@ public final class TripRoomViewModel {
 
     public var removeConfirmationTitle: String {
         let selected = participants.filter { selectedParticipantIds.contains($0.id) }
-        guard let first = selected.first else {
-            return "Remove participants from the trip?"
-        }
-        let remainingCount = selected.count - 1
-        if remainingCount == 0 {
+        guard let first = selected.first else { return "Remove participants from the trip?" }
+        let remaining = selected.count - 1
+        if remaining == 0 {
             return "Remove \(first.name) from the trip?"
-        } else if remainingCount == 1 {
+        } else if remaining == 1 {
             return "Remove \(first.name) and 1 other from the trip?"
         } else {
-            return "Remove \(first.name) and \(remainingCount) others from the trip?"
+            return "Remove \(first.name) and \(remaining) others from the trip?"
         }
     }
 
     public var inviteURL: URL {
-        if let deepLink = URL(string: "lezgo://join?code=\(roomCode)") {
-            return deepLink
-        }
-        var components = URLComponents()
-        components.scheme = "https"
-        components.host = "lezgo.app"
-        components.path = "/join/\(roomCode)"
-        return components.url ?? URL(fileURLWithPath: "/")
+        URL(string: "lezgo://join?code=\(roomCode)") ?? URL(fileURLWithPath: "/")
     }
 
-    public var originName: String {
-        routeStops.first(where: { $0.kind == .start })?.name ?? ""
-    }
-
-    public var destinationName: String {
-        routeStops.last(where: { $0.kind == .destination })?.name ?? ""
-    }
-
-    /// Default sample participants for preview and testing.
     public static var defaultDummyParticipants: [Participant] {
         [
             Participant(name: "Faishal (You)", description: "Innova Hitam - H 1234 CD", isLeader: true),
@@ -118,30 +102,24 @@ public final class TripRoomViewModel {
     public init(
         roomCode: String = "5JUV83",
         routeStops: [RouteStop]? = nil,
-        originName: String = "Cilandak Town Square, Jakarta",
-        destinationName: String = "Puncak Pass Resort, Bogor",
         participants: [Participant]? = nil,
         isCurrentUserLeader: Bool = true,
         currentUserId: UUID? = nil
     ) {
         self.roomCode = roomCode
-        if let routeStops {
-            self.routeStops = routeStops
-        } else {
-            self.routeStops = [
-                .init(name: originName, kind: .start),
-                .init(name: "Rest Area KM 45 Jagorawi", kind: .checkpoint),
-                .init(name: destinationName, kind: .destination)
-            ]
-        }
-        let resolvedParticipants = participants ?? Self.defaultDummyParticipants
-        self.participants = resolvedParticipants
+        self.routeStops = routeStops ?? [
+            .init(name: "Universitas Ciputra", kind: .start),
+            .init(name: "SPBU Pertamina Lontar", kind: .checkpoint),
+            .init(name: "Ciputra World", kind: .destination)
+        ]
+        let resolved = participants ?? Self.defaultDummyParticipants
+        self.participants = resolved
         self.isCurrentUserLeader = isCurrentUserLeader
         if let currentUserId {
             self.currentUserId = currentUserId
-        } else if isCurrentUserLeader, let initialLeader = resolvedParticipants.first(where: { $0.isLeader }) {
+        } else if isCurrentUserLeader, let initialLeader = resolved.first(where: { $0.isLeader }) {
             self.currentUserId = initialLeader.id
-        } else if !isCurrentUserLeader, let firstMember = resolvedParticipants.first(where: { !$0.isLeader }) {
+        } else if !isCurrentUserLeader, let firstMember = resolved.first(where: { !$0.isLeader }) {
             self.currentUserId = firstMember.id
         } else {
             self.currentUserId = UUID()
@@ -151,25 +129,18 @@ public final class TripRoomViewModel {
         self.tripStatus = .waiting
     }
 
-    /// Starts the trip if the current user is the leader.
     public func StartTrip() {
         guard isCurrentUserLeader else { return }
         tripStatus = .inTrip
     }
 
-    /// Toggles the multi-selection mode for managing participants.
     public func ToggleSelectionMode() {
         isSelectionMode.toggle()
-        if !isSelectionMode {
-            selectedParticipantIds.removeAll()
-        }
+        if !isSelectionMode { selectedParticipantIds.removeAll() }
     }
 
-    /// Toggles the selection state for an individual participant.
     public func ToggleParticipantSelection(id: UUID) {
-        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else {
-            return
-        }
+        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else { return }
         if selectedParticipantIds.contains(id) {
             selectedParticipantIds.remove(id)
         } else {
@@ -177,53 +148,35 @@ public final class TripRoomViewModel {
         }
     }
 
-    /// Selects all members, or deselects all if all members are already selected.
     public func SelectAll() {
         let memberIds = participants.filter { !$0.isLeader }.map(\.id)
-        if selectedParticipantIds.count == memberIds.count {
-            selectedParticipantIds.removeAll()
-        } else {
-            selectedParticipantIds = Set(memberIds)
-        }
+        selectedParticipantIds = (selectedParticipantIds.count == memberIds.count) ? [] : Set(memberIds)
     }
 
-    /// Removes all selected participants from the room and exits selection mode.
     public func RemoveSelectedParticipants() {
         participants.removeAll(where: { selectedParticipantIds.contains($0.id) && !$0.isLeader })
         selectedParticipantIds.removeAll()
         isSelectionMode = false
     }
 
-    /// Removes a single member participant from the trip room.
     public func RemoveParticipant(id: UUID) {
-        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else {
-            return
-        }
+        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else { return }
         participants.removeAll(where: { $0.id == id })
         selectedParticipantIds.remove(id)
     }
 
-    /// Generates the confirmation dialog title for removing a single participant.
     public func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
         "Remove \(participant.name) from the trip?"
     }
 
-    /// Determines if the current user can swipe to kick a specific participant.
     public func CanKick(participant: Participant) -> Bool {
         isCurrentUserLeader && !isSelectionMode && !participant.isLeader
     }
 
-    /// Determines whether the current user can swipe left-to-right to inspect or manage leadership.
-    public var canSwipeToManageLeader: Bool {
-        isCurrentUserLeader && !isSelectionMode
-    }
-
-    /// Determines whether the current user can transfer leadership to the specified participant.
     public func CanSetLeader(participant: Participant) -> Bool {
-        canSwipeToManageLeader && !participant.isLeader
+        CanKick(participant: participant)
     }
 
-    /// Designates a participant as the new leader and clears leadership from others.
     public func SetLeader(to participant: Participant) {
         guard participants.contains(where: { $0.id == participant.id }) else { return }
         for index in participants.indices {
@@ -234,12 +187,20 @@ public final class TripRoomViewModel {
         }
     }
 
-    /// Generates the confirmation dialog title for transferring leadership to a participant.
     public func SetLeaderConfirmationTitle(for participant: Participant) -> String {
         "Set \(participant.name) as Trip Leader?"
     }
 
-    /// Cancels or exits the trip room.
+    public func CanEdit(participant: Participant) -> Bool {
+        !isSelectionMode && (isCurrentUserLeader || participant.id == currentUserId)
+    }
+
+    public func UpdateParticipant(id: UUID, name: String, description: String) {
+        guard let index = participants.firstIndex(where: { $0.id == id }) else { return }
+        participants[index].name = name
+        participants[index].description = description
+    }
+
     public func LeaveRoom() {
         tripStatus = .cancelled
     }

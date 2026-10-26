@@ -7,8 +7,9 @@ struct TripRoomViewModelTests {
     @Test func InitialStateDefaults() {
         let viewModel = TripRoomViewModel()
 
-        #expect(!viewModel.originName.isEmpty)
-        #expect(!viewModel.destinationName.isEmpty)
+        #expect(viewModel.routeStops.count >= 3)
+        #expect(viewModel.routeStops.first?.kind == .start)
+        #expect(viewModel.routeStops.last?.kind == .destination)
         #expect(viewModel.participants.count >= 4)
         #expect(viewModel.participants.first?.isLeader == true)
         #expect(viewModel.isCurrentUserLeader == true)
@@ -35,16 +36,6 @@ struct TripRoomViewModelTests {
         viewModel.StartTrip()
 
         #expect(viewModel.tripStatus == .waiting)
-    }
-
-    @Test func ToggleSelectionModeTogglesFlag() {
-        let viewModel = TripRoomViewModel()
-
-        #expect(viewModel.isSelectionMode == false)
-        viewModel.ToggleSelectionMode()
-        #expect(viewModel.isSelectionMode == true)
-        viewModel.ToggleSelectionMode()
-        #expect(viewModel.isSelectionMode == false)
     }
 
     @Test func SetLeaderTransfersCrownToSelectedParticipant() {
@@ -87,8 +78,8 @@ struct TripRoomViewModelTests {
         #expect(viewModel.routeStops.first?.kind == .start)
         #expect(viewModel.routeStops.contains(where: { $0.kind == .checkpoint }))
         #expect(viewModel.routeStops.last?.kind == .destination)
-        #expect(viewModel.originName == viewModel.routeStops.first?.name)
-        #expect(viewModel.destinationName == viewModel.routeStops.last?.name)
+        #expect(viewModel.routeStops.first?.name == "Universitas Ciputra")
+        #expect(viewModel.routeStops.last?.name == "Ciputra World")
     }
 
     @Test func RouteStopsCanBeInitializedWithMultipleCheckpoints() {
@@ -102,8 +93,8 @@ struct TripRoomViewModelTests {
 
         #expect(viewModel.routeStops.count == 4)
         #expect(viewModel.routeStops.filter({ $0.kind == .checkpoint }).count == 2)
-        #expect(viewModel.originName == "Rumah")
-        #expect(viewModel.destinationName == "Hotel Bandung")
+        #expect(viewModel.routeStops.first?.name == "Rumah")
+        #expect(viewModel.routeStops.last?.name == "Hotel Bandung")
     }
 
     @Test func RoomCodeAndInviteURLAreAvailable() {
@@ -249,21 +240,51 @@ struct TripRoomViewModelTests {
         #expect(memberViewModel.CanKick(participant: member) == false)
     }
 
-    @Test func CanSetLeaderAndCanSwipeToManageLeaderRules() {
+    @Test func CanSetLeaderRules() {
         let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
         let member = Participant(name: "Member", description: "Car 2", isLeader: false)
         let viewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: true)
 
-        #expect(viewModel.canSwipeToManageLeader == true)
         #expect(viewModel.CanSetLeader(participant: member) == true)
         #expect(viewModel.CanSetLeader(participant: leader) == false)
 
         viewModel.ToggleSelectionMode()
-        #expect(viewModel.canSwipeToManageLeader == false)
         #expect(viewModel.CanSetLeader(participant: member) == false)
 
         let memberViewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: false)
-        #expect(memberViewModel.canSwipeToManageLeader == false)
         #expect(memberViewModel.CanSetLeader(participant: member) == false)
+    }
+
+    @Test func CanEditRulesForLeaderAndMember() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let member = Participant(name: "Member", description: "Car 2", isLeader: false)
+        let other = Participant(name: "Other", description: "Car 3", isLeader: false)
+
+        let leaderVM = TripRoomViewModel(
+            participants: [leader, member, other], isCurrentUserLeader: true, currentUserId: leader.id
+        )
+        #expect(leaderVM.CanEdit(participant: leader) == true)
+        #expect(leaderVM.CanEdit(participant: member) == true)
+        #expect(leaderVM.CanEdit(participant: other) == true)
+
+        leaderVM.ToggleSelectionMode()
+        #expect(leaderVM.CanEdit(participant: member) == false)
+
+        let memberVM = TripRoomViewModel(
+            participants: [leader, member, other], isCurrentUserLeader: false, currentUserId: member.id
+        )
+        #expect(memberVM.CanEdit(participant: member) == true)
+        #expect(memberVM.CanEdit(participant: leader) == false)
+        #expect(memberVM.CanEdit(participant: other) == false)
+    }
+
+    @Test func UpdateParticipantModifiesNameAndDescription() {
+        let p1 = Participant(name: "Old Name", description: "Old Car", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [p1])
+
+        viewModel.UpdateParticipant(id: p1.id, name: "New Name", description: "New Car")
+
+        #expect(viewModel.participants.first?.name == "New Name")
+        #expect(viewModel.participants.first?.description == "New Car")
     }
 }

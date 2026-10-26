@@ -1,3 +1,10 @@
+//
+//  Participant.swift
+//  Lezgo
+//
+//  Created by Oky Faishal on 26/10/26.
+//
+
 import Foundation
 
 public struct Participant: Identifiable, Equatable, Hashable, Sendable {
