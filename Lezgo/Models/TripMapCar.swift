@@ -17,6 +17,6 @@ struct TripMapCar: Identifiable, Hashable {
 
     /// A car is online until its last location is older than 2 minutes; exactly 2 minutes is still online.
     func IsOnline(at date: Date) -> Bool {
-        true
+        date.timeIntervalSince(lastSeenAt) <= Double(Self.offlineAfter.components.seconds)
     }
 }
