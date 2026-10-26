@@ -105,6 +105,8 @@ final class LoadCheckViewModel {
         place: Int,
         tripID: UUID
     ) async {
+        let clock = ContinuousClock()
+        var deadline = clock.now
         var second = 0
         while Task.isCancelled == false {
             // About 40 km/h, with the cars 150 m apart.
@@ -116,7 +118,9 @@ final class LoadCheckViewModel {
             )
             try? await car.service.UpdateLocation(update, participantID: car.participantID, tripID: tripID)
             second += 1
-            try? await Task.sleep(for: tick)
+            // A fixed rate, like the app: a slow save shortens the wait instead of adding to it.
+            deadline = max(deadline.advanced(by: tick), clock.now)
+            try? await Task.sleep(until: deadline, clock: clock)
         }
     }
 

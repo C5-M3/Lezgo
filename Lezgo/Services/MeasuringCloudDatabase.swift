@@ -46,6 +46,7 @@ final class MeasuringCloudDatabase: CloudDatabase {
         case .serviceUnavailable: return "serviceUnavailable"
         case .serverRecordChanged: return "serverRecordChanged"
         case .unknownItem: return "unknownItem"
+        case .operationCancelled: return "operationCancelled"
         default: return "CKError \(error.code.rawValue)"
         }
     }
@@ -59,6 +60,10 @@ final class MeasuringCloudDatabase: CloudDatabase {
             recorder.Record(LoadCheckSample(operation: operation, duration: start.duration(to: clock.now)))
             return result
         } catch {
+            // Requests cut off because the check was stopped are not CloudKit failures.
+            if Task.isCancelled, error is CancellationError || (error as? CKError)?.code == .operationCancelled {
+                throw error
+            }
             let sample = LoadCheckSample(
                 operation: operation,
                 duration: start.duration(to: clock.now),
