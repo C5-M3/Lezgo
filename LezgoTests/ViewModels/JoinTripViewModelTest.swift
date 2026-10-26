@@ -38,7 +38,7 @@ struct JoinTripViewModelTest {
         #expect(viewModel.isValidCode == false)
 
         viewModel.roomCode = "ABCDEF"
-        #expect(viewModel.roomCode == "")
+        #expect(viewModel.roomCode.isEmpty)
         #expect(viewModel.isValidCode == false)
 
         viewModel.roomCode = "987-654"
@@ -49,10 +49,10 @@ struct JoinTripViewModelTest {
     @Test("Validation should succeed only for 6 digits")
     func codeValidation() {
         let viewModel = JoinTripViewModel()
-        
+
         viewModel.roomCode = "123"
         #expect(viewModel.isValidCode == false)
-        
+
         viewModel.roomCode = "654321"
         #expect(viewModel.isValidCode == true)
     }
@@ -61,7 +61,7 @@ struct JoinTripViewModelTest {
     func submitInvalidCode() async {
         let viewModel = JoinTripViewModel()
         viewModel.roomCode = "123"
-        
+
         let success = await viewModel.submitCode()
         #expect(success == false)
         #expect(viewModel.errorMessage != nil)
@@ -71,7 +71,7 @@ struct JoinTripViewModelTest {
     func submitValidCode() async {
         let viewModel = JoinTripViewModel()
         viewModel.roomCode = "654321"
-        
+
         let success = await viewModel.submitCode()
         #expect(success == true)
         #expect(viewModel.errorMessage == nil)
@@ -82,7 +82,7 @@ struct JoinTripViewModelTest {
         let viewModel = JoinTripViewModel()
         viewModel.roomCode = "123456"
         viewModel.errorMessage = "Error"
-        
+
         viewModel.reset()
         #expect(viewModel.roomCode.isEmpty)
         #expect(viewModel.errorMessage == nil)

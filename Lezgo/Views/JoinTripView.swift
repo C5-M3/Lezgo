@@ -12,17 +12,17 @@ import SwiftUI
 @MainActor
 struct JoinTripView: View {
     // MARK: - Properties
-    
+
     @Binding var isPresented: Bool
     @State private var viewModel: JoinTripViewModel
     @State private var enteredCode: String = ""
     @FocusState private var isFieldFocused: Bool
-    
+
     var onBack: (() -> Void)?
     var onEnter: ((String) -> Void)?
-    
+
     // MARK: - Initializer
-    
+
     init(
         isPresented: Binding<Bool>,
         viewModel: JoinTripViewModel? = nil,
@@ -36,9 +36,9 @@ struct JoinTripView: View {
         self.onBack = onBack
         self.onEnter = onEnter
     }
-    
+
     // MARK: - Body
-    
+
     var body: some View {
         ZStack {
             // Latar belakang peredup (dimmed backdrop) yang menyerap seluruh interaksi sentuhan di luar modal
@@ -48,17 +48,19 @@ struct JoinTripView: View {
                 .onTapGesture {
                     // Menahan interaksi agar fokus tetap pada modal dan tidak tembus ke peta di belakangnya
                 }
+                .accessibilityAddTraits(.isButton)
 
             VStack {
                 Spacer()
-                
+
                 modalCard
                     .padding(.horizontal, 28)
                     .frame(maxWidth: 360)
                     .onTapGesture {
                         // Menahan ketukan di dalam kartu agar tidak menutup modal
                     }
-                
+                    .accessibilityAddTraits(.isButton)
+
                 Spacer()
             }
             .padding(.horizontal, 16)
@@ -75,9 +77,9 @@ struct JoinTripView: View {
             }
         }
     }
-    
+
     // MARK: - Modal Card
-    
+
     private var modalCard: some View {
         VStack(alignment: .leading, spacing: 18) {
             // Header: Judul & Deskripsi
@@ -85,14 +87,14 @@ struct JoinTripView: View {
                 Text("Enter room code")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.primary)
-                
+
                 Text("Enter the 6 digit room code created by leader")
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(Color(uiColor: .secondaryLabel))
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            
+
             // Kolom Input Kode (Dibatasi maksimal 6 digit angka)
             HStack {
                 TextField(
@@ -130,7 +132,7 @@ struct JoinTripView: View {
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .fill(Color(uiColor: .systemGray5).opacity(0.85))
             )
-            
+
             // Tombol Aksi (Back & Enter)
             HStack(spacing: 12) {
                 // Tombol Back
@@ -149,7 +151,7 @@ struct JoinTripView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Kembali")
-                
+
                 // Tombol Enter
                 Button {
                     submitRoomCode()
@@ -161,7 +163,11 @@ struct JoinTripView: View {
                         .frame(height: 48)
                         .background(
                             Capsule()
-                                .fill(viewModel.isValidCode ? Color(red: 0.0, green: 0.48, blue: 1.0) : Color(red: 0.0, green: 0.48, blue: 1.0).opacity(0.5))
+                                .fill(
+                                    viewModel.isValidCode
+                                    ? Color(red: 0.0, green: 0.48, blue: 1.0)
+                                    : Color(red: 0.0, green: 0.48, blue: 1.0).opacity(0.5)
+                                )
                         )
                 }
                 .disabled(!viewModel.isValidCode)
@@ -176,9 +182,9 @@ struct JoinTripView: View {
                 .shadow(color: Color.black.opacity(0.12), radius: 24, x: 0, y: 8)
         }
     }
-    
+
     // MARK: - Actions
-    
+
     private func dismissModal() {
         isFieldFocused = false
         hideKeyboard()
@@ -189,7 +195,7 @@ struct JoinTripView: View {
             isPresented = false
         }
     }
-    
+
     private func submitRoomCode() {
         guard viewModel.isValidCode else { return }
         isFieldFocused = false
@@ -236,7 +242,7 @@ extension View {
 #Preview("Join Trip Modal") {
     ZStack {
         Color.gray.opacity(0.2)
-        
+
         JoinTripView(isPresented: .constant(true))
     }
 }

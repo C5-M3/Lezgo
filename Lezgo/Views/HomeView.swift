@@ -72,11 +72,8 @@ struct HomeView: View {
             if isJoinTripPresented {
                 JoinTripView(
                     isPresented: $isJoinTripPresented,
-                    onEnter: { roomCode in
+                    onEnter: { _ in
                         // Logika aksi saat kode ruangan dimasukkan
-                        #if DEBUG
-                        print("Kode ruangan dimasukkan: \(roomCode)")
-                        #endif
                     }
                 )
                 .transition(.asymmetric(
