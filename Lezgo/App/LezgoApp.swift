@@ -42,10 +42,10 @@ struct LezgoApp: App {
             if let debugScreen = DebugScreen.FromLaunchArguments() {
                 debugScreen.MakeView()
             } else {
-                ContentView()
+                HomeView()
             }
             #else
-            ContentView()
+            HomeView()
             #endif
         }
         .modelContainer(sharedModelContainer)
