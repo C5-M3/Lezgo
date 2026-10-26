@@ -242,4 +242,22 @@ struct TripRoomViewModelTests {
         let memberViewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: false)
         #expect(memberViewModel.CanKick(participant: member) == false)
     }
+
+    @Test func CanSetLeaderAndCanSwipeToManageLeaderRules() {
+        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
+        let member = Participant(name: "Member", description: "Car 2", isLeader: false)
+        let viewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: true)
+
+        #expect(viewModel.canSwipeToManageLeader == true)
+        #expect(viewModel.CanSetLeader(participant: member) == true)
+        #expect(viewModel.CanSetLeader(participant: leader) == false)
+
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.canSwipeToManageLeader == false)
+        #expect(viewModel.CanSetLeader(participant: member) == false)
+
+        let memberViewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: false)
+        #expect(memberViewModel.canSwipeToManageLeader == false)
+        #expect(memberViewModel.CanSetLeader(participant: member) == false)
+    }
 }

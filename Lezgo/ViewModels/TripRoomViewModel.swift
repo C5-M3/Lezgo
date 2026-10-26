@@ -201,6 +201,16 @@ public final class TripRoomViewModel {
         isCurrentUserLeader && !isSelectionMode && !participant.isLeader
     }
 
+    /// Determines whether the current user can swipe left-to-right to inspect or manage leadership.
+    public var canSwipeToManageLeader: Bool {
+        isCurrentUserLeader && !isSelectionMode
+    }
+
+    /// Determines whether the current user can transfer leadership to the specified participant.
+    public func CanSetLeader(participant: Participant) -> Bool {
+        canSwipeToManageLeader && !participant.isLeader
+    }
+
     /// Designates a participant as the new leader and clears leadership from others.
     public func SetLeader(to participant: Participant) {
         guard participants.contains(where: { $0.id == participant.id }) else { return }
