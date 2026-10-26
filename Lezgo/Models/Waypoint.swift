@@ -13,6 +13,6 @@ struct Waypoint: Identifiable, Hashable, Codable {
 
     /// A waypoint is visited once the leader has moved the trip past it.
     func IsVisited(currentWaypointIndex: Int) -> Bool {
-        false
+        orderIndex < currentWaypointIndex
     }
 }

@@ -22,11 +22,11 @@ struct Participant: Identifiable, Hashable, Codable {
     var lastSeenAt: Date
 
     func IsLeader(in trip: Trip) -> Bool {
-        false
+        id == trip.leaderParticipantID
     }
 
     /// Online until the last location is older than 2 minutes; exactly 2 minutes is still online.
     func IsOnline(at date: Date) -> Bool {
-        true
+        date.timeIntervalSince(lastSeenAt) <= Self.offlineAfter
     }
 }
