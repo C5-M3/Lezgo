@@ -5,4 +5,13 @@ struct TripPlan: Hashable {
     /// In driving order: one start point, zero or more checkpoints, one destination.
     var waypoints: [PlannedWaypoint]
     var polyline: [Coordinate]
+
+    /// A plan needs a start point first, a destination last, and only checkpoints in between.
+    var isValid: Bool {
+        let kinds = waypoints.map(\.kind)
+        return kinds.count >= 2
+            && kinds.first == .start
+            && kinds.last == .destination
+            && kinds.dropFirst().dropLast().allSatisfy { $0 == .checkpoint }
+    }
 }

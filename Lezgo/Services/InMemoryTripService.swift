@@ -221,15 +221,8 @@ final class InMemoryTripService: TripService {
         }
     }
 
-    /// A plan needs a start point first, a destination last, and only checkpoints in between.
     private func Validate(_ plan: TripPlan) throws {
-        let kinds = plan.waypoints.map(\.kind)
-        guard kinds.count >= 2,
-              kinds.first == .start,
-              kinds.last == .destination,
-              kinds.dropFirst().dropLast().allSatisfy({ $0 == .checkpoint }) else {
-            throw TripServiceError.notAllowed
-        }
+        guard plan.isValid else { throw TripServiceError.notAllowed }
     }
 
     private func Waypoints(from plan: TripPlan, tripID: UUID) -> [Waypoint] {
@@ -253,13 +246,13 @@ final class InMemoryTripService: TripService {
     }
 
     private func NewParticipant(tripID: UUID, profile: ParticipantProfile?) -> Participant {
-        let defaultName = String(localized: .participantDefaultName(String(userRecordID.suffix(4))))
+        let profile = profile ?? ParticipantProfile.Default(forUserRecordID: userRecordID)
         return Participant(
             id: UUID(),
             tripID: tripID,
             userRecordID: userRecordID,
-            displayName: profile?.displayName ?? defaultName,
-            carDescription: profile?.carDescription ?? "",
+            displayName: profile.displayName,
+            carDescription: profile.carDescription,
             coordinate: nil,
             speedKmh: 0,
             motionState: .stopped,
