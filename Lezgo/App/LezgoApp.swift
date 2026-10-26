@@ -29,9 +29,9 @@ struct LezgoApp: App {
         }
     }()
 
-    /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips stay on this phone until
-    /// `LiveTripService` (#65) replaces it here.
-    private let tripService: any TripService = InMemoryTripService()
+    /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips sync through CloudKit
+    /// (ADR 0014); previews and tests use `InMemoryTripService` instead.
+    private let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
 
     var body: some Scene {
         WindowGroup {

@@ -2,10 +2,8 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// How location, alerts, checkpoints, routes and profiles behave. `LiveTripService` must follow the same rules.
-struct InMemoryTripServiceRoadTests {
-    let phones = InMemoryPhones()
-
+/// How location, alerts, checkpoints, routes and profiles behave, for both implementations (ADR 0017).
+struct TripServiceRoadTests {
     private func Update(at coordinate: Coordinate, speedKmh: Double, secondsLater: TimeInterval) -> LocationUpdate {
         LocationUpdate(
             coordinate: coordinate,
@@ -15,7 +13,9 @@ struct InMemoryTripServiceRoadTests {
         )
     }
 
-    @Test func LocationUpdateMovesMyCar() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LocationUpdateMovesMyCar(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
         let update = Update(at: TripFixtures.ciputraWorld, speedKmh: 52, secondsLater: 5)
 
@@ -28,7 +28,9 @@ struct InMemoryTripServiceRoadTests {
         #expect(budi.lastSeenAt == update.recordedAt)
     }
 
-    @Test func LocationOfAMemberWhoLeftIsNotFound() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LocationOfAMemberWhoLeftIsNotFound(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
         try await phones.budi.ExitTrip(tripID: group.tripID, participantID: group.budiID)
         let update = Update(at: TripFixtures.ciputraWorld, speedKmh: 0, secondsLater: 1)
@@ -38,7 +40,9 @@ struct InMemoryTripServiceRoadTests {
         }
     }
 
-    @Test func MemberAlertIsSaved() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberAlertIsSaved(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
 
         try await phones.budi.SetAlert(.offRoute, participantID: group.budiID, tripID: group.tripID)
@@ -46,7 +50,9 @@ struct InMemoryTripServiceRoadTests {
         #expect(try await phones.Budi(in: group)?.alert == .offRoute)
     }
 
-    @Test func LeaderNeverHasAnAlert() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderNeverHasAnAlert(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -54,7 +60,9 @@ struct InMemoryTripServiceRoadTests {
         }
     }
 
-    @Test func CheckpointsOnlyMoveForward() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func CheckpointsOnlyMoveForward(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
 
         try await phones.agus.AdvanceCheckpoint(to: 2, tripID: group.tripID, by: group.agusID)
@@ -63,7 +71,9 @@ struct InMemoryTripServiceRoadTests {
         #expect(try await phones.budi.FetchTrip(tripID: group.tripID).trip.currentWaypointIndex == 2)
     }
 
-    @Test func MemberCannotAdvanceACheckpoint() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberCannotAdvanceACheckpoint(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
 
         await #expect(throws: TripServiceError.notAllowed) {
@@ -71,7 +81,9 @@ struct InMemoryTripServiceRoadTests {
         }
     }
 
-    @Test func NewRouteOnTheRoadIsTheNextVersion() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewRouteOnTheRoadIsTheNextVersion(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
         try await phones.agus.AdvanceCheckpoint(to: 2, tripID: group.tripID, by: group.agusID)
 
@@ -85,7 +97,9 @@ struct InMemoryTripServiceRoadTests {
         #expect(state.destination?.name == "Pakuwon city mall")
     }
 
-    @Test func NewDestinationGoesBackToTheTripRoom() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewDestinationGoesBackToTheTripRoom(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
 
         try await phones.agus.StartNewDestination(
@@ -102,7 +116,9 @@ struct InMemoryTripServiceRoadTests {
         #expect(state.participants.count == 3)
     }
 
-    @Test func ProfileChangeShowsToEveryone() async throws {
+    @Test(arguments: TripPhones.Kind.allCases)
+    func ProfileChangeShowsToEveryone(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
         let profile = ParticipantProfile(displayName: "Budi Santoso", carDescription: "Silver Brio")
 
