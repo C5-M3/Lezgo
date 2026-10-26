@@ -10,6 +10,7 @@ import SwiftUI
 
 struct RouteSummaryDrawer: View {
     @Bindable var viewModel: MapViewModel
+    var onHeightChanged: (CGFloat) -> Void
 
     var body: some View {
         NavigationStack {
@@ -33,7 +34,6 @@ struct RouteSummaryDrawer: View {
 
                 // Section 2: Destination & Intermediate Stops
                 Section("Destination") {
-                    // Intermediate stops (rendered only if existing)
                     ForEach(Array(viewModel.intermediateStops.enumerated()), id: \.element.id) { index, stop in
                         HStack(spacing: 12) {
                             Image(systemName: "\(index + 1).circle.fill")
@@ -60,7 +60,6 @@ struct RouteSummaryDrawer: View {
                         }
                     }
 
-                    // Only show "Add Stop" if the destination has been selected
                     if viewModel.destinationPoint != nil {
                         Button {
                             viewModel.addStop()
@@ -70,7 +69,6 @@ struct RouteSummaryDrawer: View {
                         }
                     }
 
-                    // Final destination point
                     Button {
                         viewModel.activeSelectionSheet = .destination
                     } label: {
@@ -86,7 +84,7 @@ struct RouteSummaryDrawer: View {
                     }
                 }
 
-                // Section 3: Trip Progress / Summary
+                // Section 3: Summary Metrics
                 if viewModel.isLoadingRoute {
                     HStack {
                         Spacer()
@@ -100,8 +98,14 @@ struct RouteSummaryDrawer: View {
                     }
                 }
             }
+            .scrollDisabled(true) // Keeps form tightly fitted to its content rows
+            .readHeight { calculatedHeight in
+                // Add top navigation bar buffer (~44pt)
+                onHeightChanged(calculatedHeight + 50)
+            }
             .navigationTitle("Lezgo")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
+

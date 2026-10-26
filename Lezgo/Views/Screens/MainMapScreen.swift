@@ -11,7 +11,7 @@ import MapKit
 
 struct MainMapScreen: View {
     @State private var viewModel = MapViewModel()
-    @State private var selectedDetent: PresentationDetent = .fraction(0.28)
+    @State private var drawerHeight: CGFloat = 280
 
     var body: some View {
         @Bindable var boundViewModel = viewModel
@@ -19,25 +19,21 @@ struct MainMapScreen: View {
         Map(position: $boundViewModel.cameraPosition) {
             UserAnnotation()
 
-            // Custom start marker if not GPS default
             if let start = viewModel.startPoint, start.name != "Current Location" {
                 Marker(start.name, coordinate: start.coordinate)
                     .tint(.blue)
             }
 
-            // Intermediate Stop Markers
             ForEach(Array(viewModel.intermediateStops.enumerated()), id: \.element.id) { index, stop in
                 Marker("\(index + 1). \(stop.name)", systemImage: "\(index + 1).circle", coordinate: stop.coordinate)
                     .tint(.purple)
             }
 
-            // Destination Marker
             if let destination = viewModel.destinationPoint {
                 Marker(destination.name, coordinate: destination.coordinate)
                     .tint(.red)
             }
 
-            // Multi-segment polyline path
             if let trip = viewModel.tripResult {
                 MapPolyline(trip.combinedPolyline)
                     .stroke(.tint, lineWidth: 6)
@@ -49,14 +45,22 @@ struct MainMapScreen: View {
             MapScaleView()
         }
         .sheet(isPresented: .constant(true)) {
-            RouteSummaryDrawer(viewModel: boundViewModel)
-                .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
-                    LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
+            RouteSummaryDrawer(viewModel: boundViewModel) { newHeight in
+                if abs(self.drawerHeight - newHeight) > 10 {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.drawerHeight = max(240, min(newHeight, 520))
+                    }
+                    viewModel.adjustCameraToFitRoute(bottomPadding: self.drawerHeight)
                 }
-                .presentationDetents([.fraction(0.28), .medium], selection: $selectedDetent)
-                .presentationDragIndicator(.visible)
-                .presentationBackgroundInteraction(.enabled(upThrough: .fraction(0.28)))
-                .interactiveDismissDisabled()
+            }
+            .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
+                LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
+            }
+            // Dynamically tracks the exact computed height
+            .presentationDetents([.height(drawerHeight)])
+            .presentationDragIndicator(.visible)
+            .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
+            .interactiveDismissDisabled()
         }
         .onAppear {
             viewModel.onAppear()
