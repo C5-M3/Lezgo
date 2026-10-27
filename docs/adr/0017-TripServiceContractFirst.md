@@ -1,6 +1,6 @@
 # 0017. Trip service contract first, with an in-memory service
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-26
 - Deciders: Nathan
 

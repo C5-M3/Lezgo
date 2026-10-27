@@ -1,6 +1,6 @@
 # 0015. Per-developer signing settings
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-26
 - Deciders: Nathan Sudiara
 
