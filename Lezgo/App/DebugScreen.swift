@@ -32,6 +32,8 @@ import SwiftUI
 ///
 /// | Name | Screen | Owner |
 /// | --- | --- | --- |
+/// | `draftTrip` | Draft Road Trip screen for a member | R |
+/// | `draftTripLeader` | Draft Road Trip screen for the leader | R |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
@@ -50,6 +52,8 @@ import SwiftUI
 /// Remove a case when its simulated data is deleted. Keep the enum while it still helps to open a screen directly
 /// for UI checks.
 enum DebugScreen: String, CaseIterable {
+    case draftTrip
+    case draftTripLeader
     case tripMapLeader
     case tripMapMember
     case tripMapArrivedLeader
@@ -73,6 +77,10 @@ enum DebugScreen: String, CaseIterable {
     @ViewBuilder
     func MakeView() -> some View {
         switch self {
+        case .draftTrip:
+            DraftTripView.Simulated(isLeader: false)
+        case .draftTripLeader:
+            DraftTripView.Simulated(isLeader: true)
         case .tripMapLeader:
             TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID)
         case .tripMapMember:

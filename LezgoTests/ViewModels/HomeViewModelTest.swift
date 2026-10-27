@@ -266,4 +266,67 @@ struct HomeViewModelTest {
         #expect(mockSearch.clearSuggestionsCalled == true)
         #expect(viewModel.cameraPosition == .userLocation(fallback: .automatic))
     }
+
+    @Test("HomeViewModel loads active draft trip from storage on initialization")
+    func loadDraftTripOnInit() {
+        let mockMap = MockMapService()
+        let mockSearch = MockLocationSearchService()
+        let sampleDraft = ActiveTripSummary(
+            tripID: UUID(),
+            myParticipantID: UUID(),
+            roomCode: "897654",
+            startName: "Universitas Ciputra",
+            destinationName: "Ciputra World",
+            distanceText: "9 km",
+            memberNames: ["Nathan", "Mathew"],
+            status: .lobby,
+            isLeader: false
+        )
+        let fakeStorage = FakeActiveTripStorage(initial: sampleDraft)
+        let viewModel = HomeViewModel(mapService: mockMap, searchService: mockSearch, activeTripStorage: fakeStorage)
+
+        #expect(viewModel.activeDraftTrip != nil)
+        #expect(viewModel.activeDraftTrip?.roomCode == "897654")
+        #expect(viewModel.activeDraftTrip?.startName == "Universitas Ciputra")
+    }
+
+    @Test("ClearActiveDraftTrip clears storage and resets draft state")
+    func clearActiveDraftTrip() {
+        let mockMap = MockMapService()
+        let mockSearch = MockLocationSearchService()
+        let sampleDraft = ActiveTripSummary(
+            tripID: UUID(),
+            myParticipantID: UUID(),
+            roomCode: "897654",
+            startName: "Universitas Ciputra",
+            destinationName: "Ciputra World",
+            memberNames: ["Nathan"],
+            status: .lobby,
+            isLeader: false
+        )
+        let fakeStorage = FakeActiveTripStorage(initial: sampleDraft)
+        let viewModel = HomeViewModel(mapService: mockMap, searchService: mockSearch, activeTripStorage: fakeStorage)
+
+        #expect(viewModel.activeDraftTrip != nil)
+        viewModel.ClearActiveDraftTrip()
+
+        #expect(viewModel.activeDraftTrip == nil)
+        #expect(fakeStorage.storedSummary == nil)
+    }
+
+    @Test("JoinTrip saves active draft trip upon success")
+    func joinTripSuccess() async {
+        let mockMap = MockMapService()
+        let mockSearch = MockLocationSearchService()
+        let fakeStorage = FakeActiveTripStorage()
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let viewModel = HomeViewModel(mapService: mockMap, searchService: mockSearch, activeTripStorage: fakeStorage)
+
+        let success = await viewModel.JoinTrip(roomCode: SampleTrip.roomCode, tripService: service)
+
+        #expect(success == true)
+        #expect(viewModel.activeDraftTrip != nil)
+        #expect(viewModel.activeDraftTrip?.roomCode == SampleTrip.roomCode)
+        #expect(fakeStorage.storedSummary != nil)
+    }
 }
