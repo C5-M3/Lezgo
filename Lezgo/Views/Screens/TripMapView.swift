@@ -11,8 +11,12 @@ struct TripMapView: View {
     /// How far above the car the camera floats while following it, in metres.
     private static let followDistance: CLLocationDistance = 1_500
 
-    init(viewModel: TripMapViewModel) {
+    /// Opens the New Destination planner (#115); `nil` hides the button.
+    private let onNewDestination: (() -> Void)?
+
+    init(viewModel: TripMapViewModel, onNewDestination: (() -> Void)? = nil) {
         _viewModel = State(initialValue: viewModel)
+        self.onNewDestination = onNewDestination
     }
 
     var body: some View {
@@ -35,7 +39,8 @@ struct TripMapView: View {
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .safeAreaInset(edge: .top) {
-            if let guidance = viewModel.guidance {
+            // After arriving there is no next turn; the arrival card says what to do instead.
+            if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
                 TripMapTurnCard(guidance: guidance)
                     .padding(.horizontal)
             }
@@ -47,7 +52,13 @@ struct TripMapView: View {
                     showWholeRoute: viewModel.ShowWholeRoute,
                     followMyCar: viewModel.FollowMyCar
                 )
-                if let destinationName = viewModel.destinationName {
+                if let arrivalCard = viewModel.arrivalCard {
+                    TripMapArrivalCardView(
+                        card: arrivalCard,
+                        isLeader: viewModel.isLeader,
+                        onNewDestination: onNewDestination
+                    )
+                } else if let destinationName = viewModel.destinationName {
                     TripMapBottomCard(destinationName: destinationName, timeLeft: viewModel.guidance?.timeLeft)
                 }
             }
@@ -106,13 +117,15 @@ struct TripMapView: View {
 #if DEBUG
 extension TripMapView {
     /// The trip map playing `SimulatedTripMapDrive`, for previews and `DebugScreen`.
-    static func Simulated(myParticipantID: UUID) -> TripMapView {
+    /// - Parameter startSecond: how far into the drive to start; a large value starts with the leader arrived.
+    static func Simulated(myParticipantID: UUID, startSecond: Int = 0) -> TripMapView {
         TripMapView(
             viewModel: TripMapViewModel(
                 tripID: SimulatedTripMapDrive.tripID,
-                service: SimulatedTripMapService(myParticipantID: myParticipantID),
+                service: SimulatedTripMapService(myParticipantID: myParticipantID, startSecond: startSecond),
                 navigator: SimulatedTripMapNavigator()
-            )
+            ),
+            onNewDestination: {}
         )
     }
 }
@@ -128,6 +141,10 @@ extension TripMapView {
 #Preview("Member, largest text") {
     TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
         .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Leader arrived") {
+    TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID, startSecond: 2_000)
 }
 
 #Preview("Member, dark") {
