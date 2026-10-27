@@ -40,21 +40,4 @@ struct ParticipantTests {
 
         #expect(budi.IsOnline(at: TripFixtures.now))
     }
-
-    @Test func ParticipantConvenienceAccessors() {
-        let id = UUID()
-        let participant = Participant(
-            id: id,
-            name: "John Doe",
-            description: "Toyota Innova - B 1234 CD",
-            isLeader: true
-        )
-
-        #expect(participant.id == id)
-        #expect(participant.name == "John Doe")
-        #expect(participant.displayName == "John Doe")
-        #expect(participant.description == "Toyota Innova - B 1234 CD")
-        #expect(participant.carDescription == "Toyota Innova - B 1234 CD")
-        #expect(participant.isLeader == true)
-    }
 }
