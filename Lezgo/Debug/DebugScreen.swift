@@ -44,9 +44,9 @@ import SwiftUI
 /// 1. Add a case named after your screen and its variant, for example `case tripRoomLeader`. The case name is the
 ///    name you pass after `-DebugScreen`.
 /// 2. Return your screen in `MakeView()`, built with simulated or mock data. Keep that data in your own
-///    `Simulated…` type inside `#if DEBUG` next to your screen's code, not in this file.
+///    `Simulated…` type in `Lezgo/Debug/`, inside `#if DEBUG`, not in this file.
 /// 3. Add a row to the table above. Keep the cases in the order of the app flow, so merges stay simple.
-/// 4. Add a test for your case to `LezgoTests/App/DebugScreenTests.swift`.
+/// 4. Add a test for your case to `LezgoTests/Debug/DebugScreenTests.swift`.
 ///
 /// Remove a case when its simulated data is deleted. Keep the enum while it still helps to open a screen directly
 /// for UI checks.
