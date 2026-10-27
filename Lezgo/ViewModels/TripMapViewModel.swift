@@ -136,6 +136,10 @@ final class TripMapViewModel {
         } else if snapshot.memberIDs.contains(snapshot.myParticipantID) == false {
             closeReason = .removed
         }
+        // An open "Exit trip?" would hide the message about why the map closed.
+        if closeReason != nil {
+            leaveConfirmation = nil
+        }
     }
 
     func ShowWholeRoute() {
