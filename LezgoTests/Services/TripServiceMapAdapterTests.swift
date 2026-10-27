@@ -80,4 +80,41 @@ struct TripServiceMapAdapterTests {
         #expect(first?.cars.count == 3)
         #expect(first?.myParticipantID == SampleTrip.budiID)
     }
+
+    // MARK: Leave and end
+
+    private func LatestState(of service: InMemoryTripService) async -> TripState? {
+        var updates = service.TripUpdates(tripID: SampleTrip.tripID).makeAsyncIterator()
+        return await updates.next()
+    }
+
+    @Test func ExitTripTakesMyCarOutOfTheTrip() async throws {
+        let service = SampleTrip.Service(status: .inTrip, me: SampleTrip.budiID)
+        let adapter = TripServiceMapAdapter(tripService: service, myParticipantID: SampleTrip.budiID)
+
+        try await adapter.ExitTrip(tripID: SampleTrip.tripID, participantID: SampleTrip.budiID)
+
+        let state = await LatestState(of: service)
+        #expect(state?.participants.map(\.id) == [SampleTrip.agusID, SampleTrip.citraID])
+        #expect(state?.trip.status == .inTrip)
+    }
+
+    @Test func EndTripEndsItForEveryone() async throws {
+        let service = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
+        let adapter = TripServiceMapAdapter(tripService: service, myParticipantID: SampleTrip.agusID)
+
+        try await adapter.EndTrip(tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+
+        let state = await LatestState(of: service)
+        #expect(state?.trip.status == .ended)
+    }
+
+    @Test func ExitTripPassesTheServiceErrorOn() async {
+        let service = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
+        let adapter = TripServiceMapAdapter(tripService: service, myParticipantID: SampleTrip.agusID)
+
+        await #expect(throws: TripServiceError.notAllowed) {
+            try await adapter.ExitTrip(tripID: SampleTrip.tripID, participantID: SampleTrip.agusID)
+        }
+    }
 }
