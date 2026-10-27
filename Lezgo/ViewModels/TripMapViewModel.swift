@@ -17,6 +17,8 @@ final class TripMapViewModel {
     private let tripID: UUID
     private let service: any TripMapService
     private let navigator: any TripMapNavigator
+    /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
+    private let locationSharer: LocationSharer?
     private let clock: () -> Date
 
     init(
@@ -29,6 +31,7 @@ final class TripMapViewModel {
         self.tripID = tripID
         self.service = service
         self.navigator = navigator
+        self.locationSharer = locationSharer
         self.clock = clock
     }
 
@@ -80,8 +83,21 @@ final class TripMapViewModel {
         return waypoint.IsVisited(currentWaypointIndex: snapshot.currentWaypointIndex)
     }
 
-    /// Listens to the trip until the stream finishes or the task is cancelled.
+    /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
+    /// task is cancelled.
     func Start() async {
+        await withTaskGroup(of: Void.self) { group in
+            if let locationSharer {
+                group.addTask { await locationSharer.Run() }
+            }
+            group.addTask { await self.FollowTrip() }
+            // The trip stream ends when the trip closes on this phone; then sharing stops too.
+            await group.next()
+            group.cancelAll()
+        }
+    }
+
+    private func FollowTrip() async {
         for await snapshot in service.TripUpdates(tripID: tripID) {
             self.snapshot = snapshot
             updatedAt = clock()
