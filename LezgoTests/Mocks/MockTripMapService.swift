@@ -13,7 +13,7 @@ final class MockTripMapService: TripMapService {
     /// Sent while `ExitTrip` or `EndTrip` is on its way, like an update from the cloud arriving before the request
     /// returns. When set, the stream stays open after `snapshots`.
     var snapshotWhileLeaving: TripMapSnapshot?
-    /// Runs after `snapshotWhileLeaving` was sent, before `ExitTrip` or `EndTrip` returns.
+    /// Runs while `ExitTrip` or `EndTrip` is on its way, after `snapshotWhileLeaving` was sent.
     var whileLeaving: (() async -> Void)?
 
     init(snapshots: [TripMapSnapshot]) {
@@ -47,8 +47,9 @@ final class MockTripMapService: TripMapService {
     }
 
     private func SendWhileLeaving() async {
-        guard let snapshotWhileLeaving else { return }
-        continuation?.yield(snapshotWhileLeaving)
+        if let snapshotWhileLeaving {
+            continuation?.yield(snapshotWhileLeaving)
+        }
         await whileLeaving?()
     }
 }

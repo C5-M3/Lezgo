@@ -137,6 +137,25 @@ struct TripMapViewModelLeaveTests {
         #expect(viewModel.closeReason == .exited)
     }
 
+    /// The alert is closed while the request is on its way, so the red button can be tapped again.
+    @Test func AskingAgainWhileLeavingDoesNothing() async {
+        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
+        let viewModel = MakeViewModel([], service: service)
+        var questionWhileLeaving: TripMapLeaveConfirmation?
+        service.whileLeaving = {
+            viewModel.RequestLeave()
+            questionWhileLeaving = viewModel.leaveConfirmation
+        }
+        await viewModel.Start()
+        viewModel.RequestLeave()
+        viewModel.CancelLeave()
+
+        await viewModel.ConfirmLeave(.exitTrip)
+
+        #expect(questionWhileLeaving == nil)
+        #expect(viewModel.closeReason == .exited)
+    }
+
     @Test func ErrorMessageCanBeDismissed() async {
         let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
         service.failure = .noNetwork
