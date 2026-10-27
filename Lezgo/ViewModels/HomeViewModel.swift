@@ -48,12 +48,15 @@ final class HomeViewModel {
     // MARK: - Dependencies
     var mapService: any MapServiceProtocol
     var searchService: any LocationSearchServiceProtocol
+    let activeTripStorage: any ActiveTripStorage
 
     // MARK: - State Properties
     var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     var searchText: String = ""
     var selectedMapItem: MKMapItem?
     var searchResults: [MKMapItem] = []
+    var activeDraftTrip: ActiveTripSummary?
+    var lastTripEndedNotice: String?
 
     // MARK: - Computed Properties
     var suggestions: [MKLocalSearchCompletion] {
@@ -75,10 +78,14 @@ final class HomeViewModel {
     // MARK: - Initializer
     init(
         mapService: any MapServiceProtocol,
-        searchService: any LocationSearchServiceProtocol
+        searchService: any LocationSearchServiceProtocol,
+        activeTripStorage: (any ActiveTripStorage)? = nil
     ) {
         self.mapService = mapService
         self.searchService = searchService
+        let storage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+        self.activeTripStorage = storage
+        self.activeDraftTrip = storage.LoadActiveTrip()
     }
 
     convenience init() {
@@ -90,11 +97,37 @@ final class HomeViewModel {
 
     // MARK: - Lifecycle & Events
 
-    /// Dipanggil saat tampilan muncul untuk meminta izin dan memperbarui lokasi.
+    /// Dipanggil saat tampilan muncul untuk meminta izin dan memperbarui lokasi serta memeriksa draf perjalanan.
     func onAppear() {
+        CheckActiveDraftTrip()
         mapService.requestLocationPermission()
         if mapService.isAuthorized {
             mapService.startUpdatingLocation()
+        }
+    }
+
+    /// Memeriksa apakah ada draf perjalanan yang tersimpan di perangkat (US-03).
+    func CheckActiveDraftTrip() {
+        activeDraftTrip = activeTripStorage.LoadActiveTrip()
+    }
+
+    /// Menghapus draf perjalanan dari penyimpanan lokal.
+    func ClearActiveDraftTrip() {
+        activeTripStorage.ClearActiveTrip()
+        activeDraftTrip = nil
+    }
+
+    /// Bergabung dengan perjalanan menggunakan kode 6 digit dan menyimpan draft trip (US-02, US-03).
+    @discardableResult
+    func JoinTrip(roomCode: String, tripService: any TripService) async -> Bool {
+        do {
+            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
+            let summary = ActiveTripSummary.From(session: session)
+            activeTripStorage.SaveActiveTrip(summary)
+            activeDraftTrip = summary
+            return true
+        } catch {
+            return false
         }
     }
 
