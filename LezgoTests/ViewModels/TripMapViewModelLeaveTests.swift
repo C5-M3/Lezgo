@@ -133,6 +133,19 @@ struct TripMapViewModelLeaveTests {
         #expect(viewModel.closeReason == nil)
     }
 
+    @Test func ErrorMessageCanBeDismissed() async {
+        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
+        service.failure = .noNetwork
+        let viewModel = MakeViewModel([], service: service)
+        await viewModel.Start()
+        viewModel.RequestLeave()
+        await viewModel.ConfirmLeave()
+
+        viewModel.DismissLeaveError()
+
+        #expect(viewModel.leaveErrorMessage == nil)
+    }
+
     // MARK: Closed from another phone
 
     @Test(arguments: [TripStatus.ended, .cancelled])
