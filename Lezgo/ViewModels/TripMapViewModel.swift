@@ -74,7 +74,10 @@ final class TripMapViewModel {
 
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
     var arrivalCard: TripMapArrivalCard? {
-        nil
+        guard let snapshot, let updatedAt else { return nil }
+        let arrival = TripMapArrival.Check(snapshot, at: updatedAt)
+        guard arrival.hasArrived else { return nil }
+        return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
     }
 
     /// `true` until the first trip update arrives.

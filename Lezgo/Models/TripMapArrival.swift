@@ -12,6 +12,16 @@ struct TripMapArrival: Hashable {
     var everyoneHasArrived: Bool
 
     static func Check(_ snapshot: TripMapSnapshot, at date: Date) -> TripMapArrival {
-        TripMapArrival(hasArrived: false, everyoneHasArrived: false)
+        guard let destination = snapshot.waypoints.first(where: { $0.kind == .destination }) else {
+            return TripMapArrival(hasArrived: false, everyoneHasArrived: false)
+        }
+        let cars = Dictionary(snapshot.cars.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let isThere = { (car: TripMapCar) in car.coordinate.Distance(to: destination.coordinate) <= radius }
+        let hasArrived = cars[snapshot.myParticipantID].map(isThere) ?? false
+        let everyoneHasArrived = snapshot.memberIDs.isEmpty == false && snapshot.memberIDs.allSatisfy { memberID in
+            guard let car = cars[memberID] else { return false }
+            return car.IsOnline(at: date) && isThere(car)
+        }
+        return TripMapArrival(hasArrived: hasArrived, everyoneHasArrived: everyoneHasArrived)
     }
 }
