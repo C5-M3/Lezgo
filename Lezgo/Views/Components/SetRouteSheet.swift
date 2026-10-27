@@ -1,5 +1,5 @@
 //
-//  RouteSummaryDrawer.swift
+//  SetRouteSheet.swift
 //  Lezgo
 //
 //  Created by Farrell Sudjatmiko on 26/10/26.
@@ -9,10 +9,9 @@
 import SwiftUI
 import MapKit
 
-struct RouteSummaryDrawer: View {
+struct SetRouteSheet: View {
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
-    var onHeightChanged: (CGFloat) -> Void
 
     var body: some View {
         NavigationStack {
@@ -146,10 +145,6 @@ struct RouteSummaryDrawer: View {
                 }
             }
             .environment(\.editMode, isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive))
-            .readHeight { calculatedHeight in
-                // Add top navigation bar buffer (~44pt)
-                onHeightChanged(calculatedHeight + 50)
-            }
             .navigationTitle("Set Route")
             .navigationBarTitleDisplayMode(.inline)
         }

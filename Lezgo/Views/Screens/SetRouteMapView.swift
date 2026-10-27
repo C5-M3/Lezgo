@@ -1,5 +1,5 @@
 //
-//  MainMapScreen.swift
+//  SetRouteMapView.swift
 //  Lezgo
 //
 //  Created by Farrell Sudjatmiko on 26/10/26.
@@ -9,9 +9,9 @@
 import SwiftUI
 import MapKit
 
-struct MainMapScreen: View {
+struct SetRouteMapView: View {
     @State private var viewModel = MapViewModel()
-    @State private var drawerHeight: CGFloat = 280
+    @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
 
     var body: some View {
@@ -64,20 +64,10 @@ struct MainMapScreen: View {
             }
         }
         .sheet(isPresented: .constant(true)) {
-            RouteSummaryDrawer(
+            SetRouteSheet(
                 viewModel: boundViewModel,
                 isFullPresentation: selectedDetent == .large
-            ) { newHeight in
-                if abs(self.drawerHeight - newHeight) > 10 {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.drawerHeight = max(240, min(newHeight, 520))
-                        if selectedDetent != .large {
-                            self.selectedDetent = .height(self.drawerHeight)
-                        }
-                    }
-                    viewModel.adjustCameraToFitRoute(bottomPadding: self.drawerHeight)
-                }
-            }
+            )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
             }
@@ -102,6 +92,6 @@ struct MainMapScreen: View {
 }
 
 #Preview {
-    MainMapScreen()
+    SetRouteMapView()
 }
 
