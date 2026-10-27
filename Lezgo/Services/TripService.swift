@@ -2,8 +2,9 @@ import Foundation
 
 /// Every trip operation the app needs, in one place (ADR 0017).
 ///
-/// - `InMemoryTripService` keeps trips in memory. Previews, `DebugScreen`, tests and the app use it until
-///   `LiveTripService` (CloudKit, ADR 0014) lands.
+/// - `LiveTripService` syncs trips between phones through CloudKit (ADR 0014); the app uses it.
+/// - `InMemoryTripService` keeps trips in memory for previews, `DebugScreen` and tests.
+/// - `CloudKit/TripSync.md` explains every operation, how sync works, and how a screen uses the service.
 /// - A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer.
 /// - Every call that changes something throws `TripServiceError`. Leader-only actions take the caller's
 ///   participant ID and throw `.notAllowed` when the caller is not the leader.
@@ -24,7 +25,7 @@ protocol TripService {
     /// The trip as it is now, for example to check a saved trip when the app opens (US-03).
     func FetchTrip(tripID: UUID) async throws -> TripState
 
-    /// The trip right away, then again after every change by any phone. The live service also checks every second.
+    /// The trip right away, then again after every change by any phone. The live service fetches it every second.
     /// The stream keeps going while the network is down and finishes only when the listening task is cancelled.
     /// A participant missing from a new state has left or was removed.
     func TripUpdates(tripID: UUID) -> AsyncStream<TripState>
