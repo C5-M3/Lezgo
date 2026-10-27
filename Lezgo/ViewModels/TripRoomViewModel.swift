@@ -5,6 +5,7 @@
 //  Created by Oky Faishal on 26/10/26.
 //
 
+import CoreLocation
 import Foundation
 import Observation
 
@@ -20,6 +21,7 @@ final class TripRoomViewModel {
     var isSelectionMode: Bool
     var selectedParticipantIds: Set<UUID>
     var errorMessage: String?
+    var wasRemovedFromTrip: Bool = false
 
     var roomCode: String {
         state?.trip.roomCode ?? ""
@@ -27,6 +29,10 @@ final class TripRoomViewModel {
 
     var waypoints: [Waypoint] {
         state?.waypoints ?? []
+    }
+
+    var startPoint: Waypoint? {
+        waypoints.first(where: { $0.kind == .start })
     }
 
     var participants: [Participant] {
@@ -40,6 +46,22 @@ final class TripRoomViewModel {
 
     var tripStatus: TripStatus {
         state?.trip.status ?? .lobby
+    }
+
+    var canStartTrip: Bool {
+        guard isCurrentUserLeader, let state else { return false }
+        return state.participants.count > 1
+    }
+
+    var isEveryoneReady: Bool {
+        guard !participants.isEmpty else { return false }
+        return participants.allSatisfy { IsParticipantReady($0) }
+    }
+
+    var startTripConfirmationTitle: String {
+        isEveryoneReady
+            ? "Start trip?"
+            : "Some participants are not yet ready, are you sure you want to start the trip?"
     }
 
     var areAllMembersSelected: Bool {
@@ -88,16 +110,29 @@ final class TripRoomViewModel {
 
     func Listen() async {
         for await newState in tripService.TripUpdates(tripID: tripID) {
+            let wasInTrip = state?.participants.contains(where: { $0.id == myParticipantID }) ?? false
+            let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
+
             state = newState
+
+            if wasInTrip && !isStillInTrip && !isCurrentUserLeader {
+                wasRemovedFromTrip = true
+            }
+
+            if !isCurrentUserLeader && isSelectionMode {
+                isSelectionMode = false
+                selectedParticipantIds.removeAll()
+            }
         }
     }
 
     func StartTrip() async throws {
-        guard isCurrentUserLeader else { return }
+        guard isCurrentUserLeader, canStartTrip else { return }
         try await tripService.StartTrip(tripID: tripID, by: myParticipantID)
     }
 
     func ToggleSelectionMode() {
+        guard isCurrentUserLeader else { return }
         isSelectionMode.toggle()
         if !isSelectionMode { selectedParticipantIds.removeAll() }
     }
@@ -175,5 +210,14 @@ final class TripRoomViewModel {
     func IsLeader(participant: Participant) -> Bool {
         guard let state else { return false }
         return participant.IsLeader(in: state.trip)
+    }
+
+    func IsParticipantReady(_ participant: Participant, at date: Date = .now) -> Bool {
+        guard participant.IsOnline(at: date),
+              let startCoord = startPoint?.coordinate,
+              let participantCoord = participant.coordinate else { return false }
+        let startLocation = CLLocation(latitude: startCoord.latitude, longitude: startCoord.longitude)
+        let participantLocation = CLLocation(latitude: participantCoord.latitude, longitude: participantCoord.longitude)
+        return startLocation.distance(from: participantLocation) <= 100
     }
 }

@@ -24,23 +24,34 @@ struct TripRoomParticipantsSection: View {
                     .padding(.vertical, 12)
             } else {
                 ForEach(viewModel.participants) { participant in
+                    let isLeader = viewModel.IsLeader(participant: participant)
+
                     ParticipantRowView(
                         participant: participant,
                         viewModel: viewModel,
                         onEdit: { onEdit(participant) }
                     )
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if viewModel.CanKick(participant: participant) {
-                            Button { onKick(participant) } label: { Image(systemName: "trash") }
-                                .tint(.red)
-                                .accessibilityLabel("Kick")
+                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode {
+                            Button(role: .destructive) {
+                                onKick(participant)
+                            } label: {
+                                Label("Kick", systemImage: "trash")
+                            }
+                            .disabled(isLeader)
+                            .accessibilityLabel("Kick")
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        if viewModel.CanSetLeader(participant: participant) {
-                            Button { onSetLeader(participant) } label: { Image(systemName: "crown.fill") }
-                                .tint(Color(uiColor: .systemGray))
-                                .accessibilityLabel("Set leader")
+                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode {
+                            Button {
+                                onSetLeader(participant)
+                            } label: {
+                                Label("Set Lead", systemImage: "crown.fill")
+                            }
+                            .tint(Color(uiColor: .systemGray))
+                            .disabled(isLeader)
+                            .accessibilityLabel("Set Lead")
                         }
                     }
                 }
@@ -70,6 +81,7 @@ struct TripRoomParticipantsSection: View {
 private struct ParticipantRowContent: View {
     let participant: Participant
     let isLeader: Bool
+    let isReady: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -83,6 +95,15 @@ private struct ParticipantRowContent: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(participant.displayName).font(.body.weight(.medium))
                 Text(participant.carDescription).font(.caption).foregroundStyle(.secondary)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(isReady ? Color.green : Color.secondary)
+                        .frame(width: 6, height: 6)
+                    Text(isReady ? "ready at startpoint" : "not ready at startpoint")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 2)
             }
             Spacer()
             if isLeader {
@@ -102,6 +123,7 @@ private struct ParticipantRowView: View {
 
     private var isSelected: Bool { viewModel.selectedParticipantIds.contains(participant.id) }
     private var isLeader: Bool { viewModel.IsLeader(participant: participant) }
+    private var isReady: Bool { viewModel.IsParticipantReady(participant) }
 
     var body: some View {
         Button {
@@ -122,7 +144,7 @@ private struct ParticipantRowView: View {
                     .frame(width: 24, height: 24)
                     .accessibilityHidden(true)
                 }
-                ParticipantRowContent(participant: participant, isLeader: isLeader)
+                ParticipantRowContent(participant: participant, isLeader: isLeader, isReady: isReady)
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
@@ -137,7 +159,8 @@ private struct ParticipantRowView: View {
 
     private var accessibilityLabel: String {
         let role = isLeader ? ", Leader" : ""
+        let ready = isReady ? ", ready at startpoint" : ", not ready at startpoint"
         let selection = viewModel.isSelectionMode ? (isSelected ? ", Selected" : ", Not selected") : ""
-        return "\(participant.displayName), \(participant.carDescription)\(role)\(selection)"
+        return "\(participant.displayName), \(participant.carDescription)\(role)\(ready)\(selection)"
     }
 }

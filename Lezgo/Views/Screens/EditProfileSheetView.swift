@@ -15,7 +15,11 @@ struct EditProfileSheetView: View {
     @FocusState private var isNameFocused: Bool
 
     private var trimmedName: String {
-        name.trimmingCharacters(in: .whitespaces)
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedDescription: String {
+        description.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var myParticipant: Participant? {
@@ -26,8 +30,19 @@ struct EditProfileSheetView: View {
         NavigationStack {
             Form {
                 Section("Profile Details") {
-                    TextField("Name", text: $name).focused($isNameFocused)
-                    TextField("Description", text: $description)
+                    TextField("Name", text: $name)
+                        .focused($isNameFocused)
+                        .onChange(of: name) { _, newValue in
+                            if newValue.count > 30 {
+                                name = String(newValue.prefix(30))
+                            }
+                        }
+                    TextField("Car description", text: $description)
+                        .onChange(of: description) { _, newValue in
+                            if newValue.count > 40 {
+                                description = String(newValue.prefix(40))
+                            }
+                        }
                 }
             }
             .navigationTitle("Edit Profile")
@@ -39,7 +54,14 @@ struct EditProfileSheetView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Update") {
                         Task {
-                            try? await viewModel.UpdateProfile(displayName: trimmedName, carDescription: description)
+                            do {
+                                try await viewModel.UpdateProfile(
+                                    displayName: trimmedName,
+                                    carDescription: trimmedDescription
+                                )
+                            } catch {
+                                viewModel.errorMessage = error.localizedDescription
+                            }
                         }
                         dismiss()
                     }

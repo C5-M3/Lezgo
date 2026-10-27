@@ -97,77 +97,41 @@ struct TripRoomView: View {
             participantToSetLeader: $participantToSetLeader,
             dismissAction: { dismiss() }
         ))
-        .sheet(isPresented: $showingInviteSheet) {
-            InviteSheetView(roomCode: viewModel.roomCode, inviteURL: viewModel.inviteURL)
-        }
-        .sheet(isPresented: $showingSetLeaderSheet) {
-            SetLeaderSheetView(viewModel: viewModel) { candidate in
-                Task { try? await viewModel.SetLeader(to: candidate) }
-            }
-        }
-        .sheet(item: $participantToEdit) { _ in
-            EditProfileSheetView(viewModel: viewModel)
-        }
+        .tripRoomSheets(
+            viewModel: viewModel,
+            showingInvite: $showingInviteSheet,
+            showingSetLeader: $showingSetLeaderSheet,
+            participantToEdit: $participantToEdit
+        )
     }
 }
 
-// MARK: - Alerts Modifier
+// MARK: - Sheets
 
-private struct TripRoomAlertsModifier: ViewModifier {
-    let viewModel: TripRoomViewModel
-    @Binding var showingLeave: Bool
-    @Binding var showingStart: Bool
-    @Binding var showingRemove: Bool
-    @Binding var participantToKick: Participant?
-    @Binding var participantToSetLeader: Participant?
-    let dismissAction: () -> Void
-
-    func body(content: Content) -> some View {
-        content
-            .alert("End Trip?", isPresented: $showingLeave) {
-                Button("Cancel", role: .cancel) { }
-                Button("End Trip", role: .destructive) {
-                    Task { try? await viewModel.LeaveTrip(); dismissAction() }
-                }
-            } message: { Text("Leaving without handing over the lead will end the trip for everyone.") }
-            .alert("Start trip?", isPresented: $showingStart) {
-                Button("Cancel", role: .cancel) { }
-                Button("Start") { Task { try? await viewModel.StartTrip() } }
-            }
-            .alert(viewModel.removeConfirmationTitle, isPresented: $showingRemove) {
-                Button("Cancel", role: .cancel) { }
-                Button("Remove", role: .destructive) { Task { try? await viewModel.RemoveSelectedParticipants() } }
-            }
-            .alert(
-                participantToKick.map(viewModel.RemoveParticipantConfirmationTitle) ?? "",
-                isPresented: Binding(
-                    get: { participantToKick != nil },
-                    set: { if !$0 { participantToKick = nil } }
-                )
-            ) {
-                Button("Cancel", role: .cancel) { participantToKick = nil }
-                Button("Remove", role: .destructive) {
-                    if let target = participantToKick {
-                        Task { try? await viewModel.RemoveParticipant(id: target.id) }
+private extension View {
+    func tripRoomSheets(
+        viewModel: TripRoomViewModel,
+        showingInvite: Binding<Bool>,
+        showingSetLeader: Binding<Bool>,
+        participantToEdit: Binding<Participant?>
+    ) -> some View {
+        sheet(isPresented: showingInvite) {
+            InviteSheetView(roomCode: viewModel.roomCode, inviteURL: viewModel.inviteURL)
+        }
+        .sheet(isPresented: showingSetLeader) {
+            SetLeaderSheetView(viewModel: viewModel) { candidate in
+                Task {
+                    do {
+                        try await viewModel.SetLeader(to: candidate)
+                    } catch {
+                        viewModel.errorMessage = error.localizedDescription
                     }
-                    participantToKick = nil
                 }
             }
-            .alert(
-                participantToSetLeader.map(viewModel.SetLeaderConfirmationTitle) ?? "",
-                isPresented: Binding(
-                    get: { participantToSetLeader != nil },
-                    set: { if !$0 { participantToSetLeader = nil } }
-                )
-            ) {
-                Button("Cancel", role: .cancel) { participantToSetLeader = nil }
-                Button("Confirm") {
-                    if let target = participantToSetLeader {
-                        Task { try? await viewModel.SetLeader(to: target) }
-                    }
-                    participantToSetLeader = nil
-                }
-            }
+        }
+        .sheet(item: participantToEdit) { _ in
+            EditProfileSheetView(viewModel: viewModel)
+        }
     }
 }
 
@@ -189,13 +153,15 @@ private struct TopBarView: View {
                 Button(action: onLeave) {
                     Image(systemName: "iphone.and.arrow.forward.outward")
                         .rotationEffect(.degrees(180)).circleBarButtonStyle()
-                }.buttonStyle(.plain).accessibilityLabel("Leave trip room")
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(viewModel.isCurrentUserLeader ? "End trip" : "Leave trip room")
             }
             Spacer()
             if viewModel.isSelectionMode {
                 Button(action: viewModel.ToggleSelectionMode) { Image(systemName: "checkmark").circleBarButtonStyle() }
                     .buttonStyle(.plain).accessibilityLabel("Done selecting")
-            } else {
+            } else if viewModel.isCurrentUserLeader {
                 Menu {
                     Button("Select", action: viewModel.ToggleSelectionMode)
                     Button("Set leader", action: onSetLeader)
@@ -272,15 +238,28 @@ private struct BottomActionView: View {
                     .accessibilityLabel("Remove selected participants")
             }
         } else {
-            Group {
+            VStack(spacing: 6) {
                 if viewModel.isCurrentUserLeader {
-                    Button("Start Trip", action: onStartTrip).buttonStyle(.plain).accessibilityLabel("Start Trip")
+                    Button("Start Trip", action: onStartTrip)
+                        .buttonStyle(.plain)
+                        .disabled(!viewModel.canStartTrip)
+                        .accessibilityLabel("Start Trip")
+
+                    if !viewModel.canStartTrip {
+                        Text("Invite at least one friend to start.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 } else {
-                    Text("Waiting for leader to start...").font(.subheadline)
+                    Text("Waiting for others ...")
+                        .font(.subheadline)
                 }
             }
-            .font(.headline).foregroundStyle(.primary).frame(maxWidth: .infinity, minHeight: 52)
-            .background(Color.white, in: .rect(cornerRadius: 14))
+            .font(.headline)
+            .foregroundStyle(viewModel.canStartTrip || !viewModel.isCurrentUserLeader ? .primary : .secondary)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.vertical, 8)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
         }
     }
 }
