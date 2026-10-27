@@ -181,7 +181,9 @@ final class TripMapViewModel {
     }
 
     /// "OK" on the message that leaving failed.
-    func DismissLeaveError() {}
+    func DismissLeaveError() {
+        leaveErrorMessage = nil
+    }
 
     /// Called when the person pans or zooms the map by hand.
     func StopFollowing() {

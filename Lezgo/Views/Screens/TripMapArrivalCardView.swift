@@ -8,6 +8,7 @@ struct TripMapArrivalCardView: View {
     let isLeader: Bool
     /// Opens the planner with the start point locked to this destination (#115). `nil` hides the button.
     let onNewDestination: (() -> Void)?
+    let onLeave: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -32,6 +33,8 @@ struct TripMapArrivalCardView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
             }
+
+            TripMapLeaveButton(isLeader: isLeader, action: onLeave)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,22 +57,22 @@ struct TripMapArrivalCardView: View {
 }
 
 #Preview("Member, waiting") {
-    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: false, onNewDestination: nil)
+    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: false, onNewDestination: nil, onLeave: {})
         .padding()
 }
 
 #Preview("Member, everyone arrived") {
-    TripMapArrivalCardView(card: .everyoneArrived, isLeader: false, onNewDestination: nil)
+    TripMapArrivalCardView(card: .everyoneArrived, isLeader: false, onNewDestination: nil, onLeave: {})
         .padding()
 }
 
 #Preview("Leader, waiting") {
-    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: true, onNewDestination: {})
+    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: true, onNewDestination: {}, onLeave: {})
         .padding()
 }
 
 #Preview("Leader, everyone arrived, largest text") {
-    TripMapArrivalCardView(card: .everyoneArrived, isLeader: true, onNewDestination: {})
+    TripMapArrivalCardView(card: .everyoneArrived, isLeader: true, onNewDestination: {}, onLeave: {})
         .padding()
         .dynamicTypeSize(.accessibility5)
 }

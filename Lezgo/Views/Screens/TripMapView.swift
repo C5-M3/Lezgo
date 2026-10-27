@@ -11,12 +11,21 @@ struct TripMapView: View {
     /// How far above the car the camera floats while following it, in metres.
     private static let followDistance: CLLocationDistance = 1_500
 
+    @Environment(\.dismiss) private var dismiss
+
     /// Opens the New Destination planner (#115); `nil` hides the button.
     private let onNewDestination: (() -> Void)?
+    /// Returns to Home once the map closes; `nil` dismisses the map.
+    private let onClose: (() -> Void)?
 
-    init(viewModel: TripMapViewModel, onNewDestination: (() -> Void)? = nil) {
+    init(
+        viewModel: TripMapViewModel,
+        onNewDestination: (() -> Void)? = nil,
+        onClose: (() -> Void)? = nil
+    ) {
         _viewModel = State(initialValue: viewModel)
         self.onNewDestination = onNewDestination
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -56,10 +65,16 @@ struct TripMapView: View {
                     TripMapArrivalCardView(
                         card: arrivalCard,
                         isLeader: viewModel.isLeader,
-                        onNewDestination: onNewDestination
+                        onNewDestination: onNewDestination,
+                        onLeave: viewModel.RequestLeave
                     )
                 } else if let destinationName = viewModel.destinationName {
-                    TripMapBottomCard(destinationName: destinationName, timeLeft: viewModel.guidance?.timeLeft)
+                    TripMapBottomCard(
+                        destinationName: destinationName,
+                        timeLeft: viewModel.guidance?.timeLeft,
+                        isLeader: viewModel.isLeader,
+                        onLeave: viewModel.RequestLeave
+                    )
                 }
             }
             .padding(.horizontal)
@@ -72,6 +87,26 @@ struct TripMapView: View {
             }
         }
         .task { await viewModel.Start() }
+        .alert(Text(LeaveQuestion()), isPresented: IsAskingToLeave()) {
+            Button(role: .cancel, action: viewModel.CancelLeave) { Text(.tripMapCancel) }
+            Button(role: viewModel.isLeader ? .destructive : nil) {
+                Task { await viewModel.ConfirmLeave() }
+            } label: {
+                Text(.tripMapConfirm)
+            }
+        }
+        .alert(Text(verbatim: viewModel.leaveErrorMessage ?? ""), isPresented: HasLeaveError()) {
+            Button(action: viewModel.DismissLeaveError) { Text(.tripMapOK) }
+        }
+        .alert(Text(ClosedMessage()), isPresented: IsTellingWhyItClosed()) {
+            Button(action: Close) { Text(.tripMapOK) }
+        }
+        .onChange(of: viewModel.closeReason) {
+            // Leaving on purpose needs no message: go straight back to Home.
+            if viewModel.closeReason == .exited || viewModel.closeReason == .ended {
+                Close()
+            }
+        }
         .onChange(of: viewModel.myCoordinate) { MoveCamera() }
         .onChange(of: viewModel.cameraMode) { MoveCamera() }
         .onChange(of: viewModel.route) { MoveCamera() }
@@ -81,6 +116,41 @@ struct TripMapView: View {
                 viewModel.StopFollowing()
             }
         }
+    }
+
+    private func Close() {
+        if let onClose {
+            onClose()
+        } else {
+            dismiss()
+        }
+    }
+
+    private func LeaveQuestion() -> LocalizedStringResource {
+        switch viewModel.leaveConfirmation {
+        case .endTrip(everyoneHasArrived: false): .tripMapEndTripNotEveryoneArrived
+        case .endTrip: .tripMapEndTripQuestion
+        case .exitTrip, nil: .tripMapExitTripQuestion
+        }
+    }
+
+    private func ClosedMessage() -> LocalizedStringResource {
+        viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip
+    }
+
+    private func IsAskingToLeave() -> Binding<Bool> {
+        Binding(get: { viewModel.leaveConfirmation != nil }, set: { if $0 == false { viewModel.CancelLeave() } })
+    }
+
+    private func HasLeaveError() -> Binding<Bool> {
+        Binding(get: { viewModel.leaveErrorMessage != nil }, set: { if $0 == false { viewModel.DismissLeaveError() } })
+    }
+
+    private func IsTellingWhyItClosed() -> Binding<Bool> {
+        Binding(
+            get: { viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed },
+            set: { _ in }
+        )
     }
 
     private func MoveCamera() {
