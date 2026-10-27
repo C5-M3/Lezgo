@@ -125,10 +125,14 @@ final class TripMapViewModel {
     }
 
     /// The leader ended the trip, or removed this member, from another phone.
+    ///
+    /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
+    /// the reason then, so the person is not told they were removed or that the leader ended the trip.
     private func NoticeTripClosed(_ snapshot: TripMapSnapshot) {
-        guard closeReason == nil else { return }
+        guard closeReason == nil, isLeaving == false else { return }
         if snapshot.status == .ended || snapshot.status == .cancelled {
-            closeReason = .endedByLeader
+            // The leader only sees this when their own end request failed on the way back, so it closes quietly.
+            closeReason = snapshot.myParticipantID == snapshot.leaderParticipantID ? .ended : .endedByLeader
         } else if snapshot.memberIDs.contains(snapshot.myParticipantID) == false {
             closeReason = .removed
         }
