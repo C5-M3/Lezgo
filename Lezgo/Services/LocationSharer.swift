@@ -12,6 +12,9 @@ final class LocationSharer {
     private(set) var lastError: TripServiceError?
     private(set) var sentCount = 0
 
+    private var latest: LocationReading?
+    private var detector = MotionStateDetector()
+
     private let tripService: any TripService
     private let locationProvider: any LocationProvider
     private let tripID: UUID
@@ -36,5 +39,46 @@ final class LocationSharer {
     }
 
     /// Shares the position until the task is cancelled, for example when the trip ends or this person leaves.
-    func Run() async {}
+    func Run() async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.ReadGPS() }
+            group.addTask { await self.SendOnSchedule() }
+        }
+    }
+
+    /// Keeps the latest reading and the motion state up to date as readings arrive.
+    private func ReadGPS() async {
+        for await reading in locationProvider.Readings() {
+            latest = reading
+            _ = detector.Update(speedKmh: reading.speedKmh, at: reading.recordedAt)
+        }
+    }
+
+    /// Sends the latest reading at a fixed rate: a slow send shortens the wait instead of adding to it.
+    private func SendOnSchedule() async {
+        let ticker = ContinuousClock()
+        var deadline = ticker.now
+        while Task.isCancelled == false {
+            await SendLatest()
+            deadline = max(deadline.advanced(by: interval), ticker.now)
+            try? await Task.sleep(until: deadline, clock: ticker)
+        }
+    }
+
+    private func SendLatest() async {
+        guard let latest else { return }
+        let update = LocationUpdate(
+            coordinate: latest.coordinate,
+            speedKmh: latest.speedKmh,
+            motionState: detector.state,
+            recordedAt: clock()
+        )
+        do {
+            try await tripService.UpdateLocation(update, participantID: participantID, tripID: tripID)
+            sentCount += 1
+            lastError = nil
+        } catch {
+            lastError = error as? TripServiceError ?? .noNetwork
+        }
+    }
 }
