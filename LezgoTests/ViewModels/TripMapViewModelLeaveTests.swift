@@ -76,7 +76,7 @@ struct TripMapViewModelLeaveTests {
         await viewModel.Start()
         viewModel.RequestLeave()
 
-        await viewModel.ConfirmLeave()
+        await viewModel.ConfirmLeave(.exitTrip)
 
         #expect(service.exitedParticipantIDs == [Fixtures.budiID])
         #expect(viewModel.closeReason == .exited)
@@ -89,7 +89,7 @@ struct TripMapViewModelLeaveTests {
         await viewModel.Start()
         viewModel.RequestLeave()
 
-        await viewModel.ConfirmLeave()
+        await viewModel.ConfirmLeave(.endTrip(everyoneHasArrived: false))
 
         #expect(service.endedByLeaderIDs == [Fixtures.agusID])
         #expect(service.exitedParticipantIDs.isEmpty)
@@ -103,7 +103,7 @@ struct TripMapViewModelLeaveTests {
         await viewModel.Start()
         viewModel.RequestLeave()
 
-        await viewModel.ConfirmLeave()
+        await viewModel.ConfirmLeave(.exitTrip)
 
         #expect(viewModel.closeReason == nil)
         #expect(viewModel.leaveErrorMessage == String(localized: TripServiceError.noNetwork.message))
@@ -115,22 +115,26 @@ struct TripMapViewModelLeaveTests {
         await viewModel.Start()
         viewModel.RequestLeave()
 
-        async let first: Void = viewModel.ConfirmLeave()
-        async let second: Void = viewModel.ConfirmLeave()
+        async let first: Void = viewModel.ConfirmLeave(.exitTrip)
+        async let second: Void = viewModel.ConfirmLeave(.exitTrip)
         _ = await (first, second)
 
         #expect(service.exitedParticipantIDs.count == 1)
     }
 
-    @Test func ConfirmWithoutAskingDoesNothing() async {
+    /// The alert closes before its Confirm task runs, and closing it clears `leaveConfirmation`; the exit must
+    /// still happen.
+    @Test func ConfirmAfterTheAlertClosedStillExits() async {
         let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
         let viewModel = MakeViewModel([], service: service)
         await viewModel.Start()
+        viewModel.RequestLeave()
+        viewModel.CancelLeave()
 
-        await viewModel.ConfirmLeave()
+        await viewModel.ConfirmLeave(.exitTrip)
 
-        #expect(service.exitedParticipantIDs.isEmpty)
-        #expect(viewModel.closeReason == nil)
+        #expect(service.exitedParticipantIDs == [Fixtures.budiID])
+        #expect(viewModel.closeReason == .exited)
     }
 
     @Test func ErrorMessageCanBeDismissed() async {
@@ -139,7 +143,7 @@ struct TripMapViewModelLeaveTests {
         let viewModel = MakeViewModel([], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
-        await viewModel.ConfirmLeave()
+        await viewModel.ConfirmLeave(.exitTrip)
 
         viewModel.DismissLeaveError()
 
