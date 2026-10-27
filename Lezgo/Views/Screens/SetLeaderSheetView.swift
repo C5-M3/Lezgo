@@ -18,6 +18,7 @@ struct SetLeaderSheetView: View {
             List(viewModel.participants) { participant in
                 let isLeader = viewModel.IsLeader(participant: participant)
                 Button {
+                    guard !isLeader else { return }
                     candidate = participant
                 } label: {
                     HStack(spacing: 12) {

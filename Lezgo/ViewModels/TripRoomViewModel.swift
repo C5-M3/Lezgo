@@ -163,7 +163,10 @@ final class TripRoomViewModel {
     }
 
     func RemoveParticipant(id: UUID) async throws {
-        guard isCurrentUserLeader else { return }
+        guard isCurrentUserLeader,
+              let state,
+              let target = state.participants.first(where: { $0.id == id }),
+              !target.IsLeader(in: state.trip) else { return }
         try await tripService.RemoveParticipants([id], tripID: tripID, by: myParticipantID)
         selectedParticipantIds.remove(id)
     }
@@ -182,7 +185,9 @@ final class TripRoomViewModel {
     }
 
     func SetLeader(to participant: Participant) async throws {
-        guard isCurrentUserLeader, let currentLeaderID = state?.trip.leaderParticipantID else { return }
+        guard isCurrentUserLeader,
+              let currentLeaderID = state?.trip.leaderParticipantID,
+              participant.id != currentLeaderID else { return }
         try await tripService.SetLeader(participant.id, tripID: tripID, replacing: currentLeaderID)
     }
 

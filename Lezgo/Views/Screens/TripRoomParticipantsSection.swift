@@ -32,25 +32,23 @@ struct TripRoomParticipantsSection: View {
                         onEdit: { onEdit(participant) }
                     )
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode {
+                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode && !isLeader {
                             Button(role: .destructive) {
                                 onKick(participant)
                             } label: {
                                 Label("Kick", systemImage: "trash")
                             }
-                            .disabled(isLeader)
                             .accessibilityLabel("Kick")
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode {
+                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode && !isLeader {
                             Button {
                                 onSetLeader(participant)
                             } label: {
                                 Label("Set Lead", systemImage: "crown.fill")
                             }
                             .tint(Color(uiColor: .systemGray))
-                            .disabled(isLeader)
                             .accessibilityLabel("Set Lead")
                         }
                     }
