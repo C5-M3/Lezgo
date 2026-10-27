@@ -17,8 +17,8 @@ final class TripMapViewModel {
     private(set) var closeReason: TripMapCloseReason?
     /// Why leaving failed, for example no network; the map stays open so the person can try again.
     private(set) var leaveErrorMessage: String?
-    /// `true` while an exit or end request is on its way, so a second tap does nothing.
-    private var isLeaving = false
+    /// `true` while an exit or end request is on its way; the card's buttons are disabled meanwhile.
+    private(set) var isLeaving = false
     /// When the latest snapshot arrived; offline cars are judged against this time.
     private var updatedAt: Date?
 
@@ -148,7 +148,7 @@ final class TripMapViewModel {
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
     func RequestLeave() {
-        guard closeReason == nil, let snapshot else { return }
+        guard closeReason == nil, isLeaving == false, let snapshot else { return }
         guard isLeader else {
             leaveConfirmation = .exitTrip
             return

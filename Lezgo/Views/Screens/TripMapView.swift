@@ -68,6 +68,7 @@ struct TripMapView: View {
                         onNewDestination: onNewDestination,
                         onLeave: viewModel.RequestLeave
                     )
+                    .disabled(viewModel.isLeaving)
                 } else if let destinationName = viewModel.destinationName {
                     TripMapBottomCard(
                         destinationName: destinationName,
@@ -75,6 +76,7 @@ struct TripMapView: View {
                         isLeader: viewModel.isLeader,
                         onLeave: viewModel.RequestLeave
                     )
+                    .disabled(viewModel.isLeaving)
                 }
             }
             .padding(.horizontal)
