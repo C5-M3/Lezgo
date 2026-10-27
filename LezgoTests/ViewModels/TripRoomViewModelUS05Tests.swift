@@ -239,4 +239,37 @@ struct TripRoomViewModelUS05Tests {
         #expect(viewModel.wasRemovedFromTrip == true)
         task.cancel()
     }
+
+    @Test func LeaderCannotRemoveSelf() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
+
+        try await viewModel.RemoveParticipant(id: SampleTrip.agusID)
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.participants.contains(where: { $0.id == SampleTrip.agusID }))
+    }
+
+    @Test func LeaderCannotSetLeaderToSelf() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
+
+        let agus = try #require(state.participants.first(where: { $0.id == SampleTrip.agusID }))
+        try await viewModel.SetLeader(to: agus)
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.trip.leaderParticipantID == SampleTrip.agusID)
+    }
 }
