@@ -34,6 +34,7 @@ struct TripServiceMapAdapter: TripMapService {
             routeVersion: state.trip.routeVersion,
             waypoints: state.waypoints.map { MakeWaypoint($0) },
             cars: state.participants.compactMap { MakeCar($0) },
+            memberIDs: state.participants.map(\.id),
             route: polyline.map { MakeCoordinate($0) }
         )
     }

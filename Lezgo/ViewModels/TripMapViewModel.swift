@@ -72,6 +72,11 @@ final class TripMapViewModel {
         return snapshot.cars.first { $0.id == snapshot.myParticipantID }?.coordinate
     }
 
+    /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
+    var arrivalCard: TripMapArrivalCard? {
+        nil
+    }
+
     /// `true` until the first trip update arrives.
     var isLoading: Bool {
         snapshot == nil
