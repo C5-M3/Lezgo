@@ -1,3 +1,10 @@
+//
+//  TripPlan.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// A route from the planner (Set Route): the waypoints in order and the road path through them.

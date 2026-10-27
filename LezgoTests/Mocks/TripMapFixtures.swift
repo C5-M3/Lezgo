@@ -1,3 +1,10 @@
+//
+//  TripMapFixtures.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 @testable import Lezgo
 

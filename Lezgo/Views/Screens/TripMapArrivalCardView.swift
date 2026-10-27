@@ -1,3 +1,10 @@
+//
+//  TripMapArrivalCardView.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import SwiftUI
 
 /// The bottom card once this phone's car has arrived (`specs/UserStories.md` → US-07, "Arrive"): who has arrived,

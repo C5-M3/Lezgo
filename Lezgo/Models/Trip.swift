@@ -1,3 +1,10 @@
+//
+//  Trip.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// One group journey: one room code and one route at a time.

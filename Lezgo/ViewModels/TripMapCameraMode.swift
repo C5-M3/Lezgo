@@ -1,3 +1,10 @@
+//
+//  TripMapCameraMode.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 /// What the trip map camera follows.
 enum TripMapCameraMode: Hashable {
     /// The camera stays on this phone's car as it moves.

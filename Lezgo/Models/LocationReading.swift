@@ -1,3 +1,10 @@
+//
+//  LocationReading.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 
 /// One GPS reading from this phone.

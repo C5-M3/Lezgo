@@ -1,3 +1,10 @@
+//
+//  TripMapTurnCard.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
 /// The top card on the trip map: an arrow, the distance to the next turn and the turn instruction.

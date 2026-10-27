@@ -1,3 +1,10 @@
+//
+//  TripService.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// Every trip operation the app needs, in one place (ADR 0017).

@@ -1,3 +1,10 @@
+//
+//  TripMapViewModelArrivalTests.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 import Testing
 @testable import Lezgo

@@ -1,3 +1,10 @@
+//
+//  TripMapCloseReason.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 /// Why the trip map closed on this phone, which then returns to Home.
 enum TripMapCloseReason: Hashable {
     /// This member chose "Exit Trip".

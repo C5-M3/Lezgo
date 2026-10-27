@@ -1,3 +1,10 @@
+//
+//  TripMapGuidance.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// Turn-by-turn guidance for this phone's car: the next turn and the time left to the destination.

@@ -1,3 +1,10 @@
+//
+//  TripMapWaypointPinView.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
 /// A start point, checkpoint or destination on the trip map. Visited checkpoints are shown with a check mark.

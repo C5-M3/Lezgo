@@ -1,3 +1,10 @@
+//
+//  TripMapArrival.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 
 /// Who has arrived at the destination (`specs/UserStories.md` → US-07, "Arrive").
