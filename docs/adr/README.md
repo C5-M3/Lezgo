@@ -33,3 +33,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0016](0016-UserStoriesInTheRepository.md) | User stories in the repository | Proposed | 2026-10-26 |
 | [0017](0017-TripServiceContractFirst.md) | Trip service contract first, with an in-memory service | Proposed | 2026-10-26 |
 | [0018](0018-DebugToolsInTheirOwnFolder.md) | Debug tools in their own folder | Proposed | 2026-10-27 |
+| [0019](0019-SmallTypesStayWithTheirOwner.md) | Small helper types stay with the type that uses them | Proposed | 2026-10-27 |
