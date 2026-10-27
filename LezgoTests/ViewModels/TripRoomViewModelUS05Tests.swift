@@ -240,6 +240,29 @@ struct TripRoomViewModelUS05Tests {
         task.cancel()
     }
 
+    @Test func ListenDetectsRemovalWhenFirstSnapshotLacksCurrentMember() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        try await service.RemoveParticipants([SampleTrip.budiID], tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.budiID
+        )
+
+        let task = Task {
+            await viewModel.Listen()
+        }
+
+        for _ in 0..<10 {
+            if viewModel.state != nil { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+
+        #expect(viewModel.state != nil)
+        #expect(viewModel.wasRemovedFromTrip == true)
+        task.cancel()
+    }
+
     @Test func LeaderCannotRemoveSelf() async throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)
