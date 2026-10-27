@@ -4,116 +4,202 @@ import Testing
 
 @MainActor
 struct TripRoomViewModelTests {
-    @Test func InitialStateDefaults() {
-        let viewModel = TripRoomViewModel()
+    @Test func InitialStateFromSampleTrip() {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
-        #expect(viewModel.routeStops.count >= 3)
-        #expect(viewModel.routeStops.first?.kind == .start)
-        #expect(viewModel.routeStops.last?.kind == .destination)
-        #expect(viewModel.participants.count >= 4)
-        #expect(viewModel.participants.first?.isLeader == true)
+        #expect(viewModel.roomCode == "897654")
+        #expect(viewModel.waypoints.count == 3)
+        #expect(viewModel.waypoints.first?.kind == .start)
+        #expect(viewModel.waypoints.last?.kind == .destination)
+        #expect(viewModel.participants.count == 3)
         #expect(viewModel.isCurrentUserLeader == true)
         #expect(viewModel.isSelectionMode == false)
-        #expect(viewModel.tripStatus == .waiting)
+        #expect(viewModel.tripStatus == .lobby)
     }
 
-    @Test func ExplicitEmptyParticipantsAllowsEmptyList() {
-        let viewModel = TripRoomViewModel(participants: [])
-        #expect(viewModel.participants.isEmpty)
+    @Test func StartTripUpdatesStatusWhenLeader() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
+
+        try await viewModel.StartTrip()
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.trip.status == .inTrip)
     }
 
-    @Test func StartTripUpdatesStatusWhenLeader() {
-        let viewModel = TripRoomViewModel(isCurrentUserLeader: true)
+    @Test func StartTripDoesNothingWhenNotLeader() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.budiID,
+            initialState: state
+        )
 
-        viewModel.StartTrip()
-
-        #expect(viewModel.tripStatus == .inTrip)
-    }
-
-    @Test func StartTripDoesNothingWhenNotLeader() {
-        let viewModel = TripRoomViewModel(isCurrentUserLeader: false)
-
-        viewModel.StartTrip()
-
-        #expect(viewModel.tripStatus == .waiting)
-    }
-
-    @Test func SetLeaderTransfersCrownToSelectedParticipant() {
-        let p1 = Participant(name: "Leader 1", description: "Car 1", isLeader: true)
-        let p2 = Participant(name: "Member 2", description: "Car 2", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [p1, p2], isCurrentUserLeader: true)
-
-        viewModel.SetLeader(to: p2)
-
-        #expect(viewModel.participants[0].isLeader == false)
-        #expect(viewModel.participants[1].isLeader == true)
         #expect(viewModel.isCurrentUserLeader == false)
+        try await viewModel.StartTrip()
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.trip.status == .lobby)
     }
 
-    @Test func SetLeaderWithNonMemberLeavesStateUnchanged() {
-        let p1 = Participant(name: "Leader 1", description: "Car 1", isLeader: true)
-        let p2 = Participant(name: "Member 2", description: "Car 2", isLeader: false)
-        let nonMember = Participant(name: "Non Member", description: "Car 99", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [p1, p2], isCurrentUserLeader: true)
+    @Test func SetLeaderTransfersLead() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
-        viewModel.SetLeader(to: nonMember)
+        let budi = try #require(state.participants.first(where: { $0.id == SampleTrip.budiID }))
+        try await viewModel.SetLeader(to: budi)
 
-        #expect(viewModel.participants[0].isLeader == true)
-        #expect(viewModel.participants[1].isLeader == false)
-        #expect(viewModel.isCurrentUserLeader == true)
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.trip.leaderParticipantID == SampleTrip.budiID)
     }
 
-    @Test func LeaveRoomSetsStatusToCancelled() {
-        let viewModel = TripRoomViewModel()
+    @Test func RemoveParticipantRemovesMember() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
-        viewModel.LeaveRoom()
+        try await viewModel.RemoveParticipant(id: SampleTrip.budiID)
 
-        #expect(viewModel.tripStatus == .cancelled)
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(!updated.participants.contains(where: { $0.id == SampleTrip.budiID }))
     }
 
-    @Test func RouteStopsDefaultsIncludeStartCheckpointAndDestination() {
-        let viewModel = TripRoomViewModel()
+    @Test func RemoveSelectedParticipantsRemovesMembersAndExitsSelectionMode() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
-        #expect(viewModel.routeStops.count >= 3)
-        #expect(viewModel.routeStops.first?.kind == .start)
-        #expect(viewModel.routeStops.contains(where: { $0.kind == .checkpoint }))
-        #expect(viewModel.routeStops.last?.kind == .destination)
-        #expect(viewModel.routeStops.first?.name == "Universitas Ciputra")
-        #expect(viewModel.routeStops.last?.name == "Ciputra World")
+        viewModel.ToggleSelectionMode()
+        viewModel.ToggleParticipantSelection(id: SampleTrip.budiID)
+        #expect(viewModel.canRemove == true)
+
+        try await viewModel.RemoveSelectedParticipants()
+
+        #expect(viewModel.isSelectionMode == false)
+        #expect(viewModel.selectedParticipantIds.isEmpty)
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(!updated.participants.contains(where: { $0.id == SampleTrip.budiID }))
     }
 
-    @Test func RouteStopsCanBeInitializedWithMultipleCheckpoints() {
-        let stops: [TripRoomViewModel.RouteStop] = [
-            .init(name: "Rumah", kind: .start),
-            .init(name: "SPBU KM 19", kind: .checkpoint),
-            .init(name: "Rest Area KM 57", kind: .checkpoint),
-            .init(name: "Hotel Bandung", kind: .destination)
-        ]
-        let viewModel = TripRoomViewModel(routeStops: stops)
+    @Test func UpdateProfileUpdatesDisplayNameAndCar() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
-        #expect(viewModel.routeStops.count == 4)
-        #expect(viewModel.routeStops.filter({ $0.kind == .checkpoint }).count == 2)
-        #expect(viewModel.routeStops.first?.name == "Rumah")
-        #expect(viewModel.routeStops.last?.name == "Hotel Bandung")
+        try await viewModel.UpdateProfile(displayName: "Agus Baru", carDescription: "Innova Reborn")
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        let agus = try #require(updated.participants.first(where: { $0.id == SampleTrip.agusID }))
+        #expect(agus.displayName == "Agus Baru")
+        #expect(agus.carDescription == "Innova Reborn")
     }
 
-    @Test func RoomCodeAndInviteURLAreAvailable() {
-        let viewModel = TripRoomViewModel(roomCode: "5JUV83")
+    @Test func LeaveTripEndsTripWhenLeader() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
-        #expect(viewModel.roomCode == "5JUV83")
-        #expect(viewModel.inviteURL.absoluteString == "lezgo://join?code=5JUV83")
+        try await viewModel.LeaveTrip()
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.trip.status == .cancelled)
+    }
+
+    @Test func LeaveTripExitsTripWhenMember() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.budiID,
+            initialState: state
+        )
+
+        try await viewModel.LeaveTrip()
+
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(!updated.participants.contains(where: { $0.id == SampleTrip.budiID }))
+    }
+
+    @Test func ListenReceivesLiveUpdates() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID
+        )
+
+        let task = Task {
+            await viewModel.Listen()
+        }
+
+        for _ in 0..<10 {
+            if viewModel.state != nil { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+
+        #expect(viewModel.state != nil)
+        #expect(viewModel.roomCode == "897654")
+
+        task.cancel()
     }
 
     @Test func SelectionModeTogglesAndClearsSelection() {
-        let p1 = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let p2 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [p1, p2])
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
         viewModel.ToggleSelectionMode()
         #expect(viewModel.isSelectionMode == true)
 
-        viewModel.ToggleParticipantSelection(id: p2.id)
-        #expect(viewModel.selectedParticipantIds.contains(p2.id))
+        viewModel.ToggleParticipantSelection(id: SampleTrip.budiID)
+        #expect(viewModel.selectedParticipantIds.contains(SampleTrip.budiID))
 
         viewModel.ToggleSelectionMode()
         #expect(viewModel.isSelectionMode == false)
@@ -121,29 +207,39 @@ struct TripRoomViewModelTests {
     }
 
     @Test func LeaderCannotBeSelectedForRemoval() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let viewModel = TripRoomViewModel(participants: [leader])
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
         viewModel.ToggleSelectionMode()
-        viewModel.ToggleParticipantSelection(id: leader.id)
+        viewModel.ToggleParticipantSelection(id: SampleTrip.agusID)
 
         #expect(viewModel.selectedParticipantIds.isEmpty)
     }
 
     @Test func SelectAllTogglesSelectionOfAllMembers() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let m1 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
-        let m2 = Participant(name: "Member 2", description: "Car 3", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [leader, m1, m2])
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
         viewModel.ToggleSelectionMode()
         #expect(viewModel.areAllMembersSelected == false)
 
         viewModel.SelectAll()
         #expect(viewModel.selectedParticipantIds.count == 2)
-        #expect(viewModel.selectedParticipantIds.contains(m1.id))
-        #expect(viewModel.selectedParticipantIds.contains(m2.id))
-        #expect(!viewModel.selectedParticipantIds.contains(leader.id))
+        #expect(viewModel.selectedParticipantIds.contains(SampleTrip.budiID))
+        #expect(viewModel.selectedParticipantIds.contains(SampleTrip.citraID))
+        #expect(!viewModel.selectedParticipantIds.contains(SampleTrip.agusID))
         #expect(viewModel.areAllMembersSelected == true)
         #expect(viewModel.canRemove == true)
 
@@ -154,137 +250,52 @@ struct TripRoomViewModelTests {
     }
 
     @Test func RemoveConfirmationTitleFormatsCorrectly() {
-        let p1 = Participant(name: "Matthew", description: "Civic", isLeader: false)
-        let p2 = Participant(name: "Farr", description: "HRV", isLeader: false)
-        let p3 = Participant(name: "Doni", description: "Yaris", isLeader: false)
-        let p4 = Participant(name: "Rian", description: "Avanza", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [p1, p2, p3, p4])
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
 
         #expect(viewModel.removeConfirmationTitle == "Remove participants from the trip?")
 
-        viewModel.ToggleParticipantSelection(id: p1.id)
-        #expect(viewModel.removeConfirmationTitle == "Remove Matthew from the trip?")
+        viewModel.ToggleParticipantSelection(id: SampleTrip.budiID)
+        #expect(viewModel.removeConfirmationTitle == "Remove Budi from the trip?")
 
-        viewModel.ToggleParticipantSelection(id: p2.id)
-        #expect(viewModel.removeConfirmationTitle == "Remove Matthew and 1 other from the trip?")
-
-        viewModel.ToggleParticipantSelection(id: p3.id)
-        viewModel.ToggleParticipantSelection(id: p4.id)
-        #expect(viewModel.removeConfirmationTitle == "Remove Matthew and 3 others from the trip?")
+        viewModel.ToggleParticipantSelection(id: SampleTrip.citraID)
+        #expect(viewModel.removeConfirmationTitle == "Remove Budi and 1 other from the trip?")
     }
 
-    @Test func RemoveSelectedParticipantsRemovesOnlySelectedMembersAndExitsMode() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let m1 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
-        let m2 = Participant(name: "Member 2", description: "Car 3", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [leader, m1, m2])
-
-        viewModel.ToggleSelectionMode()
-        viewModel.ToggleParticipantSelection(id: m1.id)
-        #expect(viewModel.canRemove == true)
-
-        viewModel.RemoveSelectedParticipants()
-
-        #expect(viewModel.participants.count == 2)
-        #expect(viewModel.participants.contains(where: { $0.id == leader.id }))
-        #expect(viewModel.participants.contains(where: { $0.id == m2.id }))
-        #expect(!viewModel.participants.contains(where: { $0.id == m1.id }))
-        #expect(viewModel.selectedParticipantIds.isEmpty)
-        #expect(viewModel.isSelectionMode == false)
-    }
-
-    @Test func SetLeaderConfirmationTitleFormatsCorrectly() {
-        let member = Participant(name: "Matthew", description: "Civic", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [member])
-
-        #expect(viewModel.SetLeaderConfirmationTitle(for: member) == "Set Matthew as Trip Leader?")
-    }
-
-    @Test func RemoveParticipantRemovesMemberAndPreservesLeader() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let m1 = Participant(name: "Member 1", description: "Car 2", isLeader: false)
-        let m2 = Participant(name: "Member 2", description: "Car 3", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [leader, m1, m2])
-
-        viewModel.RemoveParticipant(id: m1.id)
-
-        #expect(viewModel.participants.count == 2)
-        #expect(!viewModel.participants.contains(where: { $0.id == m1.id }))
-        #expect(viewModel.participants.contains(where: { $0.id == leader.id }))
-        #expect(viewModel.participants.contains(where: { $0.id == m2.id }))
-
-        viewModel.RemoveParticipant(id: leader.id)
-        #expect(viewModel.participants.count == 2)
-        #expect(viewModel.participants.contains(where: { $0.id == leader.id }))
-    }
-
-    @Test func RemoveParticipantConfirmationTitleFormatsCorrectly() {
-        let member = Participant(name: "Matthew", description: "Civic", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [member])
-
-        #expect(viewModel.RemoveParticipantConfirmationTitle(for: member) == "Remove Matthew from the trip?")
-    }
-
-    @Test func CanKickReturnsTrueOnlyForMembersWhenLeaderAndNotInSelectionMode() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let member = Participant(name: "Member", description: "Car 2", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: true)
-
-        #expect(viewModel.CanKick(participant: member) == true)
-        #expect(viewModel.CanKick(participant: leader) == false)
-
-        viewModel.ToggleSelectionMode()
-        #expect(viewModel.CanKick(participant: member) == false)
-
-        let memberViewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: false)
-        #expect(memberViewModel.CanKick(participant: member) == false)
-    }
-
-    @Test func CanSetLeaderRules() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let member = Participant(name: "Member", description: "Car 2", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: true)
-
-        #expect(viewModel.CanSetLeader(participant: member) == true)
-        #expect(viewModel.CanSetLeader(participant: leader) == false)
-
-        viewModel.ToggleSelectionMode()
-        #expect(viewModel.CanSetLeader(participant: member) == false)
-
-        let memberViewModel = TripRoomViewModel(participants: [leader, member], isCurrentUserLeader: false)
-        #expect(memberViewModel.CanSetLeader(participant: member) == false)
-    }
-
-    @Test func CanEditRulesForLeaderAndMember() {
-        let leader = Participant(name: "Leader", description: "Car 1", isLeader: true)
-        let member = Participant(name: "Member", description: "Car 2", isLeader: false)
-        let other = Participant(name: "Other", description: "Car 3", isLeader: false)
-
-        let leaderVM = TripRoomViewModel(
-            participants: [leader, member, other], isCurrentUserLeader: true, currentUserId: leader.id
+    @Test func FormattingTitlesAndPermissions() throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
         )
-        #expect(leaderVM.CanEdit(participant: leader) == true)
-        #expect(leaderVM.CanEdit(participant: member) == true)
-        #expect(leaderVM.CanEdit(participant: other) == true)
 
-        leaderVM.ToggleSelectionMode()
-        #expect(leaderVM.CanEdit(participant: member) == false)
+        let agus = try #require(state.participants.first(where: { $0.id == SampleTrip.agusID }))
+        let budi = try #require(state.participants.first(where: { $0.id == SampleTrip.budiID }))
 
-        let memberVM = TripRoomViewModel(
-            participants: [leader, member, other], isCurrentUserLeader: false, currentUserId: member.id
-        )
-        #expect(memberVM.CanEdit(participant: member) == true)
-        #expect(memberVM.CanEdit(participant: leader) == false)
-        #expect(memberVM.CanEdit(participant: other) == false)
-    }
+        #expect(viewModel.RemoveParticipantConfirmationTitle(for: budi) == "Remove Budi from the trip?")
+        #expect(viewModel.SetLeaderConfirmationTitle(for: budi) == "Set Budi as Trip Leader?")
 
-    @Test func UpdateParticipantModifiesNameAndDescription() {
-        let p1 = Participant(name: "Old Name", description: "Old Car", isLeader: false)
-        let viewModel = TripRoomViewModel(participants: [p1])
+        #expect(viewModel.CanKick(participant: budi) == true)
+        #expect(viewModel.CanKick(participant: agus) == false)
+        #expect(viewModel.CanSetLeader(participant: budi) == true)
+        #expect(viewModel.CanSetLeader(participant: agus) == false)
+        #expect(viewModel.CanEdit(participant: agus) == true)
+        #expect(viewModel.CanEdit(participant: budi) == false)
+        #expect(viewModel.IsLeader(participant: agus) == true)
+        #expect(viewModel.IsLeader(participant: budi) == false)
 
-        viewModel.UpdateParticipant(id: p1.id, name: "New Name", description: "New Car")
-
-        #expect(viewModel.participants.first?.name == "New Name")
-        #expect(viewModel.participants.first?.description == "New Car")
+        viewModel.ToggleSelectionMode()
+        #expect(viewModel.CanKick(participant: budi) == false)
+        #expect(viewModel.CanSetLeader(participant: budi) == false)
+        #expect(viewModel.CanEdit(participant: agus) == false)
     }
 }

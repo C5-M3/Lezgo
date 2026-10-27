@@ -12,57 +12,39 @@ import Observation
 @Observable
 @MainActor
 final class TripRoomViewModel {
-    enum TripStatus: Equatable, Sendable {
-        case waiting
-        case inTrip
-        case cancelled
-    }
+    private(set) var state: TripState?
+    private let tripService: any TripService
+    let tripID: UUID
+    let myParticipantID: UUID
 
-    enum RouteStopKind: Equatable, Sendable {
-        case start
-        case checkpoint
-        case destination
-
-        var accessibilityPrefix: String {
-            switch self {
-            case .start: return "Starting point"
-            case .checkpoint: return "Checkpoint"
-            case .destination: return "Destination"
-            }
-        }
-
-        var iconName: String {
-            switch self {
-            case .start: return "house.fill"
-            case .checkpoint: return "circle.fill"
-            case .destination: return "mappin.and.ellipse"
-            }
-        }
-    }
-
-    struct RouteStop: Identifiable, Equatable, Hashable, Sendable {
-        let id: UUID
-        var name: String
-        var kind: RouteStopKind
-
-        init(id: UUID = UUID(), name: String, kind: RouteStopKind) {
-            self.id = id
-            self.name = name
-            self.kind = kind
-        }
-    }
-
-    var roomCode: String
-    var routeStops: [RouteStop]
-    var participants: [Participant]
-    var isCurrentUserLeader: Bool
-    var currentUserId: UUID
     var isSelectionMode: Bool
     var selectedParticipantIds: Set<UUID>
-    var tripStatus: TripStatus
+    var errorMessage: String?
+
+    var roomCode: String {
+        state?.trip.roomCode ?? ""
+    }
+
+    var waypoints: [Waypoint] {
+        state?.waypoints ?? []
+    }
+
+    var participants: [Participant] {
+        state?.participants ?? []
+    }
+
+    var isCurrentUserLeader: Bool {
+        guard let state else { return false }
+        return state.trip.leaderParticipantID == myParticipantID
+    }
+
+    var tripStatus: TripStatus {
+        state?.trip.status ?? .lobby
+    }
 
     var areAllMembersSelected: Bool {
-        let memberIds = participants.filter { !$0.isLeader }.map(\.id)
+        guard let state else { return false }
+        let memberIds = state.participants.filter { !$0.IsLeader(in: state.trip) }.map(\.id)
         return !memberIds.isEmpty && selectedParticipantIds.count == memberIds.count
     }
 
@@ -73,15 +55,16 @@ final class TripRoomViewModel {
     }
 
     var removeConfirmationTitle: String {
-        let selected = participants.filter { selectedParticipantIds.contains($0.id) }
+        guard let state else { return "Remove participants from the trip?" }
+        let selected = state.participants.filter { selectedParticipantIds.contains($0.id) }
         guard let first = selected.first else { return "Remove participants from the trip?" }
         let remaining = selected.count - 1
         if remaining == 0 {
-            return "Remove \(first.name) from the trip?"
+            return "Remove \(first.displayName) from the trip?"
         } else if remaining == 1 {
-            return "Remove \(first.name) and 1 other from the trip?"
+            return "Remove \(first.displayName) and 1 other from the trip?"
         } else {
-            return "Remove \(first.name) and \(remaining) others from the trip?"
+            return "Remove \(first.displayName) and \(remaining) others from the trip?"
         }
     }
 
@@ -89,49 +72,29 @@ final class TripRoomViewModel {
         URL(string: "lezgo://join?code=\(roomCode)") ?? URL(fileURLWithPath: "/")
     }
 
-    static var defaultDummyParticipants: [Participant] {
-        [
-            Participant(name: "Faishal (You)", description: "Innova Hitam - H 1234 CD", isLeader: true),
-            Participant(name: "Matthew", description: "Civic Putih - W 8888 XY", isLeader: false),
-            Participant(name: "Farr", description: "HR-V Abu-abu - L 4321 EF", isLeader: false),
-            Participant(name: "Nat", description: "Ioniq 5 Silver - DK 5678 GH", isLeader: false),
-            Participant(name: "Zal", description: "Ioniq 7 Black - H 28947 HUO", isLeader: false)
-        ]
-    }
-
     init(
-        roomCode: String = "5JUV83",
-        routeStops: [RouteStop]? = nil,
-        participants: [Participant]? = nil,
-        isCurrentUserLeader: Bool = true,
-        currentUserId: UUID? = nil
+        tripService: any TripService,
+        tripID: UUID,
+        myParticipantID: UUID,
+        initialState: TripState? = nil
     ) {
-        self.roomCode = roomCode
-        self.routeStops = routeStops ?? [
-            .init(name: "Universitas Ciputra", kind: .start),
-            .init(name: "SPBU Pertamina Lontar", kind: .checkpoint),
-            .init(name: "Ciputra World", kind: .destination)
-        ]
-        let resolved = participants ?? Self.defaultDummyParticipants
-        self.participants = resolved
-        self.isCurrentUserLeader = isCurrentUserLeader
-        if let currentUserId {
-            self.currentUserId = currentUserId
-        } else if isCurrentUserLeader, let initialLeader = resolved.first(where: { $0.isLeader }) {
-            self.currentUserId = initialLeader.id
-        } else if !isCurrentUserLeader, let firstMember = resolved.first(where: { !$0.isLeader }) {
-            self.currentUserId = firstMember.id
-        } else {
-            self.currentUserId = UUID()
-        }
+        self.tripService = tripService
+        self.tripID = tripID
+        self.myParticipantID = myParticipantID
+        self.state = initialState
         self.isSelectionMode = false
         self.selectedParticipantIds = []
-        self.tripStatus = .waiting
     }
 
-    func StartTrip() {
+    func Listen() async {
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            state = newState
+        }
+    }
+
+    func StartTrip() async throws {
         guard isCurrentUserLeader else { return }
-        tripStatus = .inTrip
+        try await tripService.StartTrip(tripID: tripID, by: myParticipantID)
     }
 
     func ToggleSelectionMode() {
@@ -140,7 +103,9 @@ final class TripRoomViewModel {
     }
 
     func ToggleParticipantSelection(id: UUID) {
-        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else { return }
+        guard let state,
+              let participant = state.participants.first(where: { $0.id == id }),
+              !participant.IsLeader(in: state.trip) else { return }
         if selectedParticipantIds.contains(id) {
             selectedParticipantIds.remove(id)
         } else {
@@ -149,59 +114,66 @@ final class TripRoomViewModel {
     }
 
     func SelectAll() {
-        let memberIds = participants.filter { !$0.isLeader }.map(\.id)
+        guard let state else { return }
+        let memberIds = state.participants.filter { !$0.IsLeader(in: state.trip) }.map(\.id)
         selectedParticipantIds = (selectedParticipantIds.count == memberIds.count) ? [] : Set(memberIds)
     }
 
-    func RemoveSelectedParticipants() {
-        participants.removeAll(where: { selectedParticipantIds.contains($0.id) && !$0.isLeader })
+    func RemoveSelectedParticipants() async throws {
+        guard isCurrentUserLeader, canRemove else { return }
+        let ids = Array(selectedParticipantIds)
+        try await tripService.RemoveParticipants(ids, tripID: tripID, by: myParticipantID)
         selectedParticipantIds.removeAll()
         isSelectionMode = false
     }
 
-    func RemoveParticipant(id: UUID) {
-        guard let participant = participants.first(where: { $0.id == id }), !participant.isLeader else { return }
-        participants.removeAll(where: { $0.id == id })
+    func RemoveParticipant(id: UUID) async throws {
+        guard isCurrentUserLeader else { return }
+        try await tripService.RemoveParticipants([id], tripID: tripID, by: myParticipantID)
         selectedParticipantIds.remove(id)
     }
 
     func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
-        "Remove \(participant.name) from the trip?"
+        "Remove \(participant.displayName) from the trip?"
     }
 
     func CanKick(participant: Participant) -> Bool {
-        isCurrentUserLeader && !isSelectionMode && !participant.isLeader
+        guard let state, isCurrentUserLeader, !isSelectionMode else { return false }
+        return !participant.IsLeader(in: state.trip)
     }
 
     func CanSetLeader(participant: Participant) -> Bool {
         CanKick(participant: participant)
     }
 
-    func SetLeader(to participant: Participant) {
-        guard participants.contains(where: { $0.id == participant.id }) else { return }
-        for index in participants.indices {
-            participants[index].isLeader = (participants[index].id == participant.id)
-        }
-        if let leader = participants.first(where: { $0.isLeader }) {
-            isCurrentUserLeader = (leader.id == currentUserId)
-        }
+    func SetLeader(to participant: Participant) async throws {
+        guard isCurrentUserLeader, let currentLeaderID = state?.trip.leaderParticipantID else { return }
+        try await tripService.SetLeader(participant.id, tripID: tripID, replacing: currentLeaderID)
     }
 
     func SetLeaderConfirmationTitle(for participant: Participant) -> String {
-        "Set \(participant.name) as Trip Leader?"
+        "Set \(participant.displayName) as Trip Leader?"
     }
 
     func CanEdit(participant: Participant) -> Bool {
-        !isSelectionMode && (isCurrentUserLeader || participant.id == currentUserId)
+        !isSelectionMode && participant.id == myParticipantID
     }
 
-    func UpdateParticipant(id: UUID, name: String, description: String) {
-        guard let index = participants.firstIndex(where: { $0.id == id }) else { return }
-        participants[index].name = name
-        participants[index].description = description
+    func UpdateProfile(displayName: String, carDescription: String) async throws {
+        let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
+        try await tripService.UpdateProfile(profile, participantID: myParticipantID, tripID: tripID)
     }
 
-    func LeaveRoom() {
-        tripStatus = .cancelled
+    func LeaveTrip() async throws {
+        if isCurrentUserLeader {
+            try await tripService.EndTrip(tripID: tripID, by: myParticipantID)
+        } else {
+            try await tripService.ExitTrip(tripID: tripID, participantID: myParticipantID)
+        }
+    }
+
+    func IsLeader(participant: Participant) -> Bool {
+        guard let state else { return false }
+        return participant.IsLeader(in: state.trip)
     }
 }
