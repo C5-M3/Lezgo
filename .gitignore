@@ -105,8 +105,6 @@ iOSInjectionProject/
 .mcp.json
 .gemini-swarm/
 skills-lock.json
-docs/superpowers/
-.superpowers/
 
 # --------------------------------------------------
 # Per-developer signing settings (ADR 0015)
