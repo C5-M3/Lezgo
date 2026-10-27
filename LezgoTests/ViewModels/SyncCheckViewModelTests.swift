@@ -126,5 +126,16 @@ struct SyncCheckViewModelTests {
 
         #expect(nathan.log.count == logCount)
     }
+
+    @Test func MapOpensOnlyOnceTheTripIsOnTheRoad() async {
+        await nathan.CreateTrip()
+        #expect(nathan.canOpenMap == false)
+
+        await nathan.StartTrip()
+        #expect(nathan.canOpenMap)
+
+        await nathan.EndTrip()
+        #expect(nathan.canOpenMap == false)
+    }
 }
 #endif

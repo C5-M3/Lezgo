@@ -4,6 +4,8 @@ import SwiftUI
 /// The content of `SyncCheckView`: the trip, its members, the leader's actions and the log of changes.
 struct SyncCheckForm: View {
     @Bindable var viewModel: SyncCheckViewModel
+    @Environment(\.tripService) private var tripService
+    @State private var isMapOpen = false
 
     var body: some View {
         Form {
@@ -12,6 +14,11 @@ struct SyncCheckForm: View {
                 ParticipantsSection(state: state)
                 if viewModel.isLeader {
                     LeaderSection(status: state.trip.status)
+                }
+                if viewModel.canOpenMap {
+                    Section {
+                        Button { isMapOpen = true } label: { Text(verbatim: "Open trip map") }
+                    }
                 }
             } else {
                 StartSection()
@@ -26,6 +33,11 @@ struct SyncCheckForm: View {
         .disabled(viewModel.isBusy)
         .task(id: viewModel.session?.state.trip.id) {
             await viewModel.Listen()
+        }
+        .fullScreenCover(isPresented: $isMapOpen) {
+            if let tripID = viewModel.state?.trip.id, let myID = viewModel.myParticipantID {
+                SyncCheckMapView(tripService: tripService, tripID: tripID, myParticipantID: myID)
+            }
         }
     }
 
