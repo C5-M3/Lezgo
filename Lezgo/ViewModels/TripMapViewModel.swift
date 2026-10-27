@@ -72,6 +72,14 @@ final class TripMapViewModel {
         return snapshot.cars.first { $0.id == snapshot.myParticipantID }?.coordinate
     }
 
+    /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
+    var arrivalCard: TripMapArrivalCard? {
+        guard let snapshot, let updatedAt else { return nil }
+        let arrival = TripMapArrival.Check(snapshot, at: updatedAt)
+        guard arrival.hasArrived else { return nil }
+        return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
+    }
+
     /// `true` until the first trip update arrives.
     var isLoading: Bool {
         snapshot == nil

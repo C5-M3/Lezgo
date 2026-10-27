@@ -9,11 +9,13 @@ struct SimulatedTripMapService: TripMapService {
     var myParticipantID: UUID
     /// Seconds between updates; previews and the simulator use 1 second, as the real trip does.
     var interval: Duration = .seconds(1)
+    /// How far into the drive to start, in seconds; a large value starts with the cars at the destination.
+    var startSecond = 0
 
     func TripUpdates(tripID: UUID) -> AsyncStream<TripMapSnapshot> {
         AsyncStream { continuation in
             let task = Task {
-                var elapsedSeconds = 0
+                var elapsedSeconds = startSecond
                 while Task.isCancelled == false {
                     continuation.yield(
                         SimulatedTripMapDrive.Snapshot(

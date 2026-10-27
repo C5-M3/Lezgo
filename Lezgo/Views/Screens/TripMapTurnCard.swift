@@ -21,6 +21,7 @@ struct TripMapTurnCard: View {
                 // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
                 Text(guidance.instruction)
                     .font(.title3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding()
