@@ -9,6 +9,7 @@ import MapKit
 import SwiftUI
 
 struct HomeView: View {
+    @Environment(\.tripService) private var tripService
     @State private var viewModel = HomeViewModel()
     @State private var isJoinTripPresented: Bool = false
     @FocusState private var isSearchFocused: Bool
@@ -72,8 +73,10 @@ struct HomeView: View {
             if isJoinTripPresented {
                 JoinTripView(
                     isPresented: $isJoinTripPresented,
-                    onEnter: { _ in
-                        // Logika aksi saat kode ruangan dimasukkan
+                    onEnter: { code in
+                        Task {
+                            _ = await viewModel.JoinTrip(roomCode: code, tripService: tripService)
+                        }
                     }
                 )
                 .transition(.asymmetric(
@@ -81,6 +84,27 @@ struct HomeView: View {
                     removal: .identity
                 ))
                 .zIndex(100)
+            }
+
+            // Draft Road Trip screen when an unfinished trip is present (US-03)
+            if let activeDraft = viewModel.activeDraftTrip {
+                DraftTripView(
+                    viewModel: DraftTripViewModel(
+                        summary: activeDraft,
+                        tripService: tripService,
+                        storage: viewModel.activeTripStorage
+                    ),
+                    onContinueTrip: {
+                        // "Continue Trip" opens the Trip Room (LOBBY) or map (IN_TRIP)
+                    },
+                    onNewTrip: {
+                        withAnimation {
+                            viewModel.ClearActiveDraftTrip()
+                        }
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(200)
             }
         }
         .onAppear {
