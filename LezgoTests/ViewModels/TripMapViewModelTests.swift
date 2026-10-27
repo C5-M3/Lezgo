@@ -3,23 +3,27 @@ import Testing
 @testable import Lezgo
 
 struct TripMapViewModelTests {
+    private typealias Fixtures = TripMapFixtures
+
     private func MakeViewModel(
-        snapshots: [TripMapSnapshot],
-        service: MockTripMapService? = nil,
-        navigator: MockTripMapNavigator = MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())])
+        me: UUID = Fixtures.budiID,
+        states: [TripState],
+        service: MockTripService? = nil,
+        navigator: MockTripMapNavigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
     ) -> TripMapViewModel {
         TripMapViewModel(
-            tripID: TripMapFixtures.tripID,
-            service: service ?? MockTripMapService(snapshots: snapshots),
+            tripID: Fixtures.tripID,
+            myParticipantID: me,
+            tripService: service ?? MockTripService(states: states),
             navigator: navigator,
-            clock: { TripMapFixtures.now }
+            clock: { Fixtures.now }
         )
     }
 
     // MARK: Before the first update
 
     @Test func MapIsEmptyBeforeTheFirstUpdate() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
         #expect(viewModel.carPins.isEmpty)
         #expect(viewModel.waypoints.isEmpty)
@@ -30,7 +34,7 @@ struct TripMapViewModelTests {
     }
 
     @Test func LoadingEndsWithTheFirstUpdate() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot()])
+        let viewModel = MakeViewModel(states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -38,18 +42,18 @@ struct TripMapViewModelTests {
     }
 
     @Test func StartListensToTheRightTrip() async {
-        let service = MockTripMapService(snapshots: [])
-        let viewModel = MakeViewModel(snapshots: [], service: service)
+        let service = MockTripService(states: [])
+        let viewModel = MakeViewModel(states: [], service: service)
 
         await viewModel.Start()
 
-        #expect(service.requestedTripIDs == [TripMapFixtures.tripID])
+        #expect(service.requestedTripIDs == [Fixtures.tripID])
     }
 
     // MARK: Cars
 
     @Test func MapShowsEveryCar() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot()])
+        let viewModel = MakeViewModel(states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -57,35 +61,46 @@ struct TripMapViewModelTests {
     }
 
     @Test func PinsMarkTheLeaderAndMyCar() async throws {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(me: TripMapFixtures.budiID)])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [Fixtures.State()])
 
         await viewModel.Start()
 
-        let agus = try #require(viewModel.carPins.first { $0.id == TripMapFixtures.agusID })
-        let budi = try #require(viewModel.carPins.first { $0.id == TripMapFixtures.budiID })
+        let agus = try #require(viewModel.carPins.first { $0.id == Fixtures.agusID })
+        let budi = try #require(viewModel.carPins.first { $0.id == Fixtures.budiID })
         #expect(agus.isLeader)
         #expect(agus.isMe == false)
         #expect(budi.isLeader == false)
         #expect(budi.isMe)
     }
 
-    @Test func OfflineCarIsFadedAtItsLastPosition() async throws {
-        let citra = TripMapFixtures.Car(id: TripMapFixtures.citraID, name: "Citra", lastSeenSecondsAgo: 180)
-        let budi = TripMapFixtures.Car(id: TripMapFixtures.budiID, name: "Budi")
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(cars: [budi, citra])])
+    @Test func MemberWithoutAPositionHasNoPinYet() async {
+        var citra = Fixtures.Car(id: Fixtures.citraID, name: "Citra")
+        citra.coordinate = nil
+        let budi = Fixtures.Car(id: Fixtures.budiID, name: "Budi")
+        let viewModel = MakeViewModel(states: [Fixtures.State(cars: [budi, citra])])
 
         await viewModel.Start()
 
-        let citraPin = try #require(viewModel.carPins.first { $0.id == TripMapFixtures.citraID })
-        let budiPin = try #require(viewModel.carPins.first { $0.id == TripMapFixtures.budiID })
+        #expect(viewModel.carPins.map(\.displayName) == ["Budi"])
+    }
+
+    @Test func OfflineCarIsFadedAtItsLastPosition() async throws {
+        let citra = Fixtures.Car(id: Fixtures.citraID, name: "Citra", lastSeenSecondsAgo: 180)
+        let budi = Fixtures.Car(id: Fixtures.budiID, name: "Budi")
+        let viewModel = MakeViewModel(states: [Fixtures.State(cars: [budi, citra])])
+
+        await viewModel.Start()
+
+        let citraPin = try #require(viewModel.carPins.first { $0.id == Fixtures.citraID })
+        let budiPin = try #require(viewModel.carPins.first { $0.id == Fixtures.budiID })
         #expect(citraPin.isOffline)
         #expect(citraPin.coordinate == citra.coordinate)
         #expect(budiPin.isOffline == false)
     }
 
     @Test func StoppedCarKeepsItsMotionState() async throws {
-        let budi = TripMapFixtures.Car(id: TripMapFixtures.budiID, name: "Budi", motionState: .stopped)
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(cars: [budi])])
+        let budi = Fixtures.Car(id: Fixtures.budiID, name: "Budi", motionState: .stopped)
+        let viewModel = MakeViewModel(states: [Fixtures.State(cars: [budi])])
 
         await viewModel.Start()
 
@@ -93,9 +108,8 @@ struct TripMapViewModelTests {
     }
 
     @Test func LatestUpdateReplacesTheCars() async {
-        let first = TripMapFixtures.Snapshot()
-        let budiOnly = TripMapFixtures.Snapshot(cars: [TripMapFixtures.Car(id: TripMapFixtures.budiID, name: "Budi")])
-        let viewModel = MakeViewModel(snapshots: [first, budiOnly])
+        let budiOnly = Fixtures.State(cars: [Fixtures.Car(id: Fixtures.budiID, name: "Budi")])
+        let viewModel = MakeViewModel(states: [Fixtures.State(), budiOnly])
 
         await viewModel.Start()
 
@@ -104,8 +118,8 @@ struct TripMapViewModelTests {
 
     @Test func VeryLongNameIsKeptWhole() async {
         let longName = String(repeating: "Budi Santoso ", count: 20)
-        let viewModel = MakeViewModel(snapshots: [
-            TripMapFixtures.Snapshot(cars: [TripMapFixtures.Car(id: TripMapFixtures.budiID, name: longName)])
+        let viewModel = MakeViewModel(states: [
+            Fixtures.State(cars: [Fixtures.Car(id: Fixtures.budiID, name: longName)])
         ])
 
         await viewModel.Start()
@@ -116,7 +130,7 @@ struct TripMapViewModelTests {
     // MARK: Role
 
     @Test func LeaderPhoneKnowsItIsTheLeader() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(me: TripMapFixtures.agusID)])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -124,7 +138,7 @@ struct TripMapViewModelTests {
     }
 
     @Test func MemberPhoneKnowsItIsNotTheLeader() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(me: TripMapFixtures.budiID)])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -134,7 +148,7 @@ struct TripMapViewModelTests {
     // MARK: Route and destination
 
     @Test func DestinationLabelUsesTheDestinationName() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot()])
+        let viewModel = MakeViewModel(states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -142,8 +156,8 @@ struct TripMapViewModelTests {
     }
 
     @Test func DestinationLabelIsEmptyWithoutADestination() async {
-        let viewModel = MakeViewModel(snapshots: [
-            TripMapFixtures.Snapshot(waypoints: [TripMapFixtures.startPoint, TripMapFixtures.checkpoint])
+        let viewModel = MakeViewModel(states: [
+            Fixtures.State(waypoints: [Fixtures.startPoint, Fixtures.checkpoint])
         ])
 
         await viewModel.Start()
@@ -152,7 +166,7 @@ struct TripMapViewModelTests {
     }
 
     @Test func WaypointsAreInRouteOrder() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot()])
+        let viewModel = MakeViewModel(states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -160,52 +174,61 @@ struct TripMapViewModelTests {
     }
 
     @Test func CheckpointIsVisitedAfterTheLeaderPassesIt() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(currentWaypointIndex: 2)])
+        let viewModel = MakeViewModel(states: [Fixtures.State(currentWaypointIndex: 2)])
 
         await viewModel.Start()
 
-        #expect(viewModel.IsVisited(TripMapFixtures.startPoint))
-        #expect(viewModel.IsVisited(TripMapFixtures.checkpoint))
-        #expect(viewModel.IsVisited(TripMapFixtures.destination) == false)
+        #expect(viewModel.IsVisited(Fixtures.startPoint))
+        #expect(viewModel.IsVisited(Fixtures.checkpoint))
+        #expect(viewModel.IsVisited(Fixtures.destination) == false)
     }
 
     @Test func NothingIsVisitedBeforeTheFirstUpdate() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
-        #expect(viewModel.IsVisited(TripMapFixtures.startPoint) == false)
+        #expect(viewModel.IsVisited(Fixtures.startPoint) == false)
     }
 
-    @Test func RouteLineFollowsTheSnapshot() async {
-        let snapshot = TripMapFixtures.Snapshot()
-        let viewModel = MakeViewModel(snapshots: [snapshot])
+    @Test func RouteLineFollowsTheRoute() async {
+        let state = Fixtures.State()
+        let viewModel = MakeViewModel(states: [state])
 
         await viewModel.Start()
 
-        #expect(viewModel.route == snapshot.route)
+        #expect(viewModel.route == state.route?.polyline)
+    }
+
+    @Test func RouteLineFallsBackToTheWaypointsWithoutARoute() async {
+        var state = Fixtures.State()
+        state.route = nil
+        let viewModel = MakeViewModel(states: [state])
+
+        await viewModel.Start()
+
+        #expect(viewModel.route == viewModel.waypoints.map(\.coordinate))
     }
 
     // MARK: Guidance
 
     @Test func GuidanceStartsFromMyCar() async throws {
-        let snapshot = TripMapFixtures.Snapshot(me: TripMapFixtures.budiID)
-        let navigator = MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())])
-        let viewModel = MakeViewModel(snapshots: [snapshot], navigator: navigator)
+        let state = Fixtures.State()
+        let navigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [state], navigator: navigator)
 
         await viewModel.Start()
 
-        let budi = try #require(snapshot.cars.first { $0.id == TripMapFixtures.budiID })
-        #expect(navigator.requestedPositions == [budi.coordinate])
-        #expect(viewModel.myCoordinate == budi.coordinate)
+        let budi = try #require(state.participants.first { $0.id == Fixtures.budiID }?.coordinate)
+        #expect(navigator.requestedPositions == [budi])
+        #expect(viewModel.myCoordinate == budi)
         #expect(viewModel.guidance?.timeLeft == .seconds(50 * 60))
     }
 
     @Test func GuidanceKeepsTheLastAnswerWhenRoutingFails() async {
-        let snapshots = [TripMapFixtures.Snapshot(), TripMapFixtures.Snapshot()]
         let navigator = MockTripMapNavigator(results: [
-            .success(TripMapFixtures.Guidance(minutesLeft: 50)),
+            .success(Fixtures.Guidance(minutesLeft: 50)),
             .failure(.init())
         ])
-        let viewModel = MakeViewModel(snapshots: snapshots, navigator: navigator)
+        let viewModel = MakeViewModel(states: [Fixtures.State(), Fixtures.State()], navigator: navigator)
 
         await viewModel.Start()
 
@@ -213,9 +236,8 @@ struct TripMapViewModelTests {
     }
 
     @Test func NoGuidanceWhenMyCarIsMissing() async {
-        let strangerID = UUID()
-        let navigator = MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())])
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot(me: strangerID)], navigator: navigator)
+        let navigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+        let viewModel = MakeViewModel(me: UUID(), states: [Fixtures.State()], navigator: navigator)
 
         await viewModel.Start()
 
@@ -227,13 +249,13 @@ struct TripMapViewModelTests {
     // MARK: Camera
 
     @Test func CameraFollowsMyCarByDefault() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
         #expect(viewModel.cameraMode == .followMyCar)
     }
 
     @Test func ShowWholeRouteThenFollowMyCarAgain() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
         viewModel.ShowWholeRoute()
         #expect(viewModel.cameraMode == .wholeRoute)
@@ -243,7 +265,7 @@ struct TripMapViewModelTests {
     }
 
     @Test func RepeatedTapsKeepTheSameCameraMode() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
         viewModel.ShowWholeRoute()
         viewModel.ShowWholeRoute()
@@ -252,7 +274,7 @@ struct TripMapViewModelTests {
     }
 
     @Test func MovingTheMapByHandStopsFollowing() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
         viewModel.StopFollowing()
 
@@ -260,7 +282,7 @@ struct TripMapViewModelTests {
     }
 
     @Test func FollowMyCarAfterMovingTheMapByHand() {
-        let viewModel = MakeViewModel(snapshots: [])
+        let viewModel = MakeViewModel(states: [])
 
         viewModel.StopFollowing()
         viewModel.FollowMyCar()

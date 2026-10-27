@@ -9,8 +9,8 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
     private static let averageMetresPerSecond = 11.0
     private static let turnThresholdDegrees = 20.0
 
-    func Guidance(from position: TripMapCoordinate, along snapshot: TripMapSnapshot) async throws -> TripMapGuidance {
-        let route = snapshot.route
+    func Guidance(from position: Coordinate, along state: TripState) async throws -> TripMapGuidance {
+        let route = state.route?.polyline ?? state.waypoints.map(\.coordinate)
         guard route.count >= 2 else {
             return TripMapGuidance(
                 direction: .straight,
@@ -41,7 +41,7 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
     }
 
     /// The first route point from `start` where the road bends by more than the threshold, or the destination.
-    private func NextTurn(in route: [TripMapCoordinate], after start: Int) -> (Int, TripMapTurnDirection) {
+    private func NextTurn(in route: [Coordinate], after start: Int) -> (Int, TripMapTurnDirection) {
         guard start >= 1 else { return (route.count - 1, .straight) }
         for index in start..<(route.count - 1) {
             let change = BearingChange(from: route[index - 1], through: route[index], to: route[index + 1])
@@ -53,15 +53,15 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
 
     /// Change of heading at `middle`, in degrees: positive turns right, negative turns left.
     private func BearingChange(
-        from start: TripMapCoordinate,
-        through middle: TripMapCoordinate,
-        to end: TripMapCoordinate
+        from start: Coordinate,
+        through middle: Coordinate,
+        to end: Coordinate
     ) -> Double {
         let change = Bearing(from: middle, to: end) - Bearing(from: start, to: middle)
         return (change + 540).truncatingRemainder(dividingBy: 360) - 180
     }
 
-    private func Bearing(from start: TripMapCoordinate, to end: TripMapCoordinate) -> Double {
+    private func Bearing(from start: Coordinate, to end: Coordinate) -> Double {
         let latitude1 = start.latitude * .pi / 180
         let latitude2 = end.latitude * .pi / 180
         let longitudeDelta = (end.longitude - start.longitude) * .pi / 180

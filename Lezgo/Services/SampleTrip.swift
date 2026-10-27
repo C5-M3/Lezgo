@@ -23,6 +23,8 @@ enum SampleTrip {
     static let budiID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000B1") ?? UUID()
     static let citraID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000C1") ?? UUID()
     static let roomCode = "897654"
+    /// Index of the checkpoint, Ciputra World, in `plan.polyline`.
+    static let checkpointRouteIndex = 4
 
     private static let tunjunganPlaza = Coordinate(latitude: -7.2622, longitude: 112.7387)
     private static let ciputraWorld = Coordinate(latitude: -7.2923, longitude: 112.7190)

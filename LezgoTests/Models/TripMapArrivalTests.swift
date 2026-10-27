@@ -5,8 +5,8 @@ import Testing
 struct TripMapArrivalTests {
     private typealias Fixtures = TripMapFixtures
 
-    private func Check(_ cars: [TripMapCar], memberIDs: [UUID]? = nil) -> TripMapArrival {
-        TripMapArrival.Check(Fixtures.Snapshot(me: Fixtures.budiID, cars: cars, memberIDs: memberIDs), at: Fixtures.now)
+    private func Check(_ cars: [Participant]) -> TripMapArrival {
+        TripMapArrival.Check(Fixtures.State(cars: cars), myParticipantID: Fixtures.budiID, at: Fixtures.now)
     }
 
     @Test(arguments: [(metres: 0.0, arrived: true), (19, true), (21, false), (500, false)])
@@ -17,60 +17,57 @@ struct TripMapArrivalTests {
     }
 
     @Test func EveryoneArrivedWhenAllCarsAreThere() {
-        let cars = [
+        let arrival = Check([
             Fixtures.CarNearDestination(id: Fixtures.agusID, name: "Agus", metres: 5),
             Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10),
             Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: 15)
-        ]
-
-        let arrival = Check(cars)
+        ])
 
         #expect(arrival.hasArrived)
         #expect(arrival.everyoneHasArrived)
     }
 
     @Test func OneLateCarMeansNotEveryone() {
-        let cars = [
+        let arrival = Check([
             Fixtures.CarNearDestination(id: Fixtures.agusID, name: "Agus", metres: 5),
             Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10),
             Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: 500)
-        ]
-
-        let arrival = Check(cars)
+        ])
 
         #expect(arrival.hasArrived)
         #expect(arrival.everyoneHasArrived == false)
     }
 
     @Test func OfflineCarCountsAsNotArrived() {
-        let cars = [
+        let arrival = Check([
             Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10),
             Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: 5, lastSeenSecondsAgo: 180)
-        ]
+        ])
 
-        #expect(Check(cars).everyoneHasArrived == false)
+        #expect(arrival.everyoneHasArrived == false)
     }
 
     @Test func MemberWithoutAPositionCountsAsNotArrived() {
-        let budi = Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10)
+        var citra = Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: 5)
+        citra.coordinate = nil
 
-        let arrival = Check([budi], memberIDs: [Fixtures.budiID, Fixtures.citraID])
+        let arrival = Check([Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10), citra])
 
         #expect(arrival.everyoneHasArrived == false)
     }
 
     @Test func MemberWhoLeftIsNotCounted() {
-        let budi = Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10)
+        // Citra exited: she is no longer in the trip, so only Budi counts.
+        let arrival = Check([Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10)])
 
-        // Citra exited: she is no longer a member, so only Budi counts.
-        #expect(Check([budi], memberIDs: [Fixtures.budiID]).everyoneHasArrived)
+        #expect(arrival.everyoneHasArrived)
     }
 
     @Test func NoDestinationMeansNobodyArrived() {
         let budi = Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 0)
-        let snapshot = Fixtures.Snapshot(cars: [budi], waypoints: [Fixtures.startPoint, Fixtures.checkpoint])
+        let state = Fixtures.State(cars: [budi], waypoints: [Fixtures.startPoint, Fixtures.checkpoint])
 
-        let arrival = TripMapArrival.Check(snapshot, at: Fixtures.now)
+        let arrival = TripMapArrival.Check(state, myParticipantID: Fixtures.budiID, at: Fixtures.now)
 
         #expect(arrival.hasArrived == false)
         #expect(arrival.everyoneHasArrived == false)

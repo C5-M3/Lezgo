@@ -3,12 +3,12 @@ import Observation
 
 /// State and logic for the trip map (Trip Started screen).
 ///
-/// It listens to a `TripMapService` for the trip and every car, and asks a `TripMapNavigator` for the next turn and
-/// the time left from this phone's car. Both arrive through the initializer, so tests pass in mocks, previews pass
-/// in the simulated drive, and the live app will pass in the real services once they land.
+/// It follows the trip through the shared `TripService`, and asks a `TripMapNavigator` for the next turn and the
+/// time left from this phone's car. Both arrive through the initializer, so tests pass in mocks and previews pass in
+/// an `InMemoryTripService` with a simulated drive.
 @Observable
 final class TripMapViewModel {
-    private(set) var snapshot: TripMapSnapshot?
+    private(set) var state: TripState?
     private(set) var guidance: TripMapGuidance?
     private(set) var cameraMode: TripMapCameraMode = .followMyCar
     /// The confirmation to show before leaving, or `nil`.
@@ -19,11 +19,13 @@ final class TripMapViewModel {
     private(set) var leaveErrorMessage: String?
     /// `true` while an exit or end request is on its way; the card's buttons are disabled meanwhile.
     private(set) var isLeaving = false
-    /// When the latest snapshot arrived; offline cars are judged against this time.
+    /// When the latest state arrived; offline cars are judged against this time.
     private var updatedAt: Date?
 
+    /// The participant who uses this phone.
+    let myParticipantID: UUID
     private let tripID: UUID
-    private let service: any TripMapService
+    private let tripService: any TripService
     private let navigator: any TripMapNavigator
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     private let locationSharer: LocationSharer?
@@ -31,72 +33,75 @@ final class TripMapViewModel {
 
     init(
         tripID: UUID,
-        service: any TripMapService,
+        myParticipantID: UUID,
+        tripService: any TripService,
         navigator: any TripMapNavigator,
         locationSharer: LocationSharer? = nil,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
-        self.service = service
+        self.myParticipantID = myParticipantID
+        self.tripService = tripService
         self.navigator = navigator
         self.locationSharer = locationSharer
         self.clock = clock
     }
 
+    /// A pin for every car that has sent a position; members without one yet have no pin.
     var carPins: [TripMapCarPin] {
-        guard let snapshot, let updatedAt else { return [] }
-        return snapshot.cars.map { car in
-            TripMapCarPin(
-                id: car.id,
-                displayName: car.displayName,
-                coordinate: car.coordinate,
-                motionState: car.motionState,
-                isLeader: car.id == snapshot.leaderParticipantID,
-                isMe: car.id == snapshot.myParticipantID,
-                isOffline: car.IsOnline(at: updatedAt) == false
+        guard let state, let updatedAt else { return [] }
+        return state.participants.compactMap { participant in
+            guard let coordinate = participant.coordinate else { return nil }
+            return TripMapCarPin(
+                id: participant.id,
+                displayName: participant.displayName,
+                coordinate: coordinate,
+                motionState: participant.motionState,
+                isLeader: participant.IsLeader(in: state.trip),
+                isMe: participant.id == myParticipantID,
+                isOffline: participant.IsOnline(at: updatedAt) == false
             )
         }
     }
 
-    var waypoints: [TripMapWaypoint] {
-        snapshot?.waypoints.sorted { $0.orderIndex < $1.orderIndex } ?? []
+    var waypoints: [Waypoint] {
+        state?.waypoints.sorted { $0.orderIndex < $1.orderIndex } ?? []
     }
 
-    var route: [TripMapCoordinate] {
-        snapshot?.route ?? []
+    /// The road path; before a route exists, the straight line through the waypoints.
+    var route: [Coordinate] {
+        state?.route?.polyline ?? waypoints.map(\.coordinate)
     }
 
     var destinationName: String? {
-        snapshot?.waypoints.first { $0.kind == .destination }?.name
+        state?.destination?.name
     }
 
     var isLeader: Bool {
-        guard let snapshot else { return false }
-        return snapshot.myParticipantID == snapshot.leaderParticipantID
+        state?.trip.leaderParticipantID == myParticipantID
     }
 
-    var myCoordinate: TripMapCoordinate? {
-        guard let snapshot else { return nil }
-        return snapshot.cars.first { $0.id == snapshot.myParticipantID }?.coordinate
+    var myCoordinate: Coordinate? {
+        state?.participants.first { $0.id == myParticipantID }?.coordinate
     }
 
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
     var arrivalCard: TripMapArrivalCard? {
-        guard let snapshot, let updatedAt else { return nil }
-        let arrival = TripMapArrival.Check(snapshot, at: updatedAt)
+        guard let state, let updatedAt else { return nil }
+        let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
         guard arrival.hasArrived else { return nil }
         return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
     }
 
     /// `true` until the first trip update arrives.
     var isLoading: Bool {
-        snapshot == nil
+        state == nil
     }
 
     /// Whether the leader has already moved the trip past this waypoint.
-    func IsVisited(_ waypoint: TripMapWaypoint) -> Bool {
-        guard let snapshot else { return false }
-        return waypoint.IsVisited(currentWaypointIndex: snapshot.currentWaypointIndex)
+    func IsVisited(_ waypoint: Waypoint) -> Bool {
+        guard let state else { return false }
+        return waypoint.IsVisited(currentWaypointIndex: state.trip.currentWaypointIndex)
     }
 
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
@@ -115,10 +120,10 @@ final class TripMapViewModel {
 
     /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
     private func FollowTrip() async {
-        for await snapshot in service.TripUpdates(tripID: tripID) {
-            self.snapshot = snapshot
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            state = newState
             updatedAt = clock()
-            NoticeTripClosed(snapshot)
+            NoticeTripClosed(newState)
             if closeReason != nil { return }
             await RefreshGuidance()
         }
@@ -128,12 +133,12 @@ final class TripMapViewModel {
     ///
     /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
     /// the reason then, so the person is not told they were removed or that the leader ended the trip.
-    private func NoticeTripClosed(_ snapshot: TripMapSnapshot) {
+    private func NoticeTripClosed(_ newState: TripState) {
         guard closeReason == nil, isLeaving == false else { return }
-        if snapshot.status == .ended || snapshot.status == .cancelled {
+        if newState.trip.status.isOpen == false {
             // The leader only sees this when their own end request failed on the way back, so it closes quietly.
-            closeReason = snapshot.myParticipantID == snapshot.leaderParticipantID ? .ended : .endedByLeader
-        } else if snapshot.memberIDs.contains(snapshot.myParticipantID) == false {
+            closeReason = newState.trip.leaderParticipantID == myParticipantID ? .ended : .endedByLeader
+        } else if newState.participants.contains(where: { $0.id == myParticipantID }) == false {
             closeReason = .removed
         }
         // An open "Exit trip?" would hide the message about why the map closed.
@@ -152,12 +157,12 @@ final class TripMapViewModel {
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
     func RequestLeave() {
-        guard closeReason == nil, isLeaving == false, let snapshot else { return }
+        guard closeReason == nil, isLeaving == false, let state else { return }
         guard isLeader else {
             leaveConfirmation = .exitTrip
             return
         }
-        let arrival = TripMapArrival.Check(snapshot, at: updatedAt ?? clock())
+        let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt ?? clock())
         leaveConfirmation = .endTrip(everyoneHasArrived: arrival.everyoneHasArrived)
     }
 
@@ -172,16 +177,16 @@ final class TripMapViewModel {
     /// The view passes the confirmation it showed, because the alert closes (and clears `leaveConfirmation`) before
     /// the task that calls this runs.
     func ConfirmLeave(_ confirmation: TripMapLeaveConfirmation) async {
-        guard closeReason == nil, let snapshot, isLeaving == false else { return }
+        guard closeReason == nil, state != nil, isLeaving == false else { return }
         isLeaving = true
         defer { isLeaving = false }
         do {
             switch confirmation {
             case .exitTrip:
-                try await service.ExitTrip(tripID: tripID, participantID: snapshot.myParticipantID)
+                try await tripService.ExitTrip(tripID: tripID, participantID: myParticipantID)
                 closeReason = .exited
             case .endTrip:
-                try await service.EndTrip(tripID: tripID, by: snapshot.myParticipantID)
+                try await tripService.EndTrip(tripID: tripID, by: myParticipantID)
                 closeReason = .ended
             }
             leaveErrorMessage = nil
@@ -204,8 +209,8 @@ final class TripMapViewModel {
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
     private func RefreshGuidance() async {
-        guard let snapshot, let myCoordinate else { return }
-        guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: snapshot) else { return }
+        guard let state, let myCoordinate else { return }
+        guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
         guidance = newGuidance
     }
 }

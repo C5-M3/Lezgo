@@ -14,7 +14,8 @@ struct SyncCheckMapView: View {
             TripMapView(
                 viewModel: TripMapViewModel(
                     tripID: tripID,
-                    service: TripServiceMapAdapter(tripService: tripService, myParticipantID: myParticipantID),
+                    myParticipantID: myParticipantID,
+                    tripService: tripService,
                     navigator: SimulatedTripMapNavigator(),
                     locationSharer: LocationSharer(
                         tripService: tripService,

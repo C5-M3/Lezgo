@@ -4,25 +4,28 @@ import Testing
 
 /// The arrival card on the trip map (`specs/UserStories.md` → US-07, "Arrive").
 struct TripMapViewModelArrivalTests {
-    private func MakeViewModel(snapshots: [TripMapSnapshot]) -> TripMapViewModel {
+    private typealias Fixtures = TripMapFixtures
+
+    private func MakeViewModel(me: UUID, states: [TripState]) -> TripMapViewModel {
         TripMapViewModel(
-            tripID: TripMapFixtures.tripID,
-            service: MockTripMapService(snapshots: snapshots),
-            navigator: MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())]),
-            clock: { TripMapFixtures.now }
+            tripID: Fixtures.tripID,
+            myParticipantID: me,
+            tripService: MockTripService(states: states),
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            clock: { Fixtures.now }
         )
     }
 
-    private func ArrivalSnapshot(me: UUID, citraMetres: Double) -> TripMapSnapshot {
-        TripMapFixtures.Snapshot(me: me, cars: [
-            TripMapFixtures.CarNearDestination(id: TripMapFixtures.agusID, name: "Agus", metres: 5),
-            TripMapFixtures.CarNearDestination(id: TripMapFixtures.budiID, name: "Budi", metres: 10),
-            TripMapFixtures.CarNearDestination(id: TripMapFixtures.citraID, name: "Citra", metres: citraMetres)
+    private func ArrivedState(citraMetres: Double) -> TripState {
+        Fixtures.State(cars: [
+            Fixtures.CarNearDestination(id: Fixtures.agusID, name: "Agus", metres: 5),
+            Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10),
+            Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: citraMetres)
         ])
     }
 
     @Test func NoArrivalCardOnTheWay() async {
-        let viewModel = MakeViewModel(snapshots: [TripMapFixtures.Snapshot()])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [Fixtures.State()])
 
         await viewModel.Start()
 
@@ -30,7 +33,7 @@ struct TripMapViewModelArrivalTests {
     }
 
     @Test func MemberWhoArrivedFirstWaitsForEveryone() async {
-        let viewModel = MakeViewModel(snapshots: [ArrivalSnapshot(me: TripMapFixtures.budiID, citraMetres: 500)])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [ArrivedState(citraMetres: 500)])
 
         await viewModel.Start()
 
@@ -38,7 +41,7 @@ struct TripMapViewModelArrivalTests {
     }
 
     @Test func LeaderWhoArrivedBeforeEveryoneWaitsToo() async {
-        let viewModel = MakeViewModel(snapshots: [ArrivalSnapshot(me: TripMapFixtures.agusID, citraMetres: 500)])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [ArrivedState(citraMetres: 500)])
 
         await viewModel.Start()
 
@@ -47,7 +50,7 @@ struct TripMapViewModelArrivalTests {
     }
 
     @Test func EveryoneArrivedCard() async {
-        let viewModel = MakeViewModel(snapshots: [ArrivalSnapshot(me: TripMapFixtures.agusID, citraMetres: 10)])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [ArrivedState(citraMetres: 10)])
 
         await viewModel.Start()
 
@@ -55,10 +58,10 @@ struct TripMapViewModelArrivalTests {
     }
 
     @Test func CardChangesWhenTheLastCarArrives() async {
-        let viewModel = MakeViewModel(snapshots: [
-            ArrivalSnapshot(me: TripMapFixtures.budiID, citraMetres: 500),
-            ArrivalSnapshot(me: TripMapFixtures.budiID, citraMetres: 10)
-        ])
+        let viewModel = MakeViewModel(
+            me: Fixtures.budiID,
+            states: [ArrivedState(citraMetres: 500), ArrivedState(citraMetres: 10)]
+        )
 
         await viewModel.Start()
 

@@ -80,11 +80,11 @@ enum DebugScreen: String, CaseIterable {
         case .draftTripLeader:
             DraftTripView.Simulated(isLeader: true)
         case .tripMapLeader:
-            TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID)
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
         case .tripMapMember:
-            TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
         case .tripMapArrivedLeader:
-            TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID, startSecond: 2_000)
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, startSecond: 2_000)
         case .syncCheck:
             SyncCheckView()
         }

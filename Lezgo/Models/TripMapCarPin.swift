@@ -4,8 +4,8 @@ import Foundation
 struct TripMapCarPin: Identifiable, Hashable {
     let id: UUID
     var displayName: String
-    var coordinate: TripMapCoordinate
-    var motionState: TripMapMotionState
+    var coordinate: Coordinate
+    var motionState: MotionState
     var isLeader: Bool
     var isMe: Bool
     /// Offline cars stay at their last position and are drawn faded.
