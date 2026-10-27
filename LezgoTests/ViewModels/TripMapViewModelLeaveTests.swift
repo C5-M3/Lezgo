@@ -150,6 +150,68 @@ struct TripMapViewModelLeaveTests {
         #expect(viewModel.leaveErrorMessage == nil)
     }
 
+    // MARK: Updates while leaving
+
+    /// Leaves on purpose while the cloud already sends the result back, and returns the close reason the map had
+    /// before the request returned.
+    private func CloseReasonWhileLeaving(
+        me: UUID,
+        update: TripMapSnapshot,
+        confirmation: TripMapLeaveConfirmation
+    ) async throws -> TripMapCloseReason? {
+        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: me)])
+        service.snapshotWhileLeaving = update
+        let viewModel = MakeViewModel([], service: service)
+        var reasonWhileLeaving: TripMapCloseReason?
+        service.whileLeaving = {
+            try? await Task.sleep(for: .milliseconds(20))
+            reasonWhileLeaving = viewModel.closeReason
+        }
+        let open = Task { await viewModel.Start() }
+        try await Task.sleep(for: .milliseconds(20))
+        viewModel.RequestLeave()
+
+        await viewModel.ConfirmLeave(confirmation)
+
+        open.cancel()
+        await open.value
+        return reasonWhileLeaving
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func MemberExitingIsNotToldTheyWereRemoved() async throws {
+        let update = Fixtures.Snapshot(me: Fixtures.budiID, memberIDs: [Fixtures.agusID, Fixtures.citraID])
+
+        let reason = try await CloseReasonWhileLeaving(me: Fixtures.budiID, update: update, confirmation: .exitTrip)
+
+        #expect(reason == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func LeaderEndingIsNotToldTheLeaderEndedTheTrip() async throws {
+        let update = Fixtures.Snapshot(me: Fixtures.agusID, status: .ended)
+
+        let reason = try await CloseReasonWhileLeaving(
+            me: Fixtures.agusID,
+            update: update,
+            confirmation: .endTrip(everyoneHasArrived: true)
+        )
+
+        #expect(reason == nil)
+    }
+
+    /// The end request reached the cloud but failed on the way back, so only the update tells the leader it ended.
+    @Test func LeaderSeeingTheirOwnEndedTripClosesWithoutAMessage() async {
+        let viewModel = MakeViewModel([
+            Fixtures.Snapshot(me: Fixtures.agusID),
+            Fixtures.Snapshot(me: Fixtures.agusID, status: .ended)
+        ])
+
+        await viewModel.Start()
+
+        #expect(viewModel.closeReason == .ended)
+    }
+
     // MARK: Closed from another phone
 
     @Test(arguments: [TripStatus.ended, .cancelled])
