@@ -16,7 +16,7 @@ import Observation
 final class SyncCheckViewModel {
     private(set) var session: TripSession?
     private(set) var state: TripState?
-    private(set) var log: [SyncCheckLogEntry] = []
+    private(set) var log: [LogEntry] = []
     private(set) var errorMessage: String?
     private(set) var isBusy = false
     var roomCodeInput = ""
@@ -129,7 +129,7 @@ final class SyncCheckViewModel {
     }
 
     private func Log(_ message: String) {
-        log.insert(SyncCheckLogEntry(seenAt: clock(), message: message), at: 0)
+        log.insert(LogEntry(seenAt: clock(), message: message), at: 0)
     }
 
     private func Changes(from old: TripState, to new: TripState) -> [String] {
@@ -148,6 +148,15 @@ final class SyncCheckViewModel {
             changes.append("Route version \(new.trip.routeVersion)")
         }
         return changes
+    }
+}
+
+extension SyncCheckViewModel {
+    /// One line in the Sync Check log: what changed in the trip, and when this phone saw it.
+    struct LogEntry: Identifiable, Hashable {
+        let id = UUID()
+        let seenAt: Date
+        let message: String
     }
 }
 #endif

@@ -11,7 +11,7 @@ import SwiftUI
 /// and for the leader the "New Destination" choice. The leader is never blocked by late cars, so the choice is
 /// there while others are still on the way.
 struct TripMapArrivalCardView: View {
-    let card: TripMapArrivalCard
+    let card: TripMapViewModel.ArrivalCard
     let isLeader: Bool
     /// Opens the planner with the start point locked to this destination (#115). `nil` hides the button.
     let onNewDestination: (() -> Void)?

@@ -146,7 +146,7 @@ struct TripMapViewModelLeaveTests {
     @Test func AskingAgainWhileLeavingDoesNothing() async {
         let service = MockTripService(states: [Fixtures.State()])
         let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
-        var questionWhileLeaving: TripMapLeaveConfirmation?
+        var questionWhileLeaving: TripMapViewModel.LeaveConfirmation?
         service.whileLeaving = {
             viewModel.RequestLeave()
             questionWhileLeaving = viewModel.leaveConfirmation
@@ -181,12 +181,12 @@ struct TripMapViewModelLeaveTests {
     private func CloseReasonWhileLeaving(
         me: UUID,
         update: TripState,
-        confirmation: TripMapLeaveConfirmation
-    ) async -> TripMapCloseReason? {
+        confirmation: TripMapViewModel.LeaveConfirmation
+    ) async -> TripMapViewModel.CloseReason? {
         let service = MockTripService(states: [Fixtures.State()])
         service.stateWhileLeaving = update
         let viewModel = MakeViewModel(me: me, states: [], service: service)
-        var reasonWhileLeaving: TripMapCloseReason?
+        var reasonWhileLeaving: TripMapViewModel.CloseReason?
         service.whileLeaving = {
             // Waiting for the update, not for a fixed time, so the check never runs before the map saw it.
             while viewModel.state != update { await Task.yield() }

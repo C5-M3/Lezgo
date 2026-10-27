@@ -17,11 +17,11 @@ import Observation
 final class TripMapViewModel {
     private(set) var state: TripState?
     private(set) var guidance: TripMapGuidance?
-    private(set) var cameraMode: TripMapCameraMode = .followMyCar
+    private(set) var cameraMode: CameraMode = .followMyCar
     /// The confirmation to show before leaving, or `nil`.
-    private(set) var leaveConfirmation: TripMapLeaveConfirmation?
+    private(set) var leaveConfirmation: LeaveConfirmation?
     /// Set once the map should close and the phone return to Home; sharing stops at the same time.
-    private(set) var closeReason: TripMapCloseReason?
+    private(set) var closeReason: CloseReason?
     /// Why leaving failed, for example no network; the map stays open so the person can try again.
     private(set) var leaveErrorMessage: String?
     /// `true` while an exit or end request is on its way; the card's buttons are disabled meanwhile.
@@ -93,7 +93,7 @@ final class TripMapViewModel {
     }
 
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
-    var arrivalCard: TripMapArrivalCard? {
+    var arrivalCard: ArrivalCard? {
         guard let state, let updatedAt else { return nil }
         let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
         guard arrival.hasArrived else { return nil }
@@ -183,7 +183,7 @@ final class TripMapViewModel {
     ///
     /// The view passes the confirmation it showed, because the alert closes (and clears `leaveConfirmation`) before
     /// the task that calls this runs.
-    func ConfirmLeave(_ confirmation: TripMapLeaveConfirmation) async {
+    func ConfirmLeave(_ confirmation: LeaveConfirmation) async {
         guard closeReason == nil, state != nil, isLeaving == false else { return }
         isLeaving = true
         defer { isLeaving = false }
@@ -219,5 +219,45 @@ final class TripMapViewModel {
         guard let state, let myCoordinate else { return }
         guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
         guidance = newGuidance
+    }
+
+    // MARK: Nested types
+
+    /// What the trip map camera follows.
+    enum CameraMode: Hashable {
+        /// The camera stays on this phone's car as it moves.
+        case followMyCar
+        /// The camera shows the whole route; it no longer moves with the car.
+        case wholeRoute
+        /// The person moved the map by hand; the camera stays where they left it.
+        case free
+    }
+
+    /// The confirmation shown before leaving the trip from the map (`specs/UserStories.md` → US-07, "Leave and end").
+    enum LeaveConfirmation: Hashable {
+        /// A member: "Exit trip?"
+        case exitTrip
+        /// The leader: "End trip?", or "End trip? Not everyone has arrived yet." when someone is still on the way.
+        case endTrip(everyoneHasArrived: Bool)
+    }
+
+    /// Why the trip map closed on this phone, which then returns to Home.
+    enum CloseReason: Hashable {
+        /// This member chose "Exit Trip".
+        case exited
+        /// This leader chose "End Trip".
+        case ended
+        /// Another phone, the leader's, ended the trip: "The leader ended the trip."
+        case endedByLeader
+        /// The leader removed this member: "You were removed from the trip."
+        case removed
+    }
+
+    /// What the bottom card shows once this phone's car has arrived (`specs/UserStories.md` → US-07, "Arrive").
+    enum ArrivalCard: Hashable {
+        /// "You have arrived" · "Waiting for everyone to arrive"
+        case waitingForEveryone
+        /// "Everyone has arrived!" (and, for the leader, "Continue your trip?")
+        case everyoneArrived
     }
 }

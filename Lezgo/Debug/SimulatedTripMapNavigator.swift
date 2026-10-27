@@ -48,7 +48,7 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
     }
 
     /// The first route point from `start` where the road bends by more than the threshold, or the destination.
-    private func NextTurn(in route: [Coordinate], after start: Int) -> (Int, TripMapTurnDirection) {
+    private func NextTurn(in route: [Coordinate], after start: Int) -> (Int, TripMapGuidance.TurnDirection) {
         guard start >= 1 else { return (route.count - 1, .straight) }
         for index in start..<(route.count - 1) {
             let change = BearingChange(from: route[index - 1], through: route[index], to: route[index + 1])
@@ -78,7 +78,7 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
     }
 
     /// Stand-in for `MKRoute.Step.instructions`, which MapKit localizes itself. Debug builds only.
-    private func Instruction(for direction: TripMapTurnDirection) -> String {
+    private func Instruction(for direction: TripMapGuidance.TurnDirection) -> String {
         switch direction {
         case .left: "Turn left"
         case .right: "Turn right"
