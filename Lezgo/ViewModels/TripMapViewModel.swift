@@ -11,6 +11,12 @@ final class TripMapViewModel {
     private(set) var snapshot: TripMapSnapshot?
     private(set) var guidance: TripMapGuidance?
     private(set) var cameraMode: TripMapCameraMode = .followMyCar
+    /// The confirmation to show before leaving, or `nil`.
+    private(set) var leaveConfirmation: TripMapLeaveConfirmation?
+    /// Set once the map should close and the phone return to Home; sharing stops at the same time.
+    private(set) var closeReason: TripMapCloseReason?
+    /// Why leaving failed, for example no network; the map stays open so the person can try again.
+    private(set) var leaveErrorMessage: String?
     /// When the latest snapshot arrived; offline cars are judged against this time.
     private var updatedAt: Date?
 
@@ -120,6 +126,15 @@ final class TripMapViewModel {
     func FollowMyCar() {
         cameraMode = .followMyCar
     }
+
+    /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
+    func RequestLeave() {}
+
+    /// "Cancel" on the confirmation: nothing changes.
+    func CancelLeave() {}
+
+    /// "Confirm" on the confirmation: leaves or ends the trip, then closes the map.
+    func ConfirmLeave() async {}
 
     /// Called when the person pans or zooms the map by hand.
     func StopFollowing() {

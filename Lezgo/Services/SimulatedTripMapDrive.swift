@@ -94,6 +94,7 @@ struct SimulatedTripMapDrive {
 
         return TripMapSnapshot(
             tripID: tripID,
+            status: .inTrip,
             leaderParticipantID: agusID,
             myParticipantID: myParticipantID,
             currentWaypointIndex: leaderPassedCheckpoint ? 2 : 1,

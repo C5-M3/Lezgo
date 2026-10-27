@@ -23,11 +23,20 @@ struct TripServiceMapAdapter: TripMapService {
         }
     }
 
+    func ExitTrip(tripID: UUID, participantID: UUID) async throws {
+        try await tripService.ExitTrip(tripID: tripID, participantID: participantID)
+    }
+
+    func EndTrip(tripID: UUID, by leaderID: UUID) async throws {
+        try await tripService.EndTrip(tripID: tripID, by: leaderID)
+    }
+
     /// The map's view of one trip state. Cars without a position yet are left out.
     static func MakeSnapshot(from state: TripState, myParticipantID: UUID) -> TripMapSnapshot {
         let polyline = state.route?.polyline ?? state.waypoints.map(\.coordinate)
         return TripMapSnapshot(
             tripID: state.trip.id,
+            status: state.trip.status,
             leaderParticipantID: state.trip.leaderParticipantID,
             myParticipantID: myParticipantID,
             currentWaypointIndex: state.trip.currentWaypointIndex,

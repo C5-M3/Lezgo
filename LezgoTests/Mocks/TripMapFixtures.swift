@@ -54,6 +54,7 @@ enum TripMapFixtures {
         me: UUID = budiID,
         cars: [TripMapCar]? = nil,
         memberIDs: [UUID]? = nil,
+        status: TripStatus = .inTrip,
         waypoints: [TripMapWaypoint] = [destination, startPoint, checkpoint],
         currentWaypointIndex: Int = 1
     ) -> TripMapSnapshot {
@@ -64,6 +65,7 @@ enum TripMapFixtures {
         ]
         return TripMapSnapshot(
             tripID: tripID,
+            status: status,
             leaderParticipantID: agusID,
             myParticipantID: me,
             currentWaypointIndex: currentWaypointIndex,

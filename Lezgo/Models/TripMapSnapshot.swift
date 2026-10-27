@@ -6,6 +6,8 @@ import Foundation
 /// `SimulatedTripMapService`; once live trip updates (#83) land, an adapter builds it from the shared models.
 struct TripMapSnapshot: Hashable {
     var tripID: UUID
+    /// `ENDED` or `CANCELLED` means the leader closed the trip, and the map closes on every phone.
+    var status: TripStatus
     var leaderParticipantID: UUID
     /// The participant who uses this phone. It is not stored on the server; the phone knows it from joining.
     var myParticipantID: UUID
