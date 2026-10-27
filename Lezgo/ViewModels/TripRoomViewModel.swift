@@ -22,6 +22,9 @@ final class TripRoomViewModel {
     var selectedParticipantIds: Set<UUID>
     var errorMessage: String?
     var wasRemovedFromTrip: Bool = false
+    private(set) var isSavingProfile = false
+    /// Shown inside the edit sheet, which stays open when the save fails so the typed name and car are kept.
+    var profileErrorMessage: String?
 
     var roomCode: String {
         state?.trip.roomCode ?? ""
@@ -203,6 +206,24 @@ final class TripRoomViewModel {
     func UpdateProfile(displayName: String, carDescription: String) async throws {
         let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
         try await tripService.UpdateProfile(profile, participantID: myParticipantID, tripID: tripID)
+    }
+
+    /// Saves my profile for the edit sheet. Returns `true` only when the save succeeded, so the sheet closes then
+    /// and stays open with `profileErrorMessage` otherwise. A second tap while saving is ignored.
+    func SaveProfile(displayName: String, carDescription: String) async -> Bool {
+        guard !isSavingProfile else { return false }
+        isSavingProfile = true
+        defer { isSavingProfile = false }
+        do {
+            try await UpdateProfile(displayName: displayName, carDescription: carDescription)
+            profileErrorMessage = nil
+            return true
+        } catch let error as TripServiceError {
+            profileErrorMessage = String(localized: error.message)
+        } catch {
+            profileErrorMessage = String(localized: TripServiceError(cloudKitError: error).message)
+        }
+        return false
     }
 
     func LeaveTrip() async throws {

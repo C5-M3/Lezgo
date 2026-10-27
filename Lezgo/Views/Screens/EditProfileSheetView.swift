@@ -54,18 +54,27 @@ struct EditProfileSheetView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Update") {
                         Task {
-                            do {
-                                try await viewModel.UpdateProfile(
-                                    displayName: trimmedName,
-                                    carDescription: trimmedDescription
-                                )
-                            } catch {
-                                viewModel.errorMessage = error.localizedDescription
-                            }
+                            let didSave = await viewModel.SaveProfile(
+                                displayName: trimmedName,
+                                carDescription: trimmedDescription
+                            )
+                            if didSave { dismiss() }
                         }
-                        dismiss()
                     }
-                    .disabled(trimmedName.isEmpty)
+                    .disabled(trimmedName.isEmpty || viewModel.isSavingProfile)
+                }
+            }
+            .alert(
+                "Error",
+                isPresented: Binding(
+                    get: { viewModel.profileErrorMessage != nil },
+                    set: { if !$0 { viewModel.profileErrorMessage = nil } }
+                )
+            ) {
+                Button("OK") { viewModel.profileErrorMessage = nil }
+            } message: {
+                if let message = viewModel.profileErrorMessage {
+                    Text(message)
                 }
             }
             .onAppear {
