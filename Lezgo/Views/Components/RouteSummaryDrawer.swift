@@ -36,50 +36,96 @@ struct RouteSummaryDrawer: View {
 
                 // Section 2: Destinations (unified hierarchy)
                 Section("Destinations") {
-                    ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
+                    if !isFullPresentation && viewModel.destinations.count > 2 {
+                        // Collapsed: Top row shows summary count of previous stops
+                        let intermediateCount = viewModel.destinations.count - 1
                         HStack(spacing: 12) {
-                            Image(systemName: "mappin")
+                            Image(systemName: "ellipsis.circle")
                                 .foregroundStyle(.secondary)
 
-                            Button {
-                                viewModel.activeSelectionSheet = .destination(index: index)
-                            } label: {
-                                Text(point.name)
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
-                                    .lineLimit(1)
-                            }
-                            .buttonStyle(.plain)
-
-                            Spacer()
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                viewModel.removeDestination(at: index)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-                    .onMove { fromOffsets, toOffset in
-                        if isFullPresentation {
-                            viewModel.moveDestination(fromOffsets: fromOffsets, toOffset: toOffset)
-                        }
-                    }
-
-                    Button {
-                        viewModel.addDestination()
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "plus")
-                                .foregroundStyle(.secondary)
-                            Text("Add...")
+                            Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
                                 .font(.body)
                                 .foregroundStyle(.secondary)
+
                             Spacer()
                         }
+
+                        // Collapsed: Bottom row shows the final destination
+                        if let lastDestination = viewModel.destinations.last,
+                           let lastIndex = viewModel.destinations.indices.last {
+                            HStack(spacing: 12) {
+                                Image(systemName: "mappin")
+                                    .foregroundStyle(.secondary)
+
+                                Button {
+                                    viewModel.activeSelectionSheet = .destination(index: lastIndex)
+                                } label: {
+                                    Text(lastDestination.name)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                }
+                                .buttonStyle(.plain)
+
+                                Spacer()
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    viewModel.removeDestination(at: lastIndex)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    } else {
+                        // Full presentation OR 2 or fewer destinations: show all items
+                        ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
+                            HStack(spacing: 12) {
+                                Image(systemName: "mappin")
+                                    .foregroundStyle(.secondary)
+
+                                Button {
+                                    viewModel.activeSelectionSheet = .destination(index: index)
+                                } label: {
+                                    Text(point.name)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
+                                }
+                                .buttonStyle(.plain)
+
+                                Spacer()
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    viewModel.removeDestination(at: index)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                        .onMove { fromOffsets, toOffset in
+                            if isFullPresentation {
+                                viewModel.moveDestination(fromOffsets: fromOffsets, toOffset: toOffset)
+                            }
+                        }
+
+                        if isFullPresentation || viewModel.destinations.count <= 1 {
+                            Button {
+                                viewModel.addDestination()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "plus")
+                                        .foregroundStyle(.secondary)
+                                    Text("Add...")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
 
                 // Section 3: Summary Metrics (shown only when pulled to full)
