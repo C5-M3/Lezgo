@@ -12,18 +12,24 @@ import Testing
 @Suite("ActiveTripStorage Tests")
 struct ActiveTripStorageTests {
 
-    private func makeTemporaryStorage() -> (UserDefaultsActiveTripStorage, UserDefaults, String) {
+    private struct StorageContext {
+        let storage: UserDefaultsActiveTripStorage
+        let userDefaults: UserDefaults
+        let suiteName: String
+    }
+
+    private func makeTemporaryStorage() -> StorageContext {
         let suiteName = "test.suite.\(UUID().uuidString)"
         let userDefaults = UserDefaults(suiteName: suiteName) ?? .standard
         let key = "test_active_trip"
         let storage = UserDefaultsActiveTripStorage(userDefaults: userDefaults, storageKey: key)
-        return (storage, userDefaults, suiteName)
+        return StorageContext(storage: storage, userDefaults: userDefaults, suiteName: suiteName)
     }
 
     @Test("Saving and loading active trip summary round-trips successfully")
     func saveAndLoadActiveTrip() {
-        let (storage, userDefaults, suiteName) = makeTemporaryStorage()
-        defer { userDefaults.removePersistentDomain(forName: suiteName) }
+        let context = makeTemporaryStorage()
+        defer { context.userDefaults.removePersistentDomain(forName: context.suiteName) }
 
         let original = ActiveTripSummary(
             tripID: UUID(),
@@ -37,8 +43,8 @@ struct ActiveTripStorageTests {
             isLeader: true
         )
 
-        storage.SaveActiveTrip(original)
-        let loaded = storage.LoadActiveTrip()
+        context.storage.SaveActiveTrip(original)
+        let loaded = context.storage.LoadActiveTrip()
 
         #expect(loaded != nil)
         #expect(loaded?.tripID == original.tripID)
@@ -54,8 +60,8 @@ struct ActiveTripStorageTests {
 
     @Test("Clearing active trip removes stored data")
     func clearActiveTrip() {
-        let (storage, userDefaults, suiteName) = makeTemporaryStorage()
-        defer { userDefaults.removePersistentDomain(forName: suiteName) }
+        let context = makeTemporaryStorage()
+        defer { context.userDefaults.removePersistentDomain(forName: context.suiteName) }
 
         let summary = ActiveTripSummary(
             tripID: UUID(),
@@ -68,10 +74,10 @@ struct ActiveTripStorageTests {
             isLeader: false
         )
 
-        storage.SaveActiveTrip(summary)
-        #expect(storage.LoadActiveTrip() != nil)
+        context.storage.SaveActiveTrip(summary)
+        #expect(context.storage.LoadActiveTrip() != nil)
 
-        storage.ClearActiveTrip()
-        #expect(storage.LoadActiveTrip() == nil)
+        context.storage.ClearActiveTrip()
+        #expect(context.storage.LoadActiveTrip() == nil)
     }
 }

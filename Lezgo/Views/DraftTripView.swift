@@ -204,7 +204,8 @@ struct DraftTripView: View {
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    // Menahan interaksi agar fokus tetap pada tombol aksi modal dan latar belakang tidak dapat menutup modal
+                    // Menahan interaksi agar fokus tetap pada tombol aksi modal
+                    // dan latar belakang tidak dapat menutup modal
                 }
                 .accessibilityHidden(true)
 
@@ -274,6 +275,7 @@ struct DraftTripView: View {
             .onTapGesture {
                 // Menahan ketukan di dalam kartu agar tidak memicu interaksi lain
             }
+            .accessibilityAddTraits(.isButton)
         }
         .zIndex(100)
     }
