@@ -110,12 +110,13 @@ final class TripRoomViewModel {
 
     func Listen() async {
         for await newState in tripService.TripUpdates(tripID: tripID) {
-            let wasInTrip = state?.participants.contains(where: { $0.id == myParticipantID }) ?? false
             let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
 
             state = newState
 
-            if wasInTrip && !isStillInTrip && !isCurrentUserLeader {
+            // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
+            // even the first one (for example when I was removed before the room finished opening).
+            if !isStillInTrip && !isCurrentUserLeader {
                 wasRemovedFromTrip = true
             }
 
