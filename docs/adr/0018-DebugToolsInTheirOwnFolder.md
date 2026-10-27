@@ -1,6 +1,6 @@
 # 0018. Debug tools in their own folder
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-27
 - Deciders: Nathan
 
