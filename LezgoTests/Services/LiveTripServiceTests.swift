@@ -95,4 +95,25 @@ struct LiveTripServiceTests {
 
         #expect(next?.trip.status == .inTrip)
     }
+
+    @Test func LocationIsSavedWithOneRequest() async throws {
+        let agus = Phone("_agus0001")
+        let created = try await agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        let reads = server.handOutCount
+        let saves = server.saveCount
+        let update = LocationUpdate(
+            coordinate: TripFixtures.ciputraWorld,
+            speedKmh: 40,
+            motionState: .driving,
+            recordedAt: TripFixtures.now
+        )
+
+        try await agus.UpdateLocation(update, participantID: created.myParticipantID, tripID: created.state.trip.id)
+
+        #expect(server.handOutCount == reads)
+        #expect(server.saveCount == saves + 1)
+        let me = try await agus.FetchTrip(tripID: created.state.trip.id).participants.first
+        #expect(me?.coordinate == TripFixtures.ciputraWorld)
+        #expect(me?.displayName == "Member 0001")
+    }
 }

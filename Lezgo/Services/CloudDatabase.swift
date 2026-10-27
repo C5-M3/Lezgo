@@ -14,6 +14,9 @@ protocol CloudDatabase {
     /// The record with this ID. Throws `CKError.unknownItem` when it does not exist.
     func Fetch(_ recordID: CKRecord.ID) async throws -> CKRecord
 
+    /// The records with these IDs that still exist, in one request. Missing records are left out, not an error.
+    func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord]
+
     /// Every record of this type whose fields equal all the given values. A reference matches by record ID.
     func Query(recordType: String, matching conditions: [String: any CKRecordValueProtocol]) async throws -> [CKRecord]
 

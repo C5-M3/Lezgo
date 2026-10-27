@@ -23,7 +23,20 @@ final class LiveCloudDatabase: CloudDatabase {
     }
 
     func Fetch(_ recordID: CKRecord.ID) async throws -> CKRecord {
-        try await database.record(for: recordID)
+        try await Send { try await $0.record(for: recordID) }
+    }
+
+    func Fetch(_ recordIDs: [CKRecord.ID]) async throws -> [CKRecord] {
+        guard recordIDs.isEmpty == false else { return [] }
+        let results = try await Send { try await $0.records(for: recordIDs) }
+        return try recordIDs.compactMap { recordID in
+            do {
+                return try results[recordID]?.get()
+            } catch let error as CKError where error.code == .unknownItem {
+                // Deleted, for example a member who left.
+                return nil
+            }
+        }
     }
 
     func Query(
@@ -35,26 +48,25 @@ final class LiveCloudDatabase: CloudDatabase {
         }
         let predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
         let query = CKQuery(recordType: recordType, predicate: predicate)
-        var page = try await database.records(matching: query, resultsLimit: CKQueryOperation.maximumResults)
-        var records = try page.matchResults.map { try $0.1.get() }
-        while let cursor = page.queryCursor {
-            page = try await database.records(
-                continuingMatchFrom: cursor,
-                resultsLimit: CKQueryOperation.maximumResults
-            )
-            records += try page.matchResults.map { try $0.1.get() }
+        return try await Send { database in
+            var page = try await database.records(matching: query, resultsLimit: CKQueryOperation.maximumResults)
+            var records = try page.matchResults.map { try $0.1.get() }
+            while let cursor = page.queryCursor {
+                page = try await database.records(
+                    continuingMatchFrom: cursor,
+                    resultsLimit: CKQueryOperation.maximumResults
+                )
+                records += try page.matchResults.map { try $0.1.get() }
+            }
+            return records
         }
-        return records
     }
 
     func Save(_ records: [CKRecord], savePolicy: CKModifyRecordsOperation.RecordSavePolicy) async throws {
         guard records.isEmpty == false else { return }
-        let results = try await database.modifyRecords(
-            saving: records,
-            deleting: [],
-            savePolicy: savePolicy,
-            atomically: false
-        )
+        let results = try await Send { database in
+            try await database.modifyRecords(saving: records, deleting: [], savePolicy: savePolicy, atomically: false)
+        }
         for result in results.saveResults.values {
             _ = try result.get()
         }
@@ -62,7 +74,7 @@ final class LiveCloudDatabase: CloudDatabase {
 
     func Delete(_ recordIDs: [CKRecord.ID]) async throws {
         guard recordIDs.isEmpty == false else { return }
-        let results = try await database.modifyRecords(saving: [], deleting: recordIDs)
+        let results = try await Send { try await $0.modifyRecords(saving: [], deleting: recordIDs) }
         for result in results.deleteResults.values {
             do {
                 try result.get()
@@ -71,5 +83,13 @@ final class LiveCloudDatabase: CloudDatabase {
                 continue
             }
         }
+    }
+
+    /// Sends a request as user-initiated. By default CloudKit may hold back requests it thinks can wait, but a
+    /// car's position is only useful within seconds (load check, #69).
+    private func Send<Result>(_ request: (CKDatabase) async throws -> Result) async throws -> Result {
+        let configuration = CKOperation.Configuration()
+        configuration.qualityOfService = .userInitiated
+        return try await database.configuredWith(configuration: configuration) { try await request($0) }
     }
 }

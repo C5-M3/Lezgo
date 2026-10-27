@@ -35,6 +35,7 @@ import SwiftUI
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
+/// | `loadCheck` | Load Check: simulated cars saving and fetching every second against real iCloud (#69) | N |
 ///
 /// ## How to add your screen
 ///
@@ -51,6 +52,7 @@ enum DebugScreen: String, CaseIterable {
     case tripMapLeader
     case tripMapMember
     case syncCheck
+    case loadCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
     static let launchArgument = "-DebugScreen"
@@ -75,6 +77,8 @@ enum DebugScreen: String, CaseIterable {
             TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
         case .syncCheck:
             SyncCheckView()
+        case .loadCheck:
+            LoadCheckView(viewModel: LoadCheckViewModel(database: LiveCloudDatabase()))
         }
     }
 }
