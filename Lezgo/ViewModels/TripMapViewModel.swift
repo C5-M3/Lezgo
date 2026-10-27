@@ -23,6 +23,7 @@ final class TripMapViewModel {
         tripID: UUID,
         service: any TripMapService,
         navigator: any TripMapNavigator,
+        locationSharer: LocationSharer? = nil,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
