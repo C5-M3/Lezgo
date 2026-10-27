@@ -33,7 +33,7 @@ final class SyncCheckViewModel {
 
     /// The live trip map (#170) can open once the trip is on the road.
     var canOpenMap: Bool {
-        false
+        state?.trip.status == .inTrip && myParticipantID != nil
     }
 
     var canJoin: Bool {
