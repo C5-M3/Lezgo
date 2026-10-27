@@ -160,8 +160,11 @@ final class TripMapViewModel {
 
     /// "Confirm" on the confirmation: leaves or ends the trip, then closes the map. On failure the map stays open
     /// with a message, so nobody is stuck believing they left.
-    func ConfirmLeave() async {
-        guard let confirmation = leaveConfirmation, let snapshot, isLeaving == false else { return }
+    ///
+    /// The view passes the confirmation it showed, because the alert closes (and clears `leaveConfirmation`) before
+    /// the task that calls this runs.
+    func ConfirmLeave(_ confirmation: TripMapLeaveConfirmation) async {
+        guard closeReason == nil, let snapshot, isLeaving == false else { return }
         isLeaving = true
         defer { isLeaving = false }
         do {

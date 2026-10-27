@@ -87,10 +87,14 @@ struct TripMapView: View {
             }
         }
         .task { await viewModel.Start() }
-        .alert(Text(LeaveQuestion()), isPresented: IsAskingToLeave()) {
+        .alert(
+            Text(LeaveQuestion()),
+            isPresented: IsAskingToLeave(),
+            presenting: viewModel.leaveConfirmation
+        ) { confirmation in
             Button(role: .cancel, action: viewModel.CancelLeave) { Text(.tripMapCancel) }
             Button(role: viewModel.isLeader ? .destructive : nil) {
-                Task { await viewModel.ConfirmLeave() }
+                Task { await viewModel.ConfirmLeave(confirmation) }
             } label: {
                 Text(.tripMapConfirm)
             }
