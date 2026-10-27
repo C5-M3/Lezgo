@@ -128,6 +128,7 @@ struct SimulatedTripMapDrive {
                     lastSeenAt: now.addingTimeInterval(-180)
                 )
             ],
+            memberIDs: [agusID, budiID, citraID],
             route: route
         )
     }

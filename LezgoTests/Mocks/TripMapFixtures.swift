@@ -53,23 +53,41 @@ enum TripMapFixtures {
     static func Snapshot(
         me: UUID = budiID,
         cars: [TripMapCar]? = nil,
+        memberIDs: [UUID]? = nil,
         waypoints: [TripMapWaypoint] = [destination, startPoint, checkpoint],
         currentWaypointIndex: Int = 1
     ) -> TripMapSnapshot {
-        TripMapSnapshot(
+        let cars = cars ?? [
+            Car(id: agusID, name: "Agus", latitude: -7.2650),
+            Car(id: budiID, name: "Budi", latitude: -7.2700),
+            Car(id: citraID, name: "Citra", latitude: -7.2750)
+        ]
+        return TripMapSnapshot(
             tripID: tripID,
             leaderParticipantID: agusID,
             myParticipantID: me,
             currentWaypointIndex: currentWaypointIndex,
             routeVersion: 1,
             waypoints: waypoints,
-            cars: cars ?? [
-                Car(id: agusID, name: "Agus", latitude: -7.2650),
-                Car(id: budiID, name: "Budi", latitude: -7.2700),
-                Car(id: citraID, name: "Citra", latitude: -7.2750)
-            ],
+            cars: cars,
+            memberIDs: memberIDs ?? cars.map(\.id),
             route: [startPoint.coordinate, checkpoint.coordinate, destination.coordinate]
         )
+    }
+
+    /// A car `metres` north of the destination (Pakuwon mall), seen `lastSeenSecondsAgo` before `now`.
+    static func CarNearDestination(
+        id: UUID,
+        name: String,
+        metres: Double,
+        lastSeenSecondsAgo: Double = 1
+    ) -> TripMapCar {
+        var car = Car(id: id, name: name, lastSeenSecondsAgo: lastSeenSecondsAgo)
+        car.coordinate = TripMapCoordinate(
+            latitude: destination.coordinate.latitude + metres / 110_600,
+            longitude: destination.coordinate.longitude
+        )
+        return car
     }
 
     static func Guidance(minutesLeft: Int = 50) -> TripMapGuidance {

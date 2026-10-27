@@ -3,6 +3,7 @@
 - **Tasks:** [GitHub Project](https://github.com/orgs/C5-M3/projects/1)
 - **Coding rules for humans and AI agents:** [AGENTS.md](AGENTS.md)
 - **User stories, data model and copy:** [specs/UserStories.md](specs/UserStories.md)
+- **How trip data and iCloud sync work:** [CloudKit/TripSync.md](CloudKit/TripSync.md)
 - **Past decisions and why we made them:** [docs/adr](docs/adr/README.md)
 
 

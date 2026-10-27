@@ -13,6 +13,8 @@ struct TripMapSnapshot: Hashable {
     var routeVersion: Int
     var waypoints: [TripMapWaypoint]
     var cars: [TripMapCar]
+    /// Everyone in the trip, including members whose phone has not sent a position yet (so they have no car).
+    var memberIDs: [UUID]
     /// The road path from the start point through every checkpoint to the destination.
     var route: [TripMapCoordinate]
 }

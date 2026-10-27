@@ -29,15 +29,18 @@ struct TripServiceRoadTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
-    func LocationOfAMemberWhoLeftIsNotFound(kind: TripPhones.Kind) async throws {
+    func LocationOfAMemberWhoLeftDoesNotBringThemBack(kind: TripPhones.Kind) async throws {
+        // Saving a position takes one request, so a removed member's phone may send one more before it notices.
+        // That last position must not add the member back to the trip.
         let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()
         try await phones.budi.ExitTrip(tripID: group.tripID, participantID: group.budiID)
         let update = Update(at: TripFixtures.ciputraWorld, speedKmh: 0, secondsLater: 1)
 
-        await #expect(throws: TripServiceError.notFound) {
-            try await phones.budi.UpdateLocation(update, participantID: group.budiID, tripID: group.tripID)
-        }
+        try await phones.budi.UpdateLocation(update, participantID: group.budiID, tripID: group.tripID)
+
+        #expect(try await phones.Budi(in: group) == nil)
+        #expect(try await phones.agus.FetchTrip(tripID: group.tripID).participants.count == 2)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
