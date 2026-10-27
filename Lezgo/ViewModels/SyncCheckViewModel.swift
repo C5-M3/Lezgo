@@ -31,6 +31,11 @@ final class SyncCheckViewModel {
         return state.trip.leaderParticipantID == myParticipantID
     }
 
+    /// The live trip map (#170) can open once the trip is on the road.
+    var canOpenMap: Bool {
+        false
+    }
+
     var canJoin: Bool {
         roomCodeInput.count == 6 && roomCodeInput.allSatisfy { $0.isASCII && $0.isNumber }
     }
