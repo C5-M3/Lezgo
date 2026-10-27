@@ -209,7 +209,7 @@ LezgoUITests/         UI tests
 - Views stay thin: layout, bindings and calls into the view model. No business logic, networking or persistence in a view.
 - View models are `@Observable final class` types. They hold screen state and logic, and receive services through their initializer so tests can pass in fakes.
 - Services are defined by a protocol (`AuthService`) with a real implementation (`LiveAuthService`) and a test fake (`MockAuthService`).
-- Trip data goes through the shared `TripService` and the models in `Models/` (decision record: [0017](docs/adr/0017-TripServiceContractFirst.md)). Do not define your own trip, participant or route types. A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer. `InMemoryTripService` runs every screen without iCloud in previews, `DebugScreen` and tests.
+- Trip data goes through the shared `TripService` and the models in `Models/` (decision record: [0017](docs/adr/0017-TripServiceContractFirst.md)). Do not define your own trip, participant or route types. A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer. `InMemoryTripService` runs every screen without iCloud in previews, `DebugScreen` and tests. [`CloudKit/TripSync.md`](CloudKit/TripSync.md) explains the models, the service and how sync works, with examples.
 - Models do not import SwiftUI.
 - One type per file. The file is named after the type.
 

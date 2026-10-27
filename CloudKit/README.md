@@ -2,6 +2,8 @@
 
 `Schema.ckdb` is the schema of the trip database in the CloudKit **public** database (ADR 0014). Change the schema here first, in a pull request, then import it into your container. Never change it only in the CloudKit Console.
 
+For how the app reads and writes these records, see [TripSync.md](TripSync.md).
+
 | Record type | Fields | Indexes |
 | --- | --- | --- |
 | `Trip` | `roomCode`, `status`, `leaderParticipantID`, `currentWaypointIndex`, `routeVersion`, `createdAt`, `startedAt`, `endedAt` | `roomCode`, `status` queryable |
