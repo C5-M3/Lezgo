@@ -35,6 +35,8 @@ final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
     var isSearching: Bool = false
     var referenceLocation: CLLocationCoordinate2D?
 
+    // Cache for resolved coordinates by item ID (title + subtitle)
+    private var coordinateCache: [String: CLLocationCoordinate2D] = [:]
     private var enrichmentTask: Task<Void, Never>?
 
     override init() {
@@ -70,7 +72,7 @@ final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
     }
 
     func resolveLocation(from item: SearchResultItem) async throws -> RoutePoint {
-        if let coord = item.coordinate {
+        if let coord = item.coordinate ?? coordinateCache[item.id] {
             return RoutePoint(
                 name: item.title,
                 subtitle: item.subtitle,
@@ -93,10 +95,13 @@ final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
             throw NSError(domain: "LocationSearch", code: 404, userInfo: [NSLocalizedDescriptionKey: "No coordinate found."])
         }
 
+        let coord = mapItem.placemark.coordinate
+        coordinateCache[item.id] = coord
+
         return RoutePoint(
             name: item.title,
             subtitle: item.subtitle,
-            coordinate: mapItem.placemark.coordinate
+            coordinate: coord
         )
     }
 
@@ -104,31 +109,55 @@ final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
         let completions = completer.results
         let hasRef = referenceLocation != nil
-        let items: [SearchResultItem] = completions.map { comp in
-            SearchResultItem(
-                id: "\(comp.title)_\(comp.subtitle)",
+        let refCoord = referenceLocation
+
+        // Populate items immediately, checking the cache for any already-resolved coordinates
+        var items: [SearchResultItem] = []
+        for comp in completions {
+            let itemId = "\(comp.title)_\(comp.subtitle)"
+            let cachedCoord = coordinateCache[itemId]
+
+            var dist: CLLocationDistance?
+            if let cached = cachedCoord, let ref = refCoord {
+                let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
+                let to = CLLocation(latitude: cached.latitude, longitude: cached.longitude)
+                dist = from.distance(from: to)
+            }
+
+            items.append(SearchResultItem(
+                id: itemId,
                 title: comp.title,
                 subtitle: comp.subtitle,
                 completion: comp,
-                coordinate: nil,
-                distanceInMeters: nil,
-                isCalculatingDistance: hasRef
-            )
+                coordinate: cachedCoord,
+                distanceInMeters: dist,
+                isCalculatingDistance: hasRef && cachedCoord == nil
+            ))
         }
 
         self.searchResults = items
         self.isSearching = false
 
-        // Asynchronously resolve coordinates & distances for suggestions concurrently
+        // Cancel any pending enrichment from previous keystrokes
         enrichmentTask?.cancel()
         guard let ref = referenceLocation, !items.isEmpty else { return }
 
+        // Items that still need distance calculation (top 6 items to conserve requests)
+        let uncalcBatch = Array(items.filter { $0.coordinate == nil }.prefix(6))
+        guard !uncalcBatch.isEmpty else { return }
+
+        // Debounce by 350ms so typing fast does not fire search requests until the user pauses
         enrichmentTask = Task { [weak self] in
-            // Take top 8 suggestions for fast parallel resolution without hitting rate limits
-            let batch = Array(items.prefix(8))
+            do {
+                try await Task.sleep(for: .milliseconds(350))
+            } catch {
+                return
+            }
+
+            guard !Task.isCancelled else { return }
 
             await withTaskGroup(of: (String, CLLocationCoordinate2D, CLLocationDistance)?.self) { group in
-                for item in batch {
+                for item in uncalcBatch {
                     guard let comp = item.completion else { continue }
                     group.addTask {
                         guard !Task.isCancelled else { return nil }
@@ -151,14 +180,24 @@ final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
 
                 for await result in group {
                     guard !Task.isCancelled else { continue }
-                    await MainActor.run {
-                        guard let self = self else { return }
-                        if let (id, coord, dist) = result,
-                           let idx = self.searchResults.firstIndex(where: { $0.id == id }) {
-                            self.searchResults[idx].coordinate = coord
-                            self.searchResults[idx].distanceInMeters = dist
-                            self.searchResults[idx].isCalculatingDistance = false
+                    if let (id, coord, dist) = result {
+                        await MainActor.run {
+                            guard let self = self else { return }
+                            self.coordinateCache[id] = coord
+                            if let idx = self.searchResults.firstIndex(where: { $0.id == id }) {
+                                self.searchResults[idx].coordinate = coord
+                                self.searchResults[idx].distanceInMeters = dist
+                                self.searchResults[idx].isCalculatingDistance = false
+                            }
                         }
+                    }
+                }
+
+                // Any items that finished or failed can turn off the calculating placeholder
+                await MainActor.run {
+                    guard let self = self else { return }
+                    for i in self.searchResults.indices where self.searchResults[i].isCalculatingDistance {
+                        self.searchResults[i].isCalculatingDistance = false
                     }
                 }
             }

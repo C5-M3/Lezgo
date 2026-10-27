@@ -22,7 +22,36 @@ final class MapViewModel {
     var destinations: [RoutePoint] = []
 
     // MARK: - Computed Trip & Map State
-    var tripResult: ComputedTrip?
+    var routeLegs: [RouteLeg] = []
+
+    var selectedPolylines: [MKPolyline] {
+        routeLegs.map { $0.selectedRoute.polyline }
+    }
+
+    var totalDistance: CLLocationDistance {
+        routeLegs.reduce(0) { $0 + $1.selectedRoute.distance }
+    }
+
+    var totalDuration: TimeInterval {
+        routeLegs.reduce(0) { $0 + $1.selectedRoute.expectedTravelTime }
+    }
+
+    var combinedPolyline: MKPolyline? {
+        var allCoordinates: [CLLocationCoordinate2D] = []
+        for leg in routeLegs {
+            let poly = leg.selectedRoute.polyline
+            var coords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: poly.pointCount)
+            poly.getCoordinates(&coords, range: NSRange(location: 0, length: poly.pointCount))
+            allCoordinates.append(contentsOf: coords)
+        }
+        guard !allCoordinates.isEmpty else { return nil }
+        return MKPolyline(coordinates: allCoordinates, count: allCoordinates.count)
+    }
+
+    var hasRoute: Bool {
+        !routeLegs.isEmpty
+    }
+
     var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     var isLoadingRoute: Bool = false
     var errorMessage: String?
@@ -133,7 +162,7 @@ final class MapViewModel {
         orderedPoints.append(contentsOf: destinations)
 
         guard orderedPoints.count >= 2 else {
-            tripResult = nil
+            routeLegs = []
             return
         }
 
@@ -142,9 +171,9 @@ final class MapViewModel {
 
         Task {
             do {
-                let trip = try await routingService.calculateMultiStopRoute(points: orderedPoints)
+                let legs = try await routingService.calculateMultiStopLegs(points: orderedPoints)
                 await MainActor.run {
-                    self.tripResult = trip
+                    self.routeLegs = legs
                     self.isLoadingRoute = false
                     self.adjustCameraToFitRoute(bottomPadding: drawerHeight)
                 }
@@ -157,24 +186,63 @@ final class MapViewModel {
         }
     }
 
+    func selectLegRoute(legIndex: Int, routeIndex: Int, drawerHeight: CGFloat = 280) {
+        guard routeLegs.indices.contains(legIndex) else { return }
+        guard routeLegs[legIndex].routes.indices.contains(routeIndex) else { return }
+        routeLegs[legIndex].selectedRouteIndex = routeIndex
+        adjustCameraToFitRoute(bottomPadding: drawerHeight)
+    }
+
+    func selectNearestRoute(to coordinate: CLLocationCoordinate2D, drawerHeight: CGFloat = 280) {
+        guard !routeLegs.isEmpty else { return }
+        let tapMapPoint = MKMapPoint(coordinate)
+
+        var bestLegIndex: Int?
+        var bestRouteIndex: Int?
+        var minDistance: Double = .greatestFiniteMagnitude
+
+        for (legIndex, leg) in routeLegs.enumerated() {
+            for (routeIndex, route) in leg.routes.enumerated() {
+                let polyline = route.polyline
+                let points = polyline.points()
+                for i in 0..<polyline.pointCount {
+                    let pt = points[i]
+                    let dist = hypot(pt.x - tapMapPoint.x, pt.y - tapMapPoint.y)
+                    if dist < minDistance {
+                        minDistance = dist
+                        bestLegIndex = legIndex
+                        bestRouteIndex = routeIndex
+                    }
+                }
+            }
+        }
+
+        // Proximity threshold roughly ~1000 map points depending on zoom
+        if let lIndex = bestLegIndex, let rIndex = bestRouteIndex {
+            if routeLegs[lIndex].selectedRouteIndex != rIndex {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    self.routeLegs[lIndex].selectedRouteIndex = rIndex
+                }
+            }
+        }
+    }
+
     // MARK: - Camera Framing
     func adjustCameraToFitRoute(bottomPadding: CGFloat) {
-        guard let trip = tripResult else { return }
-        let baseRect = trip.combinedPolyline.boundingMapRect
+        guard let polyline = combinedPolyline else { return }
+        let baseRect = polyline.boundingMapRect
 
         // Standard horizontal and top margins
         let horizontalPadding = baseRect.size.width * 0.25
         let topPadding = baseRect.size.height * 0.20
-        
+
         // Scale bottom padding relative to screen sheet height
-        // In MapKit points, 1 screen point is roughly equivalent across zoom levels when scaled to the rect
         let bottomMapOffset = baseRect.size.height * Double(bottomPadding / 300.0)
 
         let paddedRect = MKMapRect(
             x: baseRect.origin.x - horizontalPadding,
             y: baseRect.origin.y - topPadding,
             width: baseRect.size.width + (horizontalPadding * 2),
-            // Lengthening the bottom pulls the camera focus upward above the sheet
             height: baseRect.size.height + topPadding + bottomMapOffset
         )
 

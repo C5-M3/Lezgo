@@ -7,6 +7,7 @@
 
 
 import SwiftUI
+import MapKit
 
 struct RouteSummaryDrawer: View {
     @Bindable var viewModel: MapViewModel
@@ -136,10 +137,10 @@ struct RouteSummaryDrawer: View {
                             ProgressView("Calculating optimal route...")
                             Spacer()
                         }
-                    } else if let trip = viewModel.tripResult {
+                    } else if viewModel.hasRoute {
                         Section("Trip Summary") {
-                            LabeledContent("Total Distance", value: String(format: "%.1f km", trip.totalDistance / 1000))
-                            LabeledContent("Estimated Time", value: "\(Int(trip.totalDuration / 60)) min")
+                            LabeledContent("Total Distance", value: String(format: "%.1f km", viewModel.totalDistance / 1000))
+                            LabeledContent("Estimated Time", value: "\(Int(viewModel.totalDuration / 60)) min")
                         }
                     }
                 }
