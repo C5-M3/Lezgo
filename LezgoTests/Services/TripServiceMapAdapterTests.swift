@@ -19,6 +19,15 @@ struct TripServiceMapAdapterTests {
         #expect(snapshot.routeVersion == 1)
     }
 
+    @Test(arguments: [TripStatus.inTrip, .ended, .cancelled])
+    func SnapshotKeepsTheTripStatus(status: TripStatus) {
+        let state = State(status: status)
+
+        let snapshot = TripServiceMapAdapter.MakeSnapshot(from: state, myParticipantID: SampleTrip.budiID)
+
+        #expect(snapshot.status == status)
+    }
+
     @Test func WaypointsKeepTheirOrderKindAndPlace() {
         let state = State()
 

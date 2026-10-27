@@ -172,45 +172,48 @@ struct TripMapViewModelLeaveTests {
     // MARK: Updates while leaving
 
     /// Leaves on purpose while the cloud already sends the result back, and returns the close reason the map had
-    /// before the request returned.
+    /// after it handled that update, before the request returned.
     private func CloseReasonWhileLeaving(
         me: UUID,
         update: TripMapSnapshot,
         confirmation: TripMapLeaveConfirmation
-    ) async throws -> TripMapCloseReason? {
+    ) async -> TripMapCloseReason? {
         let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: me)])
         service.snapshotWhileLeaving = update
         let viewModel = MakeViewModel([], service: service)
         var reasonWhileLeaving: TripMapCloseReason?
         service.whileLeaving = {
-            try? await Task.sleep(for: .milliseconds(20))
+            // Waiting for the update, not for a fixed time, so the check never runs before the map saw it.
+            while viewModel.snapshot != update { await Task.yield() }
             reasonWhileLeaving = viewModel.closeReason
         }
         let open = Task { await viewModel.Start() }
-        try await Task.sleep(for: .milliseconds(20))
+        while viewModel.isLoading { await Task.yield() }
         viewModel.RequestLeave()
 
         await viewModel.ConfirmLeave(confirmation)
 
+        // Leaving finished, so the request really ran and the update above arrived while it was on its way.
+        #expect(viewModel.closeReason == (confirmation == .exitTrip ? .exited : .ended))
         open.cancel()
         await open.value
         return reasonWhileLeaving
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func MemberExitingIsNotToldTheyWereRemoved() async throws {
+    func MemberExitingIsNotToldTheyWereRemoved() async {
         let update = Fixtures.Snapshot(me: Fixtures.budiID, memberIDs: [Fixtures.agusID, Fixtures.citraID])
 
-        let reason = try await CloseReasonWhileLeaving(me: Fixtures.budiID, update: update, confirmation: .exitTrip)
+        let reason = await CloseReasonWhileLeaving(me: Fixtures.budiID, update: update, confirmation: .exitTrip)
 
         #expect(reason == nil)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func LeaderEndingIsNotToldTheLeaderEndedTheTrip() async throws {
+    func LeaderEndingIsNotToldTheLeaderEndedTheTrip() async {
         let update = Fixtures.Snapshot(me: Fixtures.agusID, status: .ended)
 
-        let reason = try await CloseReasonWhileLeaving(
+        let reason = await CloseReasonWhileLeaving(
             me: Fixtures.agusID,
             update: update,
             confirmation: .endTrip(everyoneHasArrived: true)
