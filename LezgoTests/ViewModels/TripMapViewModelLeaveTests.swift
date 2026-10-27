@@ -256,6 +256,28 @@ struct TripMapViewModelLeaveTests {
         #expect(viewModel.closeReason == .removed)
     }
 
+    /// The member is looking at "Exit trip?" when the leader ends the trip: the question goes away, so the message
+    /// that the leader ended the trip can show.
+    @Test(.timeLimit(.minutes(1)))
+    func TripClosedElsewhereClearsTheQuestion() async throws {
+        let agus = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
+        let viewModel = TripMapViewModel(
+            tripID: SampleTrip.tripID,
+            service: TripServiceMapAdapter(tripService: agus, myParticipantID: SampleTrip.budiID),
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+        )
+        let open = Task { await viewModel.Start() }
+        while viewModel.isLoading { await Task.yield() }
+        viewModel.RequestLeave()
+        try #require(viewModel.leaveConfirmation == .exitTrip)
+
+        try await agus.EndTrip(tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+        await open.value
+
+        #expect(viewModel.closeReason == .endedByLeader)
+        #expect(viewModel.leaveConfirmation == nil)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func ClosingStopsFollowingTheTrip() async throws {
         let agus = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
