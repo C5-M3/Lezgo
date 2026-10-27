@@ -19,8 +19,7 @@ final class MapViewModel {
 
     // MARK: - Route Planning State
     var startPoint: RoutePoint?
-    var intermediateStops: [RoutePoint] = []
-    var destinationPoint: RoutePoint?
+    var destinations: [RoutePoint] = []
 
     // MARK: - Computed Trip & Map State
     var tripResult: ComputedTrip?
@@ -43,7 +42,7 @@ final class MapViewModel {
                     coordinate: coord
                 )
                 // If the user already picked a destination, trigger route calculation immediately
-                if self.destinationPoint != nil {
+                if !self.destinations.isEmpty {
                     self.findRoute()
                 }
             }
@@ -54,26 +53,32 @@ final class MapViewModel {
     func onAppear() {
         locationService.requestPermission()
         // Prompt the user for destination first if not set
-        if destinationPoint == nil {
-            activeSelectionSheet = .destination
+        if destinations.isEmpty {
+            activeSelectionSheet = .destination(index: 0)
         }
     }
 
-    // MARK: - Intermediate Stops Management
-    func addStop() {
-        let newIndex = intermediateStops.count
-        activeSelectionSheet = .stop(index: newIndex)
+    // MARK: - Destinations Management
+    func addDestination() {
+        let newIndex = destinations.count
+        activeSelectionSheet = .destination(index: newIndex)
     }
 
-    func removeStop(at index: Int) {
-        guard intermediateStops.indices.contains(index) else { return }
-        intermediateStops.remove(at: index)
+    func removeDestination(at index: Int) {
+        guard destinations.indices.contains(index) else { return }
+        destinations.remove(at: index)
+        findRoute()
+    }
+
+    func moveDestination(fromOffsets: IndexSet, toOffset: Int) {
+        destinations.move(fromOffsets: fromOffsets, toOffset: toOffset)
         findRoute()
     }
 
     // MARK: - Search Handling
     func onSearchQueryChanged(_ newQuery: String) {
-        searchService.updateQueryFragment(newQuery)
+        let reference = locationService.userLocation ?? startPoint?.coordinate
+        searchService.updateQueryFragment(newQuery, referenceLocation: reference)
     }
 
     func selectCurrentLocationAsStart() {
@@ -87,23 +92,21 @@ final class MapViewModel {
         findRoute()
     }
 
-    func selectSearchResult(_ completion: MKLocalSearchCompletion) {
+    func selectSearchResult(_ item: SearchResultItem) {
         Task {
             do {
-                let resolved = try await searchService.resolveLocation(from: completion)
+                let resolved = try await searchService.resolveLocation(from: item)
                 await MainActor.run {
                     guard let active = self.activeSelectionSheet else { return }
                     switch active {
                     case .start:
                         self.startPoint = resolved
-                    case .stop(let index):
-                        if index < self.intermediateStops.count {
-                            self.intermediateStops[index] = resolved
+                    case .destination(let index):
+                        if index < self.destinations.count {
+                            self.destinations[index] = resolved
                         } else {
-                            self.intermediateStops.append(resolved)
+                            self.destinations.append(resolved)
                         }
-                    case .destination:
-                        self.destinationPoint = resolved
                     }
 
                     self.closeSearch()
@@ -127,8 +130,7 @@ final class MapViewModel {
     func findRoute(drawerHeight: CGFloat = 280) {
         var orderedPoints: [RoutePoint] = []
         if let start = startPoint { orderedPoints.append(start) }
-        orderedPoints.append(contentsOf: intermediateStops)
-        if let dest = destinationPoint { orderedPoints.append(dest) }
+        orderedPoints.append(contentsOf: destinations)
 
         guard orderedPoints.count >= 2 else {
             tripResult = nil

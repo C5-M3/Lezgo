@@ -12,6 +12,7 @@ import MapKit
 struct MainMapScreen: View {
     @State private var viewModel = MapViewModel()
     @State private var drawerHeight: CGFloat = 280
+    @State private var selectedDetent: PresentationDetent = .height(280)
 
     var body: some View {
         @Bindable var boundViewModel = viewModel
@@ -24,14 +25,14 @@ struct MainMapScreen: View {
                     .tint(.blue)
             }
 
-            ForEach(Array(viewModel.intermediateStops.enumerated()), id: \.element.id) { index, stop in
-                Marker("\(index + 1). \(stop.name)", systemImage: "\(index + 1).circle", coordinate: stop.coordinate)
-                    .tint(.purple)
-            }
-
-            if let destination = viewModel.destinationPoint {
-                Marker(destination.name, coordinate: destination.coordinate)
-                    .tint(.red)
+            ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
+                if viewModel.destinations.count == 1 || index == viewModel.destinations.count - 1 {
+                    Marker(point.name, coordinate: point.coordinate)
+                        .tint(.red)
+                } else {
+                    Marker("\(index + 1). \(point.name)", systemImage: "\(index + 1).circle", coordinate: point.coordinate)
+                        .tint(.purple)
+                }
             }
 
             if let trip = viewModel.tripResult {
@@ -45,10 +46,16 @@ struct MainMapScreen: View {
             MapScaleView()
         }
         .sheet(isPresented: .constant(true)) {
-            RouteSummaryDrawer(viewModel: boundViewModel) { newHeight in
+            RouteSummaryDrawer(
+                viewModel: boundViewModel,
+                isFullPresentation: selectedDetent == .large
+            ) { newHeight in
                 if abs(self.drawerHeight - newHeight) > 10 {
                     withAnimation(.easeInOut(duration: 0.3)) {
                         self.drawerHeight = max(240, min(newHeight, 520))
+                        if selectedDetent != .large {
+                            self.selectedDetent = .height(self.drawerHeight)
+                        }
                     }
                     viewModel.adjustCameraToFitRoute(bottomPadding: self.drawerHeight)
                 }
@@ -56,8 +63,11 @@ struct MainMapScreen: View {
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
             }
-            // Dynamically tracks the exact computed height
-            .presentationDetents([.height(drawerHeight)])
+            // Only compact (height) and full (large) — no half pulls
+            .presentationDetents(
+                [.height(drawerHeight), .large],
+                selection: $selectedDetent
+            )
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
             .interactiveDismissDisabled()

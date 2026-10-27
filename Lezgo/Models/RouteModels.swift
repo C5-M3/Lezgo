@@ -29,22 +29,20 @@ struct RoutePoint: Identifiable, Equatable {
 
 enum ActivePointSelection: Identifiable, Equatable {
     case start
-    case stop(index: Int)
-    case destination
+    case destination(index: Int)
 
     var id: String {
         switch self {
         case .start: return "start"
-        case .stop(let index): return "stop_\(index)"
-        case .destination: return "destination"
+        case .destination(let index): return "destination_\(index)"
         }
     }
 
     var title: String {
         switch self {
         case .start: return "Starting Point"
-        case .stop(let index): return "Stop \(index + 1)"
-        case .destination: return "Destination"
+        case .destination(let index):
+            return index == 0 ? "Destination" : "Stop \(index + 1)"
         }
     }
 }

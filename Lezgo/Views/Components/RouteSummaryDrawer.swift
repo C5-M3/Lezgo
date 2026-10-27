@@ -10,6 +10,7 @@ import SwiftUI
 
 struct RouteSummaryDrawer: View {
     @Bindable var viewModel: MapViewModel
+    var isFullPresentation: Bool = false
     var onHeightChanged: (CGFloat) -> Void
 
     var body: some View {
@@ -21,8 +22,8 @@ struct RouteSummaryDrawer: View {
                         viewModel.activeSelectionSheet = .start
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: "circle.circle.fill")
-                                .foregroundStyle(.blue)
+                            Image(systemName: "location.fill")
+                                .foregroundStyle(.secondary)
                             Text(viewModel.startPoint?.name ?? "Choose Starting Point...")
                                 .font(.body)
                                 .foregroundStyle(viewModel.startPoint == nil ? .secondary : .primary)
@@ -30,82 +31,80 @@ struct RouteSummaryDrawer: View {
                             Spacer()
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
-                // Section 2: Destination & Intermediate Stops
-                Section("Destination") {
-                    ForEach(Array(viewModel.intermediateStops.enumerated()), id: \.element.id) { index, stop in
+                // Section 2: Destinations (unified hierarchy)
+                Section("Destinations") {
+                    ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
                         HStack(spacing: 12) {
-                            Image(systemName: "\(index + 1).circle.fill")
-                                .foregroundStyle(.purple)
+                            Image(systemName: "mappin")
+                                .foregroundStyle(.secondary)
 
                             Button {
-                                viewModel.activeSelectionSheet = .stop(index: index)
+                                viewModel.activeSelectionSheet = .destination(index: index)
                             } label: {
-                                Text(stop.name)
+                                Text(point.name)
                                     .font(.body)
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
                             }
+                            .buttonStyle(.plain)
 
                             Spacer()
-
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
-                                viewModel.removeStop(at: index)
+                                viewModel.removeDestination(at: index)
                             } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
+                                Label("Delete", systemImage: "trash")
                             }
-                            .buttonStyle(.borderless)
                         }
                     }
-
-                    if viewModel.destinationPoint != nil {
-                        Button {
-                            viewModel.addStop()
-                        } label: {
-                            Label("Add Stop", systemImage: "plus.circle")
-                                .font(.body)
+                    .onMove { fromOffsets, toOffset in
+                        if isFullPresentation {
+                            viewModel.moveDestination(fromOffsets: fromOffsets, toOffset: toOffset)
                         }
                     }
 
                     Button {
-                        viewModel.activeSelectionSheet = .destination
+                        viewModel.addDestination()
                     } label: {
                         HStack(spacing: 12) {
-                            Image(systemName: "mappin.circle.fill")
-                                .foregroundStyle(.red)
-                            Text(viewModel.destinationPoint?.name ?? "Where to?")
+                            Image(systemName: "plus")
+                                .foregroundStyle(.secondary)
+                            Text("Add...")
                                 .font(.body)
-                                .foregroundStyle(viewModel.destinationPoint == nil ? .secondary : .primary)
-                                .lineLimit(1)
+                                .foregroundStyle(.secondary)
                             Spacer()
                         }
                     }
+                    .buttonStyle(.plain)
                 }
 
-                // Section 3: Summary Metrics
-                if viewModel.isLoadingRoute {
-                    HStack {
-                        Spacer()
-                        ProgressView("Calculating optimal route...")
-                        Spacer()
-                    }
-                } else if let trip = viewModel.tripResult {
-                    Section("Trip Summary") {
-                        LabeledContent("Total Distance", value: String(format: "%.1f km", trip.totalDistance / 1000))
-                        LabeledContent("Estimated Time", value: "\(Int(trip.totalDuration / 60)) min")
+                // Section 3: Summary Metrics (shown only when pulled to full)
+                if isFullPresentation {
+                    if viewModel.isLoadingRoute {
+                        HStack {
+                            Spacer()
+                            ProgressView("Calculating optimal route...")
+                            Spacer()
+                        }
+                    } else if let trip = viewModel.tripResult {
+                        Section("Trip Summary") {
+                            LabeledContent("Total Distance", value: String(format: "%.1f km", trip.totalDistance / 1000))
+                            LabeledContent("Estimated Time", value: "\(Int(trip.totalDuration / 60)) min")
+                        }
                     }
                 }
             }
-            .scrollDisabled(true) // Keeps form tightly fitted to its content rows
+            .environment(\.editMode, isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive))
             .readHeight { calculatedHeight in
                 // Add top navigation bar buffer (~44pt)
                 onHeightChanged(calculatedHeight + 50)
             }
-            .navigationTitle("Lezgo")
+            .navigationTitle("Set Route")
             .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
-

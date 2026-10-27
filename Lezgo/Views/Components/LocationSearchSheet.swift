@@ -25,7 +25,7 @@ struct LocationSearchSheet: View {
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "location.fill")
-                                    .foregroundStyle(.tint)
+                                    .foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Current Location")
                                         .font(.body)
@@ -34,8 +34,10 @@ struct LocationSearchSheet: View {
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }
+                                Spacer()
                             }
                         }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -53,18 +55,39 @@ struct LocationSearchSheet: View {
                         Button {
                             viewModel.selectSearchResult(result)
                         } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(result.title)
-                                    .font(.body)
-                                    .foregroundStyle(.primary)
+                            HStack(alignment: .center, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(result.title)
+                                        .font(.body)
+                                        .foregroundStyle(.primary)
+                                        .lineLimit(1)
 
-                                if !result.subtitle.isEmpty {
-                                    Text(result.subtitle)
-                                        .font(.caption)
+                                    if !result.subtitle.isEmpty {
+                                        Text(result.subtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(2)
+                                    }
+                                }
+
+                                Spacer()
+
+                                if let meters = result.distanceInMeters {
+                                    Text(meters >= 1000 ? String(format: "%.1f km", meters / 1000.0) : String(format: "%.0f m", meters))
+                                        .font(.subheadline)
                                         .foregroundStyle(.secondary)
+                                        .transition(.opacity)
+                                } else if result.isCalculatingDistance {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(Color.secondary.opacity(0.2))
+                                        .frame(width: 44, height: 14)
+                                        .redacted(reason: .placeholder)
+                                        .transition(.opacity)
                                 }
                             }
                         }
+                        .buttonStyle(.plain)
+                        .animation(.easeInOut(duration: 0.25), value: result.distanceInMeters)
                     }
                 }
             }
