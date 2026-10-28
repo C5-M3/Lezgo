@@ -23,6 +23,7 @@ struct TripMapViewModelTests {
             myParticipantID: me,
             tripService: service ?? MockTripService(states: states),
             navigator: navigator,
+            streetNameService: MockStreetNameService(),
             clock: { Fixtures.now }
         )
     }

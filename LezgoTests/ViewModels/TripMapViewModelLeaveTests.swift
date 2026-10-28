@@ -19,6 +19,7 @@ struct TripMapViewModelLeaveTests {
             myParticipantID: me,
             tripService: service ?? MockTripService(states: states),
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
             clock: { Fixtures.now }
         )
     }
@@ -271,7 +272,8 @@ struct TripMapViewModelLeaveTests {
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.budiID,
             tripService: agus,
-            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService()
         )
         let open = Task { await viewModel.Start() }
         while viewModel.isLoading { await Task.yield() }
@@ -292,7 +294,8 @@ struct TripMapViewModelLeaveTests {
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.budiID,
             tripService: agus,
-            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService()
         )
         let open = Task { await viewModel.Start() }
         try await Task.sleep(for: .milliseconds(20))

@@ -19,6 +19,7 @@ struct TripMapViewModelArrivalTests {
             myParticipantID: me,
             tripService: MockTripService(states: states),
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
             clock: { Fixtures.now }
         )
     }

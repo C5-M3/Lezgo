@@ -26,6 +26,8 @@ final class TripMapViewModel {
     private(set) var leaveErrorMessage: String?
     /// `true` while an exit or end request is on its way; the card's buttons are disabled meanwhile.
     private(set) var isLeaving = false
+    /// The car whose status card is open, or `nil` while it is closed.
+    private(set) var selectedCarID: UUID?
     /// When the latest state arrived; offline cars are judged against this time.
     private var updatedAt: Date?
 
@@ -34,6 +36,7 @@ final class TripMapViewModel {
     private let tripID: UUID
     private let tripService: any TripService
     private let navigator: any TripMapNavigator
+    private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     private let locationSharer: LocationSharer?
     private let clock: () -> Date
@@ -43,6 +46,7 @@ final class TripMapViewModel {
         myParticipantID: UUID,
         tripService: any TripService,
         navigator: any TripMapNavigator,
+        streetNameService: any StreetNameService,
         locationSharer: LocationSharer? = nil,
         clock: @escaping () -> Date = { .now }
     ) {
@@ -50,6 +54,7 @@ final class TripMapViewModel {
         self.myParticipantID = myParticipantID
         self.tripService = tripService
         self.navigator = navigator
+        self.streetNameService = streetNameService
         self.locationSharer = locationSharer
         self.clock = clock
     }
@@ -90,6 +95,16 @@ final class TripMapViewModel {
 
     var myCoordinate: Coordinate? {
         state?.participants.first { $0.id == myParticipantID }?.coordinate
+    }
+
+    /// Where the camera stays while it follows a car, or `nil` while it does not follow one.
+    var followedCoordinate: Coordinate? {
+        nil
+    }
+
+    /// The status card of the tapped car, or `nil` while no car is tapped.
+    var selectedCarStatus: TripMapCarStatus? {
+        nil
     }
 
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
@@ -213,6 +228,15 @@ final class TripMapViewModel {
         cameraMode = .free
     }
 
+    /// Opens the status card of a tapped car, or closes it with `nil` (tap elsewhere or swipe down).
+    func SelectCar(_ carID: UUID?) {}
+
+    /// The follow button on the car status card.
+    func FollowSelectedCar() {}
+
+    /// Looks up the street and time left of the tapped car.
+    func RefreshSelectedCarStatus() async {}
+
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
     private func RefreshGuidance() async {
@@ -227,6 +251,8 @@ final class TripMapViewModel {
     enum CameraMode: Hashable {
         /// The camera stays on this phone's car as it moves.
         case followMyCar
+        /// The camera stays on a tapped car as it moves (the follow button on its status card).
+        case followCar(UUID)
         /// The camera shows the whole route; it no longer moves with the car.
         case wholeRoute
         /// The person moved the map by hand; the camera stays where they left it.

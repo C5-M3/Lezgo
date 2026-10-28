@@ -24,6 +24,7 @@ struct SyncCheckMapView: View {
                     myParticipantID: myParticipantID,
                     tripService: tripService,
                     navigator: SimulatedTripMapNavigator(),
+                    streetNameService: LiveStreetNameService(),
                     locationSharer: LocationSharer(
                         tripService: tripService,
                         locationProvider: LiveLocationProvider(),

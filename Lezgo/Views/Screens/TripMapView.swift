@@ -183,7 +183,7 @@ struct TripMapView: View {
         case .wholeRoute:
             guard viewModel.route.isEmpty == false else { return nil }
             return .rect(RouteRect())
-        case .free:
+        case .followCar, .free:
             return nil
         }
     }
