@@ -18,7 +18,7 @@ struct InviteSheetView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack {
                 Button(action: CopyCode) {
                     RoomCodeView(roomCode: viewModel.roomCode, isLoaded: viewModel.canShareInvite, didCopy: didCopy)
                 }
@@ -44,8 +44,7 @@ struct InviteSheetView: View {
                 .controlSize(.large)
             }
             .disabled(!viewModel.canShareInvite)
-            .padding(.horizontal)
-            .padding(.vertical, 24)
+            .padding()
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
@@ -93,7 +92,7 @@ private struct RoomCodeView: View {
         }
         .foregroundStyle(.primary)
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+        .padding(.vertical)
         .background(Color(uiColor: .systemGray4), in: .rect(cornerRadius: 16))
         .contentShape(.rect(cornerRadius: 16))
     }
