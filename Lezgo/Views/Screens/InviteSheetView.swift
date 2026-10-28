@@ -12,39 +12,43 @@ struct InviteSheetView: View {
     @State private var didCopy = false
     /// Goes up with every copy, so a new tap restarts the 2 seconds that "Copied" stays on screen.
     @State private var copyCount = 0
+    /// The sheet is as tall as its content, like the lo-fi, and grows with Dynamic Type.
+    @State private var contentHeight: CGFloat = 270
 
     var body: some View {
         ScrollView {
-            VStack {
-                RoomCodeView(roomCode: viewModel.roomCode, isLoaded: viewModel.canShareInvite)
+            VStack(spacing: 20) {
                 Button(action: CopyCode) {
-                    Label {
-                        Text(didCopy ? LocalizedStringResource.tripRoomCopied : .tripRoomCopyCode)
-                    } icon: {
-                        Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                    .frame(maxWidth: .infinity)
+                    RoomCodeView(roomCode: viewModel.roomCode, isLoaded: viewModel.canShareInvite, didCopy: didCopy)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .accessibilityHint(Text(.tripRoomCopyCode))
+                .contextMenu {
+                    Button(.tripRoomCopyCode, systemImage: "doc.on.doc", action: CopyCode)
+                }
                 HStack {
                     VStack { Divider() }
-                    Text("or").font(.subheadline).foregroundStyle(.secondary)
+                    Text("or").font(.subheadline)
                     VStack { Divider() }
                 }
                 ShareLink(item: viewModel.inviteURL, message: Text(viewModel.shareMessage)) {
                     Label("Share Link", systemImage: "link")
+                        .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
+                .foregroundStyle(.primary)
                 .buttonStyle(.borderedProminent)
+                // Opaque, like the code box, so nothing behind the sheet shows through and lowers the contrast.
+                .tint(Color(uiColor: .systemGray4))
+                .controlSize(.large)
             }
-            .font(.headline)
-            .controlSize(.large)
             .disabled(!viewModel.canShareInvite)
-            .padding()
+            .padding(.horizontal)
+            .padding(.vertical, 24)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
         .sensoryFeedback(.success, trigger: copyCount)
         .task(id: copyCount) {
@@ -64,21 +68,42 @@ struct InviteSheetView: View {
 private struct RoomCodeView: View {
     let roomCode: String
     let isLoaded: Bool
+    let didCopy: Bool
 
     var body: some View {
-        Group {
+        VStack(spacing: 4) {
             if isLoaded {
                 Text(roomCode)
                     .font(.system(.largeTitle, design: .rounded, weight: .heavy).monospacedDigit())
                     .tracking(2)
                     .accessibilityLabel("Room code: \(roomCode.map(String.init).joined(separator: ", "))")
+                // Always laid out, so the box does not jump when "Copied" appears. VoiceOver hears the announcement.
+                if didCopy {
+                    CopiedLabel()
+                } else {
+                    CopiedLabel().hidden()
+                }
             } else {
                 ProgressView()
             }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .background(.fill.tertiary, in: .rect(cornerRadius: 16))
+        .foregroundStyle(.primary)
+        .frame(maxWidth: .infinity, minHeight: 110)
+        .padding(.vertical, 8)
+        .background(Color(uiColor: .systemGray4), in: .rect(cornerRadius: 16))
+        .contentShape(.rect(cornerRadius: 16))
+    }
+}
+
+private struct CopiedLabel: View {
+    var body: some View {
+        Label {
+            Text(.tripRoomCopied)
+        } icon: {
+            Image(systemName: "checkmark")
+        }
+        .font(.subheadline.weight(.semibold))
+        .accessibilityHidden(true)
     }
 }
 

@@ -640,7 +640,7 @@
       }
     },
     "tripRoomCopied": {
-      "comment": "Invite sheet: the Copy Code button for 2 seconds after the room code was copied (US-04).",
+      "comment": "Invite sheet: shown in the room code box for 2 seconds after the code was copied, and announced by VoiceOver (US-04).",
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -652,7 +652,7 @@
       }
     },
     "tripRoomCopyCode": {
-      "comment": "Invite sheet: button that copies the 6-digit room code (US-04).",
+      "comment": "Invite sheet: the room code's context menu item that copies the 6-digit code, also its VoiceOver hint (US-04).",
       "extractionState": "manual",
       "localizations": {
         "en": {
