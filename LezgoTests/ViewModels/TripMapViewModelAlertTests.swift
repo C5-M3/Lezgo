@@ -195,7 +195,7 @@ struct TripMapViewModelAlertTests {
         ]
         let service = MockTripService(states: states)
         let viewModel = MakeViewModel(me: Fixtures.agusID, service: service)
-        var bannerAfterClosing: TripMapViewModel.AlertBanner?
+        var bannerAfterClosing: TripMapAlerts.Banner?
         service.beforeEachState = { index in
             if index == 1 { viewModel.DismissAlertBanner() }
             if index == 2 { bannerAfterClosing = viewModel.alertBanner }
