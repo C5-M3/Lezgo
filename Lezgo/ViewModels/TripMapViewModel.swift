@@ -48,6 +48,9 @@ final class TripMapViewModel {
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     private let locationSharer: LocationSharer?
+    /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
+    /// and the simulated drive, where the leader never leaves the route).
+    private let reroute: TripMapReroute?
     private let clock: () -> Date
 
     init(
@@ -57,6 +60,7 @@ final class TripMapViewModel {
         navigator: any TripMapNavigator,
         streetNameService: any StreetNameService,
         locationSharer: LocationSharer? = nil,
+        directionsService: (any DirectionsService)? = nil,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
@@ -65,6 +69,9 @@ final class TripMapViewModel {
         self.navigator = navigator
         self.streetNameService = streetNameService
         self.locationSharer = locationSharer
+        reroute = directionsService.map {
+            TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
+        }
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
@@ -171,6 +178,8 @@ final class TripMapViewModel {
     /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
     private func FollowTrip() async {
         for await newState in tripService.TripUpdates(tripID: tripID) {
+            // A late fetch can still carry the old route; phones never go back to an older version.
+            if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
             state = newState
             updatedAt = clock()
             NoticeTripClosed(newState)
@@ -178,6 +187,7 @@ final class TripMapViewModel {
             CloseCardOfGoneCar()
             await UpdateMyAlert()
             await PassCheckpointIfReached()
+            await reroute?.Update(newState, myParticipantID: myParticipantID)
             await RefreshGuidance()
         }
     }

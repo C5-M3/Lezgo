@@ -10,8 +10,9 @@ import Foundation
 
 /// A `TripService` whose live updates are a fixed list of states, sent at once and then finished.
 ///
-/// "Exit Trip", "End Trip", saved alerts, checkpoint moves and saved routes are recorded, and `failure` makes leaving throw. The
-/// trip map uses no other calls, so they fail with `.notAllowed`; tests that need them use `InMemoryTripService`.
+/// "Exit Trip", "End Trip", saved alerts, checkpoint moves and saved routes are recorded, and `failure` makes leaving
+/// throw. The trip map uses no other calls, so they fail with `.notAllowed`; tests that need them use
+/// `InMemoryTripService`.
 final class MockTripService: TripService {
     private let states: [TripState]
     private var continuation: AsyncStream<TripState>.Continuation?
