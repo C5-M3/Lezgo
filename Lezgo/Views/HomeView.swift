@@ -111,11 +111,13 @@ struct HomeView: View {
             if isJoinTripPresented {
                 JoinTripView(
                     isPresented: $isJoinTripPresented,
-                    viewModel: JoinTripViewModel(roomCode: viewModel.inviteRoomCode ?? ""),
-                    onEnter: { code in
-                        Task {
-                            _ = await viewModel.JoinTrip(roomCode: code, tripService: tripService)
-                        }
+                    viewModel: JoinTripViewModel(
+                        roomCode: viewModel.inviteRoomCode ?? "",
+                        tripService: tripService,
+                        storage: viewModel.activeTripStorage
+                    ),
+                    onNavigateToTripRoom: { session in
+                        viewModel.onTripJoined(session)
                     }
                 )
                 // A second invite link while the dialog is open replaces the code instead of keeping the old one.

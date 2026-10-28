@@ -20,6 +20,7 @@ struct JoinTripViewModelTest {
         #expect(viewModel.isValidCode == false)
         #expect(viewModel.errorMessage == nil)
         #expect(viewModel.isSubmitting == false)
+        #expect(viewModel.joinedSession == nil)
     }
 
     @Test("Room code should truncate to maximum of 6 digits")
@@ -57,23 +58,71 @@ struct JoinTripViewModelTest {
         #expect(viewModel.isValidCode == true)
     }
 
-    @Test("Submit code with invalid code should fail and set error message")
-    func submitInvalidCode() async {
+    @Test("Submit code with invalid format (< 6 digits) should fail and set error message")
+    func submitInvalidCodeFormat() async {
         let viewModel = JoinTripViewModel()
         viewModel.roomCode = "123"
 
         let success = await viewModel.submitCode()
         #expect(success == false)
         #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.joinedSession == nil)
     }
 
-    @Test("Submit code with valid code should succeed")
-    func submitValidCode() async {
-        let viewModel = JoinTripViewModel()
-        viewModel.roomCode = "654321"
+    @Test("Submit code when trip does not exist in database should display not found error")
+    func submitNonExistentCode() async {
+        let service = SampleTrip.Service(status: .lobby)
+        let viewModel = JoinTripViewModel(roomCode: "000000", tripService: service)
+
+        let success = await viewModel.submitCode()
+        #expect(success == false)
+        #expect(viewModel.errorMessage == "No trip found with this code.")
+        #expect(viewModel.joinedSession == nil)
+    }
+
+    @Test("Submit code when trip has already begun should display already begun error")
+    func submitCodeWhenTripAlreadyBegun() async {
+        let service = SampleTrip.Service(status: .inTrip)
+        let viewModel = JoinTripViewModel(roomCode: SampleTrip.roomCode, tripService: service)
+
+        let success = await viewModel.submitCode()
+        #expect(success == false)
+        #expect(viewModel.errorMessage == "This trip has already begun.")
+        #expect(viewModel.joinedSession == nil)
+    }
+
+    @Test("Submit code when trip has already ended should display already ended error")
+    func submitCodeWhenTripEnded() async {
+        let service = SampleTrip.Service(status: .ended)
+        let viewModel = JoinTripViewModel(roomCode: SampleTrip.roomCode, tripService: service)
+
+        let success = await viewModel.submitCode()
+        #expect(success == false)
+        #expect(viewModel.errorMessage == "This trip has already ended.")
+        #expect(viewModel.joinedSession == nil)
+    }
+
+    @Test("Submit code with valid code in lobby should succeed and prepare session for Trip Room")
+    func submitValidCodeInLobby() async {
+        let service = SampleTrip.Service(status: .lobby)
+        let viewModel = JoinTripViewModel(roomCode: SampleTrip.roomCode, tripService: service)
 
         let success = await viewModel.submitCode()
         #expect(success == true)
+        #expect(viewModel.errorMessage == nil)
+        #expect(viewModel.joinedSession != nil)
+        #expect(viewModel.joinedSession?.state.trip.status == .lobby)
+        #expect(viewModel.joinedSession?.state.trip.roomCode == SampleTrip.roomCode)
+    }
+
+    @Test("Editing room code clears any existing error message")
+    func editingRoomCodeClearsError() async {
+        let viewModel = JoinTripViewModel()
+        viewModel.roomCode = "123"
+        _ = await viewModel.submitCode()
+        #expect(viewModel.errorMessage != nil)
+
+        viewModel.roomCode = "1234"
         #expect(viewModel.errorMessage == nil)
     }
 
@@ -87,5 +136,6 @@ struct JoinTripViewModelTest {
         #expect(viewModel.roomCode.isEmpty)
         #expect(viewModel.errorMessage == nil)
         #expect(viewModel.isSubmitting == false)
+        #expect(viewModel.joinedSession == nil)
     }
 }
