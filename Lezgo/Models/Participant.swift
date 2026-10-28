@@ -1,3 +1,10 @@
+//
+//  Participant.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// One person in a trip, which is also one car and one phone.

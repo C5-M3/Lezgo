@@ -1,3 +1,10 @@
+//
+//  MotionState.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 /// Whether a car is moving. A car is stopped after speed 0 for 30 seconds.
 /// The raw values are the strings stored in CloudKit.
 enum MotionState: String, Hashable, Codable, CaseIterable {

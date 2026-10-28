@@ -200,6 +200,7 @@ Lezgo/
 │   └── Components/   Reusable views used in 2+ places
 ├── Services/         Networking, persistence and system access behind protocols
 ├── Extensions/       Small extensions on Apple types
+├── Debug/            Developer tools for debug builds only: DebugScreen, sample data, Sync Check
 └── Resources/        Assets.xcassets, Localizable.xcstrings
 LezgoTests/           Unit tests, mirroring the folders above
 LezgoUITests/         UI tests
@@ -211,7 +212,8 @@ LezgoUITests/         UI tests
 - Services are defined by a protocol (`AuthService`) with a real implementation (`LiveAuthService`) and a test fake (`MockAuthService`).
 - Trip data goes through the shared `TripService` and the models in `Models/` (decision record: [0017](docs/adr/0017-TripServiceContractFirst.md)). Do not define your own trip, participant or route types. A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer. `InMemoryTripService` runs every screen without iCloud in previews, `DebugScreen` and tests. [`CloudKit/TripSync.md`](CloudKit/TripSync.md) explains the models, the service and how sync works, with examples.
 - Models do not import SwiftUI.
-- One type per file. The file is named after the type.
+- Debug-only code (sample data, simulated drives, check screens) goes in `Debug/` and is wrapped in `#if DEBUG`; app code never uses it (decision record: [0018](docs/adr/0018-DebugToolsInTheirOwnFolder.md)).
+- One main type per file, named after the file. A small type used only by that type (an enum, a small struct) may stay in the same file, preferably nested: `TripMapViewModel.CameraMode` (decision record: [0019](docs/adr/0019-SmallTypesStayWithTheirOwner.md)). A type used by two or more types gets its own file.
 
 
 ## Naming

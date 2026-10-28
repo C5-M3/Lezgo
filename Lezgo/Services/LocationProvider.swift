@@ -1,3 +1,10 @@
+//
+//  LocationProvider.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 
 /// This phone's GPS readings while a trip is open.

@@ -1,3 +1,10 @@
+//
+//  TripMapViewModelLeaveTests.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 import Testing
 @testable import Lezgo
@@ -6,20 +13,18 @@ import Testing
 struct TripMapViewModelLeaveTests {
     private typealias Fixtures = TripMapFixtures
 
-    private func MakeViewModel(
-        _ snapshots: [TripMapSnapshot],
-        service: MockTripMapService? = nil
-    ) -> TripMapViewModel {
+    private func MakeViewModel(me: UUID, states: [TripState], service: MockTripService? = nil) -> TripMapViewModel {
         TripMapViewModel(
             tripID: Fixtures.tripID,
-            service: service ?? MockTripMapService(snapshots: snapshots),
+            myParticipantID: me,
+            tripService: service ?? MockTripService(states: states),
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
             clock: { Fixtures.now }
         )
     }
 
-    private func ArrivedSnapshot(me: UUID, citraMetres: Double) -> TripMapSnapshot {
-        Fixtures.Snapshot(me: me, cars: [
+    private func ArrivedState(citraMetres: Double) -> TripState {
+        Fixtures.State(cars: [
             Fixtures.CarNearDestination(id: Fixtures.agusID, name: "Agus", metres: 5),
             Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10),
             Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: citraMetres)
@@ -29,7 +34,7 @@ struct TripMapViewModelLeaveTests {
     // MARK: Asking
 
     @Test func MemberIsAskedToConfirmExit() async {
-        let viewModel = MakeViewModel([Fixtures.Snapshot(me: Fixtures.budiID)])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [Fixtures.State()])
         await viewModel.Start()
 
         viewModel.RequestLeave()
@@ -38,7 +43,7 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func LeaderIsWarnedThatNotEveryoneHasArrived() async {
-        let viewModel = MakeViewModel([ArrivedSnapshot(me: Fixtures.agusID, citraMetres: 500)])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [ArrivedState(citraMetres: 500)])
         await viewModel.Start()
 
         viewModel.RequestLeave()
@@ -47,7 +52,7 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func LeaderAfterEveryoneArrivedIsAskedPlainly() async {
-        let viewModel = MakeViewModel([ArrivedSnapshot(me: Fixtures.agusID, citraMetres: 10)])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [ArrivedState(citraMetres: 10)])
         await viewModel.Start()
 
         viewModel.RequestLeave()
@@ -56,8 +61,8 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func CancelChangesNothing() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
-        let viewModel = MakeViewModel([], service: service)
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
         await viewModel.Start()
 
         viewModel.RequestLeave()
@@ -71,8 +76,8 @@ struct TripMapViewModelLeaveTests {
     // MARK: Confirming
 
     @Test func MemberExitsAndTheMapCloses() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
-        let viewModel = MakeViewModel([], service: service)
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
 
@@ -84,8 +89,8 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func LeaderEndsTheTripForEveryone() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.agusID)])
-        let viewModel = MakeViewModel([], service: service)
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
 
@@ -97,9 +102,9 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func FailedExitKeepsTheMapOpenWithAMessage() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
+        let service = MockTripService(states: [Fixtures.State()])
         service.failure = .noNetwork
-        let viewModel = MakeViewModel([], service: service)
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
 
@@ -110,8 +115,8 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func DoubleTapOnConfirmLeavesOnce() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
-        let viewModel = MakeViewModel([], service: service)
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
 
@@ -125,8 +130,8 @@ struct TripMapViewModelLeaveTests {
     /// The alert closes before its Confirm task runs, and closing it clears `leaveConfirmation`; the exit must
     /// still happen.
     @Test func ConfirmAfterTheAlertClosedStillExits() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
-        let viewModel = MakeViewModel([], service: service)
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
         viewModel.CancelLeave()
@@ -139,9 +144,9 @@ struct TripMapViewModelLeaveTests {
 
     /// The alert is closed while the request is on its way, so the red button can be tapped again.
     @Test func AskingAgainWhileLeavingDoesNothing() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
-        let viewModel = MakeViewModel([], service: service)
-        var questionWhileLeaving: TripMapLeaveConfirmation?
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
+        var questionWhileLeaving: TripMapViewModel.LeaveConfirmation?
         service.whileLeaving = {
             viewModel.RequestLeave()
             questionWhileLeaving = viewModel.leaveConfirmation
@@ -157,9 +162,9 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func ErrorMessageCanBeDismissed() async {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: Fixtures.budiID)])
+        let service = MockTripService(states: [Fixtures.State()])
         service.failure = .noNetwork
-        let viewModel = MakeViewModel([], service: service)
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [], service: service)
         await viewModel.Start()
         viewModel.RequestLeave()
         await viewModel.ConfirmLeave(.exitTrip)
@@ -175,16 +180,16 @@ struct TripMapViewModelLeaveTests {
     /// after it handled that update, before the request returned.
     private func CloseReasonWhileLeaving(
         me: UUID,
-        update: TripMapSnapshot,
-        confirmation: TripMapLeaveConfirmation
-    ) async -> TripMapCloseReason? {
-        let service = MockTripMapService(snapshots: [Fixtures.Snapshot(me: me)])
-        service.snapshotWhileLeaving = update
-        let viewModel = MakeViewModel([], service: service)
-        var reasonWhileLeaving: TripMapCloseReason?
+        update: TripState,
+        confirmation: TripMapViewModel.LeaveConfirmation
+    ) async -> TripMapViewModel.CloseReason? {
+        let service = MockTripService(states: [Fixtures.State()])
+        service.stateWhileLeaving = update
+        let viewModel = MakeViewModel(me: me, states: [], service: service)
+        var reasonWhileLeaving: TripMapViewModel.CloseReason?
         service.whileLeaving = {
             // Waiting for the update, not for a fixed time, so the check never runs before the map saw it.
-            while viewModel.snapshot != update { await Task.yield() }
+            while viewModel.state != update { await Task.yield() }
             reasonWhileLeaving = viewModel.closeReason
         }
         let open = Task { await viewModel.Start() }
@@ -202,7 +207,10 @@ struct TripMapViewModelLeaveTests {
 
     @Test(.timeLimit(.minutes(1)))
     func MemberExitingIsNotToldTheyWereRemoved() async {
-        let update = Fixtures.Snapshot(me: Fixtures.budiID, memberIDs: [Fixtures.agusID, Fixtures.citraID])
+        let update = Fixtures.State(cars: [
+            Fixtures.Car(id: Fixtures.agusID, name: "Agus"),
+            Fixtures.Car(id: Fixtures.citraID, name: "Citra")
+        ])
 
         let reason = await CloseReasonWhileLeaving(me: Fixtures.budiID, update: update, confirmation: .exitTrip)
 
@@ -211,7 +219,7 @@ struct TripMapViewModelLeaveTests {
 
     @Test(.timeLimit(.minutes(1)))
     func LeaderEndingIsNotToldTheLeaderEndedTheTrip() async {
-        let update = Fixtures.Snapshot(me: Fixtures.agusID, status: .ended)
+        let update = Fixtures.State(status: .ended)
 
         let reason = await CloseReasonWhileLeaving(
             me: Fixtures.agusID,
@@ -224,10 +232,7 @@ struct TripMapViewModelLeaveTests {
 
     /// The end request reached the cloud but failed on the way back, so only the update tells the leader it ended.
     @Test func LeaderSeeingTheirOwnEndedTripClosesWithoutAMessage() async {
-        let viewModel = MakeViewModel([
-            Fixtures.Snapshot(me: Fixtures.agusID),
-            Fixtures.Snapshot(me: Fixtures.agusID, status: .ended)
-        ])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [Fixtures.State(), Fixtures.State(status: .ended)])
 
         await viewModel.Start()
 
@@ -238,10 +243,7 @@ struct TripMapViewModelLeaveTests {
 
     @Test(arguments: [TripStatus.ended, .cancelled])
     func LeaderEndingTheTripClosesEveryMembersMap(status: TripStatus) async {
-        let viewModel = MakeViewModel([
-            Fixtures.Snapshot(me: Fixtures.budiID),
-            Fixtures.Snapshot(me: Fixtures.budiID, status: status)
-        ])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [Fixtures.State(), Fixtures.State(status: status)])
 
         await viewModel.Start()
 
@@ -249,10 +251,11 @@ struct TripMapViewModelLeaveTests {
     }
 
     @Test func RemovedMemberIsTold() async {
-        let viewModel = MakeViewModel([
-            Fixtures.Snapshot(me: Fixtures.budiID),
-            Fixtures.Snapshot(me: Fixtures.budiID, memberIDs: [Fixtures.agusID, Fixtures.citraID])
+        let withoutBudi = Fixtures.State(cars: [
+            Fixtures.Car(id: Fixtures.agusID, name: "Agus"),
+            Fixtures.Car(id: Fixtures.citraID, name: "Citra")
         ])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, states: [Fixtures.State(), withoutBudi])
 
         await viewModel.Start()
 
@@ -266,7 +269,8 @@ struct TripMapViewModelLeaveTests {
         let agus = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
         let viewModel = TripMapViewModel(
             tripID: SampleTrip.tripID,
-            service: TripServiceMapAdapter(tripService: agus, myParticipantID: SampleTrip.budiID),
+            myParticipantID: SampleTrip.budiID,
+            tripService: agus,
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
         )
         let open = Task { await viewModel.Start() }
@@ -286,7 +290,8 @@ struct TripMapViewModelLeaveTests {
         let agus = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
         let viewModel = TripMapViewModel(
             tripID: SampleTrip.tripID,
-            service: TripServiceMapAdapter(tripService: agus, myParticipantID: SampleTrip.budiID),
+            myParticipantID: SampleTrip.budiID,
+            tripService: agus,
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
         )
         let open = Task { await viewModel.Start() }

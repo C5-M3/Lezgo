@@ -1,3 +1,10 @@
+//
+//  TripMapArrival.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 
 /// Who has arrived at the destination (`specs/UserStories.md` → US-07, "Arrive").
@@ -11,16 +18,17 @@ struct TripMapArrival: Hashable {
     var hasArrived: Bool
     var everyoneHasArrived: Bool
 
-    static func Check(_ snapshot: TripMapSnapshot, at date: Date) -> TripMapArrival {
-        guard let destination = snapshot.waypoints.first(where: { $0.kind == .destination }) else {
+    static func Check(_ state: TripState, myParticipantID: UUID, at date: Date) -> TripMapArrival {
+        guard let destination = state.destination else {
             return TripMapArrival(hasArrived: false, everyoneHasArrived: false)
         }
-        let cars = Dictionary(snapshot.cars.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        let isThere = { (car: TripMapCar) in car.coordinate.Distance(to: destination.coordinate) <= radius }
-        let hasArrived = cars[snapshot.myParticipantID].map(isThere) ?? false
-        let everyoneHasArrived = snapshot.memberIDs.isEmpty == false && snapshot.memberIDs.allSatisfy { memberID in
-            guard let car = cars[memberID] else { return false }
-            return car.IsOnline(at: date) && isThere(car)
+        let isThere = { (participant: Participant) in
+            guard let coordinate = participant.coordinate else { return false }
+            return coordinate.Distance(to: destination.coordinate) <= radius
+        }
+        let hasArrived = state.participants.first { $0.id == myParticipantID }.map(isThere) ?? false
+        let everyoneHasArrived = state.participants.isEmpty == false && state.participants.allSatisfy { participant in
+            participant.IsOnline(at: date) && isThere(participant)
         }
         return TripMapArrival(hasArrived: hasArrived, everyoneHasArrived: everyoneHasArrived)
     }

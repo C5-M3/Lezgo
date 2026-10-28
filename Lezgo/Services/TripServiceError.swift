@@ -1,3 +1,10 @@
+//
+//  TripServiceError.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// Why a `TripService` call failed. Show `message` to the person; every case has a clear sentence.

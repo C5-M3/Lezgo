@@ -1,3 +1,10 @@
+//
+//  TripStatus.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 /// Where a trip is in its life (`specs/UserStories.md` → "Trip status").
 ///
 /// The raw values are the strings stored in CloudKit.

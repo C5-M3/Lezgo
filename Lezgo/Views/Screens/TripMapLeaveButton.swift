@@ -1,3 +1,10 @@
+//
+//  TripMapLeaveButton.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import SwiftUI
 
 /// The red button at the bottom of the trip map: "End Trip" for the leader, "Exit Trip" for a member. Both ask for

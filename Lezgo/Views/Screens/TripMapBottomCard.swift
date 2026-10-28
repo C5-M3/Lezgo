@@ -1,3 +1,10 @@
+//
+//  TripMapBottomCard.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
 /// The bottom card on the trip map: "To [destination]", the time left, and "End Trip" or "Exit Trip".

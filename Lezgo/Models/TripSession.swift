@@ -1,3 +1,10 @@
+//
+//  TripSession.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// The result of creating or joining a trip: the trip, and which participant is this phone.

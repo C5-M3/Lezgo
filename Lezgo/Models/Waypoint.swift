@@ -1,3 +1,10 @@
+//
+//  Waypoint.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// A start point, checkpoint or destination of a trip's route.

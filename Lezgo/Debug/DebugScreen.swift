@@ -1,3 +1,10 @@
+//
+//  DebugScreen.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 #if DEBUG
 import SwiftUI
 
@@ -38,16 +45,15 @@ import SwiftUI
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
-/// | `loadCheck` | Load Check: simulated cars saving and fetching every second against real iCloud (#69) | N |
 ///
 /// ## How to add your screen
 ///
 /// 1. Add a case named after your screen and its variant, for example `case tripRoomLeader`. The case name is the
 ///    name you pass after `-DebugScreen`.
 /// 2. Return your screen in `MakeView()`, built with simulated or mock data. Keep that data in your own
-///    `Simulated…` type inside `#if DEBUG` next to your screen's code, not in this file.
+///    `Simulated…` type in `Lezgo/Debug/`, inside `#if DEBUG`, not in this file.
 /// 3. Add a row to the table above. Keep the cases in the order of the app flow, so merges stay simple.
-/// 4. Add a test for your case to `LezgoTests/App/DebugScreenTests.swift`.
+/// 4. Add a test for your case to `LezgoTests/Debug/DebugScreenTests.swift`.
 ///
 /// Remove a case when its simulated data is deleted. Keep the enum while it still helps to open a screen directly
 /// for UI checks.
@@ -58,7 +64,6 @@ enum DebugScreen: String, CaseIterable {
     case tripMapMember
     case tripMapArrivedLeader
     case syncCheck
-    case loadCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
     static let launchArgument = "-DebugScreen"
@@ -82,15 +87,13 @@ enum DebugScreen: String, CaseIterable {
         case .draftTripLeader:
             DraftTripView.Simulated(isLeader: true)
         case .tripMapLeader:
-            TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID)
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
         case .tripMapMember:
-            TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
         case .tripMapArrivedLeader:
-            TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID, startSecond: 2_000)
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, startSecond: 2_000)
         case .syncCheck:
             SyncCheckView()
-        case .loadCheck:
-            LoadCheckView(viewModel: LoadCheckViewModel(database: LiveCloudDatabase()))
         }
     }
 }

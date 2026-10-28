@@ -1,3 +1,10 @@
+//
+//  InMemoryTripService.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// A complete `TripService` that keeps trips in an `InMemoryTripStore` instead of iCloud (ADR 0017).

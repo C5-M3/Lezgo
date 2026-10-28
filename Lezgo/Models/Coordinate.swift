@@ -1,3 +1,10 @@
+//
+//  Coordinate.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import CoreLocation
 
 /// A point on Earth, in degrees.

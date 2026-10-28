@@ -1,3 +1,10 @@
+//
+//  TripRoomViewModelTests.swift
+//  LezgoTests
+//
+//  Created by Oky Faishal on 25/10/26.
+//
+
 import Foundation
 import Testing
 @testable import Lezgo

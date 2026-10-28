@@ -1,3 +1,10 @@
+//
+//  InvalidTripRecord.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 /// A CloudKit record that is missing a field or holds a value the app cannot read.
 ///
 /// It points to a schema mismatch (a field renamed in one container but not in `CloudKit/Schema.ckdb`) or to a

@@ -6,29 +6,9 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct LezgoApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self
-        ])
-        // The app has a CloudKit entitlement for trip sync (ADR 0014). Without `.none`, SwiftData would also
-        // try to mirror this local store to the private database and fail on models CloudKit cannot store.
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false,
-            cloudKitDatabase: .none
-        )
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
-
     /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips sync through CloudKit
     /// (ADR 0014); previews and tests use `InMemoryTripService` instead.
     private let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
@@ -48,7 +28,6 @@ struct LezgoApp: App {
             HomeView()
             #endif
         }
-        .modelContainer(sharedModelContainer)
         .environment(\.tripService, tripService)
     }
 }

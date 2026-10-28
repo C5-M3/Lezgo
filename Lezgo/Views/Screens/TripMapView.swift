@@ -1,3 +1,10 @@
+//
+//  TripMapView.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import MapKit
 import SwiftUI
 
@@ -189,42 +196,3 @@ struct TripMapView: View {
         return rect.insetBy(dx: -rect.width * 0.15, dy: -rect.height * 0.15)
     }
 }
-
-#if DEBUG
-extension TripMapView {
-    /// The trip map playing `SimulatedTripMapDrive`, for previews and `DebugScreen`.
-    /// - Parameter startSecond: how far into the drive to start; a large value starts with the leader arrived.
-    static func Simulated(myParticipantID: UUID, startSecond: Int = 0) -> TripMapView {
-        TripMapView(
-            viewModel: TripMapViewModel(
-                tripID: SimulatedTripMapDrive.tripID,
-                service: SimulatedTripMapService(myParticipantID: myParticipantID, startSecond: startSecond),
-                navigator: SimulatedTripMapNavigator()
-            ),
-            onNewDestination: {}
-        )
-    }
-}
-
-#Preview("Leader") {
-    TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID)
-}
-
-#Preview("Member") {
-    TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
-}
-
-#Preview("Member, largest text") {
-    TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
-        .dynamicTypeSize(.accessibility5)
-}
-
-#Preview("Leader arrived") {
-    TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.agusID, startSecond: 2_000)
-}
-
-#Preview("Member, dark") {
-    TripMapView.Simulated(myParticipantID: SimulatedTripMapDrive.budiID)
-        .preferredColorScheme(.dark)
-}
-#endif

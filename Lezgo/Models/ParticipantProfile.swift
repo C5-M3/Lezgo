@@ -1,3 +1,10 @@
+//
+//  ParticipantProfile.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// The name and car a person shows to the group.

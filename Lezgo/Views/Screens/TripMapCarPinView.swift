@@ -1,3 +1,10 @@
+//
+//  TripMapCarPinView.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
 /// A car on the trip map. My car shows an arrow, the leader a crown, and other cars a car.
@@ -50,9 +57,9 @@ struct TripMapCarPinView: View {
 }
 
 #Preview("Every kind of car") {
-    let coordinate = TripMapCoordinate(latitude: 0, longitude: 0)
+    let coordinate = Coordinate(latitude: 0, longitude: 0)
     let pins = [
-        ("Budi", TripMapMotionState.driving, false, false, false),
+        ("Budi", MotionState.driving, false, false, false),
         ("Me", .driving, false, true, false),
         ("Agus", .driving, true, false, false),
         ("Dewi", .stopped, false, false, false),

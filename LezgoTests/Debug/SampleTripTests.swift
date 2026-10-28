@@ -1,3 +1,10 @@
+//
+//  SampleTripTests.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 #if DEBUG
 import Foundation
 import Testing
