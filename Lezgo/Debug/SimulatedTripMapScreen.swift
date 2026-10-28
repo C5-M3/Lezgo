@@ -27,7 +27,8 @@ struct SimulatedTripMapScreen: View {
                 tripID: SampleTrip.tripID,
                 myParticipantID: myParticipantID,
                 tripService: tripService,
-                navigator: SimulatedTripMapNavigator()
+                navigator: SimulatedTripMapNavigator(),
+                streetNameService: LiveStreetNameService()
             ),
             onNewDestination: {}
         )

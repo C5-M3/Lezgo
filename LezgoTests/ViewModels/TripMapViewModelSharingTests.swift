@@ -26,6 +26,7 @@ struct TripMapViewModelSharingTests {
             myParticipantID: SampleTrip.budiID,
             tripService: service,
             navigator: MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
             locationSharer: sharer
         )
 
@@ -57,6 +58,7 @@ struct TripMapViewModelSharingTests {
             myParticipantID: SampleTrip.budiID,
             tripService: service,
             navigator: MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
             locationSharer: sharer
         )
         let open = Task { await viewModel.Start() }
