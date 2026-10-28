@@ -279,6 +279,30 @@
         }
       }
     },
+    "tripMapCarDrivingAt": {
+      "comment": "Car status card (US-06): the tapped car is moving. The placeholder is the street, for example \"Driving at Ahmad Yani Street\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Driving at %@"
+          }
+        }
+      }
+    },
+    "tripMapCarLastSeen": {
+      "comment": "Car status card (US-06): the tapped car sent no location for more than 2 minutes. The placeholder is how long ago, for example \"Last seen 3 min ago\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last seen %@ ago"
+          }
+        }
+      }
+    },
     "tripMapCarLeader": {
       "comment": "VoiceOver status of a car pin: the car of the trip's leader.",
       "extractionState": "manual",
@@ -315,6 +339,18 @@
         }
       }
     },
+    "tripMapCarStoppedAt": {
+      "comment": "Car status card (US-06): the tapped car has had speed 0 for 30 seconds. The placeholder is the street, for example \"Stopped at Ahmad Yani Street\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped at %@"
+          }
+        }
+      }
+    },
     "tripMapCarYou": {
       "comment": "VoiceOver status of a car pin: this phone's own car.",
       "extractionState": "manual",
@@ -335,6 +371,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Checkpoint"
+          }
+        }
+      }
+    },
+    "tripMapCloseCarStatus": {
+      "comment": "VoiceOver action that closes the car status card on the trip map, like swiping it down (US-06).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
           }
         }
       }
@@ -443,6 +491,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Exit trip?"
+          }
+        }
+      }
+    },
+    "tripMapFollowCar": {
+      "comment": "Round button on the car status card that keeps the map centred on the tapped car while it moves (US-06). The placeholder is the driver's name, for example \"Follow Budi\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow %@"
           }
         }
       }

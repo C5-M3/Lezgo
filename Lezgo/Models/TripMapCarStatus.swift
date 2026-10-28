@@ -10,6 +10,9 @@ import Foundation
 /// What the car status card shows for a tapped car (`specs/UserStories.md` → US-06, "Car status"): the driver,
 /// what the car is doing and where, and its time left to the destination.
 struct TripMapCarStatus: Identifiable, Hashable {
+    /// "3 min" or "1 hr, 5 min", like the time left on the bottom card.
+    static let durationStyle = Duration.UnitsFormatStyle(allowedUnits: [.hours, .minutes], width: .abbreviated)
+
     let id: UUID
     var displayName: String
     var activity: Activity
@@ -18,7 +21,14 @@ struct TripMapCarStatus: Identifiable, Hashable {
 
     /// "Driving at Ahmad Yani Street", "Stopped at Ahmad Yani Street" or "Last seen 3 min ago".
     var statusLine: String {
-        ""
+        switch activity {
+        case .driving(let street?): String(localized: .tripMapCarDrivingAt(street))
+        case .driving(nil): String(localized: .tripMapCarDriving)
+        case .stopped(let street?): String(localized: .tripMapCarStoppedAt(street))
+        case .stopped(nil): String(localized: .tripMapCarStopped)
+        case .offline(let lastSeen):
+            String(localized: .tripMapCarLastSeen(lastSeen.formatted(Self.durationStyle)))
+        }
     }
 
     /// What the car is doing.

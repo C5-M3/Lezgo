@@ -30,6 +30,11 @@ final class TripMapViewModel {
     private(set) var selectedCarID: UUID?
     /// When the latest state arrived; offline cars are judged against this time.
     private var updatedAt: Date?
+    /// The last street and time left of every car tapped so far.
+    private var carLookups: [UUID: CarLookup] = [:]
+
+    /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
+    private static let carLookupInterval: TimeInterval = 30
 
     /// The participant who uses this phone.
     let myParticipantID: UUID
@@ -99,12 +104,32 @@ final class TripMapViewModel {
 
     /// Where the camera stays while it follows a car, or `nil` while it does not follow one.
     var followedCoordinate: Coordinate? {
-        nil
+        switch cameraMode {
+        case .followMyCar: myCoordinate
+        case .followCar(let carID): state?.participants.first { $0.id == carID }?.coordinate
+        case .wholeRoute, .free: nil
+        }
     }
 
     /// The status card of the tapped car, or `nil` while no car is tapped.
+    ///
+    /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
     var selectedCarStatus: TripMapCarStatus? {
-        nil
+        guard let updatedAt, let car = SelectedCar() else { return nil }
+        guard car.IsOnline(at: updatedAt) else {
+            let lastSeen = Duration.seconds(updatedAt.timeIntervalSince(car.lastSeenAt))
+            return TripMapCarStatus(id: car.id, displayName: car.displayName, activity: .offline(lastSeen: lastSeen))
+        }
+        let lookup = carLookups[car.id]
+        let activity: TripMapCarStatus.Activity = car.motionState == .driving
+            ? .driving(street: lookup?.street)
+            : .stopped(street: lookup?.street)
+        return TripMapCarStatus(
+            id: car.id,
+            displayName: car.displayName,
+            activity: activity,
+            timeLeft: lookup?.timeLeft
+        )
     }
 
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
@@ -147,6 +172,7 @@ final class TripMapViewModel {
             updatedAt = clock()
             NoticeTripClosed(newState)
             if closeReason != nil { return }
+            CloseCardOfGoneCar()
             await RefreshGuidance()
         }
     }
@@ -229,13 +255,63 @@ final class TripMapViewModel {
     }
 
     /// Opens the status card of a tapped car, or closes it with `nil` (tap elsewhere or swipe down).
-    func SelectCar(_ carID: UUID?) {}
+    ///
+    /// A camera that followed the car goes back to my car when its card closes. Tapping another car leaves the camera
+    /// where it is, so the map does not jump away from the car just tapped.
+    func SelectCar(_ carID: UUID?) {
+        guard carID != selectedCarID else { return }
+        if case .followCar(let followedID) = cameraMode, followedID != carID {
+            cameraMode = carID == nil ? .followMyCar : .free
+        }
+        selectedCarID = carID
+    }
 
-    /// The follow button on the car status card.
-    func FollowSelectedCar() {}
+    /// The follow button on the car status card: the camera stays on the tapped car as it moves.
+    func FollowSelectedCar() {
+        guard let selectedCarID else { return }
+        cameraMode = .followCar(selectedCarID)
+    }
 
-    /// Looks up the street and time left of the tapped car.
-    func RefreshSelectedCarStatus() async {}
+    /// Keeps the tapped car's street and time left up to date while its card is open. The view runs this in a task
+    /// tied to the tapped car, so it stops when the card closes or another car is tapped.
+    func TrackSelectedCar() async {
+        while Task.isCancelled == false {
+            await RefreshSelectedCarStatus()
+            try? await Task.sleep(for: .seconds(Self.carLookupInterval))
+        }
+    }
+
+    /// Looks up the tapped car's street and time left, at most every 30 seconds per car, because both need the
+    /// network and Apple limits how often an app may ask. A failed lookup keeps what was known before. An offline
+    /// car is not looked up: its position is out of date.
+    func RefreshSelectedCarStatus() async {
+        guard let state, let updatedAt, let car = SelectedCar(), let coordinate = car.coordinate,
+              car.IsOnline(at: updatedAt) else { return }
+        let now = clock()
+        if let lookedUpAt = carLookups[car.id]?.lookedUpAt, now.timeIntervalSince(lookedUpAt) < Self.carLookupInterval {
+            return
+        }
+        let street = try? await streetNameService.StreetName(at: coordinate)
+        let timeLeft = try? await navigator.Guidance(from: coordinate, along: state).timeLeft
+        let previous = carLookups[car.id]
+        carLookups[car.id] = CarLookup(
+            street: street ?? previous?.street,
+            timeLeft: timeLeft ?? previous?.timeLeft,
+            lookedUpAt: now
+        )
+    }
+
+    /// The tapped car, while it is still in the trip with a position on the map.
+    private func SelectedCar() -> Participant? {
+        guard let selectedCarID else { return nil }
+        return state?.participants.first { $0.id == selectedCarID && $0.coordinate != nil }
+    }
+
+    /// A tapped car that left the trip, or was removed, closes its card.
+    private func CloseCardOfGoneCar() {
+        guard selectedCarID != nil, SelectedCar() == nil else { return }
+        SelectCar(nil)
+    }
 
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
@@ -246,6 +322,13 @@ final class TripMapViewModel {
     }
 
     // MARK: Nested types
+
+    /// What was last looked up about a tapped car, and when.
+    private struct CarLookup {
+        var street: String?
+        var timeLeft: Duration?
+        var lookedUpAt: Date
+    }
 
     /// What the trip map camera follows.
     enum CameraMode: Hashable {
