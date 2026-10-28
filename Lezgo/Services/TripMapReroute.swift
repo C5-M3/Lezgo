@@ -102,7 +102,7 @@ final class TripMapReroute {
             .filter { $0.kind == .checkpoint && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
             .sorted { $0.orderIndex < $1.orderIndex }
             .map { PlannedWaypoint(kind: .checkpoint, name: $0.name, coordinate: $0.coordinate) }
-        let startName = String(localized: "Current Location")
+        let startName = String(localized: .waypointCurrentLocation)
         let start = PlannedWaypoint(kind: .start, name: startName, coordinate: leaderCoordinate)
         let end = PlannedWaypoint(kind: .destination, name: destination.name, coordinate: destination.coordinate)
         return [start] + checkpoints + [end]
