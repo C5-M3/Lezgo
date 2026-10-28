@@ -41,6 +41,8 @@ import SwiftUI
 /// | --- | --- | --- |
 /// | `draftTrip` | Draft Road Trip screen for a member | R |
 /// | `draftTripLeader` | Draft Road Trip screen for the leader | R |
+/// | `tripRoomLeader` | Trip Room lobby on the leader's phone (Agus) | O |
+/// | `tripRoomMember` | Trip Room lobby on a member's phone (Budi) | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
@@ -60,6 +62,8 @@ import SwiftUI
 enum DebugScreen: String, CaseIterable {
     case draftTrip
     case draftTripLeader
+    case tripRoomLeader
+    case tripRoomMember
     case tripMapLeader
     case tripMapMember
     case tripMapArrivedLeader
@@ -86,6 +90,10 @@ enum DebugScreen: String, CaseIterable {
             DraftTripView.Simulated(isLeader: false)
         case .draftTripLeader:
             DraftTripView.Simulated(isLeader: true)
+        case .tripRoomLeader:
+            SimulatedTripRoomScreen(myParticipantID: SampleTrip.agusID)
+        case .tripRoomMember:
+            SimulatedTripRoomScreen(myParticipantID: SampleTrip.budiID)
         case .tripMapLeader:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
         case .tripMapMember:
