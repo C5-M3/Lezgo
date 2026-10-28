@@ -30,6 +30,14 @@ struct TripMapViewModelAlertTests {
         )
     }
 
+    /// A point `northMetres` north and `eastMetres` east of `coordinate`.
+    private static func Near(_ coordinate: Coordinate, northMetres: Double, eastMetres: Double = 0) -> Coordinate {
+        Coordinate(
+            latitude: coordinate.latitude + northMetres / 110_600,
+            longitude: coordinate.longitude + eastMetres / (111_320 * cos(coordinate.latitude * .pi / 180))
+        )
+    }
+
     /// The trip with Budi at `budi`, his phone's reading `secondsAgo` before now. Agus waits at the start.
     private func State(
         budi: Coordinate = onRoute,
@@ -37,10 +45,12 @@ struct TripMapViewModelAlertTests {
         budiAlert: FormationAlert = .none,
         citraAlert: FormationAlert = .none,
         agus: Coordinate = onRoute,
+        agusAlert: FormationAlert = .none,
         currentWaypointIndex: Int = 1
     ) -> TripState {
         var agusCar = Fixtures.Car(id: Fixtures.agusID, name: "Agus")
         agusCar.coordinate = agus
+        agusCar.alert = agusAlert
         var budiCar = Fixtures.Car(id: Fixtures.budiID, name: "Budi", lastSeenSecondsAgo: secondsAgo)
         budiCar.coordinate = budi
         budiCar.alert = budiAlert
@@ -154,6 +164,17 @@ struct TripMapViewModelAlertTests {
         #expect(citra.isAlerting == false)
     }
 
+    @Test func LeaderAlertIsNeverShown() async throws {
+        let service = MockTripService(states: [State(agusAlert: .aheadOfLeader)])
+        let viewModel = MakeViewModel(service: service)
+
+        await viewModel.Start()
+
+        #expect(viewModel.alertBanner == nil)
+        let agus = try #require(viewModel.carPins.first { $0.id == Fixtures.agusID })
+        #expect(agus.isAlerting == false)
+    }
+
     @Test func MyAlertComesBeforeOtherCars() async {
         let states = [30.0, 14].map { State(budi: Self.offRoute, secondsAgo: $0, citraAlert: .aheadOfLeader) }
         let viewModel = MakeViewModel(service: MockTripService(states: states))
@@ -225,6 +246,43 @@ struct TripMapViewModelAlertTests {
         await viewModel.Start()
 
         #expect(service.advancedCheckpointIndexes == [2])
+    }
+
+    @Test func LeaderPassingTheCheckpointBetweenTwoUpdatesMovesTheTripPastIt() async {
+        // 30 m before and 30 m after the checkpoint: neither update is within 20 m, the drive between them is.
+        let service = MockTripService(states: [
+            State(agus: Self.Near(Fixtures.checkpoint.coordinate, northMetres: 30)),
+            State(agus: Self.Near(Fixtures.checkpoint.coordinate, northMetres: -30))
+        ])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, service: service)
+
+        await viewModel.Start()
+
+        #expect(service.advancedCheckpointIndexes == [2])
+    }
+
+    @Test func LeaderDrivingPastTheCheckpointFiftyMetresAwayDoesNotPassIt() async {
+        let service = MockTripService(states: [
+            State(agus: Self.Near(Fixtures.checkpoint.coordinate, northMetres: 30, eastMetres: 50)),
+            State(agus: Self.Near(Fixtures.checkpoint.coordinate, northMetres: -30, eastMetres: 50))
+        ])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, service: service)
+
+        await viewModel.Start()
+
+        #expect(service.advancedCheckpointIndexes.isEmpty)
+    }
+
+    @Test func NewRouteLetsTheLeaderPassItsCheckpointAgain() async {
+        let atCheckpoint = State(agus: Fixtures.checkpoint.coordinate)
+        var afterReroute = atCheckpoint
+        afterReroute.trip.routeVersion = 2
+        let service = MockTripService(states: [atCheckpoint, afterReroute])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, service: service)
+
+        await viewModel.Start()
+
+        #expect(service.advancedCheckpointIndexes == [2, 2])
     }
 
     @Test func LeaderFiftyMetresAwayDoesNotPassTheCheckpoint() async {
