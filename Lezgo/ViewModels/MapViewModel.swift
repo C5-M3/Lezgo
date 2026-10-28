@@ -14,7 +14,7 @@ import CoreLocation
 final class MapViewModel {
     // MARK: - Dependencies & Services
     private let routingService = RoutingService()
-    let searchService = LocationSearchService()
+    let searchService = LocationFindService()
     let locationService = LocationService()
 
     // MARK: - Route Planning State

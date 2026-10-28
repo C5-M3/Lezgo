@@ -1,5 +1,5 @@
 //
-//  LocationSearchServiceTests.swift
+//  LocationFindServiceTests.swift
 //  LezgoTests
 //
 //  Created by Farrell Sudjatmiko on 28/10/26.
@@ -11,7 +11,7 @@ import MapKit
 import Testing
 @testable import Lezgo
 
-struct LocationSearchServiceTests {
+struct LocationFindServiceTests {
     @Test func SearchResultItemEquatableAndHashable() {
         let item1 = SearchResultItem(
             id: "place_1",
@@ -53,7 +53,7 @@ struct LocationSearchServiceTests {
     }
 
     @Test func UpdateQueryFragmentWithEmptyStringResetsState() {
-        let service = LocationSearchService()
+        let service = LocationFindService()
         service.searchResults = [
             SearchResultItem(
                 id: "test",
@@ -71,7 +71,7 @@ struct LocationSearchServiceTests {
     }
 
     @Test func UpdateQueryFragmentWithWhitespaceOnlyResetsState() {
-        let service = LocationSearchService()
+        let service = LocationFindService()
         service.searchResults = [
             SearchResultItem(
                 id: "test",
@@ -89,7 +89,7 @@ struct LocationSearchServiceTests {
     }
 
     @Test func UpdateQueryFragmentSetsSearchingAndReferenceLocation() {
-        let service = LocationSearchService()
+        let service = LocationFindService()
         let ref = CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456)
 
         service.updateQueryFragment("Monas", referenceLocation: ref)
@@ -100,7 +100,7 @@ struct LocationSearchServiceTests {
     }
 
     @Test func CompleterDidFailWithErrorClearsResultsAndStopsSearching() {
-        let service = LocationSearchService()
+        let service = LocationFindService()
         service.searchResults = [
             SearchResultItem(
                 id: "test",
@@ -120,7 +120,7 @@ struct LocationSearchServiceTests {
     }
 
     @Test func ResolveLocationReturnsRoutePointDirectlyWhenCoordinateIsCached() async throws {
-        let service = LocationSearchService()
+        let service = LocationFindService()
         let coord = CLLocationCoordinate2D(latitude: -6.1754, longitude: 106.8272)
         let item = SearchResultItem(
             id: "monas_jakarta",

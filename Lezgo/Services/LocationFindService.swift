@@ -1,5 +1,5 @@
 //
-//  LocationSearchService.swift
+//  LocationFindService.swift
 //  Lezgo
 //
 //  Created by Farrell Sudjatmiko on 26/10/26.
@@ -29,7 +29,7 @@ struct SearchResultItem: Identifiable, Hashable {
 }
 
 @Observable
-final class LocationSearchService: NSObject, MKLocalSearchCompleterDelegate {
+final class LocationFindService: NSObject, MKLocalSearchCompleterDelegate {
     private let completer = MKLocalSearchCompleter()
     var searchResults: [SearchResultItem] = []
     var isSearching: Bool = false
