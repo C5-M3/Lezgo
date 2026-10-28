@@ -24,8 +24,10 @@ struct TripRoomViewModelInviteTests {
         #expect(viewModel.shareMessage.contains("897654"))
     }
 
-    @Test(arguments: [SampleTrip.agusID, SampleTrip.budiID])
-    func LeaderAndMembersCanShareOnceTheRoomCodeLoads(me: UUID) {
+    /// A `Bool`, not the participant IDs: `SampleTrip` is main-actor isolated, and `@Test` arguments are not.
+    @Test(arguments: [true, false])
+    func LeaderAndMembersCanShareOnceTheRoomCodeLoads(isLeader: Bool) {
+        let me = isLeader ? SampleTrip.agusID : SampleTrip.budiID
         let viewModel = MakeViewModel(me: me, state: SampleTrip.State(status: .lobby))
 
         #expect(viewModel.canShareInvite)
