@@ -15,6 +15,12 @@ struct LiveStreetNameService: StreetNameService {
     func StreetName(at coordinate: Coordinate) async throws -> String? {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
-        return try await request.mapItems.first?.name
+        let item = try await request.mapItems.first
+        return Self.StreetName(shortAddress: item?.address?.shortAddress, name: item?.name)
+    }
+
+    /// The name to show on the card, from what MapKit returned.
+    static func StreetName(shortAddress: String?, name: String?) -> String? {
+        name
     }
 }
