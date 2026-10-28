@@ -97,6 +97,16 @@ final class TripRoomViewModel {
         URL(string: "lezgo://join?code=\(roomCode)") ?? URL(fileURLWithPath: "/")
     }
 
+    /// The room code is empty until the first snapshot arrives, and a link without six digits cannot be joined.
+    var canShareInvite: Bool {
+        Trip.IsValidRoomCode(roomCode)
+    }
+
+    /// The text sent with the invite link, so the code can also be typed in by hand.
+    var shareMessage: String {
+        String(localized: .tripRoomShareMessage(roomCode))
+    }
+
     init(
         tripService: any TripService,
         tripID: UUID,

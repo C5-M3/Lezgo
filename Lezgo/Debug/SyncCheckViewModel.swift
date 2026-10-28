@@ -44,7 +44,7 @@ final class SyncCheckViewModel {
     }
 
     var canJoin: Bool {
-        roomCodeInput.count == 6 && roomCodeInput.allSatisfy { $0.isASCII && $0.isNumber }
+        Trip.IsValidRoomCode(roomCodeInput)
     }
 
     func CreateTrip() async {
