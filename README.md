@@ -2,6 +2,8 @@
 
 - **Tasks:** [GitHub Project](https://github.com/orgs/C5-M3/projects/1)
 - **Coding rules for humans and AI agents:** [AGENTS.md](AGENTS.md)
+- **User stories, data model and copy:** [specs/UserStories.md](specs/UserStories.md)
+- **How trip data and iCloud sync work:** [CloudKit/TripSync.md](CloudKit/TripSync.md)
 - **Past decisions and why we made them:** [docs/adr](docs/adr/README.md)
 
 
@@ -18,8 +20,12 @@
 git clone https://github.com/C5-M3/Lezgo.git
 cd Lezgo
 git switch dev
+cp Config/Local.xcconfig.example Config/Local.xcconfig
 open Lezgo.xcodeproj
 ```
+
+Edit `Config/Local.xcconfig` and set your own Apple Developer team ID and bundle identifier prefix (see [ADR 0015](docs/adr/0015-PerDeveloperSigningSettings.md)). The file is git-ignored, so your settings never reach a pull request.
+The first time you build, open the Lezgo target's Signing & Capabilities tab and make sure the iCloud container `iCloud.<your prefix>.Lezgo` is ticked, so Xcode registers it on your account.
 
 If you work with AI agents (Claude Code, Codex, Cursor), install the shared Swift skills once:
 
