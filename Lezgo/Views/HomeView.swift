@@ -73,10 +73,12 @@ struct HomeView: View {
             if isJoinTripPresented {
                 JoinTripView(
                     isPresented: $isJoinTripPresented,
-                    onEnter: { code in
-                        Task {
-                            _ = await viewModel.JoinTrip(roomCode: code, tripService: tripService)
-                        }
+                    viewModel: JoinTripViewModel(
+                        tripService: tripService,
+                        storage: viewModel.activeTripStorage
+                    ),
+                    onNavigateToTripRoom: { session in
+                        viewModel.onTripJoined(session)
                     }
                 )
                 .transition(.asymmetric(

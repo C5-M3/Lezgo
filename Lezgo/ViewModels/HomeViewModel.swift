@@ -43,7 +43,6 @@ extension LocationSearchService: LocationSearchServiceProtocol {}
 
 /// ViewModel untuk mengelola status antarmuka dan interaksi pada `HomeView`.
 @Observable
-@MainActor
 final class HomeViewModel {
     // MARK: - Dependencies
     var mapService: any MapServiceProtocol
@@ -122,6 +121,10 @@ final class HomeViewModel {
     func JoinTrip(roomCode: String, tripService: any TripService) async -> Bool {
         do {
             let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
+            guard session.state.trip.status == .lobby else {
+                try? await tripService.ExitTrip(tripID: session.state.trip.id, participantID: session.myParticipantID)
+                return false
+            }
             let summary = ActiveTripSummary.From(session: session)
             activeTripStorage.SaveActiveTrip(summary)
             activeDraftTrip = summary
@@ -129,6 +132,14 @@ final class HomeViewModel {
         } catch {
             return false
         }
+    }
+
+    /// Menangani sesi perjalanan yang berhasil diverifikasi dan bergabung (US-02).
+    func onTripJoined(_ session: TripSession) {
+        guard session.state.trip.status == .lobby else { return }
+        let summary = ActiveTripSummary.From(session: session)
+        activeTripStorage.SaveActiveTrip(summary)
+        activeDraftTrip = summary
     }
 
     /// Menangani perubahan teks pencarian saat kolom pencarian sedang fokus.
