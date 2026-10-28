@@ -53,11 +53,14 @@ struct TripRoomViewModelInviteTests {
         let listening = Task { await viewModel.Listen() }
         defer { listening.cancel() }
 
-        for _ in 0..<10 {
+        // Up to 2 seconds, so a slow snapshot on a busy parallel run still arrives.
+        for _ in 0..<100 {
             if viewModel.state != nil { break }
-            try await Task.sleep(for: .milliseconds(50))
+            try await Task.sleep(for: .milliseconds(20))
         }
 
+        // Stops here when the snapshot never came, instead of a confusing "canShareInvite is false".
+        try #require(viewModel.state != nil)
         #expect(viewModel.canShareInvite)
     }
 
