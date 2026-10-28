@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import SwiftUI
 import MapKit
 
@@ -31,8 +30,12 @@ struct SetRouteMapView: View {
                         Marker(point.name, coordinate: point.coordinate)
                             .tint(.red)
                     } else {
-                        Marker("\(index + 1). \(point.name)", systemImage: "\(index + 1).circle", coordinate: point.coordinate)
-                            .tint(.purple)
+                        Marker(
+                            "\(index + 1). \(point.name)",
+                            systemImage: "\(index + 1).circle",
+                            coordinate: point.coordinate
+                        )
+                        .tint(.purple)
                     }
                 }
 
@@ -57,6 +60,7 @@ struct SetRouteMapView: View {
                     viewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
                 }
             }
+            .accessibilityAddTraits(.isButton)
             .mapControls {
                 MapUserLocationButton()
                 MapCompass()
@@ -94,4 +98,3 @@ struct SetRouteMapView: View {
 #Preview {
     SetRouteMapView()
 }
-

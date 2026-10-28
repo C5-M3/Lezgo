@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import SwiftUI
 import MapKit
 import CoreLocation
@@ -205,8 +204,8 @@ final class MapViewModel {
             for (routeIndex, route) in leg.routes.enumerated() {
                 let polyline = route.polyline
                 let points = polyline.points()
-                for i in 0..<polyline.pointCount {
-                    let pt = points[i]
+                for pointIndex in 0..<polyline.pointCount {
+                    let pt = points[pointIndex]
                     let dist = hypot(pt.x - tapMapPoint.x, pt.y - tapMapPoint.y)
                     if dist < minDistance {
                         minDistance = dist
@@ -250,6 +249,4 @@ final class MapViewModel {
             self.cameraPosition = .rect(paddedRect)
         }
     }
-
 }
-

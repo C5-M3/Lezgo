@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import Foundation
 import MapKit
 import CoreLocation
@@ -92,7 +91,8 @@ final class LocationFindService: NSObject, MKLocalSearchCompleterDelegate {
         let response = try await search.start()
 
         guard let mapItem = response.mapItems.first else {
-            throw NSError(domain: "LocationSearch", code: 404, userInfo: [NSLocalizedDescriptionKey: "No coordinate found."])
+            let errorInfo = [NSLocalizedDescriptionKey: "No coordinate found."]
+            throw NSError(domain: "LocationSearch", code: 404, userInfo: errorInfo)
         }
 
         let coord = mapItem.placemark.coordinate
@@ -107,24 +107,43 @@ final class LocationFindService: NSObject, MKLocalSearchCompleterDelegate {
 
     // MARK: - MKLocalSearchCompleterDelegate
     func completerDidUpdateResults(_ completer: MKLocalSearchCompleter) {
-        let completions = completer.results
+        let items = buildSearchResultItems(from: completer.results)
+        self.searchResults = items
+        self.isSearching = false
+
+        enrichmentTask?.cancel()
+        guard let ref = referenceLocation, !items.isEmpty else { return }
+
+        let uncalcBatch = Array(items.filter { $0.coordinate == nil }.prefix(6))
+        guard !uncalcBatch.isEmpty else { return }
+
+        enrichmentTask = Task { [weak self] in
+            await self?.enrichBatchWithDistances(uncalcBatch, referenceLocation: ref)
+        }
+    }
+
+    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
+        self.searchResults = []
+        self.isSearching = false
+    }
+
+    // MARK: - Helpers
+    private func buildSearchResultItems(from completions: [MKLocalSearchCompletion]) -> [SearchResultItem] {
         let hasRef = referenceLocation != nil
         let refCoord = referenceLocation
 
-        // Populate items immediately, checking the cache for any already-resolved coordinates
-        var items: [SearchResultItem] = []
-        for comp in completions {
+        return completions.map { comp in
             let itemId = "\(comp.title)_\(comp.subtitle)"
             let cachedCoord = coordinateCache[itemId]
-
             var dist: CLLocationDistance?
+
             if let cached = cachedCoord, let ref = refCoord {
                 let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
                 let to = CLLocation(latitude: cached.latitude, longitude: cached.longitude)
                 dist = from.distance(from: to)
             }
 
-            items.append(SearchResultItem(
+            return SearchResultItem(
                 id: itemId,
                 title: comp.title,
                 subtitle: comp.subtitle,
@@ -132,80 +151,75 @@ final class LocationFindService: NSObject, MKLocalSearchCompleterDelegate {
                 coordinate: cachedCoord,
                 distanceInMeters: dist,
                 isCalculatingDistance: hasRef && cachedCoord == nil
-            ))
+            )
+        }
+    }
+
+    private struct EnrichmentResult {
+        let id: String
+        let coordinate: CLLocationCoordinate2D
+        let distance: CLLocationDistance
+    }
+
+    private func enrichBatchWithDistances(
+        _ batch: [SearchResultItem],
+        referenceLocation ref: CLLocationCoordinate2D
+    ) async {
+        do {
+            try await Task.sleep(for: .milliseconds(350))
+        } catch {
+            return
         }
 
-        self.searchResults = items
-        self.isSearching = false
+        guard !Task.isCancelled else { return }
 
-        // Cancel any pending enrichment from previous keystrokes
-        enrichmentTask?.cancel()
-        guard let ref = referenceLocation, !items.isEmpty else { return }
-
-        // Items that still need distance calculation (top 6 items to conserve requests)
-        let uncalcBatch = Array(items.filter { $0.coordinate == nil }.prefix(6))
-        guard !uncalcBatch.isEmpty else { return }
-
-        // Debounce by 350ms so typing fast does not fire search requests until the user pauses
-        enrichmentTask = Task { [weak self] in
-            do {
-                try await Task.sleep(for: .milliseconds(350))
-            } catch {
-                return
+        await withTaskGroup(of: EnrichmentResult?.self) { group in
+            for item in batch {
+                guard let comp = item.completion else { continue }
+                group.addTask {
+                    await self.fetchCoordinateAndDistance(for: item.id, completion: comp, referenceLocation: ref)
+                }
             }
 
-            guard !Task.isCancelled else { return }
-
-            await withTaskGroup(of: (String, CLLocationCoordinate2D, CLLocationDistance)?.self) { group in
-                for item in uncalcBatch {
-                    guard let comp = item.completion else { continue }
-                    group.addTask {
-                        guard !Task.isCancelled else { return nil }
-                        do {
-                            let request = MKLocalSearch.Request(completion: comp)
-                            let search = MKLocalSearch(request: request)
-                            let response = try await search.start()
-                            guard !Task.isCancelled, let mapItem = response.mapItems.first else { return nil }
-
-                            let coord = mapItem.placemark.coordinate
-                            let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
-                            let to = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
-                            let dist = from.distance(from: to)
-                            return (item.id, coord, dist)
-                        } catch {
-                            return nil
-                        }
-                    }
-                }
-
-                for await result in group {
-                    guard !Task.isCancelled else { continue }
-                    if let (id, coord, dist) = result {
-                        await MainActor.run {
-                            guard let self = self else { return }
-                            self.coordinateCache[id] = coord
-                            if let idx = self.searchResults.firstIndex(where: { $0.id == id }) {
-                                self.searchResults[idx].coordinate = coord
-                                self.searchResults[idx].distanceInMeters = dist
-                                self.searchResults[idx].isCalculatingDistance = false
-                            }
-                        }
-                    }
-                }
-
-                // Any items that finished or failed can turn off the calculating placeholder
+            for await result in group {
+                guard !Task.isCancelled, let enrichment = result else { continue }
                 await MainActor.run {
-                    guard let self = self else { return }
-                    for i in self.searchResults.indices where self.searchResults[i].isCalculatingDistance {
-                        self.searchResults[i].isCalculatingDistance = false
+                    self.coordinateCache[enrichment.id] = enrichment.coordinate
+                    if let index = self.searchResults.firstIndex(where: { $0.id == enrichment.id }) {
+                        self.searchResults[index].coordinate = enrichment.coordinate
+                        self.searchResults[index].distanceInMeters = enrichment.distance
+                        self.searchResults[index].isCalculatingDistance = false
                     }
+                }
+            }
+
+            await MainActor.run {
+                for index in self.searchResults.indices where self.searchResults[index].isCalculatingDistance {
+                    self.searchResults[index].isCalculatingDistance = false
                 }
             }
         }
     }
 
-    func completer(_ completer: MKLocalSearchCompleter, didFailWithError error: Error) {
-        self.searchResults = []
-        self.isSearching = false
+    private func fetchCoordinateAndDistance(
+        for id: String,
+        completion: MKLocalSearchCompletion,
+        referenceLocation ref: CLLocationCoordinate2D
+    ) async -> EnrichmentResult? {
+        guard !Task.isCancelled else { return nil }
+        do {
+            let request = MKLocalSearch.Request(completion: completion)
+            let search = MKLocalSearch(request: request)
+            let response = try await search.start()
+            guard !Task.isCancelled, let mapItem = response.mapItems.first else { return nil }
+
+            let coord = mapItem.placemark.coordinate
+            let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
+            let to = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
+            let dist = from.distance(from: to)
+            return EnrichmentResult(id: id, coordinate: coord, distance: dist)
+        } catch {
+            return nil
+        }
     }
 }

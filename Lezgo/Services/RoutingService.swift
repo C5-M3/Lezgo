@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import Foundation
 import MapKit
 
@@ -85,15 +84,15 @@ final class RoutingService {
         }
 
         var legs: [RouteLeg] = []
-        for i in 0..<(points.count - 1) {
+        for index in 0..<(points.count - 1) {
             let legRoutes = try await calculateLegRoutes(
-                from: points[i].coordinate,
-                to: points[i + 1].coordinate
+                from: points[index].coordinate,
+                to: points[index + 1].coordinate
             )
             legs.append(RouteLeg(
-                legIndex: i,
-                fromName: points[i].name,
-                toName: points[i + 1].name,
+                legIndex: index,
+                fromName: points[index].name,
+                toName: points[index + 1].name,
                 routes: legRoutes,
                 selectedRouteIndex: 0
             ))
@@ -102,7 +101,10 @@ final class RoutingService {
         return legs
     }
 
-    private func calculateLegRoutes(from source: CLLocationCoordinate2D, to destination: CLLocationCoordinate2D) async throws -> [MKRoute] {
+    private func calculateLegRoutes(
+        from source: CLLocationCoordinate2D,
+        to destination: CLLocationCoordinate2D
+    ) async throws -> [MKRoute] {
         let request = MKDirections.Request()
         request.source = MKMapItem(placemark: MKPlacemark(coordinate: source))
         request.destination = MKMapItem(placemark: MKPlacemark(coordinate: destination))
@@ -113,9 +115,9 @@ final class RoutingService {
         let response = try await directions.calculate()
 
         guard !response.routes.isEmpty else {
-            throw NSError(domain: "RoutingService", code: 404, userInfo: [NSLocalizedDescriptionKey: "No drivable route found for leg."])
+            let errorInfo = [NSLocalizedDescriptionKey: "No drivable route found for leg."]
+            throw NSError(domain: "RoutingService", code: 404, userInfo: errorInfo)
         }
         return response.routes
     }
 }
-

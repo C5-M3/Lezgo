@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import SwiftUI
 import MapKit
 
@@ -25,6 +24,7 @@ struct LocationSearchSheet: View {
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "location.fill")
+                                    .accessibilityHidden(true)
                                     .foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Current Location")
@@ -73,7 +73,10 @@ struct LocationSearchSheet: View {
                                 Spacer()
 
                                 if let meters = result.distanceInMeters {
-                                    Text(meters >= 1000 ? String(format: "%.1f km", meters / 1000.0) : String(format: "%.0f m", meters))
+                                    let distText = meters >= 1000
+                                        ? String(format: "%.1f km", meters / 1000.0)
+                                        : String(format: "%.0f m", meters)
+                                    Text(distText)
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .transition(.opacity)

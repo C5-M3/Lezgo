@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import SwiftUI
 import MapKit
 
@@ -23,6 +22,7 @@ struct SetRouteSheet: View {
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: "location.fill")
+                                .accessibilityHidden(true)
                                 .foregroundStyle(.secondary)
                             Text(viewModel.startPoint?.name ?? "Choose Starting Point...")
                                 .font(.body)
@@ -41,6 +41,7 @@ struct SetRouteSheet: View {
                         let intermediateCount = viewModel.destinations.count - 1
                         HStack(spacing: 12) {
                             Image(systemName: "ellipsis.circle")
+                                .accessibilityHidden(true)
                                 .foregroundStyle(.secondary)
 
                             Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
@@ -55,6 +56,7 @@ struct SetRouteSheet: View {
                            let lastIndex = viewModel.destinations.indices.last {
                             HStack(spacing: 12) {
                                 Image(systemName: "mappin")
+                                    .accessibilityHidden(true)
                                     .foregroundStyle(.secondary)
 
                                 Button {
@@ -82,6 +84,7 @@ struct SetRouteSheet: View {
                         ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
                             HStack(spacing: 12) {
                                 Image(systemName: "mappin")
+                                    .accessibilityHidden(true)
                                     .foregroundStyle(.secondary)
 
                                 Button {
@@ -116,6 +119,7 @@ struct SetRouteSheet: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: "plus")
+                                        .accessibilityHidden(true)
                                         .foregroundStyle(.secondary)
                                     Text("Add...")
                                         .font(.body)
@@ -138,7 +142,8 @@ struct SetRouteSheet: View {
                         }
                     } else if viewModel.hasRoute {
                         Section("Trip Summary") {
-                            LabeledContent("Total Distance", value: String(format: "%.1f km", viewModel.totalDistance / 1000))
+                            let distFormatted = String(format: "%.1f km", viewModel.totalDistance / 1000)
+                            LabeledContent("Total Distance", value: distFormatted)
                             LabeledContent("Estimated Time", value: "\(Int(viewModel.totalDuration / 60)) min")
                         }
                     }

@@ -5,7 +5,6 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import Foundation
 import CoreLocation
 
@@ -46,4 +45,3 @@ enum ActivePointSelection: Identifiable, Equatable {
         }
     }
 }
-

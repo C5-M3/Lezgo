@@ -5,12 +5,13 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-
 import Foundation
 import CoreLocation
+import OSLog
 
 @Observable
 final class LocationService: NSObject, CLLocationManagerDelegate {
+    private let logger = Logger(subsystem: "com.nathansudiara.Lezgo", category: "LocationService")
     private let locationManager = CLLocationManager()
     var userLocation: CLLocationCoordinate2D?
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
@@ -52,6 +53,6 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        print("Location update failed: \(error.localizedDescription)")
+        logger.error("Location update failed: \(error.localizedDescription, privacy: .public)")
     }
 }
