@@ -23,4 +23,11 @@ struct Trip: Identifiable, Hashable, Codable {
     var createdAt: Date
     var startedAt: Date?
     var endedAt: Date?
+
+    /// Six plain digits (0-9). Joining and inviting both use this, so they always agree on what a code is.
+    ///
+    /// Other scripts' digits, such as "٨٩٧٦٥٤", are refused: they pass `isNumber` but no one can type them back in.
+    static func IsValidRoomCode(_ roomCode: String) -> Bool {
+        roomCode.count == 6 && roomCode.allSatisfy { $0.isASCII && $0.isNumber }
+    }
 }

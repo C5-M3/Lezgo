@@ -99,7 +99,7 @@ final class TripRoomViewModel {
 
     /// The room code is empty until the first snapshot arrives, and a link without six digits cannot be joined.
     var canShareInvite: Bool {
-        roomCode.count == 6 && roomCode.allSatisfy { $0.isASCII && $0.isNumber }
+        Trip.IsValidRoomCode(roomCode)
     }
 
     /// The text sent with the invite link, so the code can also be typed in by hand.
