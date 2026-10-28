@@ -104,6 +104,7 @@ iOSInjectionProject/
 .gemini/
 .mcp.json
 .gemini-swarm/
+.omc/
 skills-lock.json
 docs/superpowers/
 .superpowers/
