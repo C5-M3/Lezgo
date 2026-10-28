@@ -32,11 +32,11 @@ struct InviteSheetView: View {
                 }
                 HStack {
                     VStack { Divider() }
-                    Text("or").font(.subheadline)
+                    Text(.tripRoomInviteOr).font(.subheadline)
                     VStack { Divider() }
                 }
                 ShareLink(item: viewModel.inviteURL, message: Text(viewModel.shareMessage)) {
-                    Label("Share Link", systemImage: "link")
+                    Label(.tripRoomShareLink, systemImage: "link")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
@@ -76,6 +76,11 @@ private struct RoomCodeView: View {
     let isLoaded: Bool
     let didCopy: Bool
 
+    /// "8, 9, 7, 6, 5, 4", so VoiceOver reads each digit instead of "eight hundred ninety-seven thousand…".
+    private var spokenDigits: String {
+        roomCode.map(String.init).joined(separator: ", ")
+    }
+
     var body: some View {
         // "Copied" and the loading spinner always take the same space, so the box (and the sheet) never changes
         // height. The hidden label on top balances the one below, which keeps the code in the middle of the box.
@@ -83,7 +88,7 @@ private struct RoomCodeView: View {
             CopiedLabel().hidden()
             if isLoaded {
                 RoomCodeText(roomCode: roomCode)
-                    .accessibilityLabel("Room code: \(roomCode.map(String.init).joined(separator: ", "))")
+                    .accessibilityLabel(Text(.tripRoomCodeAccessibilityLabel(spokenDigits)))
             } else {
                 RoomCodeText(roomCode: "000000")
                     .hidden()
