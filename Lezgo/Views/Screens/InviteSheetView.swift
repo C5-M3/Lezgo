@@ -14,6 +14,7 @@ struct InviteSheetView: View {
     @State private var copyCount = 0
     /// The sheet is as tall as its content, like the lo-fi, and grows with Dynamic Type.
     @State private var contentHeight: CGFloat = 270
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView {
@@ -53,13 +54,13 @@ struct InviteSheetView: View {
         .sensoryFeedback(.success, trigger: copyCount)
         .task(id: copyCount) {
             guard copyCount > 0, (try? await Task.sleep(for: .seconds(2))) != nil else { return }
-            didCopy = false
+            withAnimation(reduceMotion ? nil : .default) { didCopy = false }
         }
     }
 
     private func CopyCode() {
         UIPasteboard.general.string = viewModel.roomCode
-        didCopy = true
+        withAnimation(reduceMotion ? nil : .default) { didCopy = true }
         copyCount += 1
         AccessibilityNotification.Announcement(String(localized: .tripRoomCopied)).post()
     }
@@ -77,11 +78,10 @@ private struct RoomCodeView: View {
                     .font(.system(.largeTitle, design: .rounded, weight: .heavy).monospacedDigit())
                     .tracking(2)
                     .accessibilityLabel("Room code: \(roomCode.map(String.init).joined(separator: ", "))")
-                // Always laid out, so the box does not jump when "Copied" appears. VoiceOver hears the announcement.
+                // Only laid out while shown, so the code stays centered in the box. VoiceOver hears the announcement.
                 if didCopy {
                     CopiedLabel()
-                } else {
-                    CopiedLabel().hidden()
+                        .transition(.opacity)
                 }
             } else {
                 ProgressView()
