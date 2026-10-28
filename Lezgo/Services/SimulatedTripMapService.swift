@@ -32,5 +32,10 @@ struct SimulatedTripMapService: TripMapService {
             continuation.onTermination = { _ in task.cancel() }
         }
     }
+
+    /// The simulated drive has no server: leaving or ending only closes the map on this phone.
+    func ExitTrip(tripID: UUID, participantID: UUID) async throws {}
+
+    func EndTrip(tripID: UUID, by leaderID: UUID) async throws {}
 }
 #endif

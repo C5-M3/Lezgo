@@ -255,6 +255,18 @@
         }
       }
     },
+    "tripMapCancel": {
+      "comment": "Button on a confirmation that changes nothing (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        }
+      }
+    },
     "tripMapCarDriving": {
       "comment": "VoiceOver status of a car pin: the car is moving.",
       "extractionState": "manual",
@@ -327,6 +339,18 @@
         }
       }
     },
+    "tripMapConfirm": {
+      "comment": "Button on a confirmation that goes ahead (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm"
+          }
+        }
+      }
+    },
     "tripMapContinueYourTrip": {
       "comment": "Arrival card line for the leader once everyone has arrived (US-07).",
       "extractionState": "manual",
@@ -351,6 +375,42 @@
         }
       }
     },
+    "tripMapEndTrip": {
+      "comment": "Red button on the trip map for the leader: end the trip for everyone (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End Trip"
+          }
+        }
+      }
+    },
+    "tripMapEndTripNotEveryoneArrived": {
+      "comment": "Confirmation when the leader taps End Trip while someone has not arrived (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End trip? Not everyone has arrived yet."
+          }
+        }
+      }
+    },
+    "tripMapEndTripQuestion": {
+      "comment": "Confirmation when the leader taps End Trip after everyone arrived (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End trip?"
+          }
+        }
+      }
+    },
     "tripMapEveryoneHasArrived": {
       "comment": "Arrival card title when every car is within 20 m of the destination (US-07).",
       "extractionState": "manual",
@@ -363,6 +423,30 @@
         }
       }
     },
+    "tripMapExitTrip": {
+      "comment": "Red button on the trip map for a member: leave the trip (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exit Trip"
+          }
+        }
+      }
+    },
+    "tripMapExitTripQuestion": {
+      "comment": "Confirmation when a member taps Exit Trip on the road (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exit trip?"
+          }
+        }
+      }
+    },
     "tripMapFollowMyCar": {
       "comment": "Round map button that keeps the map centred on this phone's car while it moves.",
       "extractionState": "manual",
@@ -371,6 +455,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Follow my car"
+          }
+        }
+      }
+    },
+    "tripMapLeaderEndedTrip": {
+      "comment": "Shown on every member's phone when the leader ends the trip; OK returns to Home (US-07).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The leader ended the trip."
           }
         }
       }
@@ -395,6 +491,30 @@
           "stringUnit": {
             "state": "translated",
             "value": "New Destination"
+          }
+        }
+      }
+    },
+    "tripMapOK": {
+      "comment": "Button that closes a message on the trip map.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        }
+      }
+    },
+    "tripMapRemovedFromTrip": {
+      "comment": "Shown to a member the leader removed; OK returns to Home (US-05).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You were removed from the trip."
           }
         }
       }

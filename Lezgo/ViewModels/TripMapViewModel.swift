@@ -11,6 +11,14 @@ final class TripMapViewModel {
     private(set) var snapshot: TripMapSnapshot?
     private(set) var guidance: TripMapGuidance?
     private(set) var cameraMode: TripMapCameraMode = .followMyCar
+    /// The confirmation to show before leaving, or `nil`.
+    private(set) var leaveConfirmation: TripMapLeaveConfirmation?
+    /// Set once the map should close and the phone return to Home; sharing stops at the same time.
+    private(set) var closeReason: TripMapCloseReason?
+    /// Why leaving failed, for example no network; the map stays open so the person can try again.
+    private(set) var leaveErrorMessage: String?
+    /// `true` while an exit or end request is on its way; the card's buttons are disabled meanwhile.
+    private(set) var isLeaving = false
     /// When the latest snapshot arrived; offline cars are judged against this time.
     private var updatedAt: Date?
 
@@ -105,11 +113,32 @@ final class TripMapViewModel {
         }
     }
 
+    /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
     private func FollowTrip() async {
         for await snapshot in service.TripUpdates(tripID: tripID) {
             self.snapshot = snapshot
             updatedAt = clock()
+            NoticeTripClosed(snapshot)
+            if closeReason != nil { return }
             await RefreshGuidance()
+        }
+    }
+
+    /// The leader ended the trip, or removed this member, from another phone.
+    ///
+    /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
+    /// the reason then, so the person is not told they were removed or that the leader ended the trip.
+    private func NoticeTripClosed(_ snapshot: TripMapSnapshot) {
+        guard closeReason == nil, isLeaving == false else { return }
+        if snapshot.status == .ended || snapshot.status == .cancelled {
+            // The leader only sees this when their own end request failed on the way back, so it closes quietly.
+            closeReason = snapshot.myParticipantID == snapshot.leaderParticipantID ? .ended : .endedByLeader
+        } else if snapshot.memberIDs.contains(snapshot.myParticipantID) == false {
+            closeReason = .removed
+        }
+        // An open "Exit trip?" would hide the message about why the map closed.
+        if closeReason != nil {
+            leaveConfirmation = nil
         }
     }
 
@@ -119,6 +148,52 @@ final class TripMapViewModel {
 
     func FollowMyCar() {
         cameraMode = .followMyCar
+    }
+
+    /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
+    func RequestLeave() {
+        guard closeReason == nil, isLeaving == false, let snapshot else { return }
+        guard isLeader else {
+            leaveConfirmation = .exitTrip
+            return
+        }
+        let arrival = TripMapArrival.Check(snapshot, at: updatedAt ?? clock())
+        leaveConfirmation = .endTrip(everyoneHasArrived: arrival.everyoneHasArrived)
+    }
+
+    /// "Cancel" on the confirmation: nothing changes.
+    func CancelLeave() {
+        leaveConfirmation = nil
+    }
+
+    /// "Confirm" on the confirmation: leaves or ends the trip, then closes the map. On failure the map stays open
+    /// with a message, so nobody is stuck believing they left.
+    ///
+    /// The view passes the confirmation it showed, because the alert closes (and clears `leaveConfirmation`) before
+    /// the task that calls this runs.
+    func ConfirmLeave(_ confirmation: TripMapLeaveConfirmation) async {
+        guard closeReason == nil, let snapshot, isLeaving == false else { return }
+        isLeaving = true
+        defer { isLeaving = false }
+        do {
+            switch confirmation {
+            case .exitTrip:
+                try await service.ExitTrip(tripID: tripID, participantID: snapshot.myParticipantID)
+                closeReason = .exited
+            case .endTrip:
+                try await service.EndTrip(tripID: tripID, by: snapshot.myParticipantID)
+                closeReason = .ended
+            }
+            leaveErrorMessage = nil
+        } catch {
+            leaveErrorMessage = String(localized: TripServiceError(cloudKitError: error).message)
+        }
+        leaveConfirmation = nil
+    }
+
+    /// "OK" on the message that leaving failed.
+    func DismissLeaveError() {
+        leaveErrorMessage = nil
     }
 
     /// Called when the person pans or zooms the map by hand.
