@@ -13,6 +13,10 @@ struct LezgoApp: App {
     /// (ADR 0014); previews and tests use `InMemoryTripService` instead.
     private let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
 
+    var isUITestingSetRouteMap: Bool {
+        CommandLine.arguments.contains("-ui-testing-set-route-map")
+    }
+
     var body: some Scene {
         WindowGroup {
             #if DEBUG

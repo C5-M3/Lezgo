@@ -136,3 +136,6 @@ CODE_AUDIT.md
 # --------------------------------------------------
 context/
 tasks/
+
+# mock routes
+*.gpx
