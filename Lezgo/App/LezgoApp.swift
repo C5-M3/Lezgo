@@ -29,9 +29,17 @@ struct LezgoApp: App {
         }
     }()
 
+    var isUITestingSetRouteMap: Bool {
+        CommandLine.arguments.contains("-ui-testing-set-route-map")
+    }
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if isUITestingSetRouteMap {
+                SetRouteMapView()
+            } else {
+                ContentView()
+            }
         }
         .modelContainer(sharedModelContainer)
     }
