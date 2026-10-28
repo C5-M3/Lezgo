@@ -639,6 +639,42 @@
         }
       }
     },
+    "tripRoomCopied": {
+      "comment": "Invite sheet: the Copy Code button for 2 seconds after the room code was copied (US-04).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        }
+      }
+    },
+    "tripRoomCopyCode": {
+      "comment": "Invite sheet: button that copies the 6-digit room code (US-04).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy Code"
+          }
+        }
+      }
+    },
+    "tripRoomShareMessage": {
+      "comment": "Text sent with the invite link from Share Link (US-04). The placeholder is the 6-digit room code, for example \"Join my Lezgo trip with code 897654\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join my Lezgo trip with code %@"
+          }
+        }
+      }
+    },
     "tripServiceErrorConflict": {
       "comment": "Error when two phones change the same thing at once, for example picking a new leader. Copy not in the user stories yet; needs a copy check.",
       "extractionState": "manual",
