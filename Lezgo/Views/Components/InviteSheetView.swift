@@ -23,6 +23,9 @@ struct InviteSheetView: View {
                     RoomCodeView(roomCode: viewModel.roomCode, isLoaded: viewModel.canShareInvite, didCopy: didCopy)
                 }
                 .buttonStyle(.plain)
+                // VoiceOver reads the value again after the tap,
+                // so "Copied" is heard even if the announcement is cut off.
+                .accessibilityValue(didCopy ? Text(.tripRoomCopied) : Text(verbatim: ""))
                 .accessibilityHint(Text(.tripRoomCopyCode))
                 .contextMenu {
                     Button(.tripRoomCopyCode, systemImage: "doc.on.doc", action: CopyCode)
@@ -61,7 +64,10 @@ struct InviteSheetView: View {
         UIPasteboard.general.string = viewModel.roomCode
         withAnimation(reduceMotion ? nil : .default) { didCopy = true }
         copyCount += 1
-        AccessibilityNotification.Announcement(String(localized: .tripRoomCopied)).post()
+        // High priority, so VoiceOver reading the button again after the tap does not cut it off.
+        var announcement = AttributedString(localized: .tripRoomCopied)
+        announcement.accessibilitySpeechAnnouncementPriority = .high
+        AccessibilityNotification.Announcement(announcement).post()
     }
 }
 
