@@ -60,7 +60,14 @@ struct FormationAlertDetectorTests {
     }
 
     private static func Stop(_ index: Int, _ kind: WaypointKind, _ name: String, at metres: Double) -> Waypoint {
-        Waypoint(id: UUID(), tripID: Fixtures.tripID, orderIndex: index, kind: kind, name: name, coordinate: Along(metres))
+        Waypoint(
+            id: UUID(),
+            tripID: Fixtures.tripID,
+            orderIndex: index,
+            kind: kind,
+            name: name,
+            coordinate: Along(metres)
+        )
     }
 
     /// Feeds Budi's readings in order and returns the alert after the last one.
