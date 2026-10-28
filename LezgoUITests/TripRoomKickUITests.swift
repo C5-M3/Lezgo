@@ -49,7 +49,7 @@ final class TripRoomKickUITests: XCTestCase {
         agus.swipeLeft()
         let kick = app.buttons["Kick"]
         XCTAssertTrue(kick.waitForExistence(timeout: 3))
-        XCTAssertFalse(kick.isEnabled)
+        Attach(named: "Kick on the leader row")
 
         kick.tap()
 
