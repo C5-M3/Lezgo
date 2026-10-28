@@ -137,6 +137,14 @@ final class LiveTripService: TripService {
             changed.leaderParticipantID = newLeaderID
             TripRecordMapper.Write(changed, into: record)
             try await database.Save([record], savePolicy: .ifServerRecordUnchanged)
+            // The leader never has a formation alert, so one saved as a member is cleared. Only the alert key is
+            // saved, so the new leader's latest location is not overwritten.
+            let leaderRecord = CKRecord(
+                recordType: TripRecordMapper.participantType,
+                recordID: TripRecordMapper.RecordID(newLeaderID)
+            )
+            leaderRecord["alert"] = FormationAlert.none.rawValue
+            try await database.Save([leaderRecord], savePolicy: .changedKeys)
         }
     }
 

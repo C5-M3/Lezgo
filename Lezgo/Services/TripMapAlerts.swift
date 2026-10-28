@@ -45,7 +45,7 @@ struct TripMapAlerts {
             return .mine(myAlert)
         }
         let car = state.participants
-            .filter { IsShared($0, at: date) && closedAlerts[$0.id] != $0.alert }
+            .filter { IsShared($0, in: state, at: date) && closedAlerts[$0.id] != $0.alert }
             .min { (Order($0.alert), $0.displayName) < (Order($1.alert), $1.displayName) }
         guard let car else { return nil }
         return .otherCar(id: car.id, name: car.displayName, alert: car.alert)
@@ -60,8 +60,10 @@ struct TripMapAlerts {
     }
 
     /// Whether another car's alert shows on this phone: off the route or ahead of the leader, while it is online.
-    func IsShared(_ participant: Participant, at date: Date) -> Bool {
+    /// The leader never has one; an alert saved before they got the lead is left over and is not shown.
+    func IsShared(_ participant: Participant, in state: TripState, at date: Date) -> Bool {
         participant.id != myParticipantID
+            && participant.IsLeader(in: state.trip) == false
             && (participant.alert == .offRoute || participant.alert == .aheadOfLeader)
             && participant.IsOnline(at: date)
     }

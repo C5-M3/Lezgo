@@ -34,8 +34,8 @@ final class TripMapViewModel {
     private var carLookups: [UUID: CarLookup] = [:]
     /// This phone's formation alert and the banners closed with ⓧ.
     private var alerts: TripMapAlerts
-    /// The waypoint index this leader's phone last asked the trip to move to, so it asks once per checkpoint.
-    private var requestedWaypointIndex: Int?
+    /// When this phone, as leader, moves the trip past a checkpoint.
+    private var checkpointProgress = TripMapCheckpointProgress()
 
     /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
     private static let carLookupInterval: TimeInterval = 30
@@ -82,7 +82,7 @@ final class TripMapViewModel {
                 isLeader: participant.IsLeader(in: state.trip),
                 isMe: participant.id == myParticipantID,
                 isOffline: participant.IsOnline(at: updatedAt) == false,
-                isAlerting: alerts.IsShared(participant, at: updatedAt)
+                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
             )
         }
     }
@@ -326,16 +326,16 @@ final class TripMapViewModel {
         alerts.Saved(alert)
     }
 
-    /// Checkpoints follow the leader: within 20 m of the next one, the leader's phone marks it visited for everyone.
-    /// A failed request is tried again on the next update.
+    /// Checkpoints follow the leader: the leader's phone marks each one visited for everyone. A failed request is
+    /// tried again on the next update.
     private func PassCheckpointIfReached() async {
-        guard isLeader, let state, let myCoordinate, let checkpoint = state.nextCheckpoint,
-              myCoordinate.Distance(to: checkpoint.coordinate) <= TripMapArrival.radius else { return }
-        let nextIndex = checkpoint.orderIndex + 1
-        guard requestedWaypointIndex.map({ $0 < nextIndex }) ?? true else { return }
-        requestedWaypointIndex = nextIndex
-        if (try? await tripService.AdvanceCheckpoint(to: nextIndex, tripID: tripID, by: myParticipantID)) == nil {
-            requestedWaypointIndex = nil
+        guard isLeader, let state, let myCoordinate else {
+            checkpointProgress.Reset()
+            return
+        }
+        guard let waypointIndex = checkpointProgress.Update(state, leaderCoordinate: myCoordinate) else { return }
+        if (try? await tripService.AdvanceCheckpoint(to: waypointIndex, tripID: tripID, by: myParticipantID)) == nil {
+            checkpointProgress.Failed()
         }
     }
 
