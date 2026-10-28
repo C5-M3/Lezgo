@@ -476,7 +476,6 @@ Feature: Manage the group and start
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
 - Tap elsewhere or swipe down to close.
-- The card has a round "Follow Budi" button: the map stays on that car while it moves. Closing the card returns the map to my car.
 - An offline car's card shows no ETA, because its last position is out of date.
 - Until the street and ETA are known (or without network), the card shows the status alone ("Driving").
 
