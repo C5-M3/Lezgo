@@ -56,9 +56,8 @@ struct RoutePositionTests {
     }
 
     @Test func RouteOfOnePointIsMeasuredFromThatPoint() throws {
-        let position = try #require(
-            RoutePosition.Locate(Coordinate(latitude: 0.0009, longitude: 0), on: [Coordinate(latitude: 0, longitude: 0)])
-        )
+        let point = Coordinate(latitude: 0.0009, longitude: 0)
+        let position = try #require(RoutePosition.Locate(point, on: [Coordinate(latitude: 0, longitude: 0)]))
 
         #expect(abs(position.distanceFromRoute - 100) < 2)
         #expect(position.distanceAlongRoute == 0)
