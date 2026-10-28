@@ -72,26 +72,40 @@ private struct RoomCodeView: View {
     let didCopy: Bool
 
     var body: some View {
+        // "Copied" and the loading spinner always take the same space, so the box (and the sheet) never changes
+        // height. The hidden label on top balances the one below, which keeps the code in the middle of the box.
         VStack(spacing: 4) {
+            CopiedLabel().hidden()
             if isLoaded {
-                Text(roomCode)
-                    .font(.system(.largeTitle, design: .rounded, weight: .heavy).monospacedDigit())
-                    .tracking(2)
+                RoomCodeText(roomCode: roomCode)
                     .accessibilityLabel("Room code: \(roomCode.map(String.init).joined(separator: ", "))")
-                // Only laid out while shown, so the code stays centered in the box. VoiceOver hears the announcement.
-                if didCopy {
-                    CopiedLabel()
-                        .transition(.opacity)
-                }
             } else {
-                ProgressView()
+                RoomCodeText(roomCode: "000000")
+                    .hidden()
+                    .overlay { ProgressView() }
+            }
+            if didCopy {
+                CopiedLabel()
+                    .transition(.opacity)
+            } else {
+                CopiedLabel().hidden()
             }
         }
         .foregroundStyle(.primary)
-        .frame(maxWidth: .infinity, minHeight: 110)
+        .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(Color(uiColor: .systemGray4), in: .rect(cornerRadius: 16))
         .contentShape(.rect(cornerRadius: 16))
+    }
+}
+
+private struct RoomCodeText: View {
+    let roomCode: String
+
+    var body: some View {
+        Text(verbatim: roomCode)
+            .font(.system(.largeTitle, design: .rounded, weight: .heavy).monospacedDigit())
+            .tracking(2)
     }
 }
 
