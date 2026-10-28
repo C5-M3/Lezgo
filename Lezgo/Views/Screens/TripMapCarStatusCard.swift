@@ -8,55 +8,36 @@
 import SwiftUI
 
 /// The card that opens when a car is tapped on the trip map: the driver, "Driving at [street]" (or "Stopped at",
-/// or "Last seen 3 min ago"), the time left, and a button that keeps the map on that car. Swipe down to close.
+/// or "Last seen 3 min ago") and the time left. Swipe down to close.
 struct TripMapCarStatusCard: View {
     let status: TripMapCarStatus
-    /// Whether the map already follows this car; the follow button then shows as selected.
-    let isFollowing: Bool
-    let onFollow: () -> Void
     let onClose: () -> Void
-
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// How far the card must be dragged down to close.
     private static let closeDragDistance: CGFloat = 40
 
     var body: some View {
-        let layout = ContentLayout()
         VStack(spacing: 8) {
             Capsule()
                 .fill(.secondary)
                 .frame(width: 36, height: 5)
                 .accessibilityHidden(true)
 
-            layout {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: status.displayName)
-                        .font(.headline)
-                    Text(verbatim: status.statusLine)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(verbatim: status.displayName)
+                    .font(.headline)
+                Text(verbatim: status.statusLine)
+                    .font(.subheadline)
+                if let timeLeft = status.timeLeft {
+                    // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
+                    Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
                         .font(.subheadline)
-                    if let timeLeft = status.timeLeft {
-                        // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
-                        Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
-                            .font(.subheadline)
-                    }
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .combine)
-                .accessibilityAction(named: Text(.tripMapCloseCarStatus), onClose)
-                Button(
-                    .tripMapFollowCar(status.displayName),
-                    systemImage: isFollowing ? "scope" : "dot.scope",
-                    action: onFollow
-                )
-                .labelStyle(.iconOnly)
-                .font(.title2)
-                .buttonStyle(.glass)
-                .buttonBorderShape(.circle)
-                .controlSize(.large)
-                .accessibilityAddTraits(isFollowing ? .isSelected : [])
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+            .accessibilityAction(named: Text(.tripMapCloseCarStatus), onClose)
         }
         .padding()
         .frame(maxWidth: .infinity)
@@ -70,13 +51,6 @@ struct TripMapCarStatusCard: View {
         .accessibilityElement(children: .contain)
         .accessibilityAction(.escape, onClose)
     }
-
-    /// Side by side; at accessibility text sizes the follow button goes under the text so nothing is cut off.
-    private func ContentLayout() -> AnyLayout {
-        dynamicTypeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-            : AnyLayout(HStackLayout(spacing: 12))
-    }
 }
 
 #Preview("Driving, with time left") {
@@ -87,18 +61,14 @@ struct TripMapCarStatusCard: View {
             activity: .driving(street: "Ahmad Yani Street"),
             timeLeft: .seconds(3_000)
         ),
-        isFollowing: false,
-        onFollow: {},
         onClose: {}
     )
     .padding()
 }
 
-#Preview("Stopped, before the lookup, followed") {
+#Preview("Stopped, before the lookup") {
     TripMapCarStatusCard(
         status: TripMapCarStatus(id: UUID(), displayName: "Citra", activity: .stopped(street: nil)),
-        isFollowing: true,
-        onFollow: {},
         onClose: {}
     )
     .padding()
@@ -107,8 +77,6 @@ struct TripMapCarStatusCard: View {
 #Preview("Offline") {
     TripMapCarStatusCard(
         status: TripMapCarStatus(id: UUID(), displayName: "Dewi", activity: .offline(lastSeen: .seconds(180))),
-        isFollowing: false,
-        onFollow: {},
         onClose: {}
     )
     .padding()
@@ -122,8 +90,6 @@ struct TripMapCarStatusCard: View {
             activity: .driving(street: "Jalan Raya Prapen Indah Blok A No. 12, Tenggilis Mejoyo, Surabaya"),
             timeLeft: .seconds(4_500)
         ),
-        isFollowing: false,
-        onFollow: {},
         onClose: {}
     )
     .padding()

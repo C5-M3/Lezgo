@@ -77,12 +77,7 @@ struct TripMapView: View {
                     followMyCar: viewModel.FollowMyCar
                 )
                 if let carStatus = viewModel.selectedCarStatus {
-                    TripMapCarStatusCard(
-                        status: carStatus,
-                        isFollowing: viewModel.cameraMode == .followCar(carStatus.id),
-                        onFollow: viewModel.FollowSelectedCar,
-                        onClose: { viewModel.SelectCar(nil) }
-                    )
+                    TripMapCarStatusCard(status: carStatus, onClose: { viewModel.SelectCar(nil) })
                 } else if let arrivalCard = viewModel.arrivalCard {
                     TripMapArrivalCardView(
                         card: arrivalCard,
@@ -136,7 +131,7 @@ struct TripMapView: View {
                 Close()
             }
         }
-        .onChange(of: viewModel.followedCoordinate) { MoveCamera() }
+        .onChange(of: viewModel.myCoordinate) { MoveCamera() }
         .onChange(of: viewModel.cameraMode) { MoveCamera() }
         .onChange(of: viewModel.route) { MoveCamera() }
         .onMapCameraChange(frequency: .onEnd) {
@@ -193,9 +188,9 @@ struct TripMapView: View {
 
     private func CameraTarget() -> MapCameraPosition? {
         switch viewModel.cameraMode {
-        case .followMyCar, .followCar:
-            guard let followed = viewModel.followedCoordinate else { return nil }
-            return .camera(MapCamera(centerCoordinate: followed.locationCoordinate, distance: Self.followDistance))
+        case .followMyCar:
+            guard let myCoordinate = viewModel.myCoordinate else { return nil }
+            return .camera(MapCamera(centerCoordinate: myCoordinate.locationCoordinate, distance: Self.followDistance))
         case .wholeRoute:
             guard viewModel.route.isEmpty == false else { return nil }
             return .rect(RouteRect())

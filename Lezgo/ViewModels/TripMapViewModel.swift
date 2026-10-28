@@ -102,15 +102,6 @@ final class TripMapViewModel {
         state?.participants.first { $0.id == myParticipantID }?.coordinate
     }
 
-    /// Where the camera stays while it follows a car, or `nil` while it does not follow one.
-    var followedCoordinate: Coordinate? {
-        switch cameraMode {
-        case .followMyCar: myCoordinate
-        case .followCar(let carID): state?.participants.first { $0.id == carID }?.coordinate
-        case .wholeRoute, .free: nil
-        }
-    }
-
     /// The status card of the tapped car, or `nil` while no car is tapped.
     ///
     /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
@@ -254,23 +245,11 @@ final class TripMapViewModel {
         cameraMode = .free
     }
 
-    /// Opens the status card of a tapped car, or closes it with `nil` (tap elsewhere or swipe down).
-    ///
-    /// A camera that followed the car goes back to my car when its card closes. Tapping another car leaves the camera
-    /// where it is, so the map does not jump away from the car just tapped.
+    /// Opens the status card of a tapped car, or closes it with `nil` (tap elsewhere or swipe down). The camera stays
+    /// as it is.
     func SelectCar(_ carID: UUID?) {
         guard carID != selectedCarID else { return }
-        if case .followCar(let followedID) = cameraMode, followedID != carID {
-            cameraMode = carID == nil ? .followMyCar : .free
-        }
         selectedCarID = carID
-    }
-
-    /// The follow button on the car status card: the camera stays on the tapped car as it moves. Pressing it again
-    /// stops following and returns the camera to my car.
-    func FollowSelectedCar() {
-        guard let selectedCarID else { return }
-        cameraMode = cameraMode == .followCar(selectedCarID) ? .followMyCar : .followCar(selectedCarID)
     }
 
     /// Keeps the tapped car's street and time left up to date while its card is open. The view runs this in a task
@@ -338,8 +317,6 @@ final class TripMapViewModel {
     enum CameraMode: Hashable {
         /// The camera stays on this phone's car as it moves.
         case followMyCar
-        /// The camera stays on a tapped car as it moves (the follow button on its status card).
-        case followCar(UUID)
         /// The camera shows the whole route; it no longer moves with the car.
         case wholeRoute
         /// The person moved the map by hand; the camera stays where they left it.

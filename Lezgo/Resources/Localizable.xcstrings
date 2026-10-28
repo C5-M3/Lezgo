@@ -495,18 +495,6 @@
         }
       }
     },
-    "tripMapFollowCar": {
-      "comment": "Round button on the car status card that keeps the map centred on the tapped car while it moves (US-06). The placeholder is the driver's name, for example \"Follow Budi\".",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow %@"
-          }
-        }
-      }
-    },
     "tripMapFollowMyCar": {
       "comment": "Round map button that keeps the map centred on this phone's car while it moves.",
       "extractionState": "manual",

@@ -279,7 +279,6 @@ struct TripMapViewModelCarStatusTests {
         ])
         let viewModel = MakeViewModel(states: [Fixtures.State(), withoutBudi])
         viewModel.SelectCar(Fixtures.budiID)
-        viewModel.FollowSelectedCar()
 
         await viewModel.Start()
 
