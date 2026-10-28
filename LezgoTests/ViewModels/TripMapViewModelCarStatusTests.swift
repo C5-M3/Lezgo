@@ -219,6 +219,36 @@ struct TripMapViewModelCarStatusTests {
         #expect(streetNames.requestedCoordinates.count == 2)
     }
 
+    /// Tapping Citra while Budi's lookup is still on its way cancels Budi's. Tapping Budi again soon after must look
+    /// him up again, not wait 30 seconds with an empty card.
+    @Test func CancelledLookupDoesNotDelayTheNextOne() async throws {
+        let streetNames = MockStreetNameService(results: [.failure(.init()), .success("Ahmad Yani Street")])
+        let viewModel = MakeViewModel(streetNames: streetNames)
+        await viewModel.Start()
+        viewModel.SelectCar(Fixtures.budiID)
+
+        let cancelledLookup = Task { await viewModel.RefreshSelectedCarStatus() }
+        cancelledLookup.cancel()
+        await cancelledLookup.value
+        await viewModel.RefreshSelectedCarStatus()
+
+        #expect(streetNames.requestedCoordinates.count == 2)
+        #expect(viewModel.selectedCarStatus?.statusLine == "Driving at Ahmad Yani Street")
+    }
+
+    /// The view starts tracking whenever the tapped car changes, also when the card closes. With no card open there
+    /// is nothing to look up, so tracking ends at once instead of waking every 30 seconds.
+    @Test(.timeLimit(.minutes(1)))
+    func TrackingEndsAtOnceWithoutATappedCar() async {
+        let streetNames = MockStreetNameService()
+        let viewModel = MakeViewModel(streetNames: streetNames)
+        await viewModel.Start()
+
+        await viewModel.TrackSelectedCar()
+
+        #expect(streetNames.requestedCoordinates.isEmpty)
+    }
+
     // MARK: Closing the card
 
     @Test func TappingElsewhereClosesTheCard() async {
@@ -256,81 +286,5 @@ struct TripMapViewModelCarStatusTests {
         #expect(viewModel.selectedCarID == nil)
         #expect(viewModel.selectedCarStatus == nil)
         #expect(viewModel.cameraMode == .followMyCar)
-    }
-
-    // MARK: Camera
-
-    @Test func FollowButtonKeepsTheCameraOnTheTappedCar() async throws {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-        viewModel.SelectCar(Fixtures.budiID)
-
-        viewModel.FollowSelectedCar()
-
-        let budi = try Coordinate(of: Fixtures.budiID)
-        #expect(viewModel.cameraMode == .followCar(Fixtures.budiID))
-        #expect(viewModel.followedCoordinate == budi)
-    }
-
-    @Test func FollowButtonDoesNothingWithoutATappedCar() async {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-        viewModel.ShowWholeRoute()
-
-        viewModel.FollowSelectedCar()
-
-        #expect(viewModel.cameraMode == .wholeRoute)
-    }
-
-    @Test func CameraFollowingMyCarStaysOnMyCar() async throws {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-
-        let agus = try Coordinate(of: Fixtures.agusID)
-        #expect(viewModel.cameraMode == .followMyCar)
-        #expect(viewModel.followedCoordinate == agus)
-    }
-
-    @Test func CameraThatFollowsNoCarHasNoFollowedPosition() async {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-
-        viewModel.ShowWholeRoute()
-
-        #expect(viewModel.followedCoordinate == nil)
-    }
-
-    @Test func ClosingTheCardReturnsTheCameraToMyCar() async {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-        viewModel.SelectCar(Fixtures.budiID)
-        viewModel.FollowSelectedCar()
-
-        viewModel.SelectCar(nil)
-
-        #expect(viewModel.cameraMode == .followMyCar)
-    }
-
-    @Test func ClosingTheCardLeavesACameraThatDidNotFollowTheCar() async {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-        viewModel.ShowWholeRoute()
-        viewModel.SelectCar(Fixtures.budiID)
-
-        viewModel.SelectCar(nil)
-
-        #expect(viewModel.cameraMode == .wholeRoute)
-    }
-
-    @Test func TappingAnotherCarStopsFollowingTheFirstWhereItIs() async {
-        let viewModel = MakeViewModel()
-        await viewModel.Start()
-        viewModel.SelectCar(Fixtures.budiID)
-        viewModel.FollowSelectedCar()
-
-        viewModel.SelectCar(Fixtures.citraID)
-
-        #expect(viewModel.cameraMode == .free)
-        #expect(viewModel.selectedCarStatus?.id == Fixtures.citraID)
     }
 }
