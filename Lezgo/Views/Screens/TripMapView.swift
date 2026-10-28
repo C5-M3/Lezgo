@@ -63,11 +63,19 @@ struct TripMapView: View {
         // Tapping the map anywhere but a car closes the car status card.
         .onTapGesture { viewModel.SelectCar(nil) }
         .safeAreaInset(edge: .top) {
-            // After arriving there is no next turn; the arrival card says what to do instead.
-            if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
-                TripMapTurnCard(guidance: guidance)
-                    .padding(.horizontal)
+            VStack {
+                // After arriving there is no next turn; the arrival card says what to do instead.
+                if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
+                    TripMapTurnCard(guidance: guidance)
+                }
+                if let alertBanner = viewModel.alertBanner {
+                    // A fade, not a slide: sliding in, the banner would pass behind the glass turn card.
+                    TripMapAlertBanner(banner: alertBanner, onClose: viewModel.DismissAlertBanner)
+                        .transition(.opacity)
+                }
             }
+            .padding(.horizontal)
+            .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
         }
         .safeAreaInset(edge: .bottom) {
             VStack(alignment: .trailing) {

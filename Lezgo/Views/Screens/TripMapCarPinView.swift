@@ -9,6 +9,7 @@ import SwiftUI
 
 /// A car on the trip map. My car shows an arrow, the leader a crown, and other cars a car.
 /// A stopped car gets a pause badge, and an offline car is faded at its last position. The tapped car has a halo.
+/// A car off the route or ahead of the leader gets a red ring and a warning badge.
 struct TripMapCarPinView: View {
     let pin: TripMapCarPin
     /// Whether this car's status card is open.
@@ -20,7 +21,17 @@ struct TripMapCarPinView: View {
             .foregroundStyle(pin.motionState == .stopped ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
             .frame(width: 44, height: 44)
             .background(.background, in: .circle)
-            .overlay { Circle().strokeBorder(.tint, lineWidth: pin.isMe ? 3 : 1) }
+            .overlay(alignment: .topTrailing) {
+                if pin.isAlerting {
+                    Circle().strokeBorder(Color(.formationAlertBackground), lineWidth: 4)
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white, Color(.formationAlertBackground))
+                        .accessibilityHidden(true)
+                } else {
+                    Circle().strokeBorder(.tint, lineWidth: pin.isMe ? 3 : 1)
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 if pin.motionState == .stopped {
                     Image(systemName: "pause.circle.fill")
@@ -58,6 +69,7 @@ struct TripMapCarPinView: View {
         var statuses: [String] = []
         if pin.isMe { statuses.append(String(localized: .tripMapCarYou)) }
         if pin.isLeader { statuses.append(String(localized: .tripMapCarLeader)) }
+        if pin.isAlerting { statuses.append(String(localized: .tripMapCarAlert)) }
         if pin.isOffline {
             statuses.append(String(localized: .tripMapCarOffline))
         } else {
@@ -74,6 +86,7 @@ struct TripMapCarPinView: View {
         ("Me", .driving, false, true, false),
         ("Agus", .driving, true, false, false),
         ("Dewi", .stopped, false, false, false),
+        ("Eka", .driving, false, false, false),
         ("Citra", .stopped, false, false, true)
     ].map { name, motionState, isLeader, isMe, isOffline in
         TripMapCarPin(
@@ -83,7 +96,8 @@ struct TripMapCarPinView: View {
             motionState: motionState,
             isLeader: isLeader,
             isMe: isMe,
-            isOffline: isOffline
+            isOffline: isOffline,
+            isAlerting: name == "Eka"
         )
     }
     HStack(spacing: 16) {

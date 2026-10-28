@@ -255,6 +255,66 @@
         }
       }
     },
+    "tripMapAlertAheadOfLeader": {
+      "comment": "Formation alert banner (US-06): this member has been more than 200 m ahead of the leader for 15 seconds.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You Precede The Leader"
+          }
+        }
+      }
+    },
+    "tripMapAlertCarAheadOfLeader": {
+      "comment": "Formation alert banner (US-06) about another car ahead of the leader. The placeholder is the driver's name, for example \"Car Budi - Precede The Leader\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car %@ - Precede The Leader"
+          }
+        }
+      }
+    },
+    "tripMapAlertCarOffRoute": {
+      "comment": "Formation alert banner (US-06) about another car that left the route. The placeholder is the driver's name, for example \"Car Budi - Out of The Way\".",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car %@ - Out of The Way"
+          }
+        }
+      }
+    },
+    "tripMapAlertOffRoute": {
+      "comment": "Formation alert banner (US-06): this member has been more than 100 m from the route for 15 seconds.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're out of the way"
+          }
+        }
+      }
+    },
+    "tripMapAlertPassedCheckpoint": {
+      "comment": "Formation alert banner (US-06): this member drove more than 200 m past the next checkpoint.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You pass a checkpoint"
+          }
+        }
+      }
+    },
     "tripMapCancel": {
       "comment": "Button on a confirmation that changes nothing (US-07).",
       "extractionState": "manual",
@@ -263,6 +323,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cancel"
+          }
+        }
+      }
+    },
+    "tripMapCarAlert": {
+      "comment": "VoiceOver status of a car pin: the car is off the route or ahead of the leader (US-06).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs attention"
           }
         }
       }
@@ -371,6 +443,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "Checkpoint"
+          }
+        }
+      }
+    },
+    "tripMapCloseAlert": {
+      "comment": "VoiceOver label of the ⓧ button that hides a formation alert banner until it happens again (US-06).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
           }
         }
       }
