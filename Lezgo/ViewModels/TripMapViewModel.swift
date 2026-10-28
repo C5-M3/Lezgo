@@ -266,16 +266,18 @@ final class TripMapViewModel {
         selectedCarID = carID
     }
 
-    /// The follow button on the car status card: the camera stays on the tapped car as it moves.
+    /// The follow button on the car status card: the camera stays on the tapped car as it moves. Pressing it again
+    /// stops following and returns the camera to my car.
     func FollowSelectedCar() {
         guard let selectedCarID else { return }
-        cameraMode = .followCar(selectedCarID)
+        cameraMode = cameraMode == .followCar(selectedCarID) ? .followMyCar : .followCar(selectedCarID)
     }
 
     /// Keeps the tapped car's street and time left up to date while its card is open. The view runs this in a task
-    /// tied to the tapped car, so it stops when the card closes or another car is tapped.
+    /// tied to the tapped car, so it stops when the card closes or another car is tapped, and ends at once while no
+    /// card is open.
     func TrackSelectedCar() async {
-        while Task.isCancelled == false {
+        while selectedCarID != nil, Task.isCancelled == false {
             await RefreshSelectedCarStatus()
             try? await Task.sleep(for: .seconds(Self.carLookupInterval))
         }
@@ -293,6 +295,8 @@ final class TripMapViewModel {
         }
         let street = try? await streetNameService.StreetName(at: coordinate)
         let timeLeft = try? await navigator.Guidance(from: coordinate, along: state).timeLeft
+        // A lookup cancelled by tapping another car is not saved, so tapping this car again looks it up at once.
+        guard Task.isCancelled == false else { return }
         let previous = carLookups[car.id]
         carLookups[car.id] = CarLookup(
             street: street ?? previous?.street,
