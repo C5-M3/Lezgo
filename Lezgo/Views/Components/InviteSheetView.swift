@@ -43,7 +43,7 @@ struct InviteSheetView: View {
                 .foregroundStyle(.primary)
                 .buttonStyle(.borderedProminent)
                 // Opaque, like the code box, so nothing behind the sheet shows through and lowers the contrast.
-                .tint(Color(uiColor: .systemGray4))
+                .tint(Color(.inviteSurface))
                 .controlSize(.large)
             }
             .disabled(!viewModel.canShareInvite)
@@ -99,7 +99,7 @@ private struct RoomCodeView: View {
         .foregroundStyle(.primary)
         .frame(maxWidth: .infinity)
         .padding(.vertical)
-        .background(Color(uiColor: .systemGray4), in: .rect(cornerRadius: 16))
+        .background(Color(.inviteSurface), in: .rect(cornerRadius: 16))
         .contentShape(.rect(cornerRadius: 16))
     }
 }
