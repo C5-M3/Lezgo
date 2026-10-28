@@ -116,7 +116,7 @@ private extension View {
         participantToEdit: Binding<Participant?>
     ) -> some View {
         sheet(isPresented: showingInvite) {
-            InviteSheetView(roomCode: viewModel.roomCode, inviteURL: viewModel.inviteURL)
+            InviteSheetView(viewModel: viewModel)
         }
         .sheet(isPresented: showingSetLeader) {
             SetLeaderSheetView(viewModel: viewModel) { candidate in
