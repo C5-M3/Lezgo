@@ -28,4 +28,9 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0011](0011-XcodeCloudAndGitHubActions.md) | Xcode Cloud for builds, GitHub Actions for source checks | Accepted | 2026-10-22 |
 | [0012](0012-PinnedAgentSkills.md) | Pinned agent skills, installed per developer | Accepted | 2026-10-22 |
 | [0013](0013-AppNameAndBundleIdentifier.md) | App name Lezgo and bundle identifier | Accepted | 2026-10-22 |
-| [0014](0014-CloudKitPublicDatabaseForTripSync.md) | CloudKit public database for trip sync | Proposed | 2026-10-23 |
+| [0014](0014-CloudKitPublicDatabaseForTripSync.md) | CloudKit public database for trip sync | Accepted | 2026-10-23 |
+| [0015](0015-PerDeveloperSigningSettings.md) | Per-developer signing settings | Accepted | 2026-10-26 |
+| [0016](0016-UserStoriesInTheRepository.md) | User stories in the repository | Accepted | 2026-10-26 |
+| [0017](0017-TripServiceContractFirst.md) | Trip service contract first, with an in-memory service | Accepted | 2026-10-26 |
+| [0018](0018-DebugToolsInTheirOwnFolder.md) | Debug tools in their own folder | Accepted | 2026-10-27 |
+| [0019](0019-SmallTypesStayWithTheirOwner.md) | Small helper types stay with the type that uses them | Accepted | 2026-10-27 |
