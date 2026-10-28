@@ -36,6 +36,9 @@ struct TripMapView: View {
     }
 
     var body: some View {
+        // The map closes the car status card on a tap (below) but is not a button, so it gets no button trait;
+        // VoiceOver closes the card with its Close action or the escape gesture instead.
+        // swiftlint:disable:next accessibility_trait_for_button
         Map(position: $cameraPosition) {
             MapPolyline(coordinates: viewModel.route.map(\.locationCoordinate))
                 .stroke(.tint, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
@@ -48,12 +51,17 @@ struct TripMapView: View {
 
             ForEach(viewModel.carPins) { pin in
                 Annotation(pin.displayName, coordinate: pin.coordinate.locationCoordinate) {
-                    TripMapCarPinView(pin: pin)
+                    Button { viewModel.SelectCar(pin.id) } label: {
+                        TripMapCarPinView(pin: pin, isSelected: pin.id == viewModel.selectedCarID)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .annotationTitles(.hidden)
             }
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        // Tapping the map anywhere but a car closes the car status card.
+        .onTapGesture { viewModel.SelectCar(nil) }
         .safeAreaInset(edge: .top) {
             // After arriving there is no next turn; the arrival card says what to do instead.
             if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
@@ -68,7 +76,14 @@ struct TripMapView: View {
                     showWholeRoute: viewModel.ShowWholeRoute,
                     followMyCar: viewModel.FollowMyCar
                 )
-                if let arrivalCard = viewModel.arrivalCard {
+                if let carStatus = viewModel.selectedCarStatus {
+                    TripMapCarStatusCard(
+                        status: carStatus,
+                        isFollowing: viewModel.cameraMode == .followCar(carStatus.id),
+                        onFollow: viewModel.FollowSelectedCar,
+                        onClose: { viewModel.SelectCar(nil) }
+                    )
+                } else if let arrivalCard = viewModel.arrivalCard {
                     TripMapArrivalCardView(
                         card: arrivalCard,
                         isLeader: viewModel.isLeader,
@@ -96,6 +111,7 @@ struct TripMapView: View {
             }
         }
         .task { await viewModel.Start() }
+        .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
         .alert(
             Text(LeaveQuestion()),
             isPresented: IsAskingToLeave(),
@@ -120,7 +136,7 @@ struct TripMapView: View {
                 Close()
             }
         }
-        .onChange(of: viewModel.myCoordinate) { MoveCamera() }
+        .onChange(of: viewModel.followedCoordinate) { MoveCamera() }
         .onChange(of: viewModel.cameraMode) { MoveCamera() }
         .onChange(of: viewModel.route) { MoveCamera() }
         .onMapCameraChange(frequency: .onEnd) {
@@ -177,13 +193,13 @@ struct TripMapView: View {
 
     private func CameraTarget() -> MapCameraPosition? {
         switch viewModel.cameraMode {
-        case .followMyCar:
-            guard let myCoordinate = viewModel.myCoordinate else { return nil }
-            return .camera(MapCamera(centerCoordinate: myCoordinate.locationCoordinate, distance: Self.followDistance))
+        case .followMyCar, .followCar:
+            guard let followed = viewModel.followedCoordinate else { return nil }
+            return .camera(MapCamera(centerCoordinate: followed.locationCoordinate, distance: Self.followDistance))
         case .wholeRoute:
             guard viewModel.route.isEmpty == false else { return nil }
             return .rect(RouteRect())
-        case .followCar, .free:
+        case .free:
             return nil
         }
     }

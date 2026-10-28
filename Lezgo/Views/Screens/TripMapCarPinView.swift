@@ -8,9 +8,11 @@
 import SwiftUI
 
 /// A car on the trip map. My car shows an arrow, the leader a crown, and other cars a car.
-/// A stopped car gets a pause badge, and an offline car is faded at its last position.
+/// A stopped car gets a pause badge, and an offline car is faded at its last position. The tapped car has a halo.
 struct TripMapCarPinView: View {
     let pin: TripMapCarPin
+    /// Whether this car's status card is open.
+    var isSelected = false
 
     var body: some View {
         Image(systemName: Symbol())
@@ -35,6 +37,15 @@ struct TripMapCarPinView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: pin.displayName))
             .accessibilityValue(Text(Statuses().formatted(.list(type: .and, width: .narrow))))
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .background {
+                // The halo around the tapped car, like the focus ring in the lo-fi.
+                if isSelected {
+                    Circle()
+                        .fill(.tint.opacity(0.25))
+                        .padding(-10)
+                }
+            }
     }
 
     private func Symbol() -> String {
@@ -77,7 +88,7 @@ struct TripMapCarPinView: View {
     }
     HStack(spacing: 16) {
         ForEach(pins) { pin in
-            TripMapCarPinView(pin: pin)
+            TripMapCarPinView(pin: pin, isSelected: pin.displayName == "Budi")
         }
     }
     .padding()
