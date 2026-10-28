@@ -36,4 +36,22 @@ struct TripStateTests {
 
         #expect(state.destination?.orderIndex == 1)
     }
+
+    @Test(arguments: [(currentWaypointIndex: 1, next: Int?.some(1)), (2, 2), (3, nil)])
+    func NextCheckpointIsTheFirstOneNotVisited(currentWaypointIndex: Int, next: Int?) {
+        let waypoints = [
+            TripFixtures.Waypoint(orderIndex: 0, kind: .start),
+            TripFixtures.Waypoint(orderIndex: 2, kind: .checkpoint),
+            TripFixtures.Waypoint(orderIndex: 1, kind: .checkpoint),
+            TripFixtures.Waypoint(orderIndex: 3, kind: .destination)
+        ]
+        let state = TripState(
+            trip: TripFixtures.Trip(currentWaypointIndex: currentWaypointIndex),
+            waypoints: waypoints,
+            participants: [],
+            route: nil
+        )
+
+        #expect(state.nextCheckpoint?.orderIndex == next)
+    }
 }

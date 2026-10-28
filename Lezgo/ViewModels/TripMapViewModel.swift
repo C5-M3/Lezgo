@@ -32,6 +32,10 @@ final class TripMapViewModel {
     private var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
     private var carLookups: [UUID: CarLookup] = [:]
+    /// This phone's formation alert and the banners closed with ⓧ.
+    private var alerts: TripMapAlerts
+    /// When this phone, as leader, moves the trip past a checkpoint.
+    private var checkpointProgress = TripMapCheckpointProgress()
 
     /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
     private static let carLookupInterval: TimeInterval = 30
@@ -62,6 +66,7 @@ final class TripMapViewModel {
         self.streetNameService = streetNameService
         self.locationSharer = locationSharer
         self.clock = clock
+        alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
 
     /// A pin for every car that has sent a position; members without one yet have no pin.
@@ -76,7 +81,8 @@ final class TripMapViewModel {
                 motionState: participant.motionState,
                 isLeader: participant.IsLeader(in: state.trip),
                 isMe: participant.id == myParticipantID,
-                isOffline: participant.IsOnline(at: updatedAt) == false
+                isOffline: participant.IsOnline(at: updatedAt) == false,
+                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
             )
         }
     }
@@ -123,6 +129,12 @@ final class TripMapViewModel {
         )
     }
 
+    /// The one formation alert banner under the turn card, or `nil` when there is none to show.
+    var alertBanner: TripMapAlerts.Banner? {
+        guard let state, let updatedAt else { return nil }
+        return alerts.Banner(in: state, at: updatedAt)
+    }
+
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
     var arrivalCard: ArrivalCard? {
         guard let state, let updatedAt else { return nil }
@@ -164,6 +176,8 @@ final class TripMapViewModel {
             NoticeTripClosed(newState)
             if closeReason != nil { return }
             CloseCardOfGoneCar()
+            await UpdateMyAlert()
+            await PassCheckpointIfReached()
             await RefreshGuidance()
         }
     }
@@ -240,6 +254,12 @@ final class TripMapViewModel {
         leaveErrorMessage = nil
     }
 
+    /// ⓧ on the alert banner: hides it until that alert happens again.
+    func DismissAlertBanner() {
+        guard let alertBanner else { return }
+        alerts.Close(alertBanner)
+    }
+
     /// Called when the person pans or zooms the map by hand.
     func StopFollowing() {
         cameraMode = .free
@@ -296,6 +316,29 @@ final class TripMapViewModel {
         SelectCar(nil)
     }
 
+    /// Works out this member's alert from the new state and saves it when it changed, so the other phones see it.
+    /// A failed save is not shown: the next update, a second later, tries again.
+    private func UpdateMyAlert() async {
+        guard let state, let alert = alerts.Update(state) else { return }
+        guard (try? await tripService.SetAlert(alert, participantID: myParticipantID, tripID: tripID)) != nil else {
+            return
+        }
+        alerts.Saved(alert)
+    }
+
+    /// Checkpoints follow the leader: the leader's phone marks each one visited for everyone. A failed request is
+    /// tried again on the next update.
+    private func PassCheckpointIfReached() async {
+        guard isLeader, let state, let myCoordinate else {
+            checkpointProgress.Reset()
+            return
+        }
+        guard let waypointIndex = checkpointProgress.Update(state, leaderCoordinate: myCoordinate) else { return }
+        if (try? await tripService.AdvanceCheckpoint(to: waypointIndex, tripID: tripID, by: myParticipantID)) == nil {
+            checkpointProgress.Failed()
+        }
+    }
+
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
     private func RefreshGuidance() async {
@@ -303,9 +346,11 @@ final class TripMapViewModel {
         guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
         guidance = newGuidance
     }
+}
 
-    // MARK: Nested types
+// MARK: Nested types
 
+extension TripMapViewModel {
     /// What was last looked up about a tapped car, and when.
     private struct CarLookup {
         var street: String?

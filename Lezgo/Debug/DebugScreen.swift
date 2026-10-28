@@ -62,6 +62,8 @@ enum DebugScreen: String, CaseIterable {
     case draftTripLeader
     case tripMapLeader
     case tripMapMember
+    case tripMapMemberOffRoute
+    case tripMapLeaderSeesMemberOffRoute
     case tripMapArrivedLeader
     case syncCheck
 
@@ -90,6 +92,10 @@ enum DebugScreen: String, CaseIterable {
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
         case .tripMapMember:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
+        case .tripMapMemberOffRoute:
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID, budiLeavesRoute: true)
+        case .tripMapLeaderSeesMemberOffRoute:
+            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, budiLeavesRoute: true)
         case .tripMapArrivedLeader:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, startSecond: 2_000)
         case .syncCheck:

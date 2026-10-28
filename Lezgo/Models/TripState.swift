@@ -24,4 +24,11 @@ struct TripState: Hashable {
     var destination: Waypoint? {
         waypoints.last { $0.kind == .destination }
     }
+
+    /// The first checkpoint the leader has not passed yet, or `nil` once every checkpoint is visited.
+    var nextCheckpoint: Waypoint? {
+        waypoints
+            .filter { $0.kind == .checkpoint && $0.IsVisited(currentWaypointIndex: trip.currentWaypointIndex) == false }
+            .min { $0.orderIndex < $1.orderIndex }
+    }
 }

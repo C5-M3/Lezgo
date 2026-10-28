@@ -10,14 +10,23 @@ import Foundation
 
 /// A `TripService` whose live updates are a fixed list of states, sent at once and then finished.
 ///
-/// "Exit Trip" and "End Trip" are recorded, and `failure` makes them throw. The trip map uses no other calls, so
-/// they fail with `.notAllowed`; tests that need them use `InMemoryTripService`.
+/// "Exit Trip", "End Trip", saved alerts and checkpoint moves are recorded, and `failure` makes leaving throw. The
+/// trip map uses no other calls, so they fail with `.notAllowed`; tests that need them use `InMemoryTripService`.
 final class MockTripService: TripService {
     private let states: [TripState]
     private var continuation: AsyncStream<TripState>.Continuation?
     private(set) var requestedTripIDs: [UUID] = []
     private(set) var exitedParticipantIDs: [UUID] = []
     private(set) var endedByLeaderIDs: [UUID] = []
+    private(set) var savedAlerts: [FormationAlert] = []
+    private(set) var advancedCheckpointIndexes: [Int] = []
+    /// When set, the next `SetAlert` throws it once.
+    var nextAlertFailure: TripServiceError?
+    /// When set, the next `AdvanceCheckpoint` throws it once.
+    var nextAdvanceFailure: TripServiceError?
+    /// When set, runs before each state is sent with that state's index, after the previous one was handled. The
+    /// stream then sends the states one at a time, so a test can act between two updates.
+    var beforeEachState: ((Int) -> Void)?
     /// When set, `ExitTrip` and `EndTrip` throw it.
     var failure: TripServiceError?
     /// Sent while `ExitTrip` or `EndTrip` is on its way, like an update from the cloud arriving before the request
@@ -32,6 +41,15 @@ final class MockTripService: TripService {
 
     func TripUpdates(tripID: UUID) -> AsyncStream<TripState> {
         requestedTripIDs.append(tripID)
+        if let beforeEachState {
+            var index = 0
+            return AsyncStream { [states] in
+                guard index < states.count else { return nil }
+                beforeEachState(index)
+                index += 1
+                return states[index - 1]
+            }
+        }
         return AsyncStream { continuation in
             for state in states {
                 continuation.yield(state)
@@ -93,11 +111,19 @@ final class MockTripService: TripService {
     }
 
     func SetAlert(_ alert: FormationAlert, participantID: UUID, tripID: UUID) async throws {
-        throw TripServiceError.notAllowed
+        if let failure = nextAlertFailure {
+            nextAlertFailure = nil
+            throw failure
+        }
+        savedAlerts.append(alert)
     }
 
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws {
-        throw TripServiceError.notAllowed
+        if let failure = nextAdvanceFailure {
+            nextAdvanceFailure = nil
+            throw failure
+        }
+        advancedCheckpointIndexes.append(waypointIndex)
     }
 
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {

@@ -17,4 +17,6 @@ struct TripMapCarPin: Identifiable, Hashable {
     var isMe: Bool
     /// Offline cars stay at their last position and are drawn faded.
     var isOffline: Bool
+    /// Another car that is off the route or ahead of the leader; its pin is highlighted.
+    var isAlerting = false
 }
