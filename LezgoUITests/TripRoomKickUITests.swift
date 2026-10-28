@@ -64,7 +64,13 @@ final class TripRoomKickUITests: XCTestCase {
         add(attachment)
     }
 
+    /// At the largest text sizes the participants sit below the route, and the list only builds rows on screen, so
+    /// this scrolls down until the row shows.
     private func Row(named name: String) -> XCUIElement {
-        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
+        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
+        for _ in 0..<6 where !row.isHittable {
+            app.swipeUp()
+        }
+        return row
     }
 }
