@@ -32,12 +32,13 @@ struct TripRoomParticipantsSection: View {
                         onEdit: { onEdit(participant) }
                     )
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode && !isLeader {
+                        if viewModel.showsKickSwipe {
                             Button(role: .destructive) {
                                 onKick(participant)
                             } label: {
                                 Label("Kick", systemImage: "trash")
                             }
+                            .disabled(!viewModel.CanKick(participant: participant))
                             .accessibilityLabel("Kick")
                         }
                     }

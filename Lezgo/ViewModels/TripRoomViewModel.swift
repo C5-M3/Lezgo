@@ -75,6 +75,9 @@ final class TripRoomViewModel {
 
     var canRemove: Bool { !selectedParticipantIds.isEmpty }
 
+    /// The leader can swipe every row to "Kick", their own too, where `CanKick` keeps it disabled (US-05).
+    var showsKickSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
+
     var selectAllButtonTitle: String {
         areAllMembersSelected ? "Deselect all" : "Select all"
     }
