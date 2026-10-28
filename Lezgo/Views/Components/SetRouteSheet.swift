@@ -144,9 +144,24 @@ struct SetRouteSheet: View {
                     }
                 }
             }
-            .environment(\.editMode, isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive))
+            .environment(
+                \.editMode,
+                isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive)
+            )
             .navigationTitle("Set Route")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Back", systemImage: "chevron.left") {
+                        // Action to be routed later
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Next", systemImage: "arrow.right") {
+                        // Action to be routed later
+                    }
+                }
+            }
         }
     }
 }

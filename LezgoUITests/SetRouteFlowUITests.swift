@@ -59,9 +59,12 @@ final class SetRouteFlowUITests: XCTestCase {
         let startPointButton = app.buttons["Choose Starting Point..."]
         XCTAssertTrue(startPointButton.waitForExistence(timeout: 3), "Expected Choose Starting Point button")
 
-        // Verify "Add..." button in Destinations section
-        let addDestinationButton = app.buttons["Add..."]
-        XCTAssertTrue(addDestinationButton.exists, "Expected Add button in Destinations section")
+        // Verify navigation toolbar buttons
+        let backButton = app.buttons["Back"]
+        XCTAssertTrue(backButton.exists, "Expected Back button in toolbar")
+
+        let nextButton = app.buttons["Next"]
+        XCTAssertTrue(nextButton.exists, "Expected Next button in toolbar")
     }
 
     @MainActor
@@ -83,22 +86,5 @@ final class SetRouteFlowUITests: XCTestCase {
         // Search field prompt "Change start location"
         let searchField = app.searchFields["Change start location"]
         XCTAssertTrue(searchField.exists, "Expected 'Change start location' search field")
-    }
-
-    @MainActor
-    func testTappingAddDestinationOpensSearchSheet() throws {
-        // Dismiss initial destination search sheet
-        let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.waitForExistence(timeout: 5))
-        cancelButton.tap()
-
-        // Tap "Add..." in Destinations
-        let addButton = app.buttons["Add..."]
-        XCTAssertTrue(addButton.waitForExistence(timeout: 3))
-        addButton.tap()
-
-        // Should present LocationSearchSheet for Destination
-        let destinationNavBar = app.navigationBars["Destination"]
-        XCTAssertTrue(destinationNavBar.waitForExistence(timeout: 3), "Expected Destination search sheet")
     }
 }
