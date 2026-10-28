@@ -10,7 +10,7 @@ import Foundation
 
 /// A `TripService` whose live updates are a fixed list of states, sent at once and then finished.
 ///
-/// "Exit Trip", "End Trip", saved alerts and checkpoint moves are recorded, and `failure` makes leaving throw. The
+/// "Exit Trip", "End Trip", saved alerts, checkpoint moves and saved routes are recorded, and `failure` makes leaving throw. The
 /// trip map uses no other calls, so they fail with `.notAllowed`; tests that need them use `InMemoryTripService`.
 final class MockTripService: TripService {
     private let states: [TripState]
@@ -20,6 +20,9 @@ final class MockTripService: TripService {
     private(set) var endedByLeaderIDs: [UUID] = []
     private(set) var savedAlerts: [FormationAlert] = []
     private(set) var advancedCheckpointIndexes: [Int] = []
+    private(set) var savedRoutes: [TripPlan] = []
+    /// When set, the next `SaveRoute` throws it once.
+    var nextSaveRouteFailure: TripServiceError?
     /// When set, the next `SetAlert` throws it once.
     var nextAlertFailure: TripServiceError?
     /// When set, the next `AdvanceCheckpoint` throws it once.
@@ -127,7 +130,11 @@ final class MockTripService: TripService {
     }
 
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
-        throw TripServiceError.notAllowed
+        if let failure = nextSaveRouteFailure {
+            nextSaveRouteFailure = nil
+            throw failure
+        }
+        savedRoutes.append(plan)
     }
 
     func StartNewDestination(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
