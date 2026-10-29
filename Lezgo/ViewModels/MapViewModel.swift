@@ -28,15 +28,30 @@ final class MapViewModel {
     var isNavigatingToTripRoom: Bool = false
 
     var isRouteComplete: Bool {
-        false
+        startPoint != nil && !destinations.isEmpty
     }
 
     var canCreateTrip: Bool {
-        false
+        isRouteComplete && !isLoadingRoute && !isCreatingTrip
     }
 
     var routeCoordinates: [Coordinate] {
-        []
+        var coords: [Coordinate] = []
+        for leg in routeLegs {
+            let poly = leg.selectedRoute.polyline
+            var legCoords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: poly.pointCount)
+            poly.getCoordinates(&legCoords, range: NSRange(location: 0, length: poly.pointCount))
+            coords.append(contentsOf: legCoords.map { Coordinate(latitude: $0.latitude, longitude: $0.longitude) })
+        }
+        if coords.isEmpty {
+            if let start = startPoint {
+                coords.append(Coordinate(latitude: start.coordinate.latitude, longitude: start.coordinate.longitude))
+            }
+            coords.append(contentsOf: destinations.map {
+                Coordinate(latitude: $0.coordinate.latitude, longitude: $0.coordinate.longitude)
+            })
+        }
+        return coords
     }
 
     // MARK: - Computed Trip & Map State
@@ -286,11 +301,53 @@ final class MapViewModel {
 
 extension MapViewModel {
     func MakeTripPlan() -> TripPlan? {
-        nil
+        guard let start = startPoint, !destinations.isEmpty else { return nil }
+
+        var waypoints: [PlannedWaypoint] = []
+        waypoints.append(PlannedWaypoint(
+            kind: .start,
+            name: start.name,
+            coordinate: Coordinate(latitude: start.coordinate.latitude, longitude: start.coordinate.longitude)
+        ))
+
+        for (index, dest) in destinations.enumerated() {
+            let isLast = (index == destinations.count - 1)
+            waypoints.append(PlannedWaypoint(
+                kind: isLast ? .destination : .checkpoint,
+                name: dest.name,
+                coordinate: Coordinate(latitude: dest.coordinate.latitude, longitude: dest.coordinate.longitude)
+            ))
+        }
+
+        let plan = TripPlan(waypoints: waypoints, polyline: routeCoordinates)
+        guard plan.isValid else { return nil }
+        return plan
     }
 
     @discardableResult
     func CreateTrip() async -> TripSession? {
-        nil
+        guard let plan = MakeTripPlan() else {
+            errorMessage = "Requires at least a valid start and destination point."
+            return nil
+        }
+
+        isCreatingTrip = true
+        errorMessage = nil
+
+        do {
+            let session = try await tripService.CreateTrip(plan: plan, profile: nil)
+            let distanceStr = totalDistance > 0 ? String(format: "%.1f km", totalDistance / 1000) : nil
+            let summary = ActiveTripSummary.From(session: session, distanceText: distanceStr)
+            activeTripStorage.SaveActiveTrip(summary)
+
+            self.createdTripSession = session
+            self.isNavigatingToTripRoom = true
+            self.isCreatingTrip = false
+            return session
+        } catch {
+            self.errorMessage = error.localizedDescription
+            self.isCreatingTrip = false
+            return nil
+        }
     }
 }

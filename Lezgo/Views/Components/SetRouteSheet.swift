@@ -162,9 +162,29 @@ struct SetRouteSheet: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Next", systemImage: "arrow.right") {
-                        // Action to be routed later
+                    if viewModel.isCreatingTrip {
+                        ProgressView()
+                    } else {
+                        Button("Next", systemImage: "arrow.right") {
+                            Task {
+                                await viewModel.CreateTrip()
+                            }
+                        }
+                        .disabled(!viewModel.canCreateTrip)
                     }
+                }
+            }
+            .navigationDestination(isPresented: $viewModel.isNavigatingToTripRoom) {
+                if let session = viewModel.createdTripSession {
+                    TripRoomView(
+                        viewModel: TripRoomViewModel(
+                            tripService: viewModel.tripService,
+                            tripID: session.state.trip.id,
+                            myParticipantID: session.myParticipantID,
+                            initialState: session.state
+                        )
+                    )
+                    .navigationBarBackButtonHidden(true)
                 }
             }
         }

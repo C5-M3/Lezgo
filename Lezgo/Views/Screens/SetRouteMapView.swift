@@ -9,6 +9,7 @@ import SwiftUI
 import MapKit
 
 struct SetRouteMapView: View {
+    @Environment(\.tripService) private var tripService
     @State private var viewModel = MapViewModel()
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
@@ -77,7 +78,7 @@ struct SetRouteMapView: View {
             }
             // Only compact (height) and full (large) — no half pulls
             .presentationDetents(
-                [.height(drawerHeight), .large],
+                viewModel.isNavigatingToTripRoom ? [.large] : [.height(drawerHeight), .large],
                 selection: $selectedDetent
             )
             .presentationDragIndicator(.visible)
@@ -85,7 +86,13 @@ struct SetRouteMapView: View {
             .interactiveDismissDisabled()
         }
         .onAppear {
+            viewModel.tripService = tripService
             viewModel.onAppear()
+        }
+        .onChange(of: viewModel.isNavigatingToTripRoom) { _, isNavigating in
+            if isNavigating {
+                selectedDetent = .large
+            }
         }
         .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.errorMessage = nil }
