@@ -60,7 +60,7 @@ struct SetLeaderSheetView: View {
                 }
             }
             .alert(
-                "Set \(candidate?.displayName ?? "") as Trip Leader?",
+                candidate.map(viewModel.SetLeaderConfirmationTitle) ?? "",
                 isPresented: Binding(
                     get: { candidate != nil },
                     set: { if !$0 { candidate = nil } }
