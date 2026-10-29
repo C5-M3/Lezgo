@@ -28,6 +28,8 @@ final class TripMapViewModel {
     private(set) var isLeaving = false
     /// The car whose status card is open, or `nil` while it is closed.
     private(set) var selectedCarID: UUID?
+    /// Edit Route while the leader has it open, or `nil`. Set only in `TripMapViewModel+EditRoute.swift`.
+    var editRoute: EditRouteViewModel?
     /// When the latest state arrived; offline cars are judged against this time.
     private var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
@@ -42,8 +44,8 @@ final class TripMapViewModel {
 
     /// The participant who uses this phone.
     let myParticipantID: UUID
-    private let tripID: UUID
-    private let tripService: any TripService
+    let tripID: UUID
+    let tripService: any TripService
     private let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
@@ -368,6 +370,7 @@ extension TripMapViewModel {
             state = newState
             updatedAt = clock()
             NoticeTripClosed(newState)
+            CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }
             CloseCardOfGoneCar()
             await UpdateMyAlert()
