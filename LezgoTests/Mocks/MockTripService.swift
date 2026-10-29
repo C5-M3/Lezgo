@@ -24,6 +24,8 @@ final class MockTripService: TripService {
     private(set) var savedRoutes: [TripPlan] = []
     /// When set, the next `SaveRoute` throws it once.
     var nextSaveRouteFailure: TripServiceError?
+    /// Runs while `SaveRoute` is on its way, before the route is recorded.
+    var whileSavingRoute: (() async -> Void)?
     /// When set, the next `SetAlert` throws it once.
     var nextAlertFailure: TripServiceError?
     /// When set, the next `AdvanceCheckpoint` throws it once.
@@ -135,6 +137,7 @@ final class MockTripService: TripService {
             nextSaveRouteFailure = nil
             throw failure
         }
+        await whileSavingRoute?()
         savedRoutes.append(plan)
     }
 

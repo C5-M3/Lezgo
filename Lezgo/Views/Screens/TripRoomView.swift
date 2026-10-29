@@ -21,6 +21,7 @@ struct TripRoomView: View {
     @State private var showingSetLeaderSheet = false
     @State private var participantToKick: Participant?
     @State private var participantToSetLeader: Participant?
+    @State private var pickedLeader: Participant?
     @State private var participantToEdit: Participant?
     @Environment(\.dismiss) private var dismiss
 
@@ -101,6 +102,7 @@ struct TripRoomView: View {
             viewModel: viewModel,
             showingInvite: $showingInviteSheet,
             showingSetLeader: $showingSetLeaderSheet,
+            pickedLeader: $pickedLeader,
             participantToEdit: $participantToEdit
         )
     }
@@ -113,21 +115,20 @@ private extension View {
         viewModel: TripRoomViewModel,
         showingInvite: Binding<Bool>,
         showingSetLeader: Binding<Bool>,
+        pickedLeader: Binding<Participant?>,
         participantToEdit: Binding<Participant?>
     ) -> some View {
         sheet(isPresented: showingInvite) {
             InviteSheetView(viewModel: viewModel)
         }
+        // The handover starts only once the picker has closed: an error alert presented while the sheet is still
+        // closing is dropped, and the leader would think the handover worked.
         .sheet(isPresented: showingSetLeader) {
-            SetLeaderSheetView(viewModel: viewModel) { candidate in
-                Task {
-                    do {
-                        try await viewModel.SetLeader(to: candidate)
-                    } catch {
-                        viewModel.errorMessage = error.localizedDescription
-                    }
-                }
-            }
+            guard let candidate = pickedLeader.wrappedValue else { return }
+            pickedLeader.wrappedValue = nil
+            Task { await viewModel.HandOverLead(to: candidate) }
+        } content: {
+            SetLeaderSheetView(viewModel: viewModel) { pickedLeader.wrappedValue = $0 }
         }
         .sheet(item: participantToEdit) { _ in
             EditProfileSheetView(viewModel: viewModel)

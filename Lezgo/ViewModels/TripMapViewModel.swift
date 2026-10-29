@@ -28,6 +28,10 @@ final class TripMapViewModel {
     private(set) var isLeaving = false
     /// The car whose status card is open, or `nil` while it is closed.
     private(set) var selectedCarID: UUID?
+    /// Edit Route while the leader has it open, or `nil`. The automatic reroute waits meanwhile.
+    private(set) var editRoute: EditRouteViewModel? {
+        didSet { editRoute == nil ? reroute?.Resume() : reroute?.Pause() }
+    }
     /// When the latest state arrived; offline cars are judged against this time.
     private var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
@@ -94,27 +98,6 @@ final class TripMapViewModel {
         }
     }
 
-    var waypoints: [Waypoint] {
-        state?.waypoints.sorted { $0.orderIndex < $1.orderIndex } ?? []
-    }
-
-    /// The road path; before a route exists, the straight line through the waypoints.
-    var route: [Coordinate] {
-        state?.route?.polyline ?? waypoints.map(\.coordinate)
-    }
-
-    var destinationName: String? {
-        state?.destination?.name
-    }
-
-    var isLeader: Bool {
-        state?.trip.leaderParticipantID == myParticipantID
-    }
-
-    var myCoordinate: Coordinate? {
-        state?.participants.first { $0.id == myParticipantID }?.coordinate
-    }
-
     /// The status card of the tapped car, or `nil` while no car is tapped.
     ///
     /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
@@ -148,17 +131,6 @@ final class TripMapViewModel {
         let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
         guard arrival.hasArrived else { return nil }
         return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
-    }
-
-    /// `true` until the first trip update arrives.
-    var isLoading: Bool {
-        state == nil
-    }
-
-    /// Whether the leader has already moved the trip past this waypoint.
-    func IsVisited(_ waypoint: Waypoint) -> Bool {
-        guard let state else { return false }
-        return waypoint.IsVisited(currentWaypointIndex: state.trip.currentWaypointIndex)
     }
 
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
@@ -341,6 +313,38 @@ final class TripMapViewModel {
     }
 }
 
+// MARK: Edit Route
+
+extension TripMapViewModel {
+    /// Only the leader can change the route, while the trip is open and once their position is known.
+    var canEditRoute: Bool {
+        isLeader && closeReason == nil && myCoordinate != nil
+    }
+
+    /// "Edit Route" on the leader's map: the planner from the leader's position through what is left of the route.
+    func RequestEditRoute() {
+        guard editRoute == nil, canEditRoute, let state, let myCoordinate,
+              let waypoints = state.RemainingWaypoints(from: .CurrentLocation(at: myCoordinate)) else { return }
+        editRoute = EditRouteViewModel(
+            startingWaypoints: waypoints,
+            tripID: tripID,
+            myParticipantID: myParticipantID,
+            tripService: tripService
+        )
+    }
+
+    /// "Back" in Edit Route, or the route was saved.
+    func CloseEditRoute() {
+        editRoute = nil
+    }
+
+    /// A leader who handed over the lead, or whose trip closed, can no longer change the route.
+    private func CloseEditRouteIfNotAllowed() {
+        guard closeReason != nil || isLeader == false else { return }
+        editRoute = nil
+    }
+}
+
 // MARK: Following the trip
 
 extension TripMapViewModel {
@@ -368,6 +372,7 @@ extension TripMapViewModel {
             state = newState
             updatedAt = clock()
             NoticeTripClosed(newState)
+            CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }
             CloseCardOfGoneCar()
             await UpdateMyAlert()

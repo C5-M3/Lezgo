@@ -34,6 +34,7 @@ struct SetRouteSheet: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .disabled(isStartPointLocked)
                 }
 
                 // Section 2: Destinations (unified hierarchy)
@@ -155,7 +156,7 @@ struct SetRouteSheet: View {
                 \.editMode,
                 isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive)
             )
-            .navigationTitle("Set Route")
+            .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -168,9 +169,8 @@ struct SetRouteSheet: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Next", systemImage: "arrow.right") {
-                        // Action to be routed later
-                    }
+                    Button(nextTitle, systemImage: "arrow.right", action: onNext)
+                        .disabled(isNextDisabled)
                 }
             }
             .alert(

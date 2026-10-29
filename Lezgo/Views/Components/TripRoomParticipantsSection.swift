@@ -24,8 +24,6 @@ struct TripRoomParticipantsSection: View {
                     .padding(.vertical, 12)
             } else {
                 ForEach(viewModel.participants) { participant in
-                    let isLeader = viewModel.IsLeader(participant: participant)
-
                     ParticipantRowView(
                         participant: participant,
                         viewModel: viewModel,
@@ -39,14 +37,10 @@ struct TripRoomParticipantsSection: View {
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode && !isLeader {
-                            Button {
+                        if viewModel.showsSetLeaderSwipe {
+                            SetLeadSwipeButton(isEnabled: viewModel.CanSetLeader(participant: participant)) {
                                 onSetLeader(participant)
-                            } label: {
-                                Label("Set Lead", systemImage: "crown.fill")
                             }
-                            .tint(Color(uiColor: .systemGray))
-                            .accessibilityLabel("Set Lead")
                         }
                     }
                 }
@@ -92,7 +86,29 @@ private struct KickSwipeButton: View {
         .accessibilityLabel("Kick")
         // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
         // The hint says why it does nothing.
-        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomKickLeaderHint))
+        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomLeaderRowHint))
+    }
+}
+
+/// "Set Lead" in a row's swipe actions. Swipe actions ignore `.disabled`, so the leader's own row gets a lighter
+/// gray button that does nothing (lo-fi "SET LEAD IF LEADERS IS SELECTED VIA SLIDER").
+private struct SetLeadSwipeButton: View {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            guard isEnabled else { return }
+            action()
+        } label: {
+            Label("Set Lead", systemImage: "crown.fill")
+        }
+        .tint(Color(uiColor: isEnabled ? .systemGray : .systemGray4))
+        .disabled(!isEnabled)
+        .accessibilityLabel("Set Lead")
+        // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
+        // The hint says why it does nothing.
+        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomLeaderRowHint))
     }
 }
 

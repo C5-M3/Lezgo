@@ -197,6 +197,49 @@ struct TripMapViewModelRerouteTests {
         #expect(service.savedRoutes.count == 1)
     }
 
+    // MARK: Edit Route
+
+    @Test func NoRerouteWhileTheLeaderEditsTheRoute() async {
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 30),
+            State(agus: Self.offRoute, secondsAgo: 14)
+        ])
+        let directions = MockDirectionsService(results: [.success(Self.newPath)])
+        let viewModel = MakeViewModel(service: service, directions: directions)
+        service.beforeEachState = { index in
+            if index == 1 { viewModel.RequestEditRoute() }
+        }
+
+        await viewModel.Start()
+
+        #expect(viewModel.editRoute != nil)
+        #expect(directions.requestedPoints.isEmpty)
+        #expect(service.savedRoutes.isEmpty)
+    }
+
+    @Test func RerouteOnItsWayWhenEditRouteOpensIsDropped() async {
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 30),
+            State(agus: Self.offRoute, secondsAgo: 14)
+        ])
+        let directions = MockDirectionsService(results: [.success(Self.newPath)])
+        directions.holdsRequests = true
+        let viewModel = MakeViewModel(service: service, directions: directions)
+        let open = Task { await viewModel.Start() }
+        for _ in 0..<1_000 where directions.requestedPoints.isEmpty {
+            await Task.yield()
+        }
+
+        // The leader opens Edit Route, and even closes it again, before the directions request returns.
+        viewModel.RequestEditRoute()
+        viewModel.CloseEditRoute()
+        directions.ReleaseRequests()
+        await open.value
+
+        #expect(directions.requestedPoints.count == 1)
+        #expect(service.savedRoutes.isEmpty)
+    }
+
     // MARK: No network
 
     @Test func FailedSaveIsTriedAgainAfter30Seconds() async {
