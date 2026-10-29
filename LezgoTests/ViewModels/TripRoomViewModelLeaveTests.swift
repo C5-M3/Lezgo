@@ -126,4 +126,60 @@ struct TripRoomViewModelLeaveTests {
         #expect(storage.clearCount == 1)
         #expect(viewModel.isLeaving == false)
     }
+
+    // MARK: Updates from the cloud
+
+    private func StateWithout(_ participantID: UUID) -> TripState {
+        var state = SampleTrip.State(status: .lobby)
+        state.participants.removeAll { $0.id == participantID }
+        return state
+    }
+
+    /// The cloud can send the update without me before the exit request returns; leaving on purpose is not a removal.
+    @Test func UpdateWhileExitingDoesNotSayTheMemberWasRemoved() async throws {
+        let withoutBudi = StateWithout(SampleTrip.budiID)
+        let service = MockTripService(states: [SampleTrip.State(status: .lobby)])
+        service.stateWhileLeaving = withoutBudi
+        let storage = FakeActiveTripStorage(initial: Summary(me: SampleTrip.budiID))
+        let viewModel = MakeViewModel(me: SampleTrip.budiID, service: service, storage: storage)
+        var removedWhileLeaving = true
+        service.whileLeaving = {
+            // Waiting for the update, not for a fixed time, so the check never runs before the room saw it.
+            while viewModel.state != withoutBudi { await Task.yield() }
+            removedWhileLeaving = viewModel.wasRemovedFromTrip
+        }
+        let listening = Task { await viewModel.Listen() }
+        defer { listening.cancel() }
+        while service.requestedTripIDs.isEmpty { await Task.yield() }
+
+        try await viewModel.LeaveTrip()
+
+        #expect(removedWhileLeaving == false)
+        #expect(viewModel.wasRemovedFromTrip == false)
+        #expect(viewModel.hasLeft)
+    }
+
+    @Test func UpdateAfterExitDoesNotSayTheMemberWasRemoved() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let viewModel = MakeViewModel(me: SampleTrip.budiID, service: service, storage: FakeActiveTripStorage())
+        let listening = Task { await viewModel.Listen() }
+        defer { listening.cancel() }
+
+        try await viewModel.LeaveTrip()
+        while viewModel.participants.contains(where: { $0.id == SampleTrip.budiID }) { await Task.yield() }
+
+        #expect(viewModel.wasRemovedFromTrip == false)
+    }
+
+    /// A removed member returns to Home, which must not offer the trip they were removed from (US-05).
+    @Test func RemovedMemberHasTheTripClearedFromThePhone() async {
+        let service = MockTripService(states: [StateWithout(SampleTrip.budiID)])
+        let storage = FakeActiveTripStorage(initial: Summary(me: SampleTrip.budiID))
+        let viewModel = MakeViewModel(me: SampleTrip.budiID, service: service, storage: storage)
+
+        await viewModel.Listen()
+
+        #expect(viewModel.wasRemovedFromTrip)
+        #expect(storage.LoadActiveTrip() == nil)
+    }
 }
