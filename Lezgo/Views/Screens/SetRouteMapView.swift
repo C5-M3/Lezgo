@@ -106,14 +106,15 @@ struct SetRouteMapView: View {
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
             .interactiveDismissDisabled()
+            // On the sheet, not the map: the map is always covered by this sheet, so an alert there never shows.
+            .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK") { viewModel.errorMessage = nil }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
         }
         .onAppear {
             viewModel.onAppear()
-        }
-        .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") { viewModel.errorMessage = nil }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
         }
     }
 }
