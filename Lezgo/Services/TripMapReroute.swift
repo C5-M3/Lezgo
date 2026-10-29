@@ -39,8 +39,16 @@ final class TripMapReroute {
         self.directionsService = directionsService
     }
 
-    /// Checks the new state and reroutes when it is time. Does nothing on a member's phone.
-    func Update(_ state: TripState, myParticipantID: UUID) async {
+    /// Checks each state in order, until the stream finishes or the task is cancelled. Does nothing on a member's
+    /// phone.
+    func Run(_ states: AsyncStream<TripState>, myParticipantID: UUID) async {
+        for await state in states {
+            await Update(state, myParticipantID: myParticipantID)
+        }
+    }
+
+    /// Checks the new state and reroutes when it is time.
+    private func Update(_ state: TripState, myParticipantID: UUID) async {
         guard let leader = state.leader, leader.id == myParticipantID, let coordinate = leader.coordinate else {
             Reset()
             return

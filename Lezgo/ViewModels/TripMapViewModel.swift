@@ -175,23 +175,6 @@ final class TripMapViewModel {
         }
     }
 
-    /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
-    private func FollowTrip() async {
-        for await newState in tripService.TripUpdates(tripID: tripID) {
-            // A late fetch can still carry the old route; phones never go back to an older version.
-            if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
-            state = newState
-            updatedAt = clock()
-            NoticeTripClosed(newState)
-            if closeReason != nil { return }
-            CloseCardOfGoneCar()
-            await UpdateMyAlert()
-            await PassCheckpointIfReached()
-            await reroute?.Update(newState, myParticipantID: myParticipantID)
-            await RefreshGuidance()
-        }
-    }
-
     /// The leader ended the trip, or removed this member, from another phone.
     ///
     /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
@@ -355,6 +338,43 @@ final class TripMapViewModel {
         guard let state, let myCoordinate else { return }
         guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
         guidance = newGuidance
+    }
+}
+
+// MARK: Following the trip
+
+extension TripMapViewModel {
+    /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
+    ///
+    /// The reroute runs beside the trip updates, so a slow directions request never holds back the cars, alerts
+    /// and guidance on the map.
+    private func FollowTrip() async {
+        let (rerouteStates, rerouteInput) = AsyncStream.makeStream(of: TripState.self)
+        await withTaskGroup(of: Void.self) { group in
+            if let reroute {
+                group.addTask { await reroute.Run(rerouteStates, myParticipantID: self.myParticipantID) }
+            }
+            await ApplyTripUpdates(rerouteInput: rerouteInput)
+            rerouteInput.finish()
+            // A closed trip is never rerouted, even with states still waiting.
+            if closeReason != nil { group.cancelAll() }
+        }
+    }
+
+    private func ApplyTripUpdates(rerouteInput: AsyncStream<TripState>.Continuation) async {
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            // A late fetch can still carry the old route; phones never go back to an older version.
+            if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
+            state = newState
+            updatedAt = clock()
+            NoticeTripClosed(newState)
+            if closeReason != nil { return }
+            CloseCardOfGoneCar()
+            await UpdateMyAlert()
+            await PassCheckpointIfReached()
+            rerouteInput.yield(newState)
+            await RefreshGuidance()
+        }
     }
 }
 
