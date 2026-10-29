@@ -383,7 +383,7 @@ Only the leader sees these actions, and only in the Trip Room.
 **Remove members**
 - Swipe a row left → "Kick", or `...` → "Select" → tick rows (or "Select all") → "Remove".
 - The leader cannot remove themselves ("Kick" disabled, no checkbox on the leader's row).
-- On the leader's own row "Kick" is gray and does nothing. VoiceOver adds the hint "Not available for the leader.", so the gray color is not the only sign.
+- On the leader's own row "Kick" and "Set Lead" are gray and do nothing. VoiceOver adds the hint "Not available for the leader." to both, so the gray color is not the only sign.
 - Confirm: "Remove XX from the trip?" or "Remove XX and N others from the trip?" → "Cancel" / "Remove".
 - A removed member sees "You were removed from the trip." and returns to Home. They can join again with the code.
 

@@ -43,6 +43,7 @@ import SwiftUI
 /// | `draftTripLeader` | Draft Road Trip screen for the leader | R |
 /// | `tripRoomLeader` | Trip Room lobby on the leader's phone (Agus) | O |
 /// | `tripRoomMember` | Trip Room lobby on a member's phone (Budi) | O |
+/// | `tripRoomLeaderOffline` | Trip Room lobby on the leader's phone where every save fails with no network | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
@@ -64,6 +65,7 @@ enum DebugScreen: String, CaseIterable {
     case draftTripLeader
     case tripRoomLeader
     case tripRoomMember
+    case tripRoomLeaderOffline
     case tripMapLeader
     case tripMapMember
     case tripMapMemberOffRoute
@@ -92,10 +94,8 @@ enum DebugScreen: String, CaseIterable {
             DraftTripView.Simulated(isLeader: false)
         case .draftTripLeader:
             DraftTripView.Simulated(isLeader: true)
-        case .tripRoomLeader:
-            SimulatedTripRoomScreen(myParticipantID: SampleTrip.agusID)
-        case .tripRoomMember:
-            SimulatedTripRoomScreen(myParticipantID: SampleTrip.budiID)
+        case .tripRoomLeader, .tripRoomMember, .tripRoomLeaderOffline:
+            MakeTripRoomScreen()
         case .tripMapLeader:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
         case .tripMapMember:
@@ -109,6 +109,13 @@ enum DebugScreen: String, CaseIterable {
         case .syncCheck:
             SyncCheckView()
         }
+    }
+
+    private func MakeTripRoomScreen() -> SimulatedTripRoomScreen {
+        SimulatedTripRoomScreen(
+            myParticipantID: self == .tripRoomMember ? SampleTrip.budiID : SampleTrip.agusID,
+            failure: self == .tripRoomLeaderOffline ? .noNetwork : nil
+        )
     }
 }
 #endif

@@ -82,7 +82,8 @@ struct TripMapView: View {
                 TripMapCameraControls(
                     cameraMode: viewModel.cameraMode,
                     showWholeRoute: viewModel.ShowWholeRoute,
-                    followMyCar: viewModel.FollowMyCar
+                    followMyCar: viewModel.FollowMyCar,
+                    editRoute: EditRouteAction()
                 )
                 if let carStatus = viewModel.selectedCarStatus {
                     TripMapCarStatusCard(status: carStatus, onClose: { viewModel.SelectCar(nil) })
@@ -112,6 +113,9 @@ struct TripMapView: View {
                     .padding()
                     .background(.regularMaterial, in: .rect(cornerRadius: 16))
             }
+        }
+        .fullScreenCover(item: EditRoute()) { editRoute in
+            EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
         }
         .task { await viewModel.Start() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
@@ -156,6 +160,16 @@ struct TripMapView: View {
         } else {
             dismiss()
         }
+    }
+
+    /// The pencil shows once the leader can change the route, so it never sits there doing nothing.
+    private func EditRouteAction() -> (() -> Void)? {
+        guard viewModel.canEditRoute else { return nil }
+        return viewModel.RequestEditRoute
+    }
+
+    private func EditRoute() -> Binding<EditRouteViewModel?> {
+        Binding(get: { viewModel.editRoute }, set: { if $0 == nil { viewModel.CloseEditRoute() } })
     }
 
     private func LeaveQuestion() -> LocalizedStringResource {

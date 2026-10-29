@@ -41,6 +41,8 @@ struct SetLeaderSheetView: View {
                                 .accessibilityLabel("Leader")
                         }
                     }
+                    // A plain button only reacts on its text and avatar; the whole row should pick the leader.
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .disabled(isLeader)
@@ -60,7 +62,7 @@ struct SetLeaderSheetView: View {
                 }
             }
             .alert(
-                "Set \(candidate?.displayName ?? "") as Trip Leader?",
+                candidate.map(viewModel.SetLeaderConfirmationTitle) ?? "",
                 isPresented: Binding(
                     get: { candidate != nil },
                     set: { if !$0 { candidate = nil } }
