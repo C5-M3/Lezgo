@@ -16,6 +16,9 @@ import Foundation
 ///
 /// Each route version is rerouted once. On failure (no network, no road found) the old route stays and the next try
 /// waits 30 seconds.
+///
+/// While the leader has Edit Route open the reroute pauses, and a request already on its way is dropped, so it never
+/// replaces the route the leader chose by hand.
 final class TripMapReroute {
     /// How long to wait before trying again after a failed reroute.
     static let retryInterval: TimeInterval = 30
@@ -32,6 +35,10 @@ final class TripMapReroute {
     private var hasRequested = false
     /// No new request before this time, after a failure.
     private var retryAt: Date?
+    /// `true` while the leader changes the route by hand.
+    private var isPaused = false
+    /// Counts the pauses, so a request that was on its way when one began is not saved.
+    private var pauseCount = 0
 
     init(tripID: UUID, tripService: any TripService, directionsService: any DirectionsService) {
         self.tripID = tripID
@@ -47,15 +54,33 @@ final class TripMapReroute {
         }
     }
 
+    /// Edit Route opened: no reroute until `Resume()`.
+    func Pause() {
+        isPaused = true
+        pauseCount += 1
+        offRouteSince = nil
+    }
+
+    /// Edit Route closed. A saved route is a new route version, so the wait starts again either way.
+    func Resume() {
+        isPaused = false
+    }
+
     /// Checks the new state and reroutes when it is time.
     private func Update(_ state: TripState, myParticipantID: UUID) async {
         guard let leader = state.leader, leader.id == myParticipantID, let coordinate = leader.coordinate else {
             Reset()
             return
         }
+        guard isPaused == false else { return }
         guard let waypoints = WaypointsIfDue(state, leaderCoordinate: coordinate, at: leader.lastSeenAt) else { return }
+        let pausesBefore = pauseCount
         do {
             let path = try await directionsService.DrivingPath(through: waypoints.map(\.coordinate))
+            guard pauseCount == pausesBefore else {
+                hasRequested = false
+                return
+            }
             let plan = TripPlan(waypoints: waypoints, polyline: path)
             try await tripService.SaveRoute(plan, tripID: tripID, by: myParticipantID)
         } catch {
@@ -82,7 +107,7 @@ final class TripMapReroute {
         guard date.timeIntervalSince(since) >= FormationAlertDetector.holdTime,
               hasRequested == false,
               retryAt.map({ date >= $0 }) ?? true,
-              let waypoints = Waypoints(from: leaderCoordinate, in: state) else { return nil }
+              let waypoints = state.RemainingWaypoints(from: .CurrentLocation(at: leaderCoordinate)) else { return nil }
         hasRequested = true
         return waypoints
     }
@@ -100,19 +125,5 @@ final class TripMapReroute {
         let polyline = state.route?.polyline ?? state.waypoints.map(\.coordinate)
         guard let position = RoutePosition.Locate(coordinate, on: polyline) else { return false }
         return position.distanceFromRoute > FormationAlertDetector.offRouteDistance
-    }
-
-    /// From the leader's position, through the unvisited checkpoints, to the destination.
-    private func Waypoints(from leaderCoordinate: Coordinate, in state: TripState) -> [PlannedWaypoint]? {
-        guard let destination = state.destination else { return nil }
-        let currentIndex = state.trip.currentWaypointIndex
-        let checkpoints = state.waypoints
-            .filter { $0.kind == .checkpoint && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
-            .sorted { $0.orderIndex < $1.orderIndex }
-            .map { PlannedWaypoint(kind: .checkpoint, name: $0.name, coordinate: $0.coordinate) }
-        let startName = String(localized: .waypointCurrentLocation)
-        let start = PlannedWaypoint(kind: .start, name: startName, coordinate: leaderCoordinate)
-        let end = PlannedWaypoint(kind: .destination, name: destination.name, coordinate: destination.coordinate)
-        return [start] + checkpoints + [end]
     }
 }

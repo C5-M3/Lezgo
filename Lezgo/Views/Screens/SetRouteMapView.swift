@@ -9,9 +9,37 @@ import SwiftUI
 import MapKit
 
 struct SetRouteMapView: View {
-    @State private var viewModel = MapViewModel()
+    @State private var viewModel: MapViewModel
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
+
+    private let title: LocalizedStringResource
+    private let nextTitle: LocalizedStringResource
+    private let onBack: () -> Void
+    private let onNext: () -> Void
+    private let isBackDisabled: Bool
+    private let isNextDisabled: Bool
+    private let isStartPointLocked: Bool
+
+    init(
+        viewModel: MapViewModel = MapViewModel(),
+        title: LocalizedStringResource = "Set Route",
+        nextTitle: LocalizedStringResource = "Next",
+        onBack: @escaping () -> Void = {},
+        onNext: @escaping () -> Void = {},
+        isBackDisabled: Bool = false,
+        isNextDisabled: Bool = false,
+        isStartPointLocked: Bool = false
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.title = title
+        self.nextTitle = nextTitle
+        self.onBack = onBack
+        self.onNext = onNext
+        self.isBackDisabled = isBackDisabled
+        self.isNextDisabled = isNextDisabled
+        self.isStartPointLocked = isStartPointLocked
+    }
 
     var body: some View {
         @Bindable var boundViewModel = viewModel
@@ -20,7 +48,7 @@ struct SetRouteMapView: View {
             Map(position: $boundViewModel.cameraPosition) {
                 UserAnnotation()
 
-                if let start = viewModel.startPoint, start.name != "Current Location" {
+                if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
                     Marker(start.name, coordinate: start.coordinate)
                         .tint(.blue)
                 }
@@ -70,7 +98,14 @@ struct SetRouteMapView: View {
         .sheet(isPresented: .constant(true)) {
             SetRouteSheet(
                 viewModel: boundViewModel,
-                isFullPresentation: selectedDetent == .large
+                isFullPresentation: selectedDetent == .large,
+                title: title,
+                nextTitle: nextTitle,
+                onBack: onBack,
+                onNext: onNext,
+                isBackDisabled: isBackDisabled,
+                isNextDisabled: isNextDisabled,
+                isStartPointLocked: isStartPointLocked
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
@@ -83,14 +118,15 @@ struct SetRouteMapView: View {
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
             .interactiveDismissDisabled()
+            // On the sheet, not the map: the map is always covered by this sheet, so an alert there never shows.
+            .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("OK") { viewModel.errorMessage = nil }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
         }
         .onAppear {
             viewModel.onAppear()
-        }
-        .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("OK") { viewModel.errorMessage = nil }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
         }
     }
 }

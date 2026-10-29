@@ -22,6 +22,9 @@ final class MapViewModel {
 
     // MARK: - Computed Trip & Map State
     var routeLegs: [RouteLeg] = []
+    /// The start point and stops `routeLegs` were found for. After a failed or out-of-order calculation they differ
+    /// from the current stops, and the route on the map must not be saved for them.
+    var routedPoints: [RoutePoint] = []
 
     var selectedPolylines: [MKPolyline] {
         routeLegs.map { $0.selectedRoute.polyline }
@@ -65,7 +68,7 @@ final class MapViewModel {
             guard let self = self else { return }
             if self.startPoint == nil {
                 self.startPoint = RoutePoint(
-                    name: "Current Location",
+                    name: String(localized: .waypointCurrentLocation),
                     subtitle: "GPS Location",
                     coordinate: coord
                 )
@@ -112,7 +115,7 @@ final class MapViewModel {
     func selectCurrentLocationAsStart() {
         guard let current = locationService.userLocation else { return }
         startPoint = RoutePoint(
-            name: "Current Location",
+            name: String(localized: .waypointCurrentLocation),
             subtitle: "GPS Location",
             coordinate: current
         )
@@ -162,6 +165,7 @@ final class MapViewModel {
 
         guard orderedPoints.count >= 2 else {
             routeLegs = []
+            routedPoints = []
             return
         }
 
@@ -173,11 +177,15 @@ final class MapViewModel {
                 let legs = try await routingService.calculateMultiStopLegs(points: orderedPoints)
                 await MainActor.run {
                     self.routeLegs = legs
+                    self.routedPoints = orderedPoints
                     self.isLoadingRoute = false
                     self.adjustCameraToFitRoute(bottomPadding: drawerHeight)
                 }
             } catch {
                 await MainActor.run {
+                    // The old line no longer matches the stops, so it goes.
+                    self.routeLegs = []
+                    self.routedPoints = []
                     self.isLoadingRoute = false
                     self.errorMessage = "Failed to calculate multi-stop route."
                 }

@@ -11,6 +11,16 @@ import MapKit
 struct SetRouteSheet: View {
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
+    /// "Set Route" when planning a trip, "Edit Route" on the road.
+    var title: LocalizedStringResource = "Set Route"
+    var nextTitle: LocalizedStringResource = "Next"
+    /// Set by the screen that shows the planner, so Draft Trip and Edit Route each decide where Back and Next go.
+    var onBack: () -> Void = {}
+    var onNext: () -> Void = {}
+    var isBackDisabled = false
+    var isNextDisabled = false
+    /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
+    var isStartPointLocked = false
 
     var body: some View {
         NavigationStack {
@@ -32,6 +42,7 @@ struct SetRouteSheet: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .disabled(isStartPointLocked)
                 }
 
                 // Section 2: Destinations (unified hierarchy)
@@ -153,18 +164,16 @@ struct SetRouteSheet: View {
                 \.editMode,
                 isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive)
             )
-            .navigationTitle("Set Route")
+            .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Back", systemImage: "chevron.left") {
-                        // Action to be routed later
-                    }
+                    Button("Back", systemImage: "chevron.left", action: onBack)
+                        .disabled(isBackDisabled)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Next", systemImage: "arrow.right") {
-                        // Action to be routed later
-                    }
+                    Button(nextTitle, systemImage: "arrow.right", action: onNext)
+                        .disabled(isNextDisabled)
                 }
             }
         }
