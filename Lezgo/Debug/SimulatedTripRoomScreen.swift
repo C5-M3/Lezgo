@@ -22,7 +22,11 @@ struct SimulatedTripRoomScreen: View {
     }
 
     var body: some View {
-        TripRoomView(tripID: SampleTrip.tripID, myParticipantID: myParticipantID)
+        TripRoomView(
+            tripID: SampleTrip.tripID,
+            myParticipantID: myParticipantID,
+            activeTripStorage: SimulatedActiveTripStorage()
+        )
             .environment(\.tripService, tripService)
     }
 }
