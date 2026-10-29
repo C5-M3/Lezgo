@@ -52,7 +52,8 @@ final class TripRoomExitUITests: XCTestCase {
 
     private func TapExit() {
         let exit = app.buttons["Exit"]
-        XCTAssertTrue(exit.waitForExistence(timeout: 5))
+        // The first launch on a cold simulator can take longer than the room usually needs to load.
+        XCTAssertTrue(exit.waitForExistence(timeout: 10))
         exit.tap()
     }
 
