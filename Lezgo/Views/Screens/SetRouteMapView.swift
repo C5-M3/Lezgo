@@ -77,22 +77,26 @@ struct SetRouteMapView: View {
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
             }
             // Only compact (height) and full (large) — no half pulls
-            .presentationDetents(
-                viewModel.isNavigatingToTripRoom ? [.large] : [.height(drawerHeight), .large],
-                selection: $selectedDetent
-            )
+            .presentationDetents([.height(drawerHeight), .large], selection: $selectedDetent)
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
             .interactiveDismissDisabled()
         }
+        .fullScreenCover(isPresented: $boundViewModel.isNavigatingToTripRoom) {
+            if let session = viewModel.createdTripSession {
+                TripRoomView(
+                    viewModel: TripRoomViewModel(
+                        tripService: viewModel.tripService,
+                        tripID: session.state.trip.id,
+                        myParticipantID: session.myParticipantID,
+                        initialState: session.state
+                    )
+                )
+            }
+        }
         .onAppear {
             viewModel.tripService = tripService
             viewModel.onAppear()
-        }
-        .onChange(of: viewModel.isNavigatingToTripRoom) { _, isNavigating in
-            if isNavigating {
-                selectedDetent = .large
-            }
         }
         .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
             Button("OK") { viewModel.errorMessage = nil }

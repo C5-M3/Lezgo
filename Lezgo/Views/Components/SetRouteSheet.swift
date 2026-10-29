@@ -174,19 +174,6 @@ struct SetRouteSheet: View {
                     }
                 }
             }
-            .navigationDestination(isPresented: $viewModel.isNavigatingToTripRoom) {
-                if let session = viewModel.createdTripSession {
-                    TripRoomView(
-                        viewModel: TripRoomViewModel(
-                            tripService: viewModel.tripService,
-                            tripID: session.state.trip.id,
-                            myParticipantID: session.myParticipantID,
-                            initialState: session.state
-                        )
-                    )
-                    .navigationBarBackButtonHidden(true)
-                }
-            }
         }
     }
 }
