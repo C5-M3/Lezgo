@@ -71,6 +71,30 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Room options"].exists)
     }
 
+    /// A failed handover from the picker must still show the error. The sheet closes on "Confirm", and an alert
+    /// presented while it is still closing is dropped, so the leader would think the handover worked.
+    @MainActor
+    func testFailedHandOverFromThePickerShowsTheError() throws {
+        app.terminate()
+        app.launchArguments = ["-DebugScreen", "tripRoomLeaderOffline"]
+        app.launch()
+        let options = app.buttons["Room options"]
+        XCTAssertTrue(options.waitForExistence(timeout: 5))
+        options.tap()
+        app.buttons["Set leader"].tap()
+        let budi = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Budi,")).firstMatch
+        XCTAssertTrue(budi.waitForExistence(timeout: 3))
+
+        budi.tap()
+        XCTAssertTrue(app.alerts["Set Budi as Trip Leader?"].waitForExistence(timeout: 3))
+        app.alerts.buttons["Confirm"].tap()
+
+        XCTAssertTrue(app.alerts["Error"].waitForExistence(timeout: 5))
+        Attach(named: "Error after a failed handover from the picker")
+        let message = "No internet connection. Check your connection and try again."
+        XCTAssertTrue(app.alerts["Error"].staticTexts[message].exists)
+    }
+
     private func Attach(named name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
