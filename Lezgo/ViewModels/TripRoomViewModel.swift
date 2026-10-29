@@ -78,6 +78,9 @@ final class TripRoomViewModel {
     /// The leader can swipe every row to "Kick", their own too, where `CanKick` keeps it disabled (US-05).
     var showsKickSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
 
+    /// The leader can swipe every row to "Set Lead", their own too, where `CanSetLeader` keeps it disabled (US-05).
+    var showsSetLeaderSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
+
     var selectAllButtonTitle: String {
         areAllMembersSelected ? "Deselect all" : "Select all"
     }
@@ -208,8 +211,24 @@ final class TripRoomViewModel {
         try await tripService.SetLeader(participant.id, tripID: tripID, replacing: currentLeaderID)
     }
 
+    /// Hands the lead over after the leader confirmed, and shows the service's sentence when the save fails, for
+    /// example `.conflict` when someone else changed the leader first.
+    func HandOverLead(to participant: Participant) async {
+        do {
+            try await SetLeader(to: participant)
+        } catch {
+            ShowError(error)
+        }
+    }
+
     func SetLeaderConfirmationTitle(for participant: Participant) -> String {
         "Set \(participant.displayName) as Trip Leader?"
+    }
+
+    /// Shows a failed call in the error alert. `TripServiceError` is not a `LocalizedError`, so
+    /// `localizedDescription` would only say "The operation couldn't be completed".
+    func ShowError(_ error: any Error) {
+        errorMessage = String(localized: TripServiceError(cloudKitError: error).message)
     }
 
     func CanEdit(participant: Participant) -> Bool {
