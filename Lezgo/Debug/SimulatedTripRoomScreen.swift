@@ -13,9 +13,12 @@ struct SimulatedTripRoomScreen: View {
     let myParticipantID: UUID
     @State private var tripService: InMemoryTripService
 
-    init(myParticipantID: UUID) {
+    /// - Parameter failure: when set, every save fails with this error, to check the error alerts.
+    init(myParticipantID: UUID, failure: TripServiceError? = nil) {
         self.myParticipantID = myParticipantID
-        _tripService = State(initialValue: SampleTrip.Service(status: .lobby, me: myParticipantID))
+        let service = SampleTrip.Service(status: .lobby, me: myParticipantID)
+        service.simulatedFailure = failure
+        _tripService = State(initialValue: service)
     }
 
     var body: some View {
@@ -30,5 +33,9 @@ struct SimulatedTripRoomScreen: View {
 
 #Preview("Member") {
     SimulatedTripRoomScreen(myParticipantID: SampleTrip.budiID)
+}
+
+#Preview("Leader offline") {
+    SimulatedTripRoomScreen(myParticipantID: SampleTrip.agusID, failure: .noNetwork)
 }
 #endif
