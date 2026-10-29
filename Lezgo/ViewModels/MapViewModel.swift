@@ -12,13 +12,32 @@ import CoreLocation
 @Observable
 final class MapViewModel {
     // MARK: - Dependencies & Services
-    private let routingService = RoutingService()
-    let searchService = LocationFindService()
-    let locationService = LocationService()
+    var tripService: any TripService
+    let activeTripStorage: any ActiveTripStorage
+    private let routingService: RoutingService
+    let searchService: LocationFindService
+    let locationService: LocationService
 
     // MARK: - Route Planning State
     var startPoint: RoutePoint?
     var destinations: [RoutePoint] = []
+
+    // MARK: - Trip Creation & Navigation State (US-01 / Issues 154 & 156)
+    var isCreatingTrip: Bool = false
+    var createdTripSession: TripSession?
+    var isNavigatingToTripRoom: Bool = false
+
+    var isRouteComplete: Bool {
+        false
+    }
+
+    var canCreateTrip: Bool {
+        false
+    }
+
+    var routeCoordinates: [Coordinate] {
+        []
+    }
 
     // MARK: - Computed Trip & Map State
     var routeLegs: [RouteLeg] = []
@@ -59,9 +78,21 @@ final class MapViewModel {
     var activeSelectionSheet: ActivePointSelection?
     var searchQuery: String = ""
 
-    init() {
+    init(
+        tripService: (any TripService)? = nil,
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        routingService: RoutingService = RoutingService(),
+        searchService: LocationFindService = LocationFindService(),
+        locationService: LocationService = LocationService()
+    ) {
+        self.tripService = tripService ?? InMemoryTripService.fallback
+        self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+        self.routingService = routingService
+        self.searchService = searchService
+        self.locationService = locationService
+
         // Automatically default the start point to the first GPS fix
-        locationService.onFirstLocationFound = { [weak self] coord in
+        self.locationService.onFirstLocationFound = { [weak self] coord in
             guard let self = self else { return }
             if self.startPoint == nil {
                 self.startPoint = RoutePoint(
@@ -248,5 +279,18 @@ final class MapViewModel {
         withAnimation(.easeInOut(duration: 0.5)) {
             self.cameraPosition = .rect(paddedRect)
         }
+    }
+}
+
+// MARK: - Trip Planning & Creation (US-01 / Issues 154 & 156)
+
+extension MapViewModel {
+    func MakeTripPlan() -> TripPlan? {
+        nil
+    }
+
+    @discardableResult
+    func CreateTrip() async -> TripSession? {
+        nil
     }
 }
