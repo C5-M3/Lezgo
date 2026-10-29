@@ -11,7 +11,7 @@ import MapKit
 struct SetRouteSheet: View {
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
-    var onBack: (() -> Void)? = nil
+    var onBack: (() -> Void)?
     @State private var isShowingBackConfirmation: Bool = false
 
     var body: some View {

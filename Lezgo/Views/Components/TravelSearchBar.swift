@@ -56,6 +56,7 @@ struct TravelSearchBar: View {
         .onTapGesture {
             onTap?()
         }
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Pre-iOS 18 Standard Material Implementation
@@ -96,6 +97,7 @@ struct TravelSearchBar: View {
         .onTapGesture {
             onTap?()
         }
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Shared Views

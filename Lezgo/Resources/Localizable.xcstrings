@@ -865,6 +865,18 @@
         }
       }
     },
+    "tripRoomKickLeaderHint" : {
+      "comment" : "Trip Room: VoiceOver hint on \"Kick\" in the leader's own row, where it is gray and does nothing, so the gray color is not the only sign (US-05).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available for the leader."
+          }
+        }
+      }
+    },
     "tripRoomShareLink" : {
       "comment" : "Invite sheet: the button that opens the share sheet with the invite link and the share message (US-04).",
       "extractionState" : "manual",

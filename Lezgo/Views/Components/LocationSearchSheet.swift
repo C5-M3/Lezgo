@@ -12,7 +12,6 @@ struct LocationSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MapViewModel
     let selectionType: ActivePointSelection
-    @State private var isSearchPresented: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -113,7 +112,6 @@ struct LocationSearchSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
                 text: $viewModel.searchQuery,
-                isPresented: $isSearchPresented,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: selectionType == .start ? "Change start location" : "Where to?"
             )
@@ -123,15 +121,11 @@ struct LocationSearchSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") {
-                        isSearchPresented = false
                         viewModel.searchQuery = ""
                         viewModel.searchService.updateQueryFragment("")
                         dismiss()
                     }
                 }
-            }
-            .task {
-                isSearchPresented = true
             }
         }
     }

@@ -56,8 +56,10 @@ final class SetRouteFlowUITests: XCTestCase {
         cancelButton.tap()
 
         // Verify Starting Point section element
-        let startPointButton = app.buttons["Choose Starting Point..."]
-        XCTAssertTrue(startPointButton.waitForExistence(timeout: 3), "Expected Choose Starting Point button")
+        let startPointButton = app.buttons.matching(
+            NSPredicate(format: "label == %@ OR label == %@", "Choose Starting Point...", "Current Location")
+        ).firstMatch
+        XCTAssertTrue(startPointButton.waitForExistence(timeout: 3), "Expected Starting Point button")
 
         // Verify navigation toolbar buttons
         let backButton = app.buttons["Back"]
@@ -75,7 +77,9 @@ final class SetRouteFlowUITests: XCTestCase {
         cancelButton.tap()
 
         // Tap Starting Point
-        let startPointButton = app.buttons["Choose Starting Point..."]
+        let startPointButton = app.buttons.matching(
+            NSPredicate(format: "label == %@ OR label == %@", "Choose Starting Point...", "Current Location")
+        ).firstMatch
         XCTAssertTrue(startPointButton.waitForExistence(timeout: 3))
         startPointButton.tap()
 

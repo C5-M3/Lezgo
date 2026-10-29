@@ -88,6 +88,7 @@ struct HomeView: View {
                         mapViewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
                     }
                 }
+                .accessibilityAddTraits(.isButton)
                 .mapControls {
                     MapUserLocationButton()
                     MapCompass()
@@ -144,28 +145,32 @@ struct HomeView: View {
                 .zIndex(200)
             }
         }
-        .sheet(isPresented: $isSetRoutePresented, onDismiss: {
-            handleSetRouteDismissed()
-        }) {
-            SetRouteSheet(
-                viewModel: mapViewModel,
-                isFullPresentation: selectedDetent == .large,
-                onBack: {
-                    handleSetRouteDismissed()
-                    isSetRoutePresented = false
+        .sheet(
+            isPresented: $isSetRoutePresented,
+            onDismiss: {
+                handleSetRouteDismissed()
+            },
+            content: {
+                SetRouteSheet(
+                    viewModel: mapViewModel,
+                    isFullPresentation: selectedDetent == .large,
+                    onBack: {
+                        handleSetRouteDismissed()
+                        isSetRoutePresented = false
+                    }
+                )
+                .sheet(item: $boundMapViewModel.activeSelectionSheet) { sheetType in
+                    LocationSearchSheet(viewModel: mapViewModel, selectionType: sheetType)
                 }
-            )
-            .sheet(item: $boundMapViewModel.activeSelectionSheet) { sheetType in
-                LocationSearchSheet(viewModel: mapViewModel, selectionType: sheetType)
+                .presentationDetents(
+                    [.height(drawerHeight), .large],
+                    selection: $selectedDetent
+                )
+                .presentationDragIndicator(.visible)
+                .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
+                .interactiveDismissDisabled(mapViewModel.hasPlanChanges)
             }
-            .presentationDetents(
-                [.height(drawerHeight), .large],
-                selection: $selectedDetent
-            )
-            .presentationDragIndicator(.visible)
-            .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
-            .interactiveDismissDisabled(mapViewModel.hasPlanChanges)
-        }
+        )
         .onAppear {
             viewModel.onAppear()
         }
