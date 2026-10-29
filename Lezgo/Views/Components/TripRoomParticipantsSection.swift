@@ -90,6 +90,9 @@ private struct KickSwipeButton: View {
         .tint(isEnabled ? Color.red : Color(uiColor: .systemGray4))
         .disabled(!isEnabled)
         .accessibilityLabel("Kick")
+        // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
+        // The hint says why it does nothing.
+        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomKickLeaderHint))
     }
 }
 
