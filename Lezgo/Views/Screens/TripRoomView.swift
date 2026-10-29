@@ -120,13 +120,7 @@ private extension View {
         }
         .sheet(isPresented: showingSetLeader) {
             SetLeaderSheetView(viewModel: viewModel) { candidate in
-                Task {
-                    do {
-                        try await viewModel.SetLeader(to: candidate)
-                    } catch {
-                        viewModel.errorMessage = error.localizedDescription
-                    }
-                }
+                Task { await viewModel.HandOverLead(to: candidate) }
             }
         }
         .sheet(item: participantToEdit) { _ in

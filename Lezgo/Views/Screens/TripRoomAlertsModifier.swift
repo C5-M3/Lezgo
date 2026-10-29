@@ -84,7 +84,7 @@ private extension View {
                         try await viewModel.LeaveTrip()
                         dismissAction()
                     } catch {
-                        viewModel.errorMessage = error.localizedDescription
+                        viewModel.ShowError(error)
                     }
                 }
             }
@@ -105,7 +105,7 @@ private extension View {
                     do {
                         try await viewModel.StartTrip()
                     } catch {
-                        viewModel.errorMessage = error.localizedDescription
+                        viewModel.ShowError(error)
                     }
                 }
             }
@@ -148,7 +148,7 @@ private extension View {
                     do {
                         try await viewModel.RemoveSelectedParticipants()
                     } catch {
-                        viewModel.errorMessage = error.localizedDescription
+                        viewModel.ShowError(error)
                     }
                 }
             }
@@ -170,7 +170,7 @@ private extension View {
                         do {
                             try await viewModel.RemoveParticipant(id: participant.id)
                         } catch {
-                            viewModel.errorMessage = error.localizedDescription
+                            viewModel.ShowError(error)
                         }
                     }
                 }
@@ -190,13 +190,7 @@ private extension View {
             Button("Cancel", role: .cancel) { target.wrappedValue = nil }
             Button("Confirm") {
                 if let participant = target.wrappedValue {
-                    Task {
-                        do {
-                            try await viewModel.SetLeader(to: participant)
-                        } catch {
-                            viewModel.errorMessage = error.localizedDescription
-                        }
-                    }
+                    Task { await viewModel.HandOverLead(to: participant) }
                 }
                 target.wrappedValue = nil
             }
