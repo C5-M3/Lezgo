@@ -82,7 +82,8 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         XCTAssertTrue(options.waitForExistence(timeout: 5))
         options.tap()
         app.buttons["Set leader"].tap()
-        let budi = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Budi,")).firstMatch
+        // The picker row, not Budi's Trip Room row behind the sheet.
+        let budi = app.buttons["Budi, White Brio, Select"]
         XCTAssertTrue(budi.waitForExistence(timeout: 3))
 
         budi.tap()
