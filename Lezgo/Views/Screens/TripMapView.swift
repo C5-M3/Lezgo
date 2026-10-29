@@ -82,7 +82,8 @@ struct TripMapView: View {
                 TripMapCameraControls(
                     cameraMode: viewModel.cameraMode,
                     showWholeRoute: viewModel.ShowWholeRoute,
-                    followMyCar: viewModel.FollowMyCar
+                    followMyCar: viewModel.FollowMyCar,
+                    editRoute: EditRouteAction()
                 )
                 if let carStatus = viewModel.selectedCarStatus {
                     TripMapCarStatusCard(status: carStatus, onClose: { viewModel.SelectCar(nil) })
@@ -112,6 +113,9 @@ struct TripMapView: View {
                     .padding()
                     .background(.regularMaterial, in: .rect(cornerRadius: 16))
             }
+        }
+        .fullScreenCover(item: $viewModel.editRoute) { editRoute in
+            EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
         }
         .task { await viewModel.Start() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
@@ -156,6 +160,12 @@ struct TripMapView: View {
         } else {
             dismiss()
         }
+    }
+
+    /// Only the leader can change the route, and only while the trip is open.
+    private func EditRouteAction() -> (() -> Void)? {
+        guard viewModel.isLeader, viewModel.closeReason == nil else { return nil }
+        return viewModel.RequestEditRoute
     }
 
     private func LeaveQuestion() -> LocalizedStringResource {

@@ -14,7 +14,7 @@ import Observation
 /// The planner starts from `startingWaypoints`: the leader's position, the unvisited checkpoints and the destination.
 /// Saving makes the changed route the trip's next route version, so every phone switches to it.
 @Observable
-final class EditRouteViewModel {
+final class EditRouteViewModel: Identifiable {
     /// What the planner shows when it opens.
     let startingWaypoints: [PlannedWaypoint]
     /// `true` while the route is on its way; Save is disabled meanwhile.
