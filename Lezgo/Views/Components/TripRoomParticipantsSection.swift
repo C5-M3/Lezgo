@@ -32,13 +32,10 @@ struct TripRoomParticipantsSection: View {
                         onEdit: { onEdit(participant) }
                     )
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if viewModel.isCurrentUserLeader && !viewModel.isSelectionMode && !isLeader {
-                            Button(role: .destructive) {
+                        if viewModel.showsKickSwipe {
+                            KickSwipeButton(isEnabled: viewModel.CanKick(participant: participant)) {
                                 onKick(participant)
-                            } label: {
-                                Label("Kick", systemImage: "trash")
                             }
-                            .accessibilityLabel("Kick")
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -73,6 +70,29 @@ struct TripRoomParticipantsSection: View {
                 .accessibilityLabel("Invite participant")
             }
         }
+    }
+}
+
+/// "Kick" in a row's swipe actions. It has no `.destructive` role: that role makes SwiftUI drop a row from the
+/// list as soon as it is tapped, before the leader confirms. Swipe actions also ignore `.disabled`, so the
+/// leader's own row gets a gray button that does nothing (lo-fi "SLIDE DELETE IF LEADER").
+private struct KickSwipeButton: View {
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            guard isEnabled else { return }
+            action()
+        } label: {
+            Label("Kick", systemImage: "trash")
+        }
+        .tint(isEnabled ? Color.red : Color(uiColor: .systemGray4))
+        .disabled(!isEnabled)
+        .accessibilityLabel("Kick")
+        // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
+        // The hint says why it does nothing.
+        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomKickLeaderHint))
     }
 }
 
