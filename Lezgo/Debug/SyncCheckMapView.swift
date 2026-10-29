@@ -30,7 +30,8 @@ struct SyncCheckMapView: View {
                         locationProvider: LiveLocationProvider(),
                         tripID: tripID,
                         participantID: myParticipantID
-                    )
+                    ),
+                    directionsService: LiveDirectionsService()
                 )
             )
             .toolbar {

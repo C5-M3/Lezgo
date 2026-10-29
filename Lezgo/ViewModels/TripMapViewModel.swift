@@ -48,6 +48,9 @@ final class TripMapViewModel {
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     private let locationSharer: LocationSharer?
+    /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
+    /// and the simulated drive, where the leader never leaves the route).
+    private let reroute: TripMapReroute?
     private let clock: () -> Date
 
     init(
@@ -57,6 +60,7 @@ final class TripMapViewModel {
         navigator: any TripMapNavigator,
         streetNameService: any StreetNameService,
         locationSharer: LocationSharer? = nil,
+        directionsService: (any DirectionsService)? = nil,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
@@ -65,6 +69,9 @@ final class TripMapViewModel {
         self.navigator = navigator
         self.streetNameService = streetNameService
         self.locationSharer = locationSharer
+        reroute = directionsService.map {
+            TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
+        }
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
@@ -165,20 +172,6 @@ final class TripMapViewModel {
             // The trip stream ends when the trip closes on this phone; then sharing stops too.
             await group.next()
             group.cancelAll()
-        }
-    }
-
-    /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
-    private func FollowTrip() async {
-        for await newState in tripService.TripUpdates(tripID: tripID) {
-            state = newState
-            updatedAt = clock()
-            NoticeTripClosed(newState)
-            if closeReason != nil { return }
-            CloseCardOfGoneCar()
-            await UpdateMyAlert()
-            await PassCheckpointIfReached()
-            await RefreshGuidance()
         }
     }
 
@@ -348,6 +341,43 @@ final class TripMapViewModel {
     }
 }
 
+// MARK: Following the trip
+
+extension TripMapViewModel {
+    /// Follows the trip until it closes on this phone; then `Start` stops sharing the position too.
+    ///
+    /// The reroute runs beside the trip updates, so a slow directions request never holds back the cars, alerts
+    /// and guidance on the map.
+    private func FollowTrip() async {
+        let (rerouteStates, rerouteInput) = AsyncStream.makeStream(of: TripState.self)
+        await withTaskGroup(of: Void.self) { group in
+            if let reroute {
+                group.addTask { await reroute.Run(rerouteStates, myParticipantID: self.myParticipantID) }
+            }
+            await ApplyTripUpdates(rerouteInput: rerouteInput)
+            rerouteInput.finish()
+            // A closed trip is never rerouted, even with states still waiting.
+            if closeReason != nil { group.cancelAll() }
+        }
+    }
+
+    private func ApplyTripUpdates(rerouteInput: AsyncStream<TripState>.Continuation) async {
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            // A late fetch can still carry the old route; phones never go back to an older version.
+            if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
+            state = newState
+            updatedAt = clock()
+            NoticeTripClosed(newState)
+            if closeReason != nil { return }
+            CloseCardOfGoneCar()
+            await UpdateMyAlert()
+            await PassCheckpointIfReached()
+            rerouteInput.yield(newState)
+            await RefreshGuidance()
+        }
+    }
+}
+
 // MARK: Nested types
 
 extension TripMapViewModel {
@@ -356,43 +386,5 @@ extension TripMapViewModel {
         var street: String?
         var timeLeft: Duration?
         var lookedUpAt: Date
-    }
-
-    /// What the trip map camera follows.
-    enum CameraMode: Hashable {
-        /// The camera stays on this phone's car as it moves.
-        case followMyCar
-        /// The camera shows the whole route; it no longer moves with the car.
-        case wholeRoute
-        /// The person moved the map by hand; the camera stays where they left it.
-        case free
-    }
-
-    /// The confirmation shown before leaving the trip from the map (`specs/UserStories.md` → US-07, "Leave and end").
-    enum LeaveConfirmation: Hashable {
-        /// A member: "Exit trip?"
-        case exitTrip
-        /// The leader: "End trip?", or "End trip? Not everyone has arrived yet." when someone is still on the way.
-        case endTrip(everyoneHasArrived: Bool)
-    }
-
-    /// Why the trip map closed on this phone, which then returns to Home.
-    enum CloseReason: Hashable {
-        /// This member chose "Exit Trip".
-        case exited
-        /// This leader chose "End Trip".
-        case ended
-        /// Another phone, the leader's, ended the trip: "The leader ended the trip."
-        case endedByLeader
-        /// The leader removed this member: "You were removed from the trip."
-        case removed
-    }
-
-    /// What the bottom card shows once this phone's car has arrived (`specs/UserStories.md` → US-07, "Arrive").
-    enum ArrivalCard: Hashable {
-        /// "You have arrived" · "Waiting for everyone to arrive"
-        case waitingForEveryone
-        /// "Everyone has arrived!" (and, for the leader, "Continue your trip?")
-        case everyoneArrived
     }
 }

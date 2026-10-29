@@ -1,0 +1,121 @@
+//
+//  TripMapReroute.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 28/10/26.
+//
+
+import Foundation
+
+/// Reroutes the group when the leader leaves the route (`specs/UserStories.md` → US-06, "Route changes").
+///
+/// The leader's phone checks every trip update. Once the leader is more than 100 m off the route for 15 seconds, the
+/// same limits as a member's off-route alert so a GPS jump never reroutes the group, it finds a new road path from
+/// the leader through the unvisited checkpoints to the destination and saves it as the next route version. Every
+/// phone picks it up with its next update. Time is read from the leader's own `lastSeenAt`.
+///
+/// Each route version is rerouted once. On failure (no network, no road found) the old route stays and the next try
+/// waits 30 seconds.
+final class TripMapReroute {
+    /// How long to wait before trying again after a failed reroute.
+    static let retryInterval: TimeInterval = 30
+
+    private let tripID: UUID
+    private let tripService: any TripService
+    private let directionsService: any DirectionsService
+
+    /// The route version the leader was last measured against.
+    private var routeVersion: Int?
+    /// When the leader last went off the route.
+    private var offRouteSince: Date?
+    /// `true` once this route version was rerouted, until the request fails.
+    private var hasRequested = false
+    /// No new request before this time, after a failure.
+    private var retryAt: Date?
+
+    init(tripID: UUID, tripService: any TripService, directionsService: any DirectionsService) {
+        self.tripID = tripID
+        self.tripService = tripService
+        self.directionsService = directionsService
+    }
+
+    /// Checks each state in order, until the stream finishes or the task is cancelled. Does nothing on a member's
+    /// phone.
+    func Run(_ states: AsyncStream<TripState>, myParticipantID: UUID) async {
+        for await state in states {
+            await Update(state, myParticipantID: myParticipantID)
+        }
+    }
+
+    /// Checks the new state and reroutes when it is time.
+    private func Update(_ state: TripState, myParticipantID: UUID) async {
+        guard let leader = state.leader, leader.id == myParticipantID, let coordinate = leader.coordinate else {
+            Reset()
+            return
+        }
+        guard let waypoints = WaypointsIfDue(state, leaderCoordinate: coordinate, at: leader.lastSeenAt) else { return }
+        do {
+            let path = try await directionsService.DrivingPath(through: waypoints.map(\.coordinate))
+            let plan = TripPlan(waypoints: waypoints, polyline: path)
+            try await tripService.SaveRoute(plan, tripID: tripID, by: myParticipantID)
+        } catch {
+            hasRequested = false
+            retryAt = leader.lastSeenAt.addingTimeInterval(Self.retryInterval)
+        }
+    }
+
+    /// The waypoints of the new route when the leader has been off the route long enough, or `nil`.
+    private func WaypointsIfDue(_ state: TripState, leaderCoordinate: Coordinate, at date: Date) -> [PlannedWaypoint]? {
+        // A new route starts at the leader's position, so the wait starts again on it.
+        if routeVersion != state.trip.routeVersion {
+            routeVersion = state.trip.routeVersion
+            offRouteSince = nil
+            hasRequested = false
+        }
+        guard IsOffRoute(leaderCoordinate, in: state) else {
+            offRouteSince = nil
+            retryAt = nil
+            return nil
+        }
+        let since = offRouteSince ?? date
+        offRouteSince = since
+        guard date.timeIntervalSince(since) >= FormationAlertDetector.holdTime,
+              hasRequested == false,
+              retryAt.map({ date >= $0 }) ?? true,
+              let waypoints = Waypoints(from: leaderCoordinate, in: state) else { return nil }
+        hasRequested = true
+        return waypoints
+    }
+
+    /// This phone is not the leader (any more): the next drive starts fresh.
+    private func Reset() {
+        routeVersion = nil
+        offRouteSince = nil
+        hasRequested = false
+        retryAt = nil
+    }
+
+    private func IsOffRoute(_ coordinate: Coordinate, in state: TripState) -> Bool {
+        // Before a route exists, the straight line through the waypoints, like the map draws it.
+        let polyline = state.route?.polyline ?? state.waypoints.map(\.coordinate)
+        guard let position = RoutePosition.Locate(coordinate, on: polyline) else { return false }
+        return position.distanceFromRoute > FormationAlertDetector.offRouteDistance
+    }
+
+    /// From the leader's position, through the unvisited checkpoints, to the destination.
+    private func Waypoints(from leaderCoordinate: Coordinate, in state: TripState) -> [PlannedWaypoint]? {
+        guard let destination = state.destination else { return nil }
+        let currentIndex = state.trip.currentWaypointIndex
+        let checkpoints = state.waypoints
+            .filter { $0.kind == .checkpoint && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
+            .sorted { $0.orderIndex < $1.orderIndex }
+            .map { PlannedWaypoint(kind: .checkpoint, name: $0.name, coordinate: $0.coordinate) }
+        let startName = String(
+            localized: "waypointCurrentLocation",
+            defaultValue: "Current Location"
+        )
+        let start = PlannedWaypoint(kind: .start, name: startName, coordinate: leaderCoordinate)
+        let end = PlannedWaypoint(kind: .destination, name: destination.name, coordinate: destination.coordinate)
+        return [start] + checkpoints + [end]
+    }
+}
