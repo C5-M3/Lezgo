@@ -87,7 +87,11 @@ struct SetRouteMapView: View {
                 }
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
-                LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
+                LocationSearchSheet(
+                    viewModel: boundViewModel,
+                    selectionType: sheetType,
+                    autoFocus: !CommandLine.arguments.contains("-ui-testing-set-route-map")
+                )
             }
             // Only compact (height) and full (large) — no half pulls
             .presentationDetents(
