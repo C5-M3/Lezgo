@@ -9,36 +9,14 @@ import SwiftUI
 import MapKit
 
 struct SetRouteMapView: View {
-    @State private var viewModel: MapViewModel
+    @Environment(\.dismiss) private var dismiss
+    var onDismiss: (() -> Void)?
+    @State private var viewModel = MapViewModel()
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
 
-    private let title: LocalizedStringResource
-    private let nextTitle: LocalizedStringResource
-    private let onBack: () -> Void
-    private let onNext: () -> Void
-    private let isBackDisabled: Bool
-    private let isNextDisabled: Bool
-    private let isStartPointLocked: Bool
-
-    init(
-        viewModel: MapViewModel = MapViewModel(),
-        title: LocalizedStringResource = "Set Route",
-        nextTitle: LocalizedStringResource = "Next",
-        onBack: @escaping () -> Void = {},
-        onNext: @escaping () -> Void = {},
-        isBackDisabled: Bool = false,
-        isNextDisabled: Bool = false,
-        isStartPointLocked: Bool = false
-    ) {
-        _viewModel = State(initialValue: viewModel)
-        self.title = title
-        self.nextTitle = nextTitle
-        self.onBack = onBack
-        self.onNext = onNext
-        self.isBackDisabled = isBackDisabled
-        self.isNextDisabled = isNextDisabled
-        self.isStartPointLocked = isStartPointLocked
+    init(onDismiss: (() -> Void)? = nil) {
+        self.onDismiss = onDismiss
     }
 
     var body: some View {
@@ -99,16 +77,21 @@ struct SetRouteMapView: View {
             SetRouteSheet(
                 viewModel: boundViewModel,
                 isFullPresentation: selectedDetent == .large,
-                title: title,
-                nextTitle: nextTitle,
-                onBack: onBack,
-                onNext: onNext,
-                isBackDisabled: isBackDisabled,
-                isNextDisabled: isNextDisabled,
-                isStartPointLocked: isStartPointLocked
+                onBack: {
+                    viewModel.clearDestinationSearch()
+                    if let onDismiss {
+                        onDismiss()
+                    } else {
+                        dismiss()
+                    }
+                }
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
-                LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
+                LocationSearchSheet(
+                    viewModel: boundViewModel,
+                    selectionType: sheetType,
+                    autoFocus: !CommandLine.arguments.contains("-ui-testing-set-route-map")
+                )
             }
             // Only compact (height) and full (large) — no half pulls
             .presentationDetents(

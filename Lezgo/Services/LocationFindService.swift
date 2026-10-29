@@ -95,7 +95,7 @@ final class LocationFindService: NSObject, MKLocalSearchCompleterDelegate {
             throw NSError(domain: "LocationSearch", code: 404, userInfo: errorInfo)
         }
 
-        let coord = mapItem.placemark.coordinate
+        let coord = mapItem.location.coordinate
         coordinateCache[item.id] = coord
 
         return RoutePoint(
@@ -213,7 +213,7 @@ final class LocationFindService: NSObject, MKLocalSearchCompleterDelegate {
             let response = try await search.start()
             guard !Task.isCancelled, let mapItem = response.mapItems.first else { return nil }
 
-            let coord = mapItem.placemark.coordinate
+            let coord = mapItem.location.coordinate
             let from = CLLocation(latitude: ref.latitude, longitude: ref.longitude)
             let to = CLLocation(latitude: coord.latitude, longitude: coord.longitude)
             let dist = from.distance(from: to)

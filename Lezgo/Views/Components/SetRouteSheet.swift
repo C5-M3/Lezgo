@@ -11,16 +11,8 @@ import MapKit
 struct SetRouteSheet: View {
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
-    /// "Set Route" when planning a trip, "Edit Route" on the road.
-    var title: LocalizedStringResource = "Set Route"
-    var nextTitle: LocalizedStringResource = "Next"
-    /// Set by the screen that shows the planner, so Draft Trip and Edit Route each decide where Back and Next go.
-    var onBack: () -> Void = {}
-    var onNext: () -> Void = {}
-    var isBackDisabled = false
-    var isNextDisabled = false
-    /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
-    var isStartPointLocked = false
+    var onBack: (() -> Void)?
+    @State private var isShowingBackConfirmation: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -168,13 +160,29 @@ struct SetRouteSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Back", systemImage: "chevron.left", action: onBack)
-                        .disabled(isBackDisabled)
+                    Button("Back", systemImage: "chevron.left") {
+                        if viewModel.hasPlanChanges {
+                            isShowingBackConfirmation = true
+                        } else {
+                            onBack?()
+                        }
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(nextTitle, systemImage: "arrow.right", action: onNext)
                         .disabled(isNextDisabled)
                 }
+            }
+            .alert(
+                "Discard Changes?",
+                isPresented: $isShowingBackConfirmation,
+            ) {
+                Button("Cancel", role: .cancel) { }
+                Button("Discard", role: .destructive) {
+                    onBack?()
+                }
+            } message: {
+                Text("Going back will clear your selected destination and route planning")
             }
         }
     }

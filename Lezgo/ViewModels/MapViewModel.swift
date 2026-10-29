@@ -54,6 +54,10 @@ final class MapViewModel {
         !routeLegs.isEmpty
     }
 
+    var hasPlanChanges: Bool {
+        !destinations.isEmpty || (startPoint != nil && startPoint?.name != "Current Location")
+    }
+
     var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     var isLoadingRoute: Bool = false
     var errorMessage: String?
@@ -87,6 +91,24 @@ final class MapViewModel {
         if destinations.isEmpty {
             activeSelectionSheet = .destination(index: 0)
         }
+    }
+
+    // MARK: - Reset / Clear
+    func clearDestinationSearch() {
+        destinations.removeAll()
+        routeLegs.removeAll()
+        activeSelectionSheet = nil
+        searchQuery = ""
+        searchService.updateQueryFragment("")
+        errorMessage = nil
+        if let currentCoord = locationService.userLocation {
+            startPoint = RoutePoint(
+                name: "Current Location",
+                subtitle: "GPS Location",
+                coordinate: currentCoord
+            )
+        }
+        cameraPosition = .userLocation(fallback: .automatic)
     }
 
     // MARK: - Destinations Management

@@ -11,61 +11,99 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.tripService) private var tripService
     @State private var viewModel = HomeViewModel()
+    @State private var mapViewModel = MapViewModel()
     @State private var isJoinTripPresented: Bool = false
-    @FocusState private var isSearchFocused: Bool
+    @State private var isSetRoutePresented: Bool = false
+    @State private var drawerHeight: CGFloat = 310
+    @State private var selectedDetent: PresentationDetent = .height(280)
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Map(
-                position: $viewModel.cameraPosition,
-                interactionModes: isJoinTripPresented ? [] : .all
-            ) {
-                UserAnnotation()
+        @Bindable var boundMapViewModel = mapViewModel
 
-                if let selectedMapItem = viewModel.selectedMapItem {
-                    Marker(
-                        selectedMapItem.name ?? "Destinasi",
-                        coordinate: selectedMapItem.location.coordinate
-                    )
-                    .tint(.blue)
-                }
+        MapReader { proxy in
+            ZStack(alignment: .bottom) {
+                Map(
+                    position: isSetRoutePresented ? $boundMapViewModel.cameraPosition : $viewModel.cameraPosition,
+                    interactionModes: isJoinTripPresented ? [] : .all
+                ) {
+                    UserAnnotation()
 
-                ForEach(viewModel.searchResults, id: \.self) { item in
-                    if item != viewModel.selectedMapItem {
-                        Marker(
-                            item.name ?? "Lokasi",
-                            coordinate: item.location.coordinate
-                        )
-                        .tint(.red)
+                    if isSetRoutePresented {
+                        if let start = mapViewModel.startPoint, start.name != "Current Location" {
+                            Marker(start.name, coordinate: start.coordinate)
+                                .tint(.blue)
+                        }
+
+                        ForEach(Array(mapViewModel.destinations.enumerated()), id: \.element.id) { index, point in
+                            if mapViewModel.destinations.count == 1 || index == mapViewModel.destinations.count - 1 {
+                                Marker(point.name, coordinate: point.coordinate)
+                                    .tint(.red)
+                            } else {
+                                Marker(
+                                    "\(index + 1). \(point.name)",
+                                    systemImage: "\(index + 1).circle",
+                                    coordinate: point.coordinate
+                                )
+                                .tint(.purple)
+                            }
+                        }
+
+                        // Alternative routes for each leg (yellow)
+                        ForEach(mapViewModel.routeLegs) { leg in
+                            ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
+                                if routeIndex != leg.selectedRouteIndex {
+                                    MapPolyline(route.polyline)
+                                        .stroke(Color.yellow.opacity(0.88), lineWidth: 5)
+                                }
+                            }
+                        }
+
+                        // Selected route for each leg (highlighted blue tint)
+                        ForEach(mapViewModel.selectedPolylines, id: \.self) { polyline in
+                            MapPolyline(polyline)
+                                .stroke(.tint, lineWidth: 6)
+                        }
+                    } else {
+                        if let selectedMapItem = viewModel.selectedMapItem {
+                            Marker(
+                                selectedMapItem.name ?? "Destinasi",
+                                coordinate: selectedMapItem.location.coordinate
+                            )
+                            .tint(.blue)
+                        }
+
+                        ForEach(viewModel.searchResults, id: \.self) { item in
+                            if item != viewModel.selectedMapItem {
+                                Marker(
+                                    item.name ?? "Lokasi",
+                                    coordinate: item.location.coordinate
+                                )
+                                .tint(.red)
+                            }
+                        }
                     }
                 }
-            }
-            .mapControls {
-                MapUserLocationButton()
-                MapCompass()
-                MapScaleView()
-                MapPitchToggle()
-            }
-            .mapControlVisibility(isJoinTripPresented ? .hidden : .visible)
-            .disabled(isJoinTripPresented)
-            .allowsHitTesting(!isJoinTripPresented)
-
-            if isSearchFocused {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        isSearchFocused = false
-                        hideKeyboard()
+                .onTapGesture { screenPoint in
+                    if isSetRoutePresented, let coord = proxy.convert(screenPoint, from: .local) {
+                        mapViewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
                     }
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel("Tutup pencarian")
-            }
+                }
+                .accessibilityAddTraits(.isButton)
+                .mapControls {
+                    MapUserLocationButton()
+                    MapCompass()
+                    MapScaleView()
+                    MapPitchToggle()
+                }
+                .mapControlVisibility(isJoinTripPresented ? .hidden : .visible)
+                .disabled(isJoinTripPresented)
+                .allowsHitTesting(!isJoinTripPresented)
 
-            // Menyembunyikan seluruh kontrol pencarian dan tombol room saat pop up aktif
-            if !isJoinTripPresented {
-                locationInfoCard
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                // Menyembunyikan seluruh kontrol pencarian dan tombol room saat pop up aktif
+                if !isJoinTripPresented && !isSetRoutePresented {
+                    locationInfoCard
+                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                }
             }
         }
         .overlay {
@@ -107,13 +145,34 @@ struct HomeView: View {
                 .zIndex(200)
             }
         }
+        .sheet(
+            isPresented: $isSetRoutePresented,
+            onDismiss: {
+                handleSetRouteDismissed()
+            },
+            content: {
+                SetRouteSheet(
+                    viewModel: mapViewModel,
+                    isFullPresentation: selectedDetent == .large,
+                    onBack: {
+                        handleSetRouteDismissed()
+                        isSetRoutePresented = false
+                    }
+                )
+                .sheet(item: $boundMapViewModel.activeSelectionSheet) { sheetType in
+                    LocationSearchSheet(viewModel: mapViewModel, selectionType: sheetType)
+                }
+                .presentationDetents(
+                    [.height(drawerHeight), .large],
+                    selection: $selectedDetent
+                )
+                .presentationDragIndicator(.visible)
+                .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
+                .interactiveDismissDisabled(mapViewModel.hasPlanChanges)
+            }
+        )
         .onAppear {
             viewModel.onAppear()
-        }
-        .onChange(of: viewModel.searchText) { _, newValue in
-            if isSearchFocused {
-                viewModel.onSearchTextChanged(newValue, isFocused: true)
-            }
         }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)
@@ -159,25 +218,13 @@ struct HomeView: View {
             }
 
             TravelMapControlsView(
-                searchText: $viewModel.searchText,
-                suggestions: viewModel.suggestions,
-                isSearching: viewModel.isSearching,
-                isFocused: $isSearchFocused,
                 onDoorTapped: {
-                    isSearchFocused = false
-                    hideKeyboard()
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         isJoinTripPresented = true
                     }
                 },
-                onSearch: {
-                    performSearch()
-                },
-                onSubmit: {
-                    performSearch()
-                },
-                onSelectSuggestion: { suggestion in
-                    selectSuggestion(suggestion)
+                onTap: {
+                    navigateToSetRoute()
                 }
             )
         }
@@ -187,20 +234,14 @@ struct HomeView: View {
 
     // MARK: - Actions
 
-    private func performSearch() {
-        isSearchFocused = false
-        hideKeyboard()
-        Task {
-            await viewModel.performSearch()
-        }
+    private func navigateToSetRoute() {
+        mapViewModel.onAppear()
+        isSetRoutePresented = true
     }
 
-    private func selectSuggestion(_ suggestion: MKLocalSearchCompletion) {
-        isSearchFocused = false
-        hideKeyboard()
-        Task {
-            await viewModel.selectSuggestion(suggestion)
-        }
+    private func handleSetRouteDismissed() {
+        mapViewModel.clearDestinationSearch()
+        viewModel.resetSearchAndCenterOnUser()
     }
 }
 

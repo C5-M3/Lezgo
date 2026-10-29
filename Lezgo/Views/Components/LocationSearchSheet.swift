@@ -12,7 +12,8 @@ struct LocationSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var viewModel: MapViewModel
     let selectionType: ActivePointSelection
-    @State private var isSearchPresented: Bool = false
+    var autoFocus: Bool = true
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -64,7 +65,7 @@ struct LocationSearchSheet: View {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 } else {
-                    Section(selectionType == .start ? "Search Places" : "") {
+                    Section {
                         ForEach(viewModel.searchService.searchResults, id: \.self) { result in
                             Button {
                                 viewModel.selectSearchResult(result)
@@ -106,6 +107,10 @@ struct LocationSearchSheet: View {
                             .buttonStyle(.plain)
                             .animation(.easeInOut(duration: 0.25), value: result.distanceInMeters)
                         }
+                    } header: {
+                        if selectionType == .start {
+                            Text("Search Places")
+                        }
                     }
                 }
             }
@@ -113,25 +118,34 @@ struct LocationSearchSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
                 text: $viewModel.searchQuery,
-                isPresented: $isSearchPresented,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: selectionType == .start ? "Change start location" : "Where to?"
             )
+            .searchFocused($isSearchFocused)
+            .onAppear {
+                if autoFocus {
+                    isSearchFocused = true
+                }
+            }
+            .task {
+                if autoFocus {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    if !Task.isCancelled {
+                        isSearchFocused = true
+                    }
+                }
+            }
             .onChange(of: viewModel.searchQuery) { _, newValue in
                 viewModel.onSearchQueryChanged(newValue)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") {
-                        isSearchPresented = false
                         viewModel.searchQuery = ""
                         viewModel.searchService.updateQueryFragment("")
                         dismiss()
                     }
                 }
-            }
-            .task {
-                isSearchPresented = true
             }
         }
     }

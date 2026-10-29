@@ -98,12 +98,13 @@ struct JoinTripView: View {
             // Kolom Input Kode (Dibatasi maksimal 6 digit angka)
             HStack {
                 TextField(
-                    "",
                     text: $enteredCode,
                     prompt: Text("6 digit code")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(Color(uiColor: .placeholderText).opacity(0.85))
-                )
+                ) {
+                    EmptyView()
+                }
                 .font(.system(size: 22, weight: .bold))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Color.primary)
