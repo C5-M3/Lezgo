@@ -1007,6 +1007,18 @@
         }
       }
     },
+    "tripRoomLeaderEndedTrip" : {
+      "comment" : "Trip Room: tells a member that the leader left the room and the trip ended for everyone; OK returns to Home (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The leader ended the trip."
+          }
+        }
+      }
+    },
     "tripRoomLeaderRowHint" : {
       "comment" : "Trip Room: VoiceOver hint on \"Kick\" and \"Set Lead\" in the leader's own row, where they are gray and do nothing, so the gray color is not the only sign (US-05).",
       "extractionState" : "manual",
@@ -1015,6 +1027,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Not available for the leader."
+          }
+        }
+      }
+    },
+    "tripRoomOK" : {
+      "comment" : "Trip Room: closes the alert that the leader ended the trip and returns to Home (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         }
       }
