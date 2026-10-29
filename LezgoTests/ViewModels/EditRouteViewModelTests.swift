@@ -82,6 +82,7 @@ struct EditRouteViewModelTests {
 
         #expect(service.savedRoutes.isEmpty)
         #expect(viewModel.didSave == false)
+        #expect(viewModel.errorMessage == String(localized: TripServiceError.notAllowed.message))
     }
 
     @Test func SecondSaveAfterSuccessDoesNothing() async {
@@ -89,6 +90,19 @@ struct EditRouteViewModelTests {
         let viewModel = MakeViewModel(service: service)
 
         await viewModel.Save(Self.changedPlan)
+        await viewModel.Save(Self.changedPlan)
+
+        #expect(service.savedRoutes.count == 1)
+    }
+
+    @Test func SecondSaveWhileTheFirstIsOnItsWayDoesNothing() async {
+        let service = MockTripService(states: [])
+        let viewModel = MakeViewModel(service: service)
+        service.whileSavingRoute = {
+            #expect(viewModel.isSaving)
+            await viewModel.Save(Self.changedPlan)
+        }
+
         await viewModel.Save(Self.changedPlan)
 
         #expect(service.savedRoutes.count == 1)

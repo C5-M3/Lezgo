@@ -39,6 +39,12 @@ struct MapViewModelTripPlanTests {
         RouteLeg(legIndex: index, fromName: "", toName: "", routes: [FakeRoute(through: coordinates)])
     }
 
+    /// Gives the planner a route found for the stops it has now.
+    private func Route(_ viewModel: MapViewModel, _ legs: [RouteLeg]) {
+        viewModel.routeLegs = legs
+        viewModel.routedPoints = [viewModel.startPoint].compactMap(\.self) + viewModel.destinations
+    }
+
     @Test func OpensWithTheGivenWaypoints() {
         let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
 
@@ -68,7 +74,7 @@ struct MapViewModelTripPlanTests {
         let start = Fixtures.startPoint.coordinate
         let checkpoint = Fixtures.checkpoint.coordinate
         let destination = Fixtures.destination.coordinate
-        viewModel.routeLegs = [Leg(0, through: [start, checkpoint]), Leg(1, through: [checkpoint, destination])]
+        Route(viewModel, [Leg(0, through: [start, checkpoint]), Leg(1, through: [checkpoint, destination])])
 
         let plan = try #require(viewModel.MakeTripPlan())
 
@@ -86,7 +92,7 @@ struct MapViewModelTripPlanTests {
 
     @Test func OneStopIsTheDestination() throws {
         let viewModel = MapViewModel(startingWaypoints: [Self.remainingRoute[0], Self.remainingRoute[2]])
-        viewModel.routeLegs = [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])]
+        Route(viewModel, [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])])
 
         let plan = try #require(viewModel.MakeTripPlan())
 
@@ -101,7 +107,7 @@ struct MapViewModelTripPlanTests {
 
     @Test func RouteStillCalculatingGivesNoPlan() {
         let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
-        viewModel.routeLegs = [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])]
+        Route(viewModel, [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])])
         viewModel.isLoadingRoute = true
 
         #expect(viewModel.MakeTripPlan() == nil)
@@ -109,8 +115,34 @@ struct MapViewModelTripPlanTests {
 
     @Test func NoDestinationGivesNoPlan() {
         let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
-        viewModel.routeLegs = [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])]
+        Route(viewModel, [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])])
         viewModel.destinations = []
+
+        #expect(viewModel.MakeTripPlan() == nil)
+    }
+
+    @Test func StopRemovedAfterTheRouteWasFoundGivesNoPlan() {
+        let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
+        let start = Fixtures.startPoint.coordinate
+        let checkpoint = Fixtures.checkpoint.coordinate
+        let destination = Fixtures.destination.coordinate
+        Route(viewModel, [Leg(0, through: [start, checkpoint]), Leg(1, through: [checkpoint, destination])])
+
+        // The new route for the remaining stops has not arrived, or failed: the old line still goes through Ciputra.
+        viewModel.destinations.removeFirst()
+
+        #expect(viewModel.MakeTripPlan() == nil)
+    }
+
+    @Test func RouteFoundForOtherStopsGivesNoPlan() {
+        let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
+        viewModel.routeLegs = [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.destination.coordinate])]
+        // A slower, older request finished last, for stops the leader has changed since.
+        viewModel.routedPoints = [RoutePoint(
+            name: "Tunjungan Plaza",
+            subtitle: "",
+            coordinate: Fixtures.startPoint.coordinate.locationCoordinate
+        )]
 
         #expect(viewModel.MakeTripPlan() == nil)
     }

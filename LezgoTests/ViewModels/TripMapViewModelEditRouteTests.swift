@@ -83,6 +83,20 @@ struct TripMapViewModelEditRouteTests {
         #expect(viewModel.editRoute == nil)
     }
 
+    @Test func LeaderCanEditTheRouteOnceTheirPositionIsKnown() async {
+        let waiting = MakeViewModel(service: MockTripService(states: [State(agusHasPosition: false)]))
+        let ready = MakeViewModel(service: MockTripService(states: [State()]))
+        let member = MakeViewModel(me: Fixtures.budiID, service: MockTripService(states: [State()]))
+
+        await waiting.Start()
+        await ready.Start()
+        await member.Start()
+
+        #expect(waiting.canEditRoute == false)
+        #expect(ready.canEditRoute)
+        #expect(member.canEditRoute == false)
+    }
+
     @Test func EditRouteCannotOpenBeforeTheFirstUpdate() {
         let viewModel = MakeViewModel(service: MockTripService(states: []))
 
