@@ -114,7 +114,7 @@ struct TripMapView: View {
                     .background(.regularMaterial, in: .rect(cornerRadius: 16))
             }
         }
-        .fullScreenCover(item: $viewModel.editRoute) { editRoute in
+        .fullScreenCover(item: EditRoute()) { editRoute in
             EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
         }
         .task { await viewModel.Start() }
@@ -162,10 +162,14 @@ struct TripMapView: View {
         }
     }
 
-    /// Only the leader can change the route, and only while the trip is open.
+    /// The pencil shows once the leader can change the route, so it never sits there doing nothing.
     private func EditRouteAction() -> (() -> Void)? {
-        guard viewModel.isLeader, viewModel.closeReason == nil else { return nil }
+        guard viewModel.canEditRoute else { return nil }
         return viewModel.RequestEditRoute
+    }
+
+    private func EditRoute() -> Binding<EditRouteViewModel?> {
+        Binding(get: { viewModel.editRoute }, set: { if $0 == nil { viewModel.CloseEditRoute() } })
     }
 
     private func LeaveQuestion() -> LocalizedStringResource {
