@@ -75,8 +75,13 @@ struct MapViewModelTripPlanTests {
         #expect(plan.waypoints == Self.remainingRoute)
         #expect(plan.isValid)
         #expect(plan.polyline.count == 4)
-        #expect(plan.polyline.first == start)
-        #expect(plan.polyline.last == destination)
+        #expect(IsClose(try #require(plan.polyline.first), to: start))
+        #expect(IsClose(try #require(plan.polyline.last), to: destination))
+    }
+
+    /// `MKPolyline` keeps map points, so a coordinate comes back with a tiny rounding error.
+    private func IsClose(_ coordinate: Coordinate, to expected: Coordinate) -> Bool {
+        abs(coordinate.latitude - expected.latitude) < 1e-6 && abs(coordinate.longitude - expected.longitude) < 1e-6
     }
 
     @Test func OneStopIsTheDestination() throws {
