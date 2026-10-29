@@ -26,7 +26,9 @@ final class TripRoomKickUITests: XCTestCase {
         XCTAssertTrue(budi.waitForExistence(timeout: 5))
 
         budi.swipeLeft()
-        app.buttons["Kick"].tap()
+        let kick = app.buttons["Kick"]
+        XCTAssertTrue(kick.waitForExistence(timeout: 3))
+        kick.tap()
 
         XCTAssertTrue(app.alerts["Remove Budi from the trip?"].waitForExistence(timeout: 3))
         Attach(named: "Kick alert on Budi")
