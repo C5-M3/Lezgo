@@ -13,6 +13,7 @@ struct SimulatedTripRoomScreen: View {
     let myParticipantID: UUID
     let leaderEndsTrip: Bool
     @State private var tripService: InMemoryTripService
+    @State private var isShowingMap = false
 
     /// - Parameters:
     ///   - failure: when set, every save fails with this error, to check the error alerts.
@@ -29,10 +30,24 @@ struct SimulatedTripRoomScreen: View {
         TripRoomView(
             tripID: SampleTrip.tripID,
             myParticipantID: myParticipantID,
-            activeTripStorage: SimulatedActiveTripStorage()
+            activeTripStorage: SimulatedActiveTripStorage(),
+            onTripStarted: { isShowingMap = true }
         )
-            .environment(\.tripService, tripService)
-            .task { await EndTripAsLeader() }
+        .environment(\.tripService, tripService)
+        .task { await EndTripAsLeader() }
+        .fullScreenCover(isPresented: $isShowingMap) {
+            TripMapView(
+                viewModel: TripMapViewModel(
+                    tripID: SampleTrip.tripID,
+                    myParticipantID: myParticipantID,
+                    tripService: tripService,
+                    navigator: SimulatedTripMapNavigator(),
+                    streetNameService: LiveStreetNameService()
+                ),
+                onNewDestination: {},
+                onClose: { isShowingMap = false }
+            )
+        }
     }
 
     private func EndTripAsLeader() async {
