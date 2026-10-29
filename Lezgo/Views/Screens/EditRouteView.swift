@@ -26,7 +26,12 @@ struct EditRouteView: View {
             title: .editRouteTitle,
             nextTitle: .editRouteSave,
             onBack: onClose,
-            onNext: Save
+            onNext: Save,
+            // Back while saving would leave a save running with no screen to show its result.
+            isBackDisabled: viewModel.isSaving,
+            // Nothing to save until the road path for the current stops is ready.
+            isNextDisabled: viewModel.isSaving || planner.MakeTripPlan() == nil,
+            isStartPointLocked: true
         )
         // The planner only finds a road path once a stop changes, so the route it opens with needs one too.
         .task { planner.findRoute() }
@@ -42,8 +47,7 @@ struct EditRouteView: View {
         }
     }
 
-    /// Saves the route on the map. Until a road path for the current stops is ready there is nothing to save, and
-    /// the planner shows that it is still calculating.
+    /// Saves the route on the map; Save stays disabled until there is one.
     private func Save() {
         guard let plan = planner.MakeTripPlan() else { return }
         Task { await viewModel.Save(plan) }

@@ -17,19 +17,28 @@ struct SetRouteMapView: View {
     private let nextTitle: LocalizedStringResource
     private let onBack: () -> Void
     private let onNext: () -> Void
+    private let isBackDisabled: Bool
+    private let isNextDisabled: Bool
+    private let isStartPointLocked: Bool
 
     init(
         viewModel: MapViewModel = MapViewModel(),
         title: LocalizedStringResource = "Set Route",
         nextTitle: LocalizedStringResource = "Next",
         onBack: @escaping () -> Void = {},
-        onNext: @escaping () -> Void = {}
+        onNext: @escaping () -> Void = {},
+        isBackDisabled: Bool = false,
+        isNextDisabled: Bool = false,
+        isStartPointLocked: Bool = false
     ) {
         _viewModel = State(initialValue: viewModel)
         self.title = title
         self.nextTitle = nextTitle
         self.onBack = onBack
         self.onNext = onNext
+        self.isBackDisabled = isBackDisabled
+        self.isNextDisabled = isNextDisabled
+        self.isStartPointLocked = isStartPointLocked
     }
 
     var body: some View {
@@ -39,7 +48,7 @@ struct SetRouteMapView: View {
             Map(position: $boundViewModel.cameraPosition) {
                 UserAnnotation()
 
-                if let start = viewModel.startPoint, start.name != "Current Location" {
+                if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
                     Marker(start.name, coordinate: start.coordinate)
                         .tint(.blue)
                 }
@@ -93,7 +102,10 @@ struct SetRouteMapView: View {
                 title: title,
                 nextTitle: nextTitle,
                 onBack: onBack,
-                onNext: onNext
+                onNext: onNext,
+                isBackDisabled: isBackDisabled,
+                isNextDisabled: isNextDisabled,
+                isStartPointLocked: isStartPointLocked
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)

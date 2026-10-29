@@ -17,6 +17,10 @@ struct SetRouteSheet: View {
     /// Set by the screen that shows the planner, so Draft Trip and Edit Route each decide where Back and Next go.
     var onBack: () -> Void = {}
     var onNext: () -> Void = {}
+    var isBackDisabled = false
+    var isNextDisabled = false
+    /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
+    var isStartPointLocked = false
 
     var body: some View {
         NavigationStack {
@@ -38,6 +42,7 @@ struct SetRouteSheet: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .disabled(isStartPointLocked)
                 }
 
                 // Section 2: Destinations (unified hierarchy)
@@ -164,9 +169,11 @@ struct SetRouteSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Back", systemImage: "chevron.left", action: onBack)
+                        .disabled(isBackDisabled)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(nextTitle, systemImage: "arrow.right", action: onNext)
+                        .disabled(isNextDisabled)
                 }
             }
         }
