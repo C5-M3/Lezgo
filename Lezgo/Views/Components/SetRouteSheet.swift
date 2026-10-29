@@ -11,7 +11,16 @@ import MapKit
 struct SetRouteSheet: View {
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
+    /// "Set Route" when planning a trip, "Edit Route" on the road.
+    var title: LocalizedStringResource = "Set Route"
+    var nextTitle: LocalizedStringResource = "Next"
+    /// Set by the screen that shows the planner, so Draft Trip and Edit Route each decide where Back and Next go.
     var onBack: (() -> Void)?
+    var onNext: () -> Void = {}
+    var isBackDisabled = false
+    var isNextDisabled = false
+    /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
+    var isStartPointLocked = false
     @State private var isShowingBackConfirmation: Bool = false
 
     var body: some View {
@@ -167,6 +176,7 @@ struct SetRouteSheet: View {
                             onBack?()
                         }
                     }
+                    .disabled(isBackDisabled)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(nextTitle, systemImage: "arrow.right", action: onNext)

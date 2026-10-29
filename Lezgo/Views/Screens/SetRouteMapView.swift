@@ -10,13 +10,40 @@ import MapKit
 
 struct SetRouteMapView: View {
     @Environment(\.dismiss) private var dismiss
-    var onDismiss: (() -> Void)?
-    @State private var viewModel = MapViewModel()
+    @State private var viewModel: MapViewModel
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
 
-    init(onDismiss: (() -> Void)? = nil) {
+    private let title: LocalizedStringResource
+    private let nextTitle: LocalizedStringResource
+    /// When `nil`, Back clears the plan and closes the planner (Set Route); Edit Route passes its own.
+    private let onBack: (() -> Void)?
+    private let onNext: () -> Void
+    private let onDismiss: (() -> Void)?
+    private let isBackDisabled: Bool
+    private let isNextDisabled: Bool
+    private let isStartPointLocked: Bool
+
+    init(
+        viewModel: MapViewModel = MapViewModel(),
+        title: LocalizedStringResource = "Set Route",
+        nextTitle: LocalizedStringResource = "Next",
+        onBack: (() -> Void)? = nil,
+        onNext: @escaping () -> Void = {},
+        onDismiss: (() -> Void)? = nil,
+        isBackDisabled: Bool = false,
+        isNextDisabled: Bool = false,
+        isStartPointLocked: Bool = false
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.title = title
+        self.nextTitle = nextTitle
+        self.onBack = onBack
+        self.onNext = onNext
         self.onDismiss = onDismiss
+        self.isBackDisabled = isBackDisabled
+        self.isNextDisabled = isNextDisabled
+        self.isStartPointLocked = isStartPointLocked
     }
 
     var body: some View {
@@ -77,14 +104,13 @@ struct SetRouteMapView: View {
             SetRouteSheet(
                 viewModel: boundViewModel,
                 isFullPresentation: selectedDetent == .large,
-                onBack: {
-                    viewModel.clearDestinationSearch()
-                    if let onDismiss {
-                        onDismiss()
-                    } else {
-                        dismiss()
-                    }
-                }
+                title: title,
+                nextTitle: nextTitle,
+                onBack: onBack ?? ClearAndClose,
+                onNext: onNext,
+                isBackDisabled: isBackDisabled,
+                isNextDisabled: isNextDisabled,
+                isStartPointLocked: isStartPointLocked
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(
@@ -110,6 +136,15 @@ struct SetRouteMapView: View {
         }
         .onAppear {
             viewModel.onAppear()
+        }
+    }
+
+    private func ClearAndClose() {
+        viewModel.clearDestinationSearch()
+        if let onDismiss {
+            onDismiss()
+        } else {
+            dismiss()
         }
     }
 }
