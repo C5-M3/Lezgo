@@ -21,9 +21,10 @@ extension MapViewModel {
     }
 
     /// The route on the map as a trip route: the start point, the stops as checkpoints and the last stop as the
-    /// destination. `nil` until a route for the current stops is ready.
+    /// destination. `nil` until a route for the current stops is ready, so a line through an old stop is never saved.
     func MakeTripPlan() -> TripPlan? {
         guard isLoadingRoute == false, let startPoint, let lastStop = destinations.last,
+              routedPoints == [startPoint] + destinations,
               let polyline = combinedPolyline else { return nil }
         let checkpoints = destinations.dropLast().map { PlannedWaypoint(point: $0, kind: .checkpoint) }
         let waypoints = [PlannedWaypoint(point: startPoint, kind: .start)] + checkpoints
