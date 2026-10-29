@@ -15,6 +15,8 @@ import Observation
 final class TripRoomViewModel {
     private(set) var state: TripState?
     private let tripService: any TripService
+    /// The trip saved on this phone, cleared once this person has left so Home no longer offers it.
+    private let activeTripStorage: any ActiveTripStorage
     let tripID: UUID
     let myParticipantID: UUID
 
@@ -23,6 +25,10 @@ final class TripRoomViewModel {
     var errorMessage: String?
     var wasRemovedFromTrip: Bool = false
     private(set) var isSavingProfile = false
+    /// `true` while an exit request is on its way; Exit is disabled meanwhile.
+    private(set) var isLeaving = false
+    /// Set once leaving succeeded, so the room closes only for the request that actually left.
+    private(set) var hasLeft = false
     /// Shown inside the edit sheet, which stays open when the save fails so the typed name and car are kept.
     var profileErrorMessage: String?
 
@@ -59,6 +65,11 @@ final class TripRoomViewModel {
     var isEveryoneReady: Bool {
         guard !participants.isEmpty else { return false }
         return participants.allSatisfy { IsParticipantReady($0) }
+    }
+
+    /// What Exit asks first (`specs/UserStories.md` → US-07, "Leave and end").
+    var leaveConfirmation: LeaveConfirmation {
+        isCurrentUserLeader ? .endTripForEveryone : .exitRoom
     }
 
     var startTripConfirmationTitle: String {
@@ -117,9 +128,11 @@ final class TripRoomViewModel {
         tripService: any TripService,
         tripID: UUID,
         myParticipantID: UUID,
-        initialState: TripState? = nil
+        initialState: TripState? = nil,
+        activeTripStorage: (any ActiveTripStorage)? = nil
     ) {
         self.tripService = tripService
+        self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.state = initialState
@@ -258,12 +271,19 @@ final class TripRoomViewModel {
         return false
     }
 
+    /// A member leaves the trip; the leader cancels it for everyone. The trip is cleared from this phone only after
+    /// the request succeeded, so a failure leaves the person in the room with their trip still saved.
     func LeaveTrip() async throws {
+        guard !isLeaving, !hasLeft else { return }
+        isLeaving = true
+        defer { isLeaving = false }
         if isCurrentUserLeader {
             try await tripService.EndTrip(tripID: tripID, by: myParticipantID)
         } else {
             try await tripService.ExitTrip(tripID: tripID, participantID: myParticipantID)
         }
+        activeTripStorage.ClearActiveTrip()
+        hasLeft = true
     }
 
     func IsLeader(participant: Participant) -> Bool {
@@ -278,5 +298,13 @@ final class TripRoomViewModel {
         let startLocation = CLLocation(latitude: startCoord.latitude, longitude: startCoord.longitude)
         let participantLocation = CLLocation(latitude: participantCoord.latitude, longitude: participantCoord.longitude)
         return startLocation.distance(from: participantLocation) <= 100
+    }
+
+    /// The confirmation Exit shows.
+    enum LeaveConfirmation: Hashable {
+        /// A member, or a leader who handed over the lead: "Exit the room?"
+        case exitRoom
+        /// The leader: the trip is cancelled for everyone.
+        case endTripForEveryone
     }
 }
