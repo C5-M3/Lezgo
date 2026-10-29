@@ -41,6 +41,8 @@ struct SetLeaderSheetView: View {
                                 .accessibilityLabel("Leader")
                         }
                     }
+                    // A plain button only reacts on its text and avatar; the whole row should pick the leader.
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .disabled(isLeader)
