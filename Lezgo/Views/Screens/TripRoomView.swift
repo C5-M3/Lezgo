@@ -156,7 +156,8 @@ private struct TopBarView: View {
                         .rotationEffect(.degrees(180)).circleBarButtonStyle()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(viewModel.isCurrentUserLeader ? "End trip" : "Leave trip room")
+                .disabled(viewModel.isLeaving)
+                .accessibilityLabel(Text(.tripRoomExit))
             }
             Spacer()
             if viewModel.isSelectionMode {

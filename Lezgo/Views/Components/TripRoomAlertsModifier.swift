@@ -65,35 +65,30 @@ private struct ParticipantManagementAlertsModifier: ViewModifier {
 // MARK: - Alert View Extensions
 
 private extension View {
+    /// Exit asks first; the room closes only once leaving succeeded (`specs/UserStories.md` → US-07).
     func leaveAlert(
         viewModel: TripRoomViewModel,
         isPresented: Binding<Bool>,
         dismissAction: @escaping () -> Void
     ) -> some View {
-        alert(
-            viewModel.isCurrentUserLeader ? "End Trip?" : "Exit Trip?",
+        let isEndingForEveryone = viewModel.leaveConfirmation == .endTripForEveryone
+        return alert(
+            Text(isEndingForEveryone ? .tripRoomExitAndEndTripQuestion : .tripRoomExitRoomQuestion),
             isPresented: isPresented
         ) {
-            Button("Cancel", role: .cancel) { }
-            Button(
-                viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip",
-                role: .destructive
-            ) {
+            Button(role: .cancel) { } label: { Text(.tripRoomCancel) }
+            Button(role: isEndingForEveryone ? .destructive : nil) {
                 Task {
                     do {
                         try await viewModel.LeaveTrip()
-                        dismissAction()
+                        if viewModel.hasLeft { dismissAction() }
                     } catch {
                         viewModel.ShowError(error)
                     }
                 }
+            } label: {
+                Text(.tripRoomConfirm)
             }
-        } message: {
-            Text(
-                viewModel.isCurrentUserLeader
-                    ? "Leaving without handing over the lead will end the trip for everyone."
-                    : "Are you sure you want to leave this trip?"
-            )
         }
     }
 
