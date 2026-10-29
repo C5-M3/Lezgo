@@ -155,6 +155,48 @@ struct TripMapViewModelRerouteTests {
         #expect(service.savedRoutes.isEmpty)
     }
 
+    @Test func MemberSeesTheLeaderOffTheRouteButNeverReroutes() async {
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 30),
+            State(agus: Self.offRoute, secondsAgo: 14),
+            State(agus: Self.offRoute, secondsAgo: 1)
+        ])
+        let directions = MockDirectionsService(results: [.success(Self.newPath)])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, service: service, directions: directions)
+
+        await viewModel.Start()
+
+        // Only the leader's phone reroutes, so the members never ask for directions or save a route.
+        #expect(directions.requestedPoints.isEmpty)
+        #expect(service.savedRoutes.isEmpty)
+    }
+
+    // MARK: Slow network
+
+    @Test func SlowRerouteDoesNotHoldBackTheNextTripUpdates() async throws {
+        let lastUpdate = State(agus: Self.offRoute, budi: Self.offRoute, secondsAgo: 0)
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 30),
+            State(agus: Self.offRoute, secondsAgo: 14),
+            lastUpdate
+        ])
+        let directions = MockDirectionsService(results: [.success(Self.newPath)])
+        directions.holdsRequests = true
+        let viewModel = MakeViewModel(service: service, directions: directions)
+        let open = Task { await viewModel.Start() }
+
+        // Waits for the update, not for a fixed time; gives up after a while so a blocked map fails instead of hanging.
+        for _ in 0..<1_000 where viewModel.state != lastUpdate {
+            await Task.yield()
+        }
+
+        #expect(directions.requestedPoints.count == 1)
+        #expect(viewModel.state == lastUpdate)
+        directions.ReleaseRequests()
+        await open.value
+        #expect(service.savedRoutes.count == 1)
+    }
+
     // MARK: No network
 
     @Test func FailedSaveIsTriedAgainAfter30Seconds() async {
