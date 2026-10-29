@@ -223,4 +223,60 @@ struct MapViewModelTests {
         viewModel.selectLegRoute(legIndex: 0, routeIndex: 5)
         #expect(viewModel.routeLegs[0].selectedRouteIndex == 0)
     }
+
+    @Test func ClearDestinationSearchResetsState() {
+        let viewModel = MapViewModel()
+        let point = RoutePoint(
+            name: "Dest",
+            subtitle: "Sub",
+            coordinate: CLLocationCoordinate2D(latitude: -6.2, longitude: 106.8)
+        )
+        viewModel.destinations = [point]
+        viewModel.searchQuery = "Pakuwon"
+        viewModel.activeSelectionSheet = .destination(index: 0)
+        viewModel.errorMessage = "Some error"
+
+        viewModel.clearDestinationSearch()
+
+        #expect(viewModel.destinations.isEmpty)
+        #expect(viewModel.routeLegs.isEmpty)
+        #expect(viewModel.activeSelectionSheet == nil)
+        #expect(viewModel.searchQuery.isEmpty)
+        #expect(viewModel.errorMessage == nil)
+        #expect(!viewModel.hasPlanChanges)
+    }
+
+    @Test func HasPlanChangesReflectsState() {
+        let viewModel = MapViewModel()
+        #expect(!viewModel.hasPlanChanges)
+
+        // Adding a destination marks as changed
+        let point = RoutePoint(
+            name: "Dest",
+            subtitle: "Sub",
+            coordinate: CLLocationCoordinate2D(latitude: -6.2, longitude: 106.8)
+        )
+        viewModel.destinations = [point]
+        #expect(viewModel.hasPlanChanges)
+
+        // Clearing restores to unchanged
+        viewModel.destinations.removeAll()
+        #expect(!viewModel.hasPlanChanges)
+
+        // Changing startPoint to non-Current Location marks as changed
+        viewModel.startPoint = RoutePoint(
+            name: "Custom Start",
+            subtitle: "Sub",
+            coordinate: CLLocationCoordinate2D(latitude: -6.1, longitude: 106.7)
+        )
+        #expect(viewModel.hasPlanChanges)
+
+        // Setting startPoint back to Current Location restores to unchanged
+        viewModel.startPoint = RoutePoint(
+            name: "Current Location",
+            subtitle: "GPS Location",
+            coordinate: CLLocationCoordinate2D(latitude: -6.1, longitude: 106.7)
+        )
+        #expect(!viewModel.hasPlanChanges)
+    }
 }

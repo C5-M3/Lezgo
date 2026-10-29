@@ -9,9 +9,15 @@ import SwiftUI
 import MapKit
 
 struct SetRouteMapView: View {
+    @Environment(\.dismiss) private var dismiss
+    var onDismiss: (() -> Void)?
     @State private var viewModel = MapViewModel()
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
+
+    init(onDismiss: (() -> Void)? = nil) {
+        self.onDismiss = onDismiss
+    }
 
     var body: some View {
         @Bindable var boundViewModel = viewModel
@@ -70,7 +76,15 @@ struct SetRouteMapView: View {
         .sheet(isPresented: .constant(true)) {
             SetRouteSheet(
                 viewModel: boundViewModel,
-                isFullPresentation: selectedDetent == .large
+                isFullPresentation: selectedDetent == .large,
+                onBack: {
+                    viewModel.clearDestinationSearch()
+                    if let onDismiss {
+                        onDismiss()
+                    } else {
+                        dismiss()
+                    }
+                }
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)

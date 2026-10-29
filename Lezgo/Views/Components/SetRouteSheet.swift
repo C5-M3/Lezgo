@@ -11,6 +11,8 @@ import MapKit
 struct SetRouteSheet: View {
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
+    var onBack: (() -> Void)? = nil
+    @State private var isShowingBackConfirmation: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -158,7 +160,11 @@ struct SetRouteSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Back", systemImage: "chevron.left") {
-                        // Action to be routed later
+                        if viewModel.hasPlanChanges {
+                            isShowingBackConfirmation = true
+                        } else {
+                            onBack?()
+                        }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -166,6 +172,17 @@ struct SetRouteSheet: View {
                         // Action to be routed later
                     }
                 }
+            }
+            .alert(
+                "Discard Changes?",
+                isPresented: $isShowingBackConfirmation,
+            ) {
+                Button("Cancel", role: .cancel) { }
+                Button("Discard", role: .destructive) {
+                    onBack?()
+                }
+            } message: {
+                Text("Going back will clear your selected destination and route planning")
             }
         }
     }

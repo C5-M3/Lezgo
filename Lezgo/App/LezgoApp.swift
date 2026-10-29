@@ -25,6 +25,8 @@ struct LezgoApp: App {
             // starts normally.
             if let debugScreen = DebugScreen.FromLaunchArguments() {
                 debugScreen.MakeView()
+            } else if isUITestingSetRouteMap {
+                SetRouteMapView()
             } else {
                 HomeView()
             }
