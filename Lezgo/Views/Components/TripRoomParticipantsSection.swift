@@ -86,7 +86,7 @@ private struct KickSwipeButton: View {
         .accessibilityLabel("Kick")
         // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
         // The hint says why it does nothing.
-        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomKickLeaderHint))
+        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomLeaderRowHint))
     }
 }
 
@@ -108,7 +108,7 @@ private struct SetLeadSwipeButton: View {
         .accessibilityLabel("Set Lead")
         // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
         // The hint says why it does nothing.
-        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomSetLeadLeaderHint))
+        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomLeaderRowHint))
     }
 }
 
