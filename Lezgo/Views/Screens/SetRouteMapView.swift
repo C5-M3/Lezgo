@@ -17,73 +17,8 @@ struct SetRouteMapView: View {
     var body: some View {
         @Bindable var boundViewModel = viewModel
 
-        MapReader { proxy in
-            Map(position: $boundViewModel.cameraPosition) {
-                UserAnnotation()
-
-                if let start = viewModel.startPoint, start.name != "Current Location" {
-                    Marker(start.name, coordinate: start.coordinate)
-                        .tint(.blue)
-                }
-
-                ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
-                    if viewModel.destinations.count == 1 || index == viewModel.destinations.count - 1 {
-                        Marker(point.name, coordinate: point.coordinate)
-                            .tint(.red)
-                    } else {
-                        Marker(
-                            "\(index + 1). \(point.name)",
-                            systemImage: "\(index + 1).circle",
-                            coordinate: point.coordinate
-                        )
-                        .tint(.purple)
-                    }
-                }
-
-                // Alternative routes for each leg (yellow)
-                ForEach(viewModel.routeLegs) { leg in
-                    ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
-                        if routeIndex != leg.selectedRouteIndex {
-                            MapPolyline(route.polyline)
-                                .stroke(Color.yellow.opacity(0.88), lineWidth: 5)
-                        }
-                    }
-                }
-
-                // Selected route for each leg (highlighted blue tint)
-                ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
-                    MapPolyline(polyline)
-                        .stroke(.tint, lineWidth: 6)
-                }
-            }
-            .onTapGesture { screenPoint in
-                if let coord = proxy.convert(screenPoint, from: .local) {
-                    viewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
-                }
-            }
-            .accessibilityAddTraits(.isButton)
-            .mapControls {
-                MapUserLocationButton()
-                MapCompass()
-                MapScaleView()
-            }
-        }
-        .sheet(isPresented: .constant(true)) {
-            SetRouteSheet(
-                viewModel: boundViewModel,
-                isFullPresentation: selectedDetent == .large
-            )
-            .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
-                LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
-            }
-            // Only compact (height) and full (large) — no half pulls
-            .presentationDetents([.height(drawerHeight), .large], selection: $selectedDetent)
-            .presentationDragIndicator(.visible)
-            .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
-            .interactiveDismissDisabled()
-        }
-        .fullScreenCover(isPresented: $boundViewModel.isNavigatingToTripRoom) {
-            if let session = viewModel.createdTripSession {
+        Group {
+            if viewModel.isNavigatingToTripRoom, let session = viewModel.createdTripSession {
                 TripRoomView(
                     viewModel: TripRoomViewModel(
                         tripService: viewModel.tripService,
@@ -92,6 +27,72 @@ struct SetRouteMapView: View {
                         initialState: session.state
                     )
                 )
+            } else {
+                MapReader { proxy in
+                    Map(position: $boundViewModel.cameraPosition) {
+                        UserAnnotation()
+
+                        if let start = viewModel.startPoint, start.name != "Current Location" {
+                            Marker(start.name, coordinate: start.coordinate)
+                                .tint(.blue)
+                        }
+
+                        ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
+                            if viewModel.destinations.count == 1 || index == viewModel.destinations.count - 1 {
+                                Marker(point.name, coordinate: point.coordinate)
+                                    .tint(.red)
+                            } else {
+                                Marker(
+                                    "\(index + 1). \(point.name)",
+                                    systemImage: "\(index + 1).circle",
+                                    coordinate: point.coordinate
+                                )
+                                .tint(.purple)
+                            }
+                        }
+
+                        // Alternative routes for each leg (yellow)
+                        ForEach(viewModel.routeLegs) { leg in
+                            ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
+                                if routeIndex != leg.selectedRouteIndex {
+                                    MapPolyline(route.polyline)
+                                        .stroke(Color.yellow.opacity(0.88), lineWidth: 5)
+                                }
+                            }
+                        }
+
+                        // Selected route for each leg (highlighted blue tint)
+                        ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
+                            MapPolyline(polyline)
+                                .stroke(.tint, lineWidth: 6)
+                        }
+                    }
+                    .onTapGesture { screenPoint in
+                        if let coord = proxy.convert(screenPoint, from: .local) {
+                            viewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
+                        }
+                    }
+                    .accessibilityAddTraits(.isButton)
+                    .mapControls {
+                        MapUserLocationButton()
+                        MapCompass()
+                        MapScaleView()
+                    }
+                }
+                .sheet(isPresented: .constant(true)) {
+                    SetRouteSheet(
+                        viewModel: boundViewModel,
+                        isFullPresentation: selectedDetent == .large
+                    )
+                    .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
+                        LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
+                    }
+                    // Only compact (height) and full (large) — no half pulls
+                    .presentationDetents([.height(drawerHeight), .large], selection: $selectedDetent)
+                    .presentationDragIndicator(.visible)
+                    .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
+                    .interactiveDismissDisabled()
+                }
             }
         }
         .onAppear {
