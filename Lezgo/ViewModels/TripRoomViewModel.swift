@@ -147,9 +147,11 @@ final class TripRoomViewModel {
             state = newState
 
             // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
-            // even the first one (for example when I was removed before the room finished opening).
-            if !isStillInTrip && !isCurrentUserLeader {
+            // even the first one (for example when I was removed before the room finished opening). The update that
+            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
+            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
                 wasRemovedFromTrip = true
+                activeTripStorage.ClearActiveTrip()
             }
 
             if !isCurrentUserLeader && isSelectionMode {
