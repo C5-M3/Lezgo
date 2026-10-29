@@ -183,7 +183,8 @@ final class TripRoomViewModel {
     }
 
     func StartTrip() async throws {
-        guard isCurrentUserLeader, !isStartingTrip, !hasTripStarted, canStartTrip else { return }
+        // `canStartTrip` is false while a start is saving or after it, so a second tap does nothing.
+        guard canStartTrip else { return }
         isStartingTrip = true
         defer { isStartingTrip = false }
         try await tripService.StartTrip(tripID: tripID, by: myParticipantID)
