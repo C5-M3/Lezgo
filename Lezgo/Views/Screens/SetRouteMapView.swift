@@ -9,9 +9,28 @@ import SwiftUI
 import MapKit
 
 struct SetRouteMapView: View {
-    @State private var viewModel = MapViewModel()
+    @State private var viewModel: MapViewModel
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(280)
+
+    private let title: LocalizedStringResource
+    private let nextTitle: LocalizedStringResource
+    private let onBack: () -> Void
+    private let onNext: () -> Void
+
+    init(
+        viewModel: MapViewModel = MapViewModel(),
+        title: LocalizedStringResource = "Set Route",
+        nextTitle: LocalizedStringResource = "Next",
+        onBack: @escaping () -> Void = {},
+        onNext: @escaping () -> Void = {}
+    ) {
+        _viewModel = State(initialValue: viewModel)
+        self.title = title
+        self.nextTitle = nextTitle
+        self.onBack = onBack
+        self.onNext = onNext
+    }
 
     var body: some View {
         @Bindable var boundViewModel = viewModel
@@ -70,7 +89,11 @@ struct SetRouteMapView: View {
         .sheet(isPresented: .constant(true)) {
             SetRouteSheet(
                 viewModel: boundViewModel,
-                isFullPresentation: selectedDetent == .large
+                isFullPresentation: selectedDetent == .large,
+                title: title,
+                nextTitle: nextTitle,
+                onBack: onBack,
+                onNext: onNext
             )
             .sheet(item: $boundViewModel.activeSelectionSheet) { sheetType in
                 LocationSearchSheet(viewModel: boundViewModel, selectionType: sheetType)
