@@ -193,7 +193,7 @@ struct MapViewModelTripCreationTests {
         #expect(session == nil)
         #expect(viewModel.createdTripSession == nil)
         #expect(!viewModel.isNavigatingToTripRoom)
-        #expect(viewModel.errorMessage != nil)
+        #expect(viewModel.errorMessage == String(localized: TripServiceError.noNetwork.message))
         #expect(storage.LoadActiveTrip() == nil)
     }
 }

@@ -344,8 +344,13 @@ extension MapViewModel {
             self.isNavigatingToTripRoom = true
             self.isCreatingTrip = false
             return session
+        } catch let serviceError as TripServiceError {
+            self.errorMessage = String(localized: serviceError.message)
+            self.isCreatingTrip = false
+            return nil
         } catch {
-            self.errorMessage = error.localizedDescription
+            let serviceError = TripServiceError(cloudKitError: error)
+            self.errorMessage = String(localized: serviceError.message)
             self.isCreatingTrip = false
             return nil
         }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Why a `TripService` call failed. Show `message` to the person; every case has a clear sentence.
-enum TripServiceError: Error, Hashable {
+enum TripServiceError: Error, Hashable, LocalizedError {
     /// No internet connection, or iCloud could not be reached.
     case noNetwork
     /// The phone is not signed in to iCloud, which every trip member needs.
@@ -31,5 +31,9 @@ enum TripServiceError: Error, Hashable {
         case .conflict: .tripServiceErrorConflict
         case .notAllowed: .tripServiceErrorNotAllowed
         }
+    }
+
+    var errorDescription: String? {
+        String(localized: message)
     }
 }
