@@ -65,9 +65,11 @@ final class TripRoomKickUITests: XCTestCase {
     }
 
     /// At the largest text sizes the participants sit below the route, and the list only builds rows on screen, so
-    /// this scrolls down until the row shows.
+    /// this scrolls down until the row shows. It waits for the row first: scrolling before the list has loaded
+    /// would push the first rows out of view on a slow simulator.
     private func Row(named name: String) -> XCUIElement {
         let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
+        _ = row.waitForExistence(timeout: 5)
         for _ in 0..<6 where !row.isHittable {
             app.swipeUp()
         }
