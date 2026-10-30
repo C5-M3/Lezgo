@@ -57,6 +57,8 @@ final class HomeViewModel {
     var searchResults: [MKMapItem] = []
     var activeDraftTrip: ActiveTripSummary?
     var lastTripEndedNotice: String?
+    /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
+    var inviteRoomCode: String?
 
     // MARK: - Computed Properties
     var suggestions: [MKLocalSearchCompletion] {
@@ -129,6 +131,12 @@ final class HomeViewModel {
         } catch {
             return false
         }
+    }
+
+    /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
+    func OpenInviteLink(_ url: URL) {
+        guard let roomCode = InviteLink.RoomCode(from: url) else { return }
+        inviteRoomCode = roomCode
     }
 
     /// Menangani perubahan teks pencarian saat kolom pencarian sedang fokus.
