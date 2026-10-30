@@ -4,14 +4,15 @@ The static site behind the invite link `https://lezgo-trip.netlify.app/join?code
 
 | File | Purpose |
 | --- | --- |
-| `.well-known/apple-app-site-association` | Tells iOS which app IDs open `/join?code=` links |
+| `apple-app-site-association` | Tells iOS which app IDs open `/join?code=` links |
+| `_redirects` | Serves that file at `/.well-known/apple-app-site-association`, where iOS reads it. Netlify Drop skips folders starting with a dot, so it cannot live in `.well-known/` |
 | `_headers` | Serves the AASA file as JSON |
 | `join/index.html` | Shown when Lezgo is not installed, or when the link is opened from Safari's address bar |
 
 ## Deploy
 
 1. Open [app.netlify.com/drop](https://app.netlify.com/drop) and sign in with the team account.
-2. Drag the `Web/InviteLink` folder onto the page. Finder hides `.well-known`, but it is uploaded with the folder. The "browse" button only takes a zip: run `zip -r ~/Downloads/lezgo-invite-link.zip . -x README.md` inside this folder and upload that file.
+2. Drag the `Web/InviteLink` folder onto the page. The "browse" button only takes a zip: run `zip -r ~/Downloads/lezgo-invite-link.zip . -x README.md` inside this folder and upload that file.
 3. The site is named `lezgo-trip` (Site configuration > Change site name), so it is served at `lezgo-trip.netlify.app`. It must be public, or iOS cannot read the AASA file.
 4. Check that `https://lezgo-trip.netlify.app/.well-known/apple-app-site-association` shows the JSON.
 
