@@ -333,7 +333,7 @@ struct HomeViewModelTest {
     @Test("Opening an invite link fills in the room code to join (US-02)")
     func openInviteLinkFillsRoomCode() throws {
         let viewModel = HomeViewModel(mapService: MockMapService(), searchService: MockLocationSearchService())
-        let url = try #require(URL(string: "https://lezgo.netlify.app/join?code=897654"))
+        let url = try #require(URL(string: "https://lezgo-trip.netlify.app/join?code=897654"))
 
         viewModel.OpenInviteLink(url)
 
@@ -344,7 +344,7 @@ struct HomeViewModelTest {
     func openInvalidLinkIsIgnored() throws {
         let viewModel = HomeViewModel(mapService: MockMapService(), searchService: MockLocationSearchService())
         let invite = try #require(URL(string: "lezgo://join?code=897654"))
-        let invalid = try #require(URL(string: "https://lezgo.netlify.app/join?code=12"))
+        let invalid = try #require(URL(string: "https://lezgo-trip.netlify.app/join?code=12"))
 
         viewModel.OpenInviteLink(invite)
         viewModel.OpenInviteLink(invalid)

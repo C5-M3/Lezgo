@@ -12,7 +12,7 @@ Each developer signs with their own team ID and bundle identifier (ADR 0015), an
 
 ## Decision
 
-We will share the invite link as `https://lezgo.netlify.app/join?code=897654`, a universal link served by a free static Netlify site.
+We will share the invite link as `https://lezgo-trip.netlify.app/join?code=897654`, a universal link served by a free static Netlify site.
 The site's files live in the repository under `Web/InviteLink/` and are deployed by dragging that folder to Netlify Drop on the team account. The AASA file lists the release app ID (`K64G2J8QL7.com.nathansudiara.Lezgo`) and any developer app ID that needs to test the link. The app keeps accepting `lezgo://join?code=` so older invites still work.
 
 ## Alternatives considered
@@ -27,7 +27,7 @@ The site's files live in the repository under `Web/InviteLink/` and are deployed
 ## Consequences
 
 - The invite link can be tapped in every chat app, and opens Lezgo when it is installed. Without the app, `/join` shows how to get it.
-- The app gains the `applinks:lezgo.netlify.app` entitlement. Automatic signing adds the Associated Domains capability to each developer's app ID.
+- The app gains the `applinks:lezgo-trip.netlify.app` entitlement. Automatic signing adds the Associated Domains capability to each developer's app ID.
 - A universal link only opens builds whose app ID is in the AASA file, so the link is tested on TestFlight, or on a developer build after adding its app ID and redeploying the site.
-- Changing `Web/InviteLink/` does nothing until someone redeploys it to Netlify. The site name `lezgo` and the Netlify account belong to the team.
+- Changing `Web/InviteLink/` does nothing until someone redeploys it to Netlify. The site name `lezgo-trip` and the Netlify account belong to the team.
 - `specs/UserStories.md` uses the new link in US-02, US-04 and Words.

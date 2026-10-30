@@ -12,10 +12,10 @@ import Foundation
 /// It is a universal link on a static Netlify site (ADR 0020), because chat apps only let people tap `https://`
 /// links. The older `lezgo://join?code=` link is still read, so invites sent before the change keep working.
 enum InviteLink {
-    static let host = "lezgo.netlify.app"
+    static let host = "lezgo-trip.netlify.app"
     static let path = "/join"
 
-    /// For example `https://lezgo.netlify.app/join?code=897654`.
+    /// For example `https://lezgo-trip.netlify.app/join?code=897654`.
     static func Make(roomCode: String) -> URL? {
         var components = URLComponents()
         components.scheme = "https"

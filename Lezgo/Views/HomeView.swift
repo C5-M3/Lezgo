@@ -183,7 +183,7 @@ struct HomeView: View {
         .onAppear {
             viewModel.onAppear()
         }
-        // Universal links (https://lezgo.netlify.app/join) and the older lezgo:// links both arrive here (ADR 0020).
+        // Universal links (https://lezgo-trip.netlify.app/join) and older lezgo:// links both arrive here (ADR 0020).
         .onOpenURL { url in
             if viewModel.OpenInviteLink(url) {
                 isJoinTripPresented = true
