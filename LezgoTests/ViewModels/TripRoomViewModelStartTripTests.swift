@@ -18,7 +18,8 @@ struct TripRoomViewModelStartTripTests {
             tripService: service,
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID,
-            initialState: state
+            initialState: state,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         #expect(viewModel.hasTripStarted == false)
@@ -31,7 +32,8 @@ struct TripRoomViewModelStartTripTests {
             tripService: service,
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID,
-            initialState: state
+            initialState: state,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         try await viewModel.StartTrip()
@@ -44,7 +46,8 @@ struct TripRoomViewModelStartTripTests {
         let viewModel = TripRoomViewModel(
             tripService: service,
             tripID: SampleTrip.tripID,
-            myParticipantID: SampleTrip.budiID
+            myParticipantID: SampleTrip.budiID,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         let task = Task {
@@ -78,7 +81,8 @@ struct TripRoomViewModelStartTripTests {
         let viewModel = TripRoomViewModel(
             tripService: service,
             tripID: SampleTrip.tripID,
-            myParticipantID: SampleTrip.budiID
+            myParticipantID: SampleTrip.budiID,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         let task = Task {
@@ -101,7 +105,8 @@ struct TripRoomViewModelStartTripTests {
             tripService: service,
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.budiID,
-            initialState: state
+            initialState: state,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         #expect(viewModel.hasTripStarted == true)
@@ -114,7 +119,8 @@ struct TripRoomViewModelStartTripTests {
             tripService: service,
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID,
-            initialState: state
+            initialState: state,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         try await viewModel.StartTrip()
@@ -135,7 +141,8 @@ struct TripRoomViewModelStartTripTests {
             tripService: service,
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID,
-            initialState: state
+            initialState: state,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         #expect(viewModel.canStartTrip == true)
@@ -151,7 +158,8 @@ struct TripRoomViewModelStartTripTests {
             tripService: service,
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID,
-            initialState: state
+            initialState: state,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         await #expect(throws: TripServiceError.self) {
@@ -175,7 +183,8 @@ struct TripRoomViewModelStartTripTests {
         let viewModel = TripRoomViewModel(
             tripService: service,
             tripID: SampleTrip.tripID,
-            myParticipantID: SampleTrip.budiID
+            myParticipantID: SampleTrip.budiID,
+            activeTripStorage: FakeActiveTripStorage()
         )
 
         let task = Task {
@@ -189,6 +198,39 @@ struct TripRoomViewModelStartTripTests {
 
         #expect(viewModel.wasRemovedFromTrip == true)
         #expect(viewModel.hasTripStarted == false)
+        task.cancel()
+    }
+
+    /// A member who exited is no longer in the trip, so a start that arrives afterwards must not open the map.
+    @Test func MemberWhoExitedIsNotMovedToTheMap() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.budiID,
+            activeTripStorage: FakeActiveTripStorage()
+        )
+
+        let task = Task {
+            await viewModel.Listen()
+        }
+
+        for _ in 0..<20 {
+            if viewModel.state != nil { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+
+        try await viewModel.LeaveTrip()
+        try await service.StartTrip(tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+
+        for _ in 0..<20 {
+            if viewModel.tripStatus == .inTrip { break }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+
+        #expect(viewModel.tripStatus == .inTrip)
+        #expect(viewModel.hasTripStarted == false)
+        #expect(viewModel.wasRemovedFromTrip == false)
         task.cancel()
     }
 }
