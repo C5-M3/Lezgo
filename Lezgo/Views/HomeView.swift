@@ -89,19 +89,17 @@ struct HomeView: View {
             }
         )
         .safeAreaInset(edge: .top) { topNoticeInset }
-        .onAppear {
-            viewModel.onAppear()
-        }
-        // Universal links (https://lezgo-trip.netlify.app/join) and older lezgo:// links both arrive here (ADR 0020).
-        .onOpenURL { url in
-            if viewModel.OpenInviteLink(url) {
+        .onAppear { viewModel.onAppear() }
+        // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
+        .onOpenURL { url in viewModel.OpenInviteLink(url) }
+        .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
+            guard roomCode != nil else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 isJoinTripPresented = true
             }
         }
         .onChange(of: isJoinTripPresented) { _, isPresented in
-            if !isPresented {
-                viewModel.inviteRoomCode = nil
-            }
+            if !isPresented { viewModel.inviteRoomCode = nil }
         }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)
