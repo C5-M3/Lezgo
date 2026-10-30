@@ -23,8 +23,6 @@ final class LiveTripMapNavigator: TripMapNavigator {
     private static let maximumAge: TimeInterval = 60
     private static let waitAfterFailure: TimeInterval = 10
     private static let keptDirectionsCount = 4
-    /// A bend sharper than this, in degrees, shows a left or right arrow.
-    private static let turnThresholdDegrees = 20.0
     /// A turn this close behind the car counts as passed, so GPS noise at the corner does not show it again.
     private static let passedTurnTolerance: Double = 5
 
@@ -108,80 +106,81 @@ final class LiveTripMapNavigator: TripMapNavigator {
 
 // MARK: - Kept directions
 
-extension LiveTripMapNavigator {
-    /// One answer from MapKit as one road, with every turn's place along it.
-    private struct KeptDirections {
-        let routeVersion: Int
-        let currentWaypointIndex: Int
-        let fetchedAt: Date
-        let expectedTravelTime: TimeInterval
-        let path: [Coordinate]
-        /// Metres along `path` from start to end, measured like `RoutePosition` measures the car.
-        let length: Double
-        /// Every step after the first, which only says to start driving.
-        let turns: [Turn]
+/// One answer from MapKit as one road, with every turn's place along it, kept by `LiveTripMapNavigator`.
+private struct KeptDirections {
+    let routeVersion: Int
+    let currentWaypointIndex: Int
+    let fetchedAt: Date
+    let expectedTravelTime: TimeInterval
+    let path: [Coordinate]
+    /// Metres along `path` from start to end, measured like `RoutePosition` measures the car.
+    let length: Double
+    /// Every step after the first, which only says to start driving.
+    let turns: [Turn]
 
-        struct Turn {
-            let instruction: String
-            let direction: TripMapGuidance.TurnDirection
-            let distanceAlongRoute: Double
+    /// A bend sharper than this, in degrees, shows a left or right arrow.
+    private static let turnThresholdDegrees = 20.0
+
+    struct Turn {
+        let instruction: String
+        let direction: TripMapGuidance.TurnDirection
+        let distanceAlongRoute: Double
+    }
+
+    init?(_ directions: DrivingDirections, for state: TripState, fetchedAt: Date) {
+        var path: [Coordinate] = []
+        var stepStarts: [Int] = []
+        for step in directions.steps {
+            stepStarts.append(step.path.first == path.last ? max(path.count - 1, 0) : path.count)
+            path.append(contentsOf: step.path.first == path.last ? step.path.dropFirst() : step.path[...])
         }
+        guard path.isEmpty == false else { return nil }
+        let lengths = Self.LengthsAlong(path)
 
-        init?(_ directions: DrivingDirections, for state: TripState, fetchedAt: Date) {
-            var path: [Coordinate] = []
-            var stepStarts: [Int] = []
-            for step in directions.steps {
-                stepStarts.append(step.path.first == path.last ? max(path.count - 1, 0) : path.count)
-                path.append(contentsOf: step.path.first == path.last ? step.path.dropFirst() : step.path[...])
-            }
-            guard path.isEmpty == false else { return nil }
-            let lengths = Self.LengthsAlong(path)
-
-            routeVersion = state.trip.routeVersion
-            currentWaypointIndex = state.trip.currentWaypointIndex
-            self.fetchedAt = fetchedAt
-            expectedTravelTime = directions.expectedTravelTime
-            self.path = path
-            length = lengths.last ?? 0
-            turns = zip(directions.steps, stepStarts).dropFirst().map { step, start in
-                Turn(
-                    instruction: step.instruction,
-                    direction: Self.Direction(in: path, at: start),
-                    distanceAlongRoute: lengths[start]
-                )
-            }
+        routeVersion = state.trip.routeVersion
+        currentWaypointIndex = state.trip.currentWaypointIndex
+        self.fetchedAt = fetchedAt
+        expectedTravelTime = directions.expectedTravelTime
+        self.path = path
+        length = lengths.last ?? 0
+        turns = zip(directions.steps, stepStarts).dropFirst().map { step, start in
+            Turn(
+                instruction: step.instruction,
+                direction: Self.Direction(in: path, at: start),
+                distanceAlongRoute: lengths[start]
+            )
         }
+    }
 
-        func IsFor(_ state: TripState) -> Bool {
-            routeVersion == state.trip.routeVersion && currentWaypointIndex == state.trip.currentWaypointIndex
-        }
+    func IsFor(_ state: TripState) -> Bool {
+        routeVersion == state.trip.routeVersion && currentWaypointIndex == state.trip.currentWaypointIndex
+    }
 
-        /// Metres from the start of `path` to each of its points.
-        private static func LengthsAlong(_ path: [Coordinate]) -> [Double] {
-            zip(path, path.dropFirst()).reduce(into: [0]) { lengths, segment in
-                let segmentLength = RoutePosition.Locate(segment.1, on: [segment.0, segment.1])?.distanceAlongRoute ?? 0
-                lengths.append((lengths.last ?? 0) + segmentLength)
-            }
+    /// Metres from the start of `path` to each of its points.
+    private static func LengthsAlong(_ path: [Coordinate]) -> [Double] {
+        zip(path, path.dropFirst()).reduce(into: [0]) { lengths, segment in
+            let segmentLength = RoutePosition.Locate(segment.1, on: [segment.0, segment.1])?.distanceAlongRoute ?? 0
+            lengths.append((lengths.last ?? 0) + segmentLength)
         }
+    }
 
-        /// Which way the road bends at `index`: compares the heading into it with the heading out of it.
-        private static func Direction(in path: [Coordinate], at index: Int) -> TripMapGuidance.TurnDirection {
-            guard index > 0, index < path.count - 1 else { return .straight }
-            let headingIn = Bearing(from: path[index - 1], to: path[index])
-            let change = Bearing(from: path[index], to: path[index + 1]) - headingIn
-            let normalized = (change + 540).truncatingRemainder(dividingBy: 360) - 180
-            if normalized > LiveTripMapNavigator.turnThresholdDegrees { return .right }
-            if normalized < -LiveTripMapNavigator.turnThresholdDegrees { return .left }
-            return .straight
-        }
+    /// Which way the road bends at `index`: compares the heading into it with the heading out of it.
+    private static func Direction(in path: [Coordinate], at index: Int) -> TripMapGuidance.TurnDirection {
+        guard index > 0, index < path.count - 1 else { return .straight }
+        let headingIn = Bearing(from: path[index - 1], to: path[index])
+        let change = Bearing(from: path[index], to: path[index + 1]) - headingIn
+        let normalized = (change + 540).truncatingRemainder(dividingBy: 360) - 180
+        if normalized > Self.turnThresholdDegrees { return .right }
+        if normalized < -Self.turnThresholdDegrees { return .left }
+        return .straight
+    }
 
-        private static func Bearing(from start: Coordinate, to end: Coordinate) -> Double {
-            let latitude1 = start.latitude * .pi / 180
-            let latitude2 = end.latitude * .pi / 180
-            let longitudeDelta = (end.longitude - start.longitude) * .pi / 180
-            let y = sin(longitudeDelta) * cos(latitude2)
-            let x = cos(latitude1) * sin(latitude2) - sin(latitude1) * cos(latitude2) * cos(longitudeDelta)
-            return atan2(y, x) * 180 / .pi
-        }
+    private static func Bearing(from start: Coordinate, to end: Coordinate) -> Double {
+        let latitude1 = start.latitude * .pi / 180
+        let latitude2 = end.latitude * .pi / 180
+        let longitudeDelta = (end.longitude - start.longitude) * .pi / 180
+        let y = sin(longitudeDelta) * cos(latitude2)
+        let x = cos(latitude1) * sin(latitude2) - sin(latitude1) * cos(latitude2) * cos(longitudeDelta)
+        return atan2(y, x) * 180 / .pi
     }
 }
