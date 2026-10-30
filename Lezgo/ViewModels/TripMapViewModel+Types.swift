@@ -28,8 +28,10 @@ extension TripMapViewModel {
         case endTrip(everyoneHasArrived: Bool)
     }
 
-    /// Why the trip map closed on this phone, which then returns to Home.
+    /// Why the trip map closed on this phone, which then returns to Home, or to the Trip Room for `backToTripRoom`.
     enum CloseReason: Hashable {
+        /// The leader planned a New Destination: the trip is back in `LOBBY` and every phone opens the Trip Room.
+        case backToTripRoom
         /// This member chose "Exit Trip".
         case exited
         /// This leader chose "End Trip".

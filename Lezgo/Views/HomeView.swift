@@ -18,7 +18,8 @@ struct HomeView: View {
     @State private var selectedDetent: PresentationDetent = .height(280)
 
     private var shouldHideHomeControls: Bool {
-        viewModel.isTransitioningToTripMap || viewModel.activeTripSession != nil || viewModel.activeMapSession != nil
+        viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
+            || viewModel.activeTripSession != nil || viewModel.activeMapSession != nil
     }
 
     var body: some View {
@@ -73,8 +74,8 @@ struct HomeView: View {
                         tripService: tripService,
                         activeTripStorage: viewModel.activeTripStorage
                     ),
-                    onNewDestination: {},
-                    onClose: { viewModel.onMapSessionClosed() }
+                    onClose: { viewModel.onMapSessionClosed() },
+                    onReturnToTripRoom: { viewModel.onReturnedToTripRoom($0) }
                 )
             }
         )

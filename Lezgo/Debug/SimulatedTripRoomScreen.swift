@@ -44,8 +44,8 @@ struct SimulatedTripRoomScreen: View {
                     navigator: SimulatedTripMapNavigator(),
                     streetNameService: LiveStreetNameService()
                 ),
-                onNewDestination: {},
-                onClose: { isShowingMap = false }
+                onClose: { isShowingMap = false },
+                onReturnToTripRoom: { _ in isShowingMap = false }
             )
         }
     }
