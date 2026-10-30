@@ -60,6 +60,7 @@ extension TripMapViewModel {
                 displayName: participant.displayName,
                 coordinate: coordinate,
                 motionState: participant.motionState,
+                course: participant.course,
                 isLeader: participant.IsLeader(in: state.trip),
                 isMe: participant.id == myParticipantID,
                 isOffline: participant.IsOnline(at: updatedAt) == false,

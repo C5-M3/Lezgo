@@ -58,6 +58,8 @@ final class LocationSharer {
     /// Keeps the latest reading and the motion state up to date as readings arrive.
     private func ReadGPS(echoingTo echo: AsyncStream<LocationReading>.Continuation?) async {
         for await reading in locationProvider.Readings() {
+            // A reading can arrive late; an older one must not move the car back.
+            if let latest, reading.recordedAt < latest.recordedAt { continue }
             latest = reading
             echo?.yield(reading)
             _ = detector.Update(speedKmh: reading.speedKmh, at: reading.recordedAt)
@@ -81,7 +83,8 @@ final class LocationSharer {
             coordinate: latest.coordinate,
             speedKmh: latest.speedKmh,
             motionState: detector.state,
-            recordedAt: clock()
+            recordedAt: clock(),
+            course: latest.course
         )
         do {
             try await tripService.UpdateLocation(update, participantID: participantID, tripID: tripID)

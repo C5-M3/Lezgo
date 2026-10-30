@@ -69,7 +69,7 @@ LOBBY ──leader leaves──► CANCELLED
 | --- | --- | --- |
 | `Trip` | `id`, `roomCode`, `status`, `leaderParticipantID`, `currentWaypointIndex`, `routeVersion`, `createdAt`, `startedAt`, `endedAt` | The leader is stored **only** here, so there can never be two leaders. |
 | `Waypoint` | `id`, `tripID`, `orderIndex`, `kind` (`start`, `checkpoint`, `destination`), `name`, `latitude`, `longitude` | Order: start point `0`, checkpoints `1…n`, destination `n + 1`. Visited when `orderIndex < Trip.currentWaypointIndex`. |
-| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt` | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
+| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt`, `course` (degrees clockwise from north, empty when unknown) | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
 | `Route` | `id`, `tripID`, `version`, `polyline` | The road path. A new version replaces the old one. |
 
 ### Sync and timing
@@ -608,7 +608,7 @@ Feature: Drive together
 | --- | --- | --- |
 | Route | `Route`, `Trip` | `polyline`, `version`, `routeVersion` |
 | Progress | `Trip` | `currentWaypointIndex` (written by the leader only) |
-| Cars | `Participant` | `latitude`, `longitude`, `speedKmh`, `motionState`, `alert`, `lastSeenAt` |
+| Cars | `Participant` | `latitude`, `longitude`, `speedKmh`, `motionState`, `alert`, `lastSeenAt`, `course` |
 | Street and ETA | Derived | reverse geocode (at most every 30 s per car), MapKit travel time |
 | Way back | Device only | MapKit directions; never saved to the server |
 

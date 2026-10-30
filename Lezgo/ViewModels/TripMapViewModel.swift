@@ -375,6 +375,7 @@ extension TripMapViewModel {
             tripState.participants[index].coordinate = myReading.coordinate
             tripState.participants[index].speedKmh = myReading.speedKmh
             tripState.participants[index].lastSeenAt = myReading.recordedAt
+            tripState.participants[index].course = myReading.course
         }
         return tripState
     }

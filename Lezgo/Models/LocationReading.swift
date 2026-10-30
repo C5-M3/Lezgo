@@ -13,4 +13,6 @@ struct LocationReading: Hashable {
     /// Speed in km/h, never negative: CoreLocation's "unknown" speed is read as 0.
     var speedKmh: Double
     var recordedAt: Date
+    /// The way the car is heading, in degrees clockwise from north; `nil` when the phone does not know.
+    var course: Double?
 }
