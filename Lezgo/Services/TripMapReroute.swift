@@ -126,21 +126,4 @@ final class TripMapReroute {
         guard let position = RoutePosition.Locate(coordinate, on: polyline) else { return false }
         return position.distanceFromRoute > FormationAlertDetector.offRouteDistance
     }
-
-    /// From the leader's position, through the unvisited checkpoints, to the destination.
-    private func Waypoints(from leaderCoordinate: Coordinate, in state: TripState) -> [PlannedWaypoint]? {
-        guard let destination = state.destination else { return nil }
-        let currentIndex = state.trip.currentWaypointIndex
-        let checkpoints = state.waypoints
-            .filter { $0.kind == .checkpoint && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
-            .sorted { $0.orderIndex < $1.orderIndex }
-            .map { PlannedWaypoint(kind: .checkpoint, name: $0.name, coordinate: $0.coordinate) }
-        let startName = String(
-            localized: "waypointCurrentLocation",
-            defaultValue: "Current Location"
-        )
-        let start = PlannedWaypoint(kind: .start, name: startName, coordinate: leaderCoordinate)
-        let end = PlannedWaypoint(kind: .destination, name: destination.name, coordinate: destination.coordinate)
-        return [start] + checkpoints + [end]
-    }
 }
