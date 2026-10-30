@@ -8,7 +8,8 @@
 import Foundation
 
 /// The result of creating or joining a trip: the trip, and which participant is this phone.
-struct TripSession: Hashable {
+struct TripSession: Hashable, Identifiable {
+    var id: UUID { state.trip.id }
     /// This phone's participant. Keep it with the trip ID; every later call needs it.
     var myParticipantID: UUID
     var state: TripState

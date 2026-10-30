@@ -9,6 +9,7 @@ import SwiftUI
 import MapKit
 
 struct SetRouteSheet: View {
+    @Environment(\.tripService) private var tripService
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
     /// "Set Route" when planning a trip, "Edit Route" on the road.
@@ -16,12 +17,20 @@ struct SetRouteSheet: View {
     var nextTitle: LocalizedStringResource = "Next"
     /// Set by the screen that shows the planner, so Draft Trip and Edit Route each decide where Back and Next go.
     var onBack: (() -> Void)?
-    var onNext: () -> Void = {}
+    var onNext: (() -> Void)?
+    var onTripCreated: ((TripSession) -> Void)?
+    var onExpand: (() -> Void)?
     var isBackDisabled = false
     var isNextDisabled = false
     /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
     var isStartPointLocked = false
     @State private var isShowingBackConfirmation: Bool = false
+
+    private var isNextButtonDisabled: Bool {
+        if isNextDisabled { return true }
+        if onNext != nil { return false }
+        return !viewModel.canCreateTrip
+    }
 
     var body: some View {
         NavigationStack {
@@ -41,6 +50,7 @@ struct SetRouteSheet: View {
                                 .lineLimit(1)
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(isStartPointLocked)
@@ -51,38 +61,45 @@ struct SetRouteSheet: View {
                     if !isFullPresentation && viewModel.destinations.count > 2 {
                         // Collapsed: Top row shows summary count of previous stops
                         let intermediateCount = viewModel.destinations.count - 1
-                        HStack(spacing: 12) {
-                            Image(systemName: "ellipsis.circle")
-                                .accessibilityHidden(true)
-                                .foregroundStyle(.secondary)
+                        Button {
+                            onExpand?()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "ellipsis.circle")
+                                    .accessibilityHidden(true)
+                                    .foregroundStyle(.secondary)
 
-                            Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
-                                .font(.body)
-                                .foregroundStyle(.secondary)
+                                Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
 
-                            Spacer()
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
 
                         // Collapsed: Bottom row shows the final destination
                         if let lastDestination = viewModel.destinations.last,
                            let lastIndex = viewModel.destinations.indices.last {
-                            HStack(spacing: 12) {
-                                Image(systemName: "mappin")
-                                    .accessibilityHidden(true)
-                                    .foregroundStyle(.secondary)
+                            Button {
+                                viewModel.activeSelectionSheet = .destination(index: lastIndex)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "mappin")
+                                        .accessibilityHidden(true)
+                                        .foregroundStyle(.secondary)
 
-                                Button {
-                                    viewModel.activeSelectionSheet = .destination(index: lastIndex)
-                                } label: {
                                     Text(lastDestination.name)
                                         .font(.body)
                                         .foregroundStyle(.primary)
                                         .lineLimit(1)
-                                }
-                                .buttonStyle(.plain)
 
-                                Spacer()
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
                                     viewModel.removeDestination(at: lastIndex)
@@ -95,21 +112,30 @@ struct SetRouteSheet: View {
                         // Full presentation OR 2 or fewer destinations: show all items
                         ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
                             HStack(spacing: 12) {
-                                Image(systemName: "mappin")
-                                    .accessibilityHidden(true)
-                                    .foregroundStyle(.secondary)
-
                                 Button {
                                     viewModel.activeSelectionSheet = .destination(index: index)
                                 } label: {
-                                    Text(point.name)
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "mappin")
+                                            .accessibilityHidden(true)
+                                            .foregroundStyle(.secondary)
+
+                                        Text(point.name)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+
+                                        Spacer()
+                                    }
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
 
-                                Spacer()
+                                if isFullPresentation && viewModel.destinations.count > 1 {
+                                    Image(systemName: "line.3.horizontal")
+                                        .accessibilityHidden(true)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
@@ -117,6 +143,28 @@ struct SetRouteSheet: View {
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                            }
+                            .draggable(point.id.uuidString)
+                            .dropDestination(for: String.self) { items, _ in
+                                guard let draggedID = items.first,
+                                      let fromIndex = viewModel.destinations.firstIndex(where: {
+                                          $0.id.uuidString == draggedID
+                                      }),
+                                      fromIndex != index else {
+                                    return false
+                                }
+                                withAnimation {
+                                    viewModel.moveDestination(
+                                        fromOffsets: IndexSet(integer: fromIndex),
+                                        toOffset: index > fromIndex ? index + 1 : index
+                                    )
+                                }
+                                return true
+                            }
+                        }
+                        .onDelete { indexSet in
+                            for index in indexSet.sorted().reversed() {
+                                viewModel.removeDestination(at: index)
                             }
                         }
                         .onMove { fromOffsets, toOffset in
@@ -138,6 +186,7 @@ struct SetRouteSheet: View {
                                         .foregroundStyle(.secondary)
                                     Spacer()
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -146,25 +195,14 @@ struct SetRouteSheet: View {
 
                 // Section 3: Summary Metrics (shown only when pulled to full)
                 if isFullPresentation {
-                    if viewModel.isLoadingRoute {
-                        HStack {
-                            Spacer()
-                            ProgressView("Calculating optimal route...")
-                            Spacer()
-                        }
-                    } else if viewModel.hasRoute {
-                        Section("Trip Summary") {
-                            let distFormatted = String(format: "%.1f km", viewModel.totalDistance / 1000)
-                            LabeledContent("Total Distance", value: distFormatted)
-                            LabeledContent("Estimated Time", value: "\(Int(viewModel.totalDuration / 60)) min")
-                        }
-                    }
+                    TripSummarySection(
+                        isLoadingRoute: viewModel.isLoadingRoute,
+                        hasRoute: viewModel.hasRoute,
+                        totalDistance: viewModel.totalDistance,
+                        totalDuration: viewModel.totalDuration
+                    )
                 }
             }
-            .environment(
-                \.editMode,
-                isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive)
-            )
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -179,13 +217,17 @@ struct SetRouteSheet: View {
                     .disabled(isBackDisabled)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(nextTitle, systemImage: "arrow.right", action: onNext)
-                        .disabled(isNextDisabled)
+                    if viewModel.isCreatingTrip {
+                        ProgressView()
+                    } else {
+                        Button(nextTitle, systemImage: "arrow.right", action: HandleNext)
+                            .disabled(isNextButtonDisabled)
+                    }
                 }
             }
             .alert(
                 "Discard Changes?",
-                isPresented: $isShowingBackConfirmation,
+                isPresented: $isShowingBackConfirmation
             ) {
                 Button("Cancel", role: .cancel) { }
                 Button("Discard", role: .destructive) {
@@ -193,6 +235,70 @@ struct SetRouteSheet: View {
                 }
             } message: {
                 Text("Going back will clear your selected destination and route planning")
+            }
+            .alert(
+                "Notice",
+                isPresented: Binding(
+                    get: { viewModel.errorMessage != nil },
+                    set: { if !$0 { viewModel.errorMessage = nil } }
+                )
+            ) {
+                Button("OK") { viewModel.errorMessage = nil }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
+            .fullScreenCover(item: $viewModel.createdSession, onDismiss: HandleTripRoomDismissed) { session in
+                TripRoomView(
+                    viewModel: TripRoomViewModel(
+                        tripService: tripService,
+                        tripID: session.state.trip.id,
+                        myParticipantID: session.myParticipantID,
+                        initialState: session.state
+                    )
+                )
+            }
+        }
+    }
+
+    private func HandleNext() {
+        if let onNext {
+            onNext()
+        } else {
+            Task {
+                do {
+                    let session = try await viewModel.CreateTrip(using: tripService)
+                    onTripCreated?(session)
+                } catch {
+                    // Error message is set in viewModel.errorMessage and shown in alert
+                }
+            }
+        }
+    }
+
+    private func HandleTripRoomDismissed() {
+        viewModel.createdSession = nil
+        onBack?()
+    }
+}
+
+private struct TripSummarySection: View {
+    let isLoadingRoute: Bool
+    let hasRoute: Bool
+    let totalDistance: CLLocationDistance
+    let totalDuration: TimeInterval
+
+    var body: some View {
+        if isLoadingRoute {
+            HStack {
+                Spacer()
+                ProgressView("Calculating optimal route...")
+                Spacer()
+            }
+        } else if hasRoute {
+            Section("Trip Summary") {
+                let distFormatted = String(format: "%.1f km", totalDistance / 1000)
+                LabeledContent("Total Distance", value: distFormatted)
+                LabeledContent("Estimated Time", value: "\(Int(totalDuration / 60)) min")
             }
         }
     }
