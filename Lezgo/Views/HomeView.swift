@@ -69,18 +69,8 @@ struct HomeView: View {
             content: { session in
                 TripMapView(
                     viewModel: TripMapViewModel(
-                        tripID: session.state.trip.id,
-                        myParticipantID: session.myParticipantID,
+                        session: session,
                         tripService: tripService,
-                        navigator: SimulatedTripMapNavigator(),
-                        streetNameService: LiveStreetNameService(),
-                        locationSharer: LocationSharer(
-                            tripService: tripService,
-                            locationProvider: LiveLocationProvider(),
-                            tripID: session.state.trip.id,
-                            participantID: session.myParticipantID
-                        ),
-                        directionsService: LiveDirectionsService(),
                         activeTripStorage: viewModel.activeTripStorage
                     ),
                     onNewDestination: {},

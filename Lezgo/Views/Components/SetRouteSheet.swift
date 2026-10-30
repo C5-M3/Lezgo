@@ -322,18 +322,8 @@ private extension SetRouteSheet {
     func tripMapCover(mapSession: TripSession) -> some View {
         TripMapView(
             viewModel: TripMapViewModel(
-                tripID: mapSession.state.trip.id,
-                myParticipantID: mapSession.myParticipantID,
+                session: mapSession,
                 tripService: tripService,
-                navigator: SimulatedTripMapNavigator(),
-                streetNameService: LiveStreetNameService(),
-                locationSharer: LocationSharer(
-                    tripService: tripService,
-                    locationProvider: LiveLocationProvider(),
-                    tripID: mapSession.state.trip.id,
-                    participantID: mapSession.myParticipantID
-                ),
-                directionsService: LiveDirectionsService(),
                 activeTripStorage: viewModel.activeTripStorage
             ),
             onNewDestination: {},
