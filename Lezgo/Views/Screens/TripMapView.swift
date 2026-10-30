@@ -12,11 +12,7 @@ import SwiftUI
 /// and the destination and time left at the bottom.
 struct TripMapView: View {
     @State private var viewModel: TripMapViewModel
-    @State private var cameraPosition: MapCameraPosition = .automatic
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// How far above the car the camera floats while following it, in metres.
-    private static let followDistance: CLLocationDistance = 1_500
 
     @Environment(\.dismiss) private var dismiss
 
@@ -39,27 +35,7 @@ struct TripMapView: View {
         // The map closes the car status card on a tap (below) but is not a button, so it gets no button trait;
         // VoiceOver closes the card with its Close action or the escape gesture instead.
         // swiftlint:disable:next accessibility_trait_for_button
-        Map(position: $cameraPosition) {
-            MapPolyline(coordinates: viewModel.route.map(\.locationCoordinate))
-                .stroke(.tint, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
-
-            ForEach(viewModel.waypoints) { waypoint in
-                Annotation(waypoint.name, coordinate: waypoint.coordinate.locationCoordinate, anchor: .bottom) {
-                    TripMapWaypointPinView(waypoint: waypoint, isVisited: viewModel.IsVisited(waypoint))
-                }
-            }
-
-            ForEach(viewModel.carPins) { pin in
-                Annotation(pin.displayName, coordinate: pin.coordinate.locationCoordinate) {
-                    Button { viewModel.SelectCar(pin.id) } label: {
-                        TripMapCarPinView(pin: pin, isSelected: pin.id == viewModel.selectedCarID)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .annotationTitles(.hidden)
-            }
-        }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        MapLayer(viewModel: viewModel)
         // Tapping the map anywhere but a car closes the car status card.
         .onTapGesture { viewModel.SelectCar(nil) }
         .safeAreaInset(edge: .top) {
@@ -82,7 +58,7 @@ struct TripMapView: View {
                 TripMapCameraControls(
                     cameraMode: viewModel.cameraMode,
                     showWholeRoute: viewModel.ShowWholeRoute,
-                    followMyCar: viewModel.FollowMyCar,
+                    followMyCar: FollowMyCarAction(),
                     editRoute: EditRouteAction()
                 )
                 if let carStatus = viewModel.selectedCarStatus {
@@ -146,15 +122,6 @@ struct TripMapView: View {
                 onReturnToTripRoom?(session)
             }
         }
-        .onChange(of: viewModel.myCoordinate) { MoveCamera() }
-        .onChange(of: viewModel.cameraMode) { MoveCamera() }
-        .onChange(of: viewModel.route) { MoveCamera() }
-        .onMapCameraChange(frequency: .onEnd) {
-            // Panning or zooming by hand stops the camera from jumping back to the car every second.
-            if cameraPosition.positionedByUser {
-                viewModel.StopFollowing()
-            }
-        }
     }
 
     private func Close() {
@@ -169,6 +136,12 @@ struct TripMapView: View {
     private func NewDestinationAction() -> (() -> Void)? {
         guard onReturnToTripRoom != nil else { return nil }
         return viewModel.RequestNewDestination
+    }
+
+    /// The map's own location button follows the car when it is the location dot; then this button is hidden.
+    private func FollowMyCarAction() -> (() -> Void)? {
+        guard viewModel.showsMyLocationDot == false else { return nil }
+        return viewModel.FollowMyCar
     }
 
     /// The pencil shows once the leader can change the route, so it never sits there doing nothing.
@@ -207,34 +180,131 @@ struct TripMapView: View {
             set: { _ in }
         )
     }
+}
 
-    private func MoveCamera() {
-        guard let target = CameraTarget() else { return }
-        if reduceMotion {
-            cameraPosition = target
-        } else {
-            withAnimation(.easeInOut) { cameraPosition = target }
+extension TripMapView {
+    /// The map itself: the route, the waypoints, this phone's location dot and the other cars. Its own view, so the
+    /// screen's body stays small enough for the compiler.
+    struct MapLayer: View {
+        let viewModel: TripMapViewModel
+        @State private var cameraPosition: MapCameraPosition = .automatic
+        /// The cars as drawn: they follow `viewModel.carPins` with an animation, so a car glides to its new
+        /// position instead of jumping there every second.
+        @State private var carPins: [TripMapCarPin] = []
+        /// Which way the map is turned, so the cars' direction pointers match the streets.
+        @State private var mapHeading: Double = 0
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        /// How far above the car the camera floats while following it, in metres.
+        private static let followDistance: CLLocationDistance = 1_500
+
+        init(viewModel: TripMapViewModel) {
+            self.viewModel = viewModel
         }
-    }
 
-    private func CameraTarget() -> MapCameraPosition? {
-        switch viewModel.cameraMode {
-        case .followMyCar:
-            guard let myCoordinate = viewModel.myCoordinate else { return nil }
-            return .camera(MapCamera(centerCoordinate: myCoordinate.locationCoordinate, distance: Self.followDistance))
-        case .wholeRoute:
-            guard viewModel.route.isEmpty == false else { return nil }
-            return .rect(RouteRect())
-        case .free:
-            return nil
+        var body: some View {
+            Map(position: $cameraPosition) {
+                MapPolyline(coordinates: viewModel.route.map(\.locationCoordinate))
+                    .stroke(.tint, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+
+                ForEach(viewModel.waypoints) { waypoint in
+                    Annotation(waypoint.name, coordinate: waypoint.coordinate.locationCoordinate, anchor: .bottom) {
+                        TripMapWaypointPinView(waypoint: waypoint, isVisited: viewModel.IsVisited(waypoint))
+                    }
+                }
+
+                if viewModel.showsMyLocationDot {
+                    UserAnnotation()
+                }
+
+                ForEach(carPins) { pin in
+                    Annotation(pin.displayName, coordinate: pin.coordinate.locationCoordinate) {
+                        Button { viewModel.SelectCar(pin.id) } label: {
+                            TripMapCarPinView(
+                                pin: pin,
+                                isSelected: pin.id == viewModel.selectedCarID,
+                                mapHeading: mapHeading
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .annotationTitles(.hidden)
+                }
+            }
+            .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            .mapControls {
+                // As in Apple Maps: one tap follows the car, a second tap turns the map the way the car drives.
+                if viewModel.showsMyLocationDot {
+                    MapUserLocationButton()
+                }
+                MapCompass()
+            }
+            .onMapCameraChange(frequency: .continuous) { context in
+                mapHeading = context.camera.heading
+            }
+            .onMapCameraChange(frequency: .onEnd) {
+                // Panning or zooming by hand stops the camera from jumping back to the car every second.
+                if cameraPosition.positionedByUser {
+                    viewModel.StopFollowing()
+                }
+            }
+            .onAppear(perform: MoveCamera)
+            .onChange(of: viewModel.myCoordinate) {
+                // The location dot camera follows the car by itself.
+                if viewModel.showsMyLocationDot == false { MoveCamera() }
+            }
+            .onChange(of: viewModel.cameraMode) { MoveCamera() }
+            .onChange(of: viewModel.route) { MoveCamera() }
+            .onChange(of: viewModel.carPins, initial: true) { ShowCarPins() }
+            .onChange(of: cameraPosition.followsUserLocation) {
+                // The map's location button follows the car without going through the view model.
+                if cameraPosition.followsUserLocation { viewModel.FollowMyCar() }
+            }
         }
-    }
 
-    /// The smallest map rectangle around the route, with a margin so the end pins are not cut off.
-    private func RouteRect() -> MKMapRect {
-        let rect = viewModel.route
-            .map { MKMapPoint($0.locationCoordinate) }
-            .reduce(MKMapRect.null) { $0.union(MKMapRect(origin: $1, size: MKMapSize(width: 0, height: 0))) }
-        return rect.insetBy(dx: -rect.width * 0.15, dy: -rect.height * 0.15)
+        /// Moves the cars to their new positions over about the time between two updates, so they glide.
+        private func ShowCarPins() {
+            if reduceMotion {
+                carPins = viewModel.carPins
+            } else {
+                withAnimation(.linear(duration: 1)) { carPins = viewModel.carPins }
+            }
+        }
+
+        private func MoveCamera() {
+            guard let target = CameraTarget() else { return }
+            if reduceMotion {
+                cameraPosition = target
+            } else {
+                withAnimation(.easeInOut) { cameraPosition = target }
+            }
+        }
+
+        private func CameraTarget() -> MapCameraPosition? {
+            switch viewModel.cameraMode {
+            case .followMyCar where viewModel.showsMyLocationDot:
+                // Already following (for example after the location button): setting it again would undo the
+                // button's choice between north up and heading up.
+                guard cameraPosition.followsUserLocation == false else { return nil }
+                return .userLocation(followsHeading: true, fallback: .automatic)
+            case .followMyCar:
+                guard let myCoordinate = viewModel.myCoordinate else { return nil }
+                let camera = MapCamera(centerCoordinate: myCoordinate.locationCoordinate, distance: Self.followDistance)
+                return .camera(camera)
+            case .wholeRoute:
+                guard viewModel.route.isEmpty == false else { return nil }
+                return .rect(RouteRect())
+            case .free:
+                return nil
+            }
+        }
+
+        /// The smallest map rectangle around the route, with a margin so the end pins are not cut off.
+        private func RouteRect() -> MKMapRect {
+            let rect = viewModel.route
+                .map { MKMapPoint($0.locationCoordinate) }
+                .reduce(MKMapRect.null) { $0.union(MKMapRect(origin: $1, size: MKMapSize(width: 0, height: 0))) }
+            return rect.insetBy(dx: -rect.width * 0.15, dy: -rect.height * 0.15)
+        }
     }
 }

@@ -9,11 +9,14 @@ import SwiftUI
 
 /// A car on the trip map. My car shows an arrow, the leader a crown, and other cars a car.
 /// A stopped car gets a pause badge, and an offline car is faded at its last position. The tapped car has a halo.
-/// A car off the route or ahead of the leader gets a red ring and a warning badge.
+/// A car off the route or ahead of the leader gets a red ring and a warning badge. A driving car with a known heading
+/// gets a small pointer on its ring, turned the way it drives on the map.
 struct TripMapCarPinView: View {
     let pin: TripMapCarPin
     /// Whether this car's status card is open.
     var isSelected = false
+    /// Which way the map is turned, in degrees clockwise from north, so the pointer matches the streets.
+    var mapHeading: Double = 0
 
     var body: some View {
         Image(systemName: Symbol())
@@ -57,6 +60,22 @@ struct TripMapCarPinView: View {
                         .padding(-10)
                 }
             }
+            .background {
+                if let direction = Direction() {
+                    Image(systemName: "arrowtriangle.up.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.tint)
+                        .offset(y: -27)
+                        .rotationEffect(direction)
+                        .accessibilityHidden(true)
+                }
+            }
+    }
+
+    /// The way a driving car points on screen; a stopped car or one with an unknown heading has none.
+    private func Direction() -> Angle? {
+        guard pin.motionState == .driving, let course = pin.course else { return nil }
+        return .degrees(course - mapHeading)
     }
 
     private func Symbol() -> String {
