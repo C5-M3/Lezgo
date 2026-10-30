@@ -120,4 +120,25 @@ struct LocationSharerTests {
 
         #expect(sharer.sentCount == sentWhenStopped)
     }
+
+    @Test func HeadingIsShared() async throws {
+        let group = try await phones.MakeGroupOnTheRoad()
+        var reading = Reading(TripFixtures.ciputraWorld)
+        reading.course = 90
+
+        _ = await Share(as: phones.budi, in: group, for: .milliseconds(40), readings: [reading])
+
+        #expect(try await phones.Budi(in: group)?.course == 90)
+    }
+
+    @Test func OlderReadingDoesNotReplaceANewerOne() async throws {
+        let group = try await phones.MakeGroupOnTheRoad()
+        let newer = Reading(TripFixtures.ciputraWorld)
+        var older = Reading(TripFixtures.tunjunganPlaza)
+        older.recordedAt = newer.recordedAt.addingTimeInterval(-10)
+
+        _ = await Share(as: phones.budi, in: group, for: .milliseconds(40), readings: [newer, older])
+
+        #expect(try await phones.Budi(in: group)?.coordinate == TripFixtures.ciputraWorld)
+    }
 }
