@@ -44,6 +44,19 @@ final class TripRoomExitUITests: XCTestCase {
         Attach(named: "Leader exit alert")
     }
 
+    /// The leader exits on another phone, so the member is told and the room closes on OK.
+    @MainActor
+    func testMemberIsToldTheLeaderEndedTheTrip() throws {
+        Launch(debugScreen: "tripRoomMemberLeaderEndsTrip")
+
+        let alert = app.alerts["The leader ended the trip."]
+        XCTAssertTrue(alert.waitForExistence(timeout: 10))
+        Attach(named: "Leader ended the trip alert")
+
+        alert.buttons["OK"].tap()
+        XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 1))
+    }
+
     private func Launch(debugScreen: String) {
         app = XCUIApplication()
         app.launchArguments = ["-DebugScreen", debugScreen]

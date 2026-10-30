@@ -43,6 +43,7 @@ import SwiftUI
 /// | `draftTripLeader` | Draft Road Trip screen for the leader | R |
 /// | `tripRoomLeader` | Trip Room lobby on the leader's phone (Agus) | O |
 /// | `tripRoomMember` | Trip Room lobby on a member's phone (Budi) | O |
+/// | `tripRoomMemberLeaderEndsTrip` | Member's Trip Room (Budi) where the leader exits after 1 second | O |
 /// | `tripRoomLeaderOffline` | Trip Room lobby on the leader's phone where every save fails with no network | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
@@ -65,6 +66,7 @@ enum DebugScreen: String, CaseIterable {
     case draftTripLeader
     case tripRoomLeader
     case tripRoomMember
+    case tripRoomMemberLeaderEndsTrip
     case tripRoomLeaderOffline
     case tripMapLeader
     case tripMapMember
@@ -94,7 +96,7 @@ enum DebugScreen: String, CaseIterable {
             DraftTripView.Simulated(isLeader: false)
         case .draftTripLeader:
             DraftTripView.Simulated(isLeader: true)
-        case .tripRoomLeader, .tripRoomMember, .tripRoomLeaderOffline:
+        case .tripRoomLeader, .tripRoomMember, .tripRoomMemberLeaderEndsTrip, .tripRoomLeaderOffline:
             MakeTripRoomScreen()
         case .tripMapLeader:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
@@ -113,8 +115,11 @@ enum DebugScreen: String, CaseIterable {
 
     private func MakeTripRoomScreen() -> SimulatedTripRoomScreen {
         SimulatedTripRoomScreen(
-            myParticipantID: self == .tripRoomMember ? SampleTrip.budiID : SampleTrip.agusID,
-            failure: self == .tripRoomLeaderOffline ? .noNetwork : nil
+            myParticipantID: self == .tripRoomMember || self == .tripRoomMemberLeaderEndsTrip
+                ? SampleTrip.budiID
+                : SampleTrip.agusID,
+            failure: self == .tripRoomLeaderOffline ? .noNetwork : nil,
+            leaderEndsTrip: self == .tripRoomMemberLeaderEndsTrip
         )
     }
 }

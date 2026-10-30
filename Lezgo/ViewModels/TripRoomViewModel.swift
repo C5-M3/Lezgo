@@ -24,6 +24,8 @@ final class TripRoomViewModel {
     var selectedParticipantIds: Set<UUID>
     var errorMessage: String?
     var wasRemovedFromTrip: Bool = false
+    /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
+    var wasEndedByLeader = false
     private(set) var isSavingProfile = false
     /// `true` while an exit request is on its way; Exit is disabled meanwhile.
     private(set) var isLeaving = false
@@ -151,6 +153,12 @@ final class TripRoomViewModel {
             // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
             if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
                 wasRemovedFromTrip = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // The leader who ended the trip leaves through Exit, so only the members are told.
+            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
+                wasEndedByLeader = true
                 activeTripStorage.ClearActiveTrip()
             }
 

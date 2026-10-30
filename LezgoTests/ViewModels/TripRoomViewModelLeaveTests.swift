@@ -182,4 +182,44 @@ struct TripRoomViewModelLeaveTests {
         #expect(viewModel.wasRemovedFromTrip)
         #expect(storage.LoadActiveTrip() == nil)
     }
+
+    // MARK: The leader ends the trip
+
+    /// The leader's Exit cancels the trip for everyone; members are told and return to Home (US-07).
+    @Test(arguments: [TripStatus.cancelled, .ended])
+    func MemberIsToldTheLeaderEndedTheTripAndHasItClearedFromThePhone(status: TripStatus) async {
+        let service = MockTripService(states: [SampleTrip.State(status: status)])
+        let storage = FakeActiveTripStorage(initial: Summary(me: SampleTrip.budiID))
+        let viewModel = MakeViewModel(me: SampleTrip.budiID, service: service, storage: storage)
+
+        await viewModel.Listen()
+
+        #expect(viewModel.wasEndedByLeader)
+        #expect(viewModel.wasRemovedFromTrip == false)
+        #expect(storage.LoadActiveTrip() == nil)
+    }
+
+    @Test func OpenTripUpdateDoesNotSayTheTripEnded() async {
+        let service = MockTripService(states: [SampleTrip.State(status: .lobby)])
+        let storage = FakeActiveTripStorage(initial: Summary(me: SampleTrip.budiID))
+        let viewModel = MakeViewModel(me: SampleTrip.budiID, service: service, storage: storage)
+
+        await viewModel.Listen()
+
+        #expect(viewModel.wasEndedByLeader == false)
+        #expect(storage.LoadActiveTrip() != nil)
+    }
+
+    /// The leader who ended the trip leaves through Exit, so the cancelled update must not tell them about it.
+    @Test func LeaderWhoEndedTheTripIsNotToldTheLeaderEndedIt() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let viewModel = MakeViewModel(me: SampleTrip.agusID, service: service, storage: FakeActiveTripStorage())
+        let listening = Task { await viewModel.Listen() }
+        defer { listening.cancel() }
+
+        try await viewModel.LeaveTrip()
+        while viewModel.tripStatus != .cancelled { await Task.yield() }
+
+        #expect(viewModel.wasEndedByLeader == false)
+    }
 }

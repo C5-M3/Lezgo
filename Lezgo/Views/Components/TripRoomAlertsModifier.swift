@@ -44,6 +44,7 @@ private struct TripLifecycleAlertsModifier: ViewModifier {
             .leaveAlert(viewModel: viewModel, isPresented: $showingLeave, dismissAction: dismissAction)
             .startAlert(viewModel: viewModel, isPresented: $showingStart)
             .removedAlert(viewModel: viewModel, dismissAction: dismissAction)
+            .endedByLeaderAlert(viewModel: viewModel, dismissAction: dismissAction)
             .errorAlert(viewModel: viewModel)
     }
 }
@@ -116,6 +117,19 @@ private extension View {
             )
         ) {
             Button("OK") { dismissAction() }
+        }
+    }
+
+    /// A member whose leader left the room returns to Home; the trip is already cleared from the phone (US-07).
+    func endedByLeaderAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
+        alert(
+            Text(.tripRoomLeaderEndedTrip),
+            isPresented: Binding(
+                get: { viewModel.wasEndedByLeader },
+                set: { viewModel.wasEndedByLeader = $0 }
+            )
+        ) {
+            Button { dismissAction() } label: { Text(.tripRoomOK) }
         }
     }
 
