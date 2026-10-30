@@ -308,3 +308,63 @@ struct TripMapViewModelLeaveTests {
         await open.value
     }
 }
+
+// MARK: - Active Trip Storage
+
+extension TripMapViewModelLeaveTests {
+    @Test func ConfirmLeaveExitTripClearsActiveTripStorage() async {
+        let storage = FakeActiveTripStorage(initial: ActiveTripSummary(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.budiID,
+            roomCode: "123456",
+            startName: "Start",
+            destinationName: "End",
+            memberNames: ["Budi"],
+            status: .inTrip,
+            isLeader: false
+        ))
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = TripMapViewModel(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.budiID,
+            tripService: service,
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
+            activeTripStorage: storage,
+            clock: { Fixtures.now }
+        )
+        await viewModel.Start()
+        await viewModel.ConfirmLeave(.exitTrip)
+
+        #expect(viewModel.closeReason == .exited)
+        #expect(storage.storedSummary == nil)
+    }
+
+    @Test func ConfirmLeaveEndTripClearsActiveTripStorage() async {
+        let storage = FakeActiveTripStorage(initial: ActiveTripSummary(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.agusID,
+            roomCode: "123456",
+            startName: "Start",
+            destinationName: "End",
+            memberNames: ["Agus"],
+            status: .inTrip,
+            isLeader: true
+        ))
+        let service = MockTripService(states: [Fixtures.State()])
+        let viewModel = TripMapViewModel(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.agusID,
+            tripService: service,
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
+            activeTripStorage: storage,
+            clock: { Fixtures.now }
+        )
+        await viewModel.Start()
+        await viewModel.ConfirmLeave(.endTrip(everyoneHasArrived: true))
+
+        #expect(viewModel.closeReason == .ended)
+        #expect(storage.storedSummary == nil)
+    }
+}

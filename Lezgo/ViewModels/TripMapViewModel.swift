@@ -52,6 +52,7 @@ final class TripMapViewModel {
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     private let locationSharer: LocationSharer?
+    private let activeTripStorage: (any ActiveTripStorage)?
     /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
     /// and the simulated drive, where the leader never leaves the route).
     private let reroute: TripMapReroute?
@@ -65,6 +66,7 @@ final class TripMapViewModel {
         streetNameService: any StreetNameService,
         locationSharer: LocationSharer? = nil,
         directionsService: (any DirectionsService)? = nil,
+        activeTripStorage: (any ActiveTripStorage)? = nil,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
@@ -73,6 +75,7 @@ final class TripMapViewModel {
         self.navigator = navigator
         self.streetNameService = streetNameService
         self.locationSharer = locationSharer
+        self.activeTripStorage = activeTripStorage
         reroute = directionsService.map {
             TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
         }
@@ -154,9 +157,11 @@ final class TripMapViewModel {
     private func NoticeTripClosed(_ newState: TripState) {
         guard closeReason == nil, isLeaving == false else { return }
         if newState.trip.status.isOpen == false {
+            activeTripStorage?.ClearActiveTrip()
             // The leader only sees this when their own end request failed on the way back, so it closes quietly.
             closeReason = newState.trip.leaderParticipantID == myParticipantID ? .ended : .endedByLeader
         } else if newState.participants.contains(where: { $0.id == myParticipantID }) == false {
+            activeTripStorage?.ClearActiveTrip()
             closeReason = .removed
         }
         // An open "Exit trip?" would hide the message about why the map closed.
@@ -202,9 +207,11 @@ final class TripMapViewModel {
             switch confirmation {
             case .exitTrip:
                 try await tripService.ExitTrip(tripID: tripID, participantID: myParticipantID)
+                activeTripStorage?.ClearActiveTrip()
                 closeReason = .exited
             case .endTrip:
                 try await tripService.EndTrip(tripID: tripID, by: myParticipantID)
+                activeTripStorage?.ClearActiveTrip()
                 closeReason = .ended
             }
             leaveErrorMessage = nil
@@ -380,16 +387,5 @@ extension TripMapViewModel {
             rerouteInput.yield(newState)
             await RefreshGuidance()
         }
-    }
-}
-
-// MARK: Nested types
-
-extension TripMapViewModel {
-    /// What was last looked up about a tapped car, and when.
-    private struct CarLookup {
-        var street: String?
-        var timeLeft: Duration?
-        var lookedUpAt: Date
     }
 }

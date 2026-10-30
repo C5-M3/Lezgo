@@ -47,4 +47,11 @@ extension TripMapViewModel {
         /// "Everyone has arrived!" (and, for the leader, "Continue your trip?")
         case everyoneArrived
     }
+
+    /// What was last looked up about a tapped car, and when.
+    struct CarLookup {
+        var street: String?
+        var timeLeft: Duration?
+        var lookedUpAt: Date
+    }
 }

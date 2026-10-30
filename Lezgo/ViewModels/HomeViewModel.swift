@@ -55,6 +55,9 @@ final class HomeViewModel {
     var selectedMapItem: MKMapItem?
     var searchResults: [MKMapItem] = []
     var activeDraftTrip: ActiveTripSummary?
+    var activeTripSession: TripSession?
+    var activeMapSession: TripSession?
+    var isTransitioningToTripMap: Bool = false
     var lastTripEndedNotice: String?
 
     // MARK: - Computed Properties
@@ -116,7 +119,7 @@ final class HomeViewModel {
         activeDraftTrip = nil
     }
 
-    /// Bergabung dengan perjalanan menggunakan kode 6 digit dan menyimpan draft trip (US-02, US-03).
+    /// Bergabung dengan perjalanan menggunakan kode 6 digit dan menyiapkan sesi Trip Room (US-02, US-03).
     @discardableResult
     func JoinTrip(roomCode: String, tripService: any TripService) async -> Bool {
         do {
@@ -127,7 +130,8 @@ final class HomeViewModel {
             }
             let summary = ActiveTripSummary.From(session: session)
             activeTripStorage.SaveActiveTrip(summary)
-            activeDraftTrip = summary
+            activeDraftTrip = nil
+            activeTripSession = session
             return true
         } catch {
             return false
@@ -135,11 +139,97 @@ final class HomeViewModel {
     }
 
     /// Menangani sesi perjalanan yang berhasil diverifikasi dan bergabung (US-02).
+    /// Mengarahkan langsung ke Trip Room tanpa menampilkan layar Draft Trip.
+    /// Draft trip hanya akan dimuat dari storage saat aplikasi ditutup dan dibuka kembali.
     func onTripJoined(_ session: TripSession) {
         guard session.state.trip.status == .lobby else { return }
         let summary = ActiveTripSummary.From(session: session)
         activeTripStorage.SaveActiveTrip(summary)
-        activeDraftTrip = summary
+        activeDraftTrip = nil
+        activeTripSession = session
+    }
+
+    /// Melanjutkan draft perjalanan yang tersimpan ke Trip Room (LOBBY) atau Trip Maps (IN_TRIP) (US-03).
+    func continueDraftTrip(tripService: any TripService) async {
+        guard let draft = activeDraftTrip else { return }
+        guard draft.status.isOpen else {
+            handleDraftTripEnded()
+            return
+        }
+
+        do {
+            let state = try await tripService.FetchTrip(tripID: draft.tripID)
+            guard state.trip.status.isOpen else {
+                handleDraftTripEnded()
+                return
+            }
+            applyActiveSession(
+                TripSession(myParticipantID: draft.myParticipantID, state: state),
+                isInTrip: state.trip.status == .inTrip
+            )
+        } catch let error as TripServiceError where error == .notFound || error == .tripEnded {
+            handleDraftTripEnded()
+        } catch {
+            let fallback = fallbackSession(for: draft)
+            applyActiveSession(fallback, isInTrip: draft.status == .inTrip)
+        }
+    }
+
+    private func fallbackSession(for draft: ActiveTripSummary) -> TripSession {
+        let fallbackTrip = Trip(
+            id: draft.tripID,
+            roomCode: draft.roomCode,
+            status: draft.status,
+            leaderParticipantID: draft.isLeader ? draft.myParticipantID : UUID(),
+            currentWaypointIndex: 0,
+            routeVersion: 1,
+            createdAt: Date(),
+            startedAt: nil,
+            endedAt: nil
+        )
+        let fallbackState = TripState(
+            trip: fallbackTrip,
+            waypoints: [],
+            participants: [],
+            route: nil
+        )
+        return TripSession(myParticipantID: draft.myParticipantID, state: fallbackState)
+    }
+
+    private func applyActiveSession(_ session: TripSession, isInTrip: Bool) {
+        activeDraftTrip = nil
+        if isInTrip {
+            activeMapSession = session
+            activeTripSession = nil
+        } else {
+            activeTripSession = session
+            activeMapSession = nil
+        }
+    }
+
+    /// Menangani saat trip yang tersimpan ternyata sudah berakhir saat aplikasi dibuka kembali (US-03).
+    func handleDraftTripEnded() {
+        activeTripStorage.ClearActiveTrip()
+        activeDraftTrip = nil
+        lastTripEndedNotice = String(localized: "Your last trip has ended.")
+    }
+
+    /// Menangani saat user keluar atau mengakhiri trip dari Trip Map View (US-07).
+    func onMapSessionClosed() {
+        activeTripStorage.ClearActiveTrip()
+        activeDraftTrip = nil
+        activeMapSession = nil
+    }
+
+    /// Menangani transisi saat trip dimulai dari Trip Room ke Trip Maps (US-05, US-06).
+    func onTripStartedFromRoom(session: TripSession) {
+        isTransitioningToTripMap = true
+        activeTripSession = nil
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            self.activeMapSession = session
+            self.isTransitioningToTripMap = false
+        }
     }
 
     /// Menangani perubahan teks pencarian saat kolom pencarian sedang fokus.

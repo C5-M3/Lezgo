@@ -32,7 +32,9 @@ struct TripMapArrivalCardView: View {
             .accessibilityElement(children: .combine)
 
             if isLeader, let onNewDestination {
-                Button(action: onNewDestination) {
+                Button {
+                    onNewDestination()
+                } label: {
                     Text(.tripMapNewDestination)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity)
