@@ -58,6 +58,8 @@ final class HomeViewModel {
     var activeTripSession: TripSession?
     var activeMapSession: TripSession?
     var isTransitioningToTripMap: Bool = false
+    /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
+    private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
     /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
     var inviteRoomCode: String?
@@ -209,6 +211,9 @@ final class HomeViewModel {
 
     /// Menangani saat user keluar atau mengakhiri trip dari Trip Map View (US-07).
     func onMapSessionClosed() {
+        // The map's cover also reports its dismissal on the way back to the Trip Room, possibly after the room is
+        // open; the trip goes on then.
+        guard !isReturningToTripRoom, activeTripSession == nil else { return }
         activeTripStorage.ClearActiveTrip()
         activeDraftTrip = nil
         activeMapSession = nil
@@ -222,6 +227,19 @@ final class HomeViewModel {
             try? await Task.sleep(for: .milliseconds(300))
             self.activeMapSession = session
             self.isTransitioningToTripMap = false
+        }
+    }
+
+    /// After a New Destination the trip is back in `LOBBY`: the map closes and the Trip Room opens with the new route
+    /// (US-07). The map already saved the trip with its new status.
+    func onReturnedToTripRoom(_ session: TripSession) {
+        isReturningToTripRoom = true
+        activeMapSession = nil
+        Task { @MainActor in
+            // One full-screen cover has to finish closing before the next one can open.
+            try? await Task.sleep(for: .milliseconds(300))
+            self.activeTripSession = session
+            self.isReturningToTripRoom = false
         }
     }
 

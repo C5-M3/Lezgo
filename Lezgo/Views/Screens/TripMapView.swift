@@ -20,19 +20,19 @@ struct TripMapView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    /// Opens the New Destination planner (#115); `nil` hides the button.
-    private let onNewDestination: (() -> Void)?
     /// Returns to Home once the map closes; `nil` dismisses the map.
     private let onClose: (() -> Void)?
+    /// Opens the Trip Room with the trip back in `LOBBY` after a New Destination; `nil` hides "New Destination".
+    private let onReturnToTripRoom: ((TripSession) -> Void)?
 
     init(
         viewModel: TripMapViewModel,
-        onNewDestination: (() -> Void)? = nil,
-        onClose: (() -> Void)? = nil
+        onClose: (() -> Void)? = nil,
+        onReturnToTripRoom: ((TripSession) -> Void)? = nil
     ) {
         _viewModel = State(initialValue: viewModel)
-        self.onNewDestination = onNewDestination
         self.onClose = onClose
+        self.onReturnToTripRoom = onReturnToTripRoom
     }
 
     var body: some View {
@@ -91,7 +91,7 @@ struct TripMapView: View {
                     TripMapArrivalCardView(
                         card: arrivalCard,
                         isLeader: viewModel.isLeader,
-                        onNewDestination: onNewDestination,
+                        onNewDestination: NewDestinationAction(),
                         onLeave: viewModel.RequestLeave
                     )
                     .disabled(viewModel.isLeaving)
@@ -142,6 +142,9 @@ struct TripMapView: View {
             if viewModel.closeReason == .exited || viewModel.closeReason == .ended {
                 Close()
             }
+            if let session = viewModel.tripRoomSession {
+                onReturnToTripRoom?(session)
+            }
         }
         .onChange(of: viewModel.myCoordinate) { MoveCamera() }
         .onChange(of: viewModel.cameraMode) { MoveCamera() }
@@ -160,6 +163,12 @@ struct TripMapView: View {
         } else {
             dismiss()
         }
+    }
+
+    /// "New Destination" shows only where the screen that opened the map can take everyone back to the Trip Room.
+    private func NewDestinationAction() -> (() -> Void)? {
+        guard onReturnToTripRoom != nil else { return nil }
+        return viewModel.RequestNewDestination
     }
 
     /// The pencil shows once the leader can change the route, so it never sits there doing nothing.

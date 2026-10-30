@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// Edit Route (`specs/UserStories.md` → US-06, "Route changes"): the Set Route planner opened on the road, from the
-/// leader's position through what is left of the route. Save sends the changed route to every phone.
+/// The Set Route planner opened from the map: Edit Route (`specs/UserStories.md` → US-06, "Route changes"), from the
+/// leader's position through what is left of the route, or New Destination (US-07), from the old destination. Save
+/// sends the route to every phone.
 struct EditRouteView: View {
     let viewModel: EditRouteViewModel
     let onClose: () -> Void
@@ -23,7 +24,7 @@ struct EditRouteView: View {
     var body: some View {
         SetRouteMapView(
             viewModel: planner,
-            title: .editRouteTitle,
+            title: viewModel.purpose == .newDestination ? .tripMapNewDestination : .editRouteTitle,
             nextTitle: .editRouteSave,
             onBack: onClose,
             onNext: Save,
@@ -33,8 +34,9 @@ struct EditRouteView: View {
             isNextDisabled: viewModel.isSaving || planner.MakeTripPlan() == nil,
             isStartPointLocked: true
         )
-        // The planner only finds a road path once a stop changes, so the route it opens with needs one too.
-        .task { planner.findRoute() }
+        // The planner only finds a road path once a stop changes, so the route it opens with needs one too. New
+        // Destination opens with only the start point, so there is nothing to find yet.
+        .task { if planner.destinations.isEmpty == false { planner.findRoute() } }
         .onChange(of: viewModel.didSave) {
             if viewModel.didSave { onClose() }
         }
@@ -63,6 +65,21 @@ struct EditRouteView: View {
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID,
             tripService: SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
+        ),
+        onClose: {}
+    )
+}
+
+#Preview("New Destination") {
+    EditRouteView(
+        viewModel: EditRouteViewModel(
+            startingWaypoints: SampleTrip.plan.waypoints.suffix(1).map {
+                PlannedWaypoint(kind: .start, name: $0.name, coordinate: $0.coordinate)
+            },
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            tripService: SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID),
+            purpose: .newDestination
         ),
         onClose: {}
     )

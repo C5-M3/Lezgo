@@ -8,15 +8,17 @@
 import Foundation
 import Observation
 
-/// State and logic for Edit Route, the planner the leader opens on the road (`specs/UserStories.md` → US-06,
-/// "Route changes").
+/// State and logic for the planner the leader opens from the map: Edit Route on the road (`specs/UserStories.md` →
+/// US-06, "Route changes") and New Destination after arriving (US-07, "New Destination").
 ///
-/// The planner starts from `startingWaypoints`: the leader's position, the unvisited checkpoints and the destination.
-/// Saving makes the changed route the trip's next route version, so every phone switches to it.
+/// Edit Route starts from the leader's position, the unvisited checkpoints and the destination; saving makes the
+/// changed route the trip's next route version, so every phone switches to it. New Destination starts at the old
+/// destination; saving sets the trip back to `LOBBY` with the new route, so every phone opens the Trip Room.
 @Observable
 final class EditRouteViewModel: Identifiable {
     /// What the planner shows when it opens.
     let startingWaypoints: [PlannedWaypoint]
+    let purpose: Purpose
     /// `true` while the route is on its way; Save is disabled meanwhile.
     private(set) var isSaving = false
     /// Set once the route is saved; the sheet then closes.
@@ -28,14 +30,21 @@ final class EditRouteViewModel: Identifiable {
     private let myParticipantID: UUID
     private let tripService: any TripService
 
-    init(startingWaypoints: [PlannedWaypoint], tripID: UUID, myParticipantID: UUID, tripService: any TripService) {
+    init(
+        startingWaypoints: [PlannedWaypoint],
+        tripID: UUID,
+        myParticipantID: UUID,
+        tripService: any TripService,
+        purpose: Purpose = .editRoute
+    ) {
         self.startingWaypoints = startingWaypoints
+        self.purpose = purpose
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.tripService = tripService
     }
 
-    /// Saves the changed route for everyone. Repeated taps while saving, or after the route was saved, do nothing.
+    /// Saves the route for everyone. Repeated taps while saving, or after the route was saved, do nothing.
     func Save(_ plan: TripPlan) async {
         guard isSaving == false, didSave == false else { return }
         guard plan.isValid else {
@@ -45,7 +54,10 @@ final class EditRouteViewModel: Identifiable {
         isSaving = true
         defer { isSaving = false }
         do {
-            try await tripService.SaveRoute(plan, tripID: tripID, by: myParticipantID)
+            switch purpose {
+            case .editRoute: try await tripService.SaveRoute(plan, tripID: tripID, by: myParticipantID)
+            case .newDestination: try await tripService.StartNewDestination(plan, tripID: tripID, by: myParticipantID)
+            }
             didSave = true
             errorMessage = nil
         } catch {
@@ -56,5 +68,15 @@ final class EditRouteViewModel: Identifiable {
     /// "OK" on the message that saving failed.
     func DismissError() {
         errorMessage = nil
+    }
+}
+
+extension EditRouteViewModel {
+    /// What saving the planner does.
+    enum Purpose: Hashable {
+        /// Edit Route: the changed route replaces the current one on the road.
+        case editRoute
+        /// New Destination: the next leg of the trip, planned from the Trip Room again.
+        case newDestination
     }
 }

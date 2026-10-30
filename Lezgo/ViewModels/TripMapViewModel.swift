@@ -150,7 +150,7 @@ final class TripMapViewModel {
         }
     }
 
-    /// The leader ended the trip, or removed this member, from another phone.
+    /// The leader ended the trip, removed this member or planned a New Destination, from another phone or this one.
     ///
     /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
     /// the reason then, so the person is not told they were removed or that the leader ended the trip.
@@ -163,6 +163,10 @@ final class TripMapViewModel {
         } else if newState.participants.contains(where: { $0.id == myParticipantID }) == false {
             activeTripStorage?.ClearActiveTrip()
             closeReason = .removed
+        } else if newState.trip.status == .lobby {
+            let session = TripSession(myParticipantID: myParticipantID, state: newState)
+            activeTripStorage?.SaveActiveTrip(ActiveTripSummary.From(session: session))
+            closeReason = .backToTripRoom
         }
         // An open "Exit trip?" would hide the message about why the map closed.
         if closeReason != nil {
@@ -340,7 +344,27 @@ extension TripMapViewModel {
         )
     }
 
-    /// "Back" in Edit Route, or the route was saved.
+    /// "New Destination" on the leader's arrival card: the planner from the old destination, which stays locked.
+    func RequestNewDestination() {
+        guard editRoute == nil, isLeader, closeReason == nil, let destination = state?.destination else { return }
+        editRoute = EditRouteViewModel(
+            startingWaypoints: [
+                PlannedWaypoint(kind: .start, name: destination.name, coordinate: destination.coordinate)
+            ],
+            tripID: tripID,
+            myParticipantID: myParticipantID,
+            tripService: tripService,
+            purpose: .newDestination
+        )
+    }
+
+    /// The trip as the Trip Room opens it, once the map closed to go back there.
+    var tripRoomSession: TripSession? {
+        guard closeReason == .backToTripRoom, let state else { return nil }
+        return TripSession(myParticipantID: myParticipantID, state: state)
+    }
+
+    /// "Back" in the planner, or the route was saved.
     func CloseEditRoute() {
         editRoute = nil
     }

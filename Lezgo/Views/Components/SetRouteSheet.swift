@@ -326,7 +326,6 @@ private extension SetRouteSheet {
                 tripService: tripService,
                 activeTripStorage: viewModel.activeTripStorage
             ),
-            onNewDestination: {},
             onClose: {
                 viewModel.activeTripStorage.ClearActiveTrip()
                 activeMapSession = nil

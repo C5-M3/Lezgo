@@ -33,7 +33,7 @@ struct SimulatedTripMapScreen: View {
                 navigator: SimulatedTripMapNavigator(),
                 streetNameService: LiveStreetNameService()
             ),
-            onNewDestination: {}
+            onReturnToTripRoom: { _ in }
         )
         .task {
             await SimulatedDrive(
