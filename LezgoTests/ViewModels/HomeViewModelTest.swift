@@ -336,6 +336,41 @@ struct HomeViewModelTest {
         #expect(viewModel.activeDraftTrip?.roomCode == SampleTrip.roomCode)
     }
 
+    @Test("JoinTrip on a trip that already started opens the map for the late member (US-02)")
+    func joinTripInProgressOpensMap() async {
+        let fakeStorage = FakeActiveTripStorage()
+        let service = SampleTrip.Service(status: .inTrip, me: UUID())
+        let viewModel = HomeViewModel(
+            mapService: MockMapService(),
+            searchService: MockLocationSearchService(),
+            activeTripStorage: fakeStorage
+        )
+
+        let success = await viewModel.JoinTrip(roomCode: SampleTrip.roomCode, tripService: service)
+
+        #expect(success == true)
+        #expect(viewModel.activeMapSession?.state.trip.status == .inTrip)
+        #expect(viewModel.activeTripSession == nil)
+        #expect(fakeStorage.storedSummary?.status == .inTrip)
+    }
+
+    @Test("onTripJoined with a trip that already started opens the map, not the Trip Room (US-02)")
+    func onTripJoinedInProgressOpensMap() {
+        let fakeStorage = FakeActiveTripStorage()
+        let viewModel = HomeViewModel(
+            mapService: MockMapService(),
+            searchService: MockLocationSearchService(),
+            activeTripStorage: fakeStorage
+        )
+        let session = TripSession(myParticipantID: SampleTrip.budiID, state: SampleTrip.State(status: .inTrip))
+
+        viewModel.onTripJoined(session)
+
+        #expect(viewModel.activeMapSession == session)
+        #expect(viewModel.activeTripSession == nil)
+        #expect(fakeStorage.storedSummary?.status == .inTrip)
+    }
+
     @Test("onTripJoined sets activeTripSession and keeps activeDraftTrip nil until app reopens")
     func onTripJoinedNavigatesToTripRoom() {
         let mockMap = MockMapService()

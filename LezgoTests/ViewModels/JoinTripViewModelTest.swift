@@ -80,15 +80,21 @@ struct JoinTripViewModelTest {
         #expect(viewModel.joinedSession == nil)
     }
 
-    @Test("Submit code when trip has already begun should display already begun error")
-    func submitCodeWhenTripAlreadyBegun() async {
-        let service = SampleTrip.Service(status: .inTrip)
-        let viewModel = JoinTripViewModel(roomCode: SampleTrip.roomCode, tripService: service)
+    @Test("A late member joins a trip that already started and stays in it, ready for the map (US-02)")
+    func submitCodeWhenTripAlreadyBegun() async throws {
+        let service = SampleTrip.Service(status: .inTrip, me: UUID())
+        let storage = FakeActiveTripStorage()
+        let viewModel = JoinTripViewModel(roomCode: SampleTrip.roomCode, tripService: service, storage: storage)
 
         let success = await viewModel.submitCode()
-        #expect(success == false)
-        #expect(viewModel.errorMessage == "This trip has already begun.")
-        #expect(viewModel.joinedSession == nil)
+
+        #expect(success == true)
+        #expect(viewModel.errorMessage == nil)
+        let session = try #require(viewModel.joinedSession)
+        #expect(session.state.trip.status == .inTrip)
+        let state = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(state.participants.contains { $0.id == session.myParticipantID })
+        #expect(storage.storedSummary?.status == .inTrip)
     }
 
     @Test("Submit code when trip has already ended should display already ended error")
