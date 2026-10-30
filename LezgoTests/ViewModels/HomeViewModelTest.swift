@@ -15,7 +15,7 @@ import Testing
 // MARK: - Mocks
 
 @MainActor
-private final class MockMapService: NSObject, MapServiceProtocol {
+final class MockMapService: NSObject, MapServiceProtocol {
     var userLocation: CLLocation?
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
     var errorMessage: String?
@@ -42,7 +42,7 @@ private final class MockMapService: NSObject, MapServiceProtocol {
 }
 
 @MainActor
-private final class MockLocationSearchService: NSObject, LocationSearchServiceProtocol {
+final class MockLocationSearchService: NSObject, LocationSearchServiceProtocol {
     var suggestions: [MKLocalSearchCompletion] = []
     var isSearching = false
     var selectedMapItem: MKMapItem?
@@ -314,7 +314,7 @@ struct HomeViewModelTest {
         #expect(fakeStorage.storedSummary == nil)
     }
 
-    @Test("JoinTrip saves active draft trip upon success")
+    @Test("JoinTrip saves to storage and sets activeTripSession for Trip Room, without setting activeDraftTrip")
     func joinTripSuccess() async {
         let mockMap = MockMapService()
         let mockSearch = MockLocationSearchService()
@@ -325,9 +325,49 @@ struct HomeViewModelTest {
         let success = await viewModel.JoinTrip(roomCode: SampleTrip.roomCode, tripService: service)
 
         #expect(success == true)
+        #expect(viewModel.activeTripSession != nil)
+        #expect(viewModel.activeTripSession?.state.trip.roomCode == SampleTrip.roomCode)
+        #expect(viewModel.activeDraftTrip == nil)
+        #expect(fakeStorage.storedSummary != nil)
+
+        // Draft trip is only loaded when user closes and reopens the app
+        viewModel.CheckActiveDraftTrip()
         #expect(viewModel.activeDraftTrip != nil)
         #expect(viewModel.activeDraftTrip?.roomCode == SampleTrip.roomCode)
+    }
+
+    @Test("onTripJoined sets activeTripSession and keeps activeDraftTrip nil until app reopens")
+    func onTripJoinedNavigatesToTripRoom() {
+        let mockMap = MockMapService()
+        let mockSearch = MockLocationSearchService()
+        let fakeStorage = FakeActiveTripStorage()
+        let viewModel = HomeViewModel(mapService: mockMap, searchService: mockSearch, activeTripStorage: fakeStorage)
+        let sampleTrip = Trip(
+            id: UUID(),
+            roomCode: "654321",
+            status: .lobby,
+            leaderParticipantID: UUID(),
+            currentWaypointIndex: 0,
+            routeVersion: 1,
+            createdAt: Date(),
+            startedAt: nil,
+            endedAt: nil
+        )
+        let session = TripSession(
+            myParticipantID: UUID(),
+            state: TripState(trip: sampleTrip, waypoints: [], participants: [], route: nil)
+        )
+
+        viewModel.onTripJoined(session)
+
+        #expect(viewModel.activeTripSession?.state.trip.id == session.state.trip.id)
+        #expect(viewModel.activeDraftTrip == nil)
         #expect(fakeStorage.storedSummary != nil)
+
+        // When reopening app
+        viewModel.CheckActiveDraftTrip()
+        #expect(viewModel.activeDraftTrip != nil)
+        #expect(viewModel.activeDraftTrip?.roomCode == "654321")
     }
 
     @Test("Opening an invite link fills in the room code to join (US-02)")

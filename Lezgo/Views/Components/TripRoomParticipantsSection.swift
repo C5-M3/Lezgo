@@ -9,6 +9,7 @@ import SwiftUI
 
 struct TripRoomParticipantsSection: View {
     let viewModel: TripRoomViewModel
+    var isTransitioning: Bool = false
     let onKick: (Participant) -> Void
     let onSetLeader: (Participant) -> Void
     let onEdit: (Participant) -> Void
@@ -29,15 +30,16 @@ struct TripRoomParticipantsSection: View {
                         viewModel: viewModel,
                         onEdit: { onEdit(participant) }
                     )
+                    .disabled(isTransitioning)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if viewModel.showsKickSwipe {
+                        if !isTransitioning && viewModel.showsKickSwipe {
                             KickSwipeButton(isEnabled: viewModel.CanKick(participant: participant)) {
                                 onKick(participant)
                             }
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        if viewModel.showsSetLeaderSwipe {
+                        if !isTransitioning && viewModel.showsSetLeaderSwipe {
                             SetLeadSwipeButton(isEnabled: viewModel.CanSetLeader(participant: participant)) {
                                 onSetLeader(participant)
                             }
@@ -52,16 +54,18 @@ struct TripRoomParticipantsSection: View {
                     .foregroundStyle(.primary)
                     .textCase(nil)
                 Spacer()
-                Button(action: onInvite) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .accessibilityHidden(true)
-                        .frame(width: 32, height: 32)
-                        .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 8))
+                if !isTransitioning {
+                    Button(action: onInvite) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .bold))
+                            .accessibilityHidden(true)
+                            .frame(width: 32, height: 32)
+                            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 8))
+                    }
+                    .buttonStyle(.plain)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel("Invite participant")
                 }
-                .buttonStyle(.plain)
-                .frame(minWidth: 44, minHeight: 44)
-                .accessibilityLabel("Invite participant")
             }
         }
     }

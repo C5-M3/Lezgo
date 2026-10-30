@@ -17,9 +17,11 @@ struct JoinTripView: View {
     @State private var viewModel: JoinTripViewModel
     @State private var enteredCode: String = ""
     @FocusState private var isFieldFocused: Bool
+    @Environment(\.tripService) private var tripService
 
     var onBack: (() -> Void)?
     var onEnter: ((String) -> Void)?
+    var onNavigateToTripRoom: ((TripSession) -> Void)?
 
     // MARK: - Initializer
 
@@ -27,7 +29,8 @@ struct JoinTripView: View {
         isPresented: Binding<Bool>,
         viewModel: JoinTripViewModel? = nil,
         onBack: (() -> Void)? = nil,
-        onEnter: ((String) -> Void)? = nil
+        onEnter: ((String) -> Void)? = nil,
+        onNavigateToTripRoom: ((TripSession) -> Void)? = nil
     ) {
         self._isPresented = isPresented
         let vm = viewModel ?? JoinTripViewModel()
@@ -35,6 +38,7 @@ struct JoinTripView: View {
         self._enteredCode = State(initialValue: vm.roomCode)
         self.onBack = onBack
         self.onEnter = onEnter
+        self.onNavigateToTripRoom = onNavigateToTripRoom
     }
 
     // MARK: - Body
@@ -70,6 +74,9 @@ struct JoinTripView: View {
             // Memunculkan keyboard secara otomatis tanpa harus mengetuk field kode
             try? await Task.sleep(for: .milliseconds(100))
             isFieldFocused = true
+        }
+        .onAppear {
+            viewModel.setTripServiceIfNeeded(tripService)
         }
         .onChange(of: viewModel.roomCode) { _, newValue in
             if enteredCode != newValue {
@@ -113,6 +120,7 @@ struct JoinTripView: View {
                 .autocorrectionDisabled()
                 .focused($isFieldFocused)
                 .submitLabel(.done)
+                .disabled(viewModel.isSubmitting)
                 .onSubmit {
                     submitRoomCode()
                 }
@@ -134,6 +142,15 @@ struct JoinTripView: View {
                     .fill(Color(uiColor: .systemGray5).opacity(0.85))
             )
 
+            // Pesan Error Validasi / Status Perjalanan
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityLabel(errorMessage)
+            }
+
             // Tombol Aksi (Back & Enter)
             HStack(spacing: 12) {
                 // Tombol Back
@@ -150,6 +167,7 @@ struct JoinTripView: View {
                                 .fill(Color(uiColor: .systemGray5))
                         )
                 }
+                .disabled(viewModel.isSubmitting)
                 .buttonStyle(.plain)
                 .accessibilityLabel("Kembali")
 
@@ -157,21 +175,28 @@ struct JoinTripView: View {
                 Button {
                     submitRoomCode()
                 } label: {
-                    Text("Enter")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(
-                            Capsule()
-                                .fill(
-                                    viewModel.isValidCode
-                                    ? Color(red: 0.0, green: 0.48, blue: 1.0)
-                                    : Color(red: 0.0, green: 0.48, blue: 1.0).opacity(0.5)
-                                )
-                        )
+                    Group {
+                        if viewModel.isSubmitting {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Text("Enter")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        Capsule()
+                            .fill(
+                                (viewModel.isValidCode && !viewModel.isSubmitting)
+                                ? Color(red: 0.0, green: 0.48, blue: 1.0)
+                                : Color(red: 0.0, green: 0.48, blue: 1.0).opacity(0.5)
+                            )
+                    )
                 }
-                .disabled(!viewModel.isValidCode)
+                .disabled(!viewModel.isValidCode || viewModel.isSubmitting)
                 .buttonStyle(.plain)
                 .accessibilityLabel("Masuk ke ruangan")
             }
@@ -189,6 +214,7 @@ struct JoinTripView: View {
     private func dismissModal() {
         isFieldFocused = false
         hideKeyboard()
+        viewModel.reset()
         onBack?()
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -198,15 +224,25 @@ struct JoinTripView: View {
     }
 
     private func submitRoomCode() {
-        guard viewModel.isValidCode else { return }
+        guard viewModel.isValidCode, !viewModel.isSubmitting else { return }
         isFieldFocused = false
         hideKeyboard()
-        let code = viewModel.roomCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        onEnter?(code)
-        var transaction = Transaction()
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isPresented = false
+        Task {
+            let success = await viewModel.submitCode()
+            if success {
+                let code = viewModel.roomCode.trimmingCharacters(in: .whitespacesAndNewlines)
+                onEnter?(code)
+                if let session = viewModel.joinedSession {
+                    onNavigateToTripRoom?(session)
+                }
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    isPresented = false
+                }
+            } else {
+                isFieldFocused = true
+            }
         }
     }
 }
@@ -218,15 +254,19 @@ extension View {
     @MainActor
     func joinTripModal(
         isPresented: Binding<Bool>,
+        viewModel: JoinTripViewModel? = nil,
         onBack: (() -> Void)? = nil,
-        onEnter: ((String) -> Void)? = nil
+        onEnter: ((String) -> Void)? = nil,
+        onNavigateToTripRoom: ((TripSession) -> Void)? = nil
     ) -> some View {
         overlay {
             if isPresented.wrappedValue {
                 JoinTripView(
                     isPresented: isPresented,
+                    viewModel: viewModel,
                     onBack: onBack,
-                    onEnter: onEnter
+                    onEnter: onEnter,
+                    onNavigateToTripRoom: onNavigateToTripRoom
                 )
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .scale(scale: 0.94)),
