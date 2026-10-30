@@ -9,6 +9,7 @@ import SwiftUI
 import MapKit
 
 struct SetRouteSheet: View {
+    @Environment(\.tripService) private var tripService
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
     /// "Set Route" when planning a trip, "Edit Route" on the road.
@@ -16,12 +17,19 @@ struct SetRouteSheet: View {
     var nextTitle: LocalizedStringResource = "Next"
     /// Set by the screen that shows the planner, so Draft Trip and Edit Route each decide where Back and Next go.
     var onBack: (() -> Void)?
-    var onNext: () -> Void = {}
+    var onNext: (() -> Void)?
+    var onTripCreated: ((TripSession) -> Void)?
     var isBackDisabled = false
     var isNextDisabled = false
     /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
     var isStartPointLocked = false
     @State private var isShowingBackConfirmation: Bool = false
+
+    private var isNextButtonDisabled: Bool {
+        if isNextDisabled { return true }
+        if onNext != nil { return false }
+        return !viewModel.canCreateTrip
+    }
 
     var body: some View {
         NavigationStack {
@@ -179,13 +187,17 @@ struct SetRouteSheet: View {
                     .disabled(isBackDisabled)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(nextTitle, systemImage: "arrow.right", action: onNext)
-                        .disabled(isNextDisabled)
+                    if viewModel.isCreatingTrip {
+                        ProgressView()
+                    } else {
+                        Button(nextTitle, systemImage: "arrow.right", action: HandleNext)
+                            .disabled(isNextButtonDisabled)
+                    }
                 }
             }
             .alert(
                 "Discard Changes?",
-                isPresented: $isShowingBackConfirmation,
+                isPresented: $isShowingBackConfirmation
             ) {
                 Button("Cancel", role: .cancel) { }
                 Button("Discard", role: .destructive) {
@@ -194,6 +206,47 @@ struct SetRouteSheet: View {
             } message: {
                 Text("Going back will clear your selected destination and route planning")
             }
+            .alert(
+                "Notice",
+                isPresented: Binding(
+                    get: { viewModel.errorMessage != nil },
+                    set: { if !$0 { viewModel.errorMessage = nil } }
+                )
+            ) {
+                Button("OK") { viewModel.errorMessage = nil }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
+            .fullScreenCover(item: $viewModel.createdSession, onDismiss: HandleTripRoomDismissed) { session in
+                TripRoomView(
+                    viewModel: TripRoomViewModel(
+                        tripService: tripService,
+                        tripID: session.state.trip.id,
+                        myParticipantID: session.myParticipantID,
+                        initialState: session.state
+                    )
+                )
+            }
         }
+    }
+
+    private func HandleNext() {
+        if let onNext {
+            onNext()
+        } else {
+            Task {
+                do {
+                    let session = try await viewModel.CreateTrip(using: tripService)
+                    onTripCreated?(session)
+                } catch {
+                    // Error message is set in viewModel.errorMessage and shown in alert
+                }
+            }
+        }
+    }
+
+    private func HandleTripRoomDismissed() {
+        viewModel.createdSession = nil
+        onBack?()
     }
 }
