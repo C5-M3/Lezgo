@@ -91,7 +91,12 @@ struct TripMapViewModelMyGPSTests {
             streetNameService: MockStreetNameService()
         )
         try await service.UpdateLocation(
-            LocationUpdate(coordinate: TripFixtures.ciputraWorld, speedKmh: 40, motionState: .driving, recordedAt: .now),
+            LocationUpdate(
+                coordinate: TripFixtures.ciputraWorld,
+                speedKmh: 40,
+                motionState: .driving,
+                recordedAt: .now
+            ),
             participantID: SampleTrip.budiID,
             tripID: SampleTrip.tripID
         )
