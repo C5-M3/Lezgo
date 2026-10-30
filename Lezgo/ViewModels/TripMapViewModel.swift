@@ -165,7 +165,7 @@ final class TripMapViewModel {
             closeReason = .removed
         } else if newState.trip.status == .lobby {
             let session = TripSession(myParticipantID: myParticipantID, state: newState)
-            activeTripStorage?.SaveActiveTrip(ActiveTripSummary.From(session: session))
+            activeTripStorage?.SaveActiveTrip(.From(session: session))
             closeReason = .backToTripRoom
         }
         // An open "Exit trip?" would hide the message about why the map closed.
@@ -327,11 +327,6 @@ final class TripMapViewModel {
 // MARK: Edit Route
 
 extension TripMapViewModel {
-    /// Only the leader can change the route, while the trip is open and once their position is known.
-    var canEditRoute: Bool {
-        isLeader && closeReason == nil && myCoordinate != nil
-    }
-
     /// "Edit Route" on the leader's map: the planner from the leader's position through what is left of the route.
     func RequestEditRoute() {
         guard editRoute == nil, canEditRoute, let state, let myCoordinate,
@@ -347,21 +342,11 @@ extension TripMapViewModel {
     /// "New Destination" on the leader's arrival card: the planner from the old destination, which stays locked.
     func RequestNewDestination() {
         guard editRoute == nil, isLeader, closeReason == nil, let destination = state?.destination else { return }
+        let start = PlannedWaypoint(kind: .start, name: destination.name, coordinate: destination.coordinate)
         editRoute = EditRouteViewModel(
-            startingWaypoints: [
-                PlannedWaypoint(kind: .start, name: destination.name, coordinate: destination.coordinate)
-            ],
-            tripID: tripID,
-            myParticipantID: myParticipantID,
-            tripService: tripService,
+            startingWaypoints: [start], tripID: tripID, myParticipantID: myParticipantID, tripService: tripService,
             purpose: .newDestination
         )
-    }
-
-    /// The trip as the Trip Room opens it, once the map closed to go back there.
-    var tripRoomSession: TripSession? {
-        guard closeReason == .backToTripRoom, let state else { return nil }
-        return TripSession(myParticipantID: myParticipantID, state: state)
     }
 
     /// "Back" in the planner, or the route was saved.
