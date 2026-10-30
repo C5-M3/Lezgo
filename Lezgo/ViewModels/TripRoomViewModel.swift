@@ -115,7 +115,7 @@ final class TripRoomViewModel {
     }
 
     var inviteURL: URL {
-        URL(string: "lezgo://join?code=\(roomCode)") ?? URL(fileURLWithPath: "/")
+        InviteLink.Make(roomCode: roomCode) ?? URL(fileURLWithPath: "/")
     }
 
     /// The room code is empty until the first snapshot arrives, and a link without six digits cannot be joined.

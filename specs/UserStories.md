@@ -43,7 +43,7 @@ There are only two roles.
 | Trip | One group journey. One room code and one route at a time. |
 | Trip Room | The waiting room before the trip starts. |
 | Room code | 6 digits, numbers only (`897654`), typed with the number pad. |
-| Invite link | `lezgo://join?code=897654` |
+| Invite link | `https://lezgo-trip.netlify.app/join?code=897654`, a universal link that opens Lezgo ([ADR 0020](../docs/adr/0020-UniversalInviteLinkOnNetlify.md)). The older `lezgo://join?code=897654` still opens it. |
 | Start point, checkpoint, destination | The three kinds of waypoint: 1 start point, 0 or more checkpoints, 1 destination. |
 | Ready | The member's car is within 100 m of the start point (detected automatically). |
 | Arrived | The member's car is within 20 m of the destination. |
@@ -158,7 +158,7 @@ Feature: Plan a route
 ### Rules
 
 - "Enter room code" opens from the join button on Home. The field uses the number pad: digits only, exactly 6. "Enter" is disabled until 6 digits are typed.
-- An invite link opens the same dialog with the code filled in.
+- An invite link opens the same dialog with the code filled in. A link with no valid 6-digit code is ignored.
 - No form. My name and car description come from my saved profile (US-04); the first time, the name is "Member" plus the last 4 characters of my iCloud user ID.
 - `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
 - `ENDED` or `CANCELLED` → join is rejected.
@@ -175,7 +175,7 @@ Feature: Join a trip
     Then I am a member of the trip and the Trip Room opens
 
   Scenario: Join with an invite link
-    When I open "lezgo://join?code=897654"
+    When I open "https://lezgo-trip.netlify.app/join?code=897654"
     Then "Enter room code" shows "897654"
     When I tap "Enter"
     Then the Trip Room opens
@@ -329,7 +329,7 @@ Feature: Trip Room
     When "Budi" taps "+"
     Then "Budi" sees "897654" in large text
     When "Budi" taps "Share Link"
-    Then the share sheet opens with "Join my Lezgo trip with code 897654" and "lezgo://join?code=897654"
+    Then the share sheet opens with "Join my Lezgo trip with code 897654" and "https://lezgo-trip.netlify.app/join?code=897654"
 
   Scenario: Copy the room code
     When "Budi" taps "+" and then the room code

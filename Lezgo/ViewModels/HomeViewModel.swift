@@ -59,6 +59,8 @@ final class HomeViewModel {
     var activeMapSession: TripSession?
     var isTransitioningToTripMap: Bool = false
     var lastTripEndedNotice: String?
+    /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
+    var inviteRoomCode: String?
 
     // MARK: - Computed Properties
     var suggestions: [MKLocalSearchCompletion] {

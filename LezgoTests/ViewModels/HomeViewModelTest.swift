@@ -369,4 +369,26 @@ struct HomeViewModelTest {
         #expect(viewModel.activeDraftTrip != nil)
         #expect(viewModel.activeDraftTrip?.roomCode == "654321")
     }
+
+    @Test("Opening an invite link fills in the room code to join (US-02)")
+    func openInviteLinkFillsRoomCode() throws {
+        let viewModel = HomeViewModel(mapService: MockMapService(), searchService: MockLocationSearchService())
+        let url = try #require(URL(string: "https://lezgo-trip.netlify.app/join?code=897654"))
+
+        viewModel.OpenInviteLink(url)
+
+        #expect(viewModel.inviteRoomCode == "897654")
+    }
+
+    @Test("Opening a link that is not a valid invite keeps the previous room code")
+    func openInvalidLinkIsIgnored() throws {
+        let viewModel = HomeViewModel(mapService: MockMapService(), searchService: MockLocationSearchService())
+        let invite = try #require(URL(string: "lezgo://join?code=897654"))
+        let invalid = try #require(URL(string: "https://lezgo-trip.netlify.app/join?code=12"))
+
+        viewModel.OpenInviteLink(invite)
+        viewModel.OpenInviteLink(invalid)
+
+        #expect(viewModel.inviteRoomCode == "897654")
+    }
 }
