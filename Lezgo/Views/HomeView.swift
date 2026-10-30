@@ -111,17 +111,21 @@ struct HomeView: View {
             if isJoinTripPresented {
                 JoinTripView(
                     isPresented: $isJoinTripPresented,
+                    viewModel: JoinTripViewModel(roomCode: viewModel.inviteRoomCode ?? ""),
                     onEnter: { code in
                         Task {
                             _ = await viewModel.JoinTrip(roomCode: code, tripService: tripService)
                         }
                     }
                 )
+                // A second invite link while the dialog is open replaces the code instead of keeping the old one.
+                .id(viewModel.inviteRoomCode)
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .scale(scale: 0.94)),
                     removal: .identity
                 ))
-                .zIndex(100)
+                // Above the Draft Road Trip screen, so an invite link opened during another trip is still seen.
+                .zIndex(300)
             }
 
             // Draft Road Trip screen when an unfinished trip is present (US-03)
@@ -178,6 +182,17 @@ struct HomeView: View {
         )
         .onAppear {
             viewModel.onAppear()
+        }
+        // Universal links (https://lezgo.netlify.app/join) and the older lezgo:// links both arrive here (ADR 0020).
+        .onOpenURL { url in
+            if viewModel.OpenInviteLink(url) {
+                isJoinTripPresented = true
+            }
+        }
+        .onChange(of: isJoinTripPresented) { _, isPresented in
+            if !isPresented {
+                viewModel.inviteRoomCode = nil
+            }
         }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)

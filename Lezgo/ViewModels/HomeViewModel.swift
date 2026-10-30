@@ -134,9 +134,12 @@ final class HomeViewModel {
     }
 
     /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
-    func OpenInviteLink(_ url: URL) {
-        guard let roomCode = InviteLink.RoomCode(from: url) else { return }
+    /// Returns whether the link was an invite, so Home only opens "Enter room code" for one.
+    @discardableResult
+    func OpenInviteLink(_ url: URL) -> Bool {
+        guard let roomCode = InviteLink.RoomCode(from: url) else { return false }
         inviteRoomCode = roomCode
+        return true
     }
 
     /// Menangani perubahan teks pencarian saat kolom pencarian sedang fokus.
