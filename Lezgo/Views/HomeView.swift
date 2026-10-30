@@ -90,6 +90,17 @@ struct HomeView: View {
         )
         .safeAreaInset(edge: .top) { topNoticeInset }
         .onAppear { viewModel.onAppear() }
+        // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
+        .onOpenURL { url in viewModel.OpenInviteLink(url) }
+        .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
+            guard roomCode != nil else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                isJoinTripPresented = true
+            }
+        }
+        .onChange(of: isJoinTripPresented) { _, isPresented in
+            if !isPresented { viewModel.inviteRoomCode = nil }
+        }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)
         }
@@ -199,6 +210,7 @@ private extension HomeView {
             JoinTripView(
                 isPresented: $isJoinTripPresented,
                 viewModel: JoinTripViewModel(
+                    roomCode: viewModel.inviteRoomCode ?? "",
                     tripService: tripService,
                     storage: viewModel.activeTripStorage
                 ),
