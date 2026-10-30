@@ -11,7 +11,8 @@ import SwiftUI
 struct TripMapCameraControls: View {
     let cameraMode: TripMapViewModel.CameraMode
     let showWholeRoute: () -> Void
-    let followMyCar: () -> Void
+    /// Follows this phone's car; `nil` hides the button when the map's own location button does it.
+    let followMyCar: (() -> Void)?
     /// Opens Edit Route; `nil` hides the button, as on a member's phone.
     var editRoute: (() -> Void)?
 
@@ -26,12 +27,14 @@ struct TripMapCameraControls: View {
                 action: showWholeRoute
             )
                 .accessibilityAddTraits(cameraMode == .wholeRoute ? .isSelected : [])
-            Button(
-                .tripMapFollowMyCar,
-                systemImage: cameraMode == .followMyCar ? "location.fill" : "location",
-                action: followMyCar
-            )
-            .accessibilityAddTraits(cameraMode == .followMyCar ? .isSelected : [])
+            if let followMyCar {
+                Button(
+                    .tripMapFollowMyCar,
+                    systemImage: cameraMode == .followMyCar ? "location.fill" : "location",
+                    action: followMyCar
+                )
+                .accessibilityAddTraits(cameraMode == .followMyCar ? .isSelected : [])
+            }
         }
         .labelStyle(.iconOnly)
         .font(.title2)
@@ -43,6 +46,11 @@ struct TripMapCameraControls: View {
 
 #Preview("Following my car") {
     TripMapCameraControls(cameraMode: .followMyCar, showWholeRoute: {}, followMyCar: {})
+        .padding()
+}
+
+#Preview("With the map's location button") {
+    TripMapCameraControls(cameraMode: .followMyCar, showWholeRoute: {}, followMyCar: nil, editRoute: {})
         .padding()
 }
 
