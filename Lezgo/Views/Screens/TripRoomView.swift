@@ -83,12 +83,18 @@ struct TripRoomView: View {
         }
     }
 
+    private var isTransitioning: Bool {
+        viewModel?.isStartingTrip == true || viewModel?.hasTripStarted == true || hasFiredTripStarted
+    }
+
     private func lobbyView(viewModel: TripRoomViewModel) -> some View {
         ZStack {
             Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
             VStack(spacing: 0) {
                 TopBarView(
-                    viewModel: viewModel, onLeave: { showingLeaveConfirmation = true },
+                    viewModel: viewModel,
+                    isTransitioning: isTransitioning,
+                    onLeave: { showingLeaveConfirmation = true },
                     onSetLeader: { showingSetLeaderSheet = true }
                 ).padding(.bottom, 8)
 
@@ -96,6 +102,7 @@ struct TripRoomView: View {
                     RouteSectionView(waypoints: viewModel.waypoints)
                     TripRoomParticipantsSection(
                         viewModel: viewModel,
+                        isTransitioning: isTransitioning,
                         onKick: { participantToKick = $0 },
                         onSetLeader: { participantToSetLeader = $0 },
                         onEdit: { participantToEdit = $0 },
@@ -103,12 +110,16 @@ struct TripRoomView: View {
                     )
                 }
                 .listStyle(.insetGrouped).scrollContentBackground(.hidden)
+                .disabled(isTransitioning)
 
                 BottomActionView(
-                    viewModel: viewModel, onStartTrip: { showingStartTripConfirmation = true },
+                    viewModel: viewModel,
+                    isTransitioning: isTransitioning,
+                    onStartTrip: { showingStartTripConfirmation = true },
                     onRemove: { showingRemoveConfirmation = true }
                 ).padding(.horizontal, 16).padding(.vertical, 8)
             }
+            .animation(.easeInOut(duration: 0.25), value: isTransitioning)
         }
         .navigationBarBackButtonHidden(true)
         .modifier(TripRoomAlertsModifier(
@@ -162,35 +173,46 @@ private extension View {
 
 private struct TopBarView: View {
     let viewModel: TripRoomViewModel
+    let isTransitioning: Bool
     let onLeave: () -> Void
     let onSetLeader: () -> Void
 
     var body: some View {
         HStack {
-            if viewModel.isSelectionMode {
-                Button(viewModel.selectAllButtonTitle, action: viewModel.SelectAll)
-                    .font(.subheadline.weight(.medium)).foregroundStyle(.primary).padding(.horizontal, 16)
-                    .frame(height: 44).background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
+            if !isTransitioning {
+                if viewModel.isSelectionMode {
+                    Button(viewModel.selectAllButtonTitle, action: viewModel.SelectAll)
+                        .font(.subheadline.weight(.medium)).foregroundStyle(.primary).padding(.horizontal, 16)
+                        .frame(height: 44).background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
+                        .buttonStyle(.plain)
+                } else {
+                    Button(action: onLeave) {
+                        Image(systemName: "iphone.and.arrow.forward.outward")
+                            .rotationEffect(.degrees(180)).circleBarButtonStyle()
+                    }
                     .buttonStyle(.plain)
-            } else {
-                Button(action: onLeave) {
-                    Image(systemName: "iphone.and.arrow.forward.outward")
-                        .rotationEffect(.degrees(180)).circleBarButtonStyle()
+                    .disabled(viewModel.isLeaving)
+                    .accessibilityLabel(Text(.tripRoomExit))
                 }
-                .buttonStyle(.plain)
-                .disabled(viewModel.isLeaving)
-                .accessibilityLabel(Text(.tripRoomExit))
             }
             Spacer()
-            if viewModel.isSelectionMode {
-                Button(action: viewModel.ToggleSelectionMode) { Image(systemName: "checkmark").circleBarButtonStyle() }
-                    .buttonStyle(.plain).accessibilityLabel("Done selecting")
-            } else if viewModel.isCurrentUserLeader {
-                Menu {
-                    Button("Select", action: viewModel.ToggleSelectionMode)
-                    Button("Set leader", action: onSetLeader)
-                } label: { Image(systemName: "ellipsis").circleBarButtonStyle() }
-                .buttonStyle(.plain).accessibilityLabel("Room options")
+            if !isTransitioning {
+                if viewModel.isSelectionMode {
+                    Button(action: viewModel.ToggleSelectionMode) {
+                        Image(systemName: "checkmark").circleBarButtonStyle()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Done selecting")
+                } else if viewModel.isCurrentUserLeader {
+                    Menu {
+                        Button("Select", action: viewModel.ToggleSelectionMode)
+                        Button("Set leader", action: onSetLeader)
+                    } label: {
+                        Image(systemName: "ellipsis").circleBarButtonStyle()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Room options")
+                }
             }
         }.padding(.horizontal, 16)
     }
@@ -245,11 +267,22 @@ private extension WaypointKind {
 
 private struct BottomActionView: View {
     let viewModel: TripRoomViewModel
+    let isTransitioning: Bool
     let onStartTrip: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
-        if viewModel.isSelectionMode {
+        if isTransitioning {
+            HStack(spacing: 12) {
+                ProgressView()
+                Text("Starting Trip...")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.vertical, 8)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
+        } else if viewModel.isSelectionMode {
             HStack {
                 Spacer()
                 Button("Remove", action: onRemove)

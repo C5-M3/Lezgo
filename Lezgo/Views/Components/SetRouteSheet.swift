@@ -5,8 +5,8 @@
 //  Created by Farrell Sudjatmiko on 26/10/26.
 //
 
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct SetRouteSheet: View {
     @Environment(\.tripService) private var tripService
@@ -25,6 +25,7 @@ struct SetRouteSheet: View {
     /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
     var isStartPointLocked = false
     @State private var isShowingBackConfirmation: Bool = false
+    @State private var activeMapSession: TripSession?
 
     private var isNextButtonDisabled: Bool {
         if isNextDisabled { return true }
@@ -35,163 +36,8 @@ struct SetRouteSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Section 1: Starting Point
-                Section("Starting Point") {
-                    Button {
-                        viewModel.activeSelectionSheet = .start
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "location.fill")
-                                .accessibilityHidden(true)
-                                .foregroundStyle(.secondary)
-                            Text(viewModel.startPoint?.name ?? "Choose Starting Point...")
-                                .font(.body)
-                                .foregroundStyle(viewModel.startPoint == nil ? .secondary : .primary)
-                                .lineLimit(1)
-                            Spacer()
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isStartPointLocked)
-                }
-
-                // Section 2: Destinations (unified hierarchy)
-                Section("Destinations") {
-                    if !isFullPresentation && viewModel.destinations.count > 2 {
-                        // Collapsed: Top row shows summary count of previous stops
-                        let intermediateCount = viewModel.destinations.count - 1
-                        Button {
-                            onExpand?()
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "ellipsis.circle")
-                                    .accessibilityHidden(true)
-                                    .foregroundStyle(.secondary)
-
-                                Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-
-                                Spacer()
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-
-                        // Collapsed: Bottom row shows the final destination
-                        if let lastDestination = viewModel.destinations.last,
-                           let lastIndex = viewModel.destinations.indices.last {
-                            Button {
-                                viewModel.activeSelectionSheet = .destination(index: lastIndex)
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "mappin")
-                                        .accessibilityHidden(true)
-                                        .foregroundStyle(.secondary)
-
-                                    Text(lastDestination.name)
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
-
-                                    Spacer()
-                                }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    viewModel.removeDestination(at: lastIndex)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-                    } else {
-                        // Full presentation OR 2 or fewer destinations: show all items
-                        ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
-                            HStack(spacing: 12) {
-                                Button {
-                                    viewModel.activeSelectionSheet = .destination(index: index)
-                                } label: {
-                                    HStack(spacing: 12) {
-                                        Image(systemName: "mappin")
-                                            .accessibilityHidden(true)
-                                            .foregroundStyle(.secondary)
-
-                                        Text(point.name)
-                                            .font(.body)
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(1)
-
-                                        Spacer()
-                                    }
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-
-                                if isFullPresentation && viewModel.destinations.count > 1 {
-                                    Image(systemName: "line.3.horizontal")
-                                        .accessibilityHidden(true)
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    viewModel.removeDestination(at: index)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                            .draggable(point.id.uuidString)
-                            .dropDestination(for: String.self) { items, _ in
-                                guard let draggedID = items.first,
-                                      let fromIndex = viewModel.destinations.firstIndex(where: {
-                                          $0.id.uuidString == draggedID
-                                      }),
-                                      fromIndex != index else {
-                                    return false
-                                }
-                                withAnimation {
-                                    viewModel.moveDestination(
-                                        fromOffsets: IndexSet(integer: fromIndex),
-                                        toOffset: index > fromIndex ? index + 1 : index
-                                    )
-                                }
-                                return true
-                            }
-                        }
-                        .onDelete { indexSet in
-                            for index in indexSet.sorted().reversed() {
-                                viewModel.removeDestination(at: index)
-                            }
-                        }
-                        .onMove { fromOffsets, toOffset in
-                            if isFullPresentation {
-                                viewModel.moveDestination(fromOffsets: fromOffsets, toOffset: toOffset)
-                            }
-                        }
-
-                        if isFullPresentation || viewModel.destinations.count <= 1 {
-                            Button {
-                                viewModel.addDestination()
-                            } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "plus")
-                                        .accessibilityHidden(true)
-                                        .foregroundStyle(.secondary)
-                                    Text("Add...")
-                                        .font(.body)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                }
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
+                startingPointSection
+                destinationsSection
 
                 // Section 3: Summary Metrics (shown only when pulled to full)
                 if isFullPresentation {
@@ -206,24 +52,8 @@ struct SetRouteSheet: View {
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Back", systemImage: "chevron.left") {
-                        if viewModel.hasPlanChanges {
-                            isShowingBackConfirmation = true
-                        } else {
-                            onBack?()
-                        }
-                    }
-                    .disabled(isBackDisabled)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if viewModel.isCreatingTrip {
-                        ProgressView()
-                    } else {
-                        Button(nextTitle, systemImage: "arrow.right", action: HandleNext)
-                            .disabled(isNextButtonDisabled)
-                    }
-                }
+                toolbarLeading
+                toolbarTrailing
             }
             .alert(
                 "Discard Changes?",
@@ -247,27 +77,285 @@ struct SetRouteSheet: View {
             } message: {
                 Text(viewModel.errorMessage ?? "")
             }
-            .fullScreenCover(item: $viewModel.createdSession, onDismiss: HandleTripRoomDismissed) { session in
-                TripRoomView(
-                    viewModel: TripRoomViewModel(
-                        tripService: tripService,
-                        tripID: session.state.trip.id,
-                        myParticipantID: session.myParticipantID,
-                        initialState: session.state
-                    )
-                )
+            .fullScreenCover(
+                item: $viewModel.createdSession,
+                onDismiss: HandleTripRoomDismissed,
+                content: { session in
+                    tripRoomCover(session: session)
+                }
+            )
+        }
+    }
+}
+
+// MARK: - Subviews & Actions
+
+private extension SetRouteSheet {
+    @ToolbarContentBuilder
+    var toolbarLeading: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
+            Button("Back", systemImage: "chevron.left") {
+                if viewModel.hasPlanChanges {
+                    isShowingBackConfirmation = true
+                } else {
+                    onBack?()
+                }
+            }
+            .disabled(isBackDisabled)
+        }
+    }
+
+    @ToolbarContentBuilder
+    var toolbarTrailing: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            if viewModel.isCreatingTrip {
+                ProgressView()
+            } else {
+                Button(nextTitle, systemImage: "arrow.right", action: HandleNext)
+                    .disabled(isNextButtonDisabled)
             }
         }
     }
 
-    private func HandleNext() {
+    @ViewBuilder
+    var startingPointSection: some View {
+        Section("Starting Point") {
+            Button {
+                viewModel.activeSelectionSheet = .start
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "location.fill")
+                        .accessibilityHidden(true)
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.startPoint?.name ?? "Choose Starting Point...")
+                        .font(.body)
+                        .foregroundStyle(viewModel.startPoint == nil ? .secondary : .primary)
+                        .lineLimit(1)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isStartPointLocked)
+        }
+    }
+
+    @ViewBuilder
+    var destinationsSection: some View {
+        Section("Destinations") {
+            if !isFullPresentation && viewModel.destinations.count > 2 {
+                collapsedDestinationsView
+            } else {
+                fullDestinationsView
+            }
+        }
+    }
+
+    @ViewBuilder
+    var collapsedDestinationsView: some View {
+        let intermediateCount = viewModel.destinations.count - 1
+        Button {
+            onExpand?()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "ellipsis.circle")
+                    .accessibilityHidden(true)
+                    .foregroundStyle(.secondary)
+
+                Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+
+        if let lastDestination = viewModel.destinations.last,
+           let lastIndex = viewModel.destinations.indices.last {
+            Button {
+                viewModel.activeSelectionSheet = .destination(index: lastIndex)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "mappin")
+                        .accessibilityHidden(true)
+                        .foregroundStyle(.secondary)
+
+                    Text(lastDestination.name)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                Button(role: .destructive) {
+                    viewModel.removeDestination(at: lastIndex)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    var fullDestinationsView: some View {
+        ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
+            destinationRow(index: index, point: point)
+        }
+        .onDelete { indexSet in
+            for index in indexSet.sorted().reversed() {
+                viewModel.removeDestination(at: index)
+            }
+        }
+        .onMove { fromOffsets, toOffset in
+            if isFullPresentation {
+                viewModel.moveDestination(fromOffsets: fromOffsets, toOffset: toOffset)
+            }
+        }
+
+        if isFullPresentation || viewModel.destinations.count <= 1 {
+            Button {
+                viewModel.addDestination()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "plus")
+                        .accessibilityHidden(true)
+                        .foregroundStyle(.secondary)
+                    Text("Add...")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    func destinationRow(index: Int, point: RoutePoint) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                viewModel.activeSelectionSheet = .destination(index: index)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "mappin")
+                        .accessibilityHidden(true)
+                        .foregroundStyle(.secondary)
+
+                    Text(point.name)
+                        .font(.body)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isFullPresentation && viewModel.destinations.count > 1 {
+                Image(systemName: "line.3.horizontal")
+                    .accessibilityHidden(true)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                viewModel.removeDestination(at: index)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+        .draggable(point.id.uuidString)
+        .dropDestination(for: String.self) { items, _ in
+            guard let draggedID = items.first,
+                  let fromIndex = viewModel.destinations.firstIndex(where: {
+                      $0.id.uuidString == draggedID
+                  }),
+                  fromIndex != index else {
+                return false
+            }
+            withAnimation {
+                viewModel.moveDestination(
+                    fromOffsets: IndexSet(integer: fromIndex),
+                    toOffset: index > fromIndex ? index + 1 : index
+                )
+            }
+            return true
+        }
+    }
+
+    @ViewBuilder
+    func tripRoomCover(session: TripSession) -> some View {
+        TripRoomView(
+            viewModel: TripRoomViewModel(
+                tripService: tripService,
+                tripID: session.state.trip.id,
+                myParticipantID: session.myParticipantID,
+                initialState: session.state,
+                activeTripStorage: viewModel.activeTripStorage
+            ),
+            onTripStarted: {
+                activeMapSession = session
+            }
+        )
+        .fullScreenCover(
+            item: $activeMapSession,
+            onDismiss: {
+                viewModel.activeTripStorage.ClearActiveTrip()
+                activeMapSession = nil
+                HandleTripRoomDismissed()
+            },
+            content: { mapSession in
+                tripMapCover(mapSession: mapSession)
+            }
+        )
+    }
+
+    @ViewBuilder
+    func tripMapCover(mapSession: TripSession) -> some View {
+        TripMapView(
+            viewModel: TripMapViewModel(
+                tripID: mapSession.state.trip.id,
+                myParticipantID: mapSession.myParticipantID,
+                tripService: tripService,
+                navigator: SimulatedTripMapNavigator(),
+                streetNameService: LiveStreetNameService(),
+                locationSharer: LocationSharer(
+                    tripService: tripService,
+                    locationProvider: LiveLocationProvider(),
+                    tripID: mapSession.state.trip.id,
+                    participantID: mapSession.myParticipantID
+                ),
+                directionsService: LiveDirectionsService(),
+                activeTripStorage: viewModel.activeTripStorage
+            ),
+            onNewDestination: {},
+            onClose: {
+                viewModel.activeTripStorage.ClearActiveTrip()
+                activeMapSession = nil
+                HandleTripRoomDismissed()
+            }
+        )
+    }
+
+    func HandleNext() {
         if let onNext {
             onNext()
         } else {
             Task {
                 do {
                     let session = try await viewModel.CreateTrip(using: tripService)
-                    onTripCreated?(session)
+                    if let onTripCreated {
+                        viewModel.createdSession = nil
+                        onTripCreated(session)
+                    }
                 } catch {
                     // Error message is set in viewModel.errorMessage and shown in alert
                 }
@@ -275,31 +363,8 @@ struct SetRouteSheet: View {
         }
     }
 
-    private func HandleTripRoomDismissed() {
+    func HandleTripRoomDismissed() {
         viewModel.createdSession = nil
         onBack?()
-    }
-}
-
-private struct TripSummarySection: View {
-    let isLoadingRoute: Bool
-    let hasRoute: Bool
-    let totalDistance: CLLocationDistance
-    let totalDuration: TimeInterval
-
-    var body: some View {
-        if isLoadingRoute {
-            HStack {
-                Spacer()
-                ProgressView("Calculating optimal route...")
-                Spacer()
-            }
-        } else if hasRoute {
-            Section("Trip Summary") {
-                let distFormatted = String(format: "%.1f km", totalDistance / 1000)
-                LabeledContent("Total Distance", value: distFormatted)
-                LabeledContent("Estimated Time", value: "\(Int(totalDuration / 60)) min")
-            }
-        }
     }
 }

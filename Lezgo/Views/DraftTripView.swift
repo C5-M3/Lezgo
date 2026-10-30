@@ -17,17 +17,20 @@ struct DraftTripView: View {
     @State var viewModel: DraftTripViewModel
     var onContinueTrip: (() -> Void)?
     var onNewTrip: (() -> Void)?
+    var onTripEnded: (() -> Void)?
 
     // MARK: - Initializer
 
     init(
         viewModel: DraftTripViewModel,
         onContinueTrip: (() -> Void)? = nil,
-        onNewTrip: (() -> Void)? = nil
+        onNewTrip: (() -> Void)? = nil,
+        onTripEnded: (() -> Void)? = nil
     ) {
         self._viewModel = State(initialValue: viewModel)
         self.onContinueTrip = onContinueTrip
         self.onNewTrip = onNewTrip
+        self.onTripEnded = onTripEnded
     }
 
     // MARK: - Body
@@ -46,7 +49,10 @@ struct DraftTripView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.isConfirmingNewTrip)
         .task {
-            await viewModel.CheckServerStatus()
+            let isOpen = await viewModel.CheckServerStatus()
+            if !isOpen {
+                onTripEnded?()
+            }
         }
     }
 
