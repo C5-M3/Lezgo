@@ -899,6 +899,18 @@
         }
       }
     },
+    "tripRoomCancel" : {
+      "comment" : "Trip Room: closes the Exit confirmation without leaving (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        }
+      }
+    },
     "tripRoomCodeAccessibilityLabel" : {
       "comment" : "Invite sheet: what VoiceOver reads for the room code box (US-04). The placeholder is the 6 digits separated by commas, so each digit is read on its own, for example \"Room code: 8, 9, 7, 6, 5, 4\".",
       "extractionState" : "manual",
@@ -907,6 +919,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Room code: %@"
+          }
+        }
+      }
+    },
+    "tripRoomConfirm" : {
+      "comment" : "Trip Room: confirms leaving the room (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
           }
         }
       }
@@ -931,6 +955,42 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copy Code"
+          }
+        }
+      }
+    },
+    "tripRoomExit" : {
+      "comment" : "Trip Room: VoiceOver label of the top-left button that leaves the room (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit"
+          }
+        }
+      }
+    },
+    "tripRoomExitAndEndTripQuestion" : {
+      "comment" : "Trip Room: warning when the leader taps Exit; confirming cancels the trip for everyone (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit and end the trip for everyone? All members will leave this trip."
+          }
+        }
+      }
+    },
+    "tripRoomExitRoomQuestion" : {
+      "comment" : "Trip Room: confirmation when a member taps Exit (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exit the room?"
           }
         }
       }
