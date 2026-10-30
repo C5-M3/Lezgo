@@ -108,6 +108,11 @@ struct SetRouteMapView: View {
                 nextTitle: nextTitle,
                 onBack: onBack ?? ClearAndClose,
                 onNext: onNext,
+                onExpand: {
+                    withAnimation {
+                        selectedDetent = .large
+                    }
+                },
                 isBackDisabled: isBackDisabled,
                 isNextDisabled: isNextDisabled,
                 isStartPointLocked: isStartPointLocked

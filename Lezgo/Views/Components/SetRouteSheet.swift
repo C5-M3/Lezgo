@@ -19,6 +19,7 @@ struct SetRouteSheet: View {
     var onBack: (() -> Void)?
     var onNext: (() -> Void)?
     var onTripCreated: ((TripSession) -> Void)?
+    var onExpand: (() -> Void)?
     var isBackDisabled = false
     var isNextDisabled = false
     /// Edit Route always starts from the leader's position, so there the start point cannot be changed.
@@ -60,17 +61,23 @@ struct SetRouteSheet: View {
                     if !isFullPresentation && viewModel.destinations.count > 2 {
                         // Collapsed: Top row shows summary count of previous stops
                         let intermediateCount = viewModel.destinations.count - 1
-                        HStack(spacing: 12) {
-                            Image(systemName: "ellipsis.circle")
-                                .accessibilityHidden(true)
-                                .foregroundStyle(.secondary)
+                        Button {
+                            onExpand?()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "ellipsis.circle")
+                                    .accessibilityHidden(true)
+                                    .foregroundStyle(.secondary)
 
-                            Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
-                                .font(.body)
-                                .foregroundStyle(.secondary)
+                                Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
 
-                            Spacer()
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
 
                         // Collapsed: Bottom row shows the final destination
                         if let lastDestination = viewModel.destinations.last,
@@ -188,19 +195,12 @@ struct SetRouteSheet: View {
 
                 // Section 3: Summary Metrics (shown only when pulled to full)
                 if isFullPresentation {
-                    if viewModel.isLoadingRoute {
-                        HStack {
-                            Spacer()
-                            ProgressView("Calculating optimal route...")
-                            Spacer()
-                        }
-                    } else if viewModel.hasRoute {
-                        Section("Trip Summary") {
-                            let distFormatted = String(format: "%.1f km", viewModel.totalDistance / 1000)
-                            LabeledContent("Total Distance", value: distFormatted)
-                            LabeledContent("Estimated Time", value: "\(Int(viewModel.totalDuration / 60)) min")
-                        }
-                    }
+                    TripSummarySection(
+                        isLoadingRoute: viewModel.isLoadingRoute,
+                        hasRoute: viewModel.hasRoute,
+                        totalDistance: viewModel.totalDistance,
+                        totalDuration: viewModel.totalDuration
+                    )
                 }
             }
             .navigationTitle(Text(title))
@@ -278,5 +278,28 @@ struct SetRouteSheet: View {
     private func HandleTripRoomDismissed() {
         viewModel.createdSession = nil
         onBack?()
+    }
+}
+
+private struct TripSummarySection: View {
+    let isLoadingRoute: Bool
+    let hasRoute: Bool
+    let totalDistance: CLLocationDistance
+    let totalDuration: TimeInterval
+
+    var body: some View {
+        if isLoadingRoute {
+            HStack {
+                Spacer()
+                ProgressView("Calculating optimal route...")
+                Spacer()
+            }
+        } else if hasRoute {
+            Section("Trip Summary") {
+                let distFormatted = String(format: "%.1f km", totalDistance / 1000)
+                LabeledContent("Total Distance", value: distFormatted)
+                LabeledContent("Estimated Time", value: "\(Int(totalDuration / 60)) min")
+            }
+        }
     }
 }
