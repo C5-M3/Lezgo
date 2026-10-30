@@ -21,7 +21,7 @@ struct InviteLinkTests {
         "https://lezgo.netlify.app/join?code=897654",
         "https://lezgo.netlify.app/join/?code=897654",
         "https://LEZGO.netlify.app/join?code=897654",
-        "lezgo://join?code=897654",
+        "lezgo://join?code=897654"
     ])
     func OpeningAnInviteLinkGivesTheRoomCode(link: String) throws {
         let url = try #require(URL(string: link))
@@ -40,7 +40,7 @@ struct InviteLinkTests {
         "https://example.com/join?code=897654",
         "http://lezgo.netlify.app/join?code=897654",
         "lezgo://other?code=897654",
-        "mailto:someone@example.com",
+        "mailto:someone@example.com"
     ])
     func OtherLinksGiveNoRoomCode(link: String) throws {
         let url = try #require(URL(string: link))
