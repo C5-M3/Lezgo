@@ -37,8 +37,13 @@ struct TripMapViewModelMyGPSTests {
     /// Opens the map, sends one GPS reading, waits for it to be handled, then closes the map.
     private func Drive(_ viewModel: TripMapViewModel, to coordinate: Coordinate) async throws {
         let open = Task { await viewModel.Start() }
-        try await Task.sleep(for: .milliseconds(20))
-        gps.Send(LocationReading(coordinate: coordinate, speedKmh: 40, recordedAt: .now))
+        // The fake GPS drops readings sent before the map listens, which takes longer on a busy test machine, so
+        // the reading is sent until it arrives.
+        let reading = LocationReading(coordinate: coordinate, speedKmh: 40, recordedAt: .now)
+        for _ in 0..<200 where viewModel.myReading != reading {
+            gps.Send(reading)
+            try await Task.sleep(for: .milliseconds(10))
+        }
         try await Task.sleep(for: .milliseconds(40))
         open.cancel()
         await open.value
