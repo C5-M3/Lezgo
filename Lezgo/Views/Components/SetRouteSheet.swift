@@ -49,6 +49,7 @@ struct SetRouteSheet: View {
                                 .lineLimit(1)
                             Spacer()
                         }
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .disabled(isStartPointLocked)
@@ -74,23 +75,24 @@ struct SetRouteSheet: View {
                         // Collapsed: Bottom row shows the final destination
                         if let lastDestination = viewModel.destinations.last,
                            let lastIndex = viewModel.destinations.indices.last {
-                            HStack(spacing: 12) {
-                                Image(systemName: "mappin")
-                                    .accessibilityHidden(true)
-                                    .foregroundStyle(.secondary)
+                            Button {
+                                viewModel.activeSelectionSheet = .destination(index: lastIndex)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "mappin")
+                                        .accessibilityHidden(true)
+                                        .foregroundStyle(.secondary)
 
-                                Button {
-                                    viewModel.activeSelectionSheet = .destination(index: lastIndex)
-                                } label: {
                                     Text(lastDestination.name)
                                         .font(.body)
                                         .foregroundStyle(.primary)
                                         .lineLimit(1)
-                                }
-                                .buttonStyle(.plain)
 
-                                Spacer()
+                                    Spacer()
+                                }
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
                                     viewModel.removeDestination(at: lastIndex)
@@ -103,21 +105,30 @@ struct SetRouteSheet: View {
                         // Full presentation OR 2 or fewer destinations: show all items
                         ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
                             HStack(spacing: 12) {
-                                Image(systemName: "mappin")
-                                    .accessibilityHidden(true)
-                                    .foregroundStyle(.secondary)
-
                                 Button {
                                     viewModel.activeSelectionSheet = .destination(index: index)
                                 } label: {
-                                    Text(point.name)
-                                        .font(.body)
-                                        .foregroundStyle(.primary)
-                                        .lineLimit(1)
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "mappin")
+                                            .accessibilityHidden(true)
+                                            .foregroundStyle(.secondary)
+
+                                        Text(point.name)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
+                                            .lineLimit(1)
+
+                                        Spacer()
+                                    }
+                                    .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
 
-                                Spacer()
+                                if isFullPresentation && viewModel.destinations.count > 1 {
+                                    Image(systemName: "line.3.horizontal")
+                                        .accessibilityHidden(true)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) {
@@ -125,6 +136,28 @@ struct SetRouteSheet: View {
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                            }
+                            .draggable(point.id.uuidString)
+                            .dropDestination(for: String.self) { items, _ in
+                                guard let draggedID = items.first,
+                                      let fromIndex = viewModel.destinations.firstIndex(where: {
+                                          $0.id.uuidString == draggedID
+                                      }),
+                                      fromIndex != index else {
+                                    return false
+                                }
+                                withAnimation {
+                                    viewModel.moveDestination(
+                                        fromOffsets: IndexSet(integer: fromIndex),
+                                        toOffset: index > fromIndex ? index + 1 : index
+                                    )
+                                }
+                                return true
+                            }
+                        }
+                        .onDelete { indexSet in
+                            for index in indexSet.sorted().reversed() {
+                                viewModel.removeDestination(at: index)
                             }
                         }
                         .onMove { fromOffsets, toOffset in
@@ -146,6 +179,7 @@ struct SetRouteSheet: View {
                                         .foregroundStyle(.secondary)
                                     Spacer()
                                 }
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                         }
@@ -169,10 +203,6 @@ struct SetRouteSheet: View {
                     }
                 }
             }
-            .environment(
-                \.editMode,
-                isFullPresentation && viewModel.destinations.count > 1 ? .constant(.active) : .constant(.inactive)
-            )
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
