@@ -1,0 +1,151 @@
+//
+//  MockTripService.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
+import Foundation
+@testable import Lezgo
+
+/// A `TripService` whose live updates are a fixed list of states, sent at once and then finished.
+///
+/// "Exit Trip", "End Trip", saved alerts, checkpoint moves and saved routes are recorded, and `failure` makes leaving
+/// throw. The trip map uses no other calls, so they fail with `.notAllowed`; tests that need them use
+/// `InMemoryTripService`.
+final class MockTripService: TripService {
+    private let states: [TripState]
+    private var continuation: AsyncStream<TripState>.Continuation?
+    private(set) var requestedTripIDs: [UUID] = []
+    private(set) var exitedParticipantIDs: [UUID] = []
+    private(set) var endedByLeaderIDs: [UUID] = []
+    private(set) var savedAlerts: [FormationAlert] = []
+    private(set) var advancedCheckpointIndexes: [Int] = []
+    private(set) var savedRoutes: [TripPlan] = []
+    /// When set, the next `SaveRoute` throws it once.
+    var nextSaveRouteFailure: TripServiceError?
+    /// Runs while `SaveRoute` is on its way, before the route is recorded.
+    var whileSavingRoute: (() async -> Void)?
+    /// When set, the next `SetAlert` throws it once.
+    var nextAlertFailure: TripServiceError?
+    /// When set, the next `AdvanceCheckpoint` throws it once.
+    var nextAdvanceFailure: TripServiceError?
+    /// When set, runs before each state is sent with that state's index, after the previous one was handled. The
+    /// stream then sends the states one at a time, so a test can act between two updates.
+    var beforeEachState: ((Int) -> Void)?
+    /// When set, `ExitTrip` and `EndTrip` throw it.
+    var failure: TripServiceError?
+    /// Sent while `ExitTrip` or `EndTrip` is on its way, like an update from the cloud arriving before the request
+    /// returns. When set, the stream stays open after `states`.
+    var stateWhileLeaving: TripState?
+    /// Runs while `ExitTrip` or `EndTrip` is on its way, after `stateWhileLeaving` was sent.
+    var whileLeaving: (() async -> Void)?
+
+    init(states: [TripState]) {
+        self.states = states
+    }
+
+    func TripUpdates(tripID: UUID) -> AsyncStream<TripState> {
+        requestedTripIDs.append(tripID)
+        if let beforeEachState {
+            var index = 0
+            return AsyncStream { [states] in
+                guard index < states.count else { return nil }
+                beforeEachState(index)
+                index += 1
+                return states[index - 1]
+            }
+        }
+        return AsyncStream { continuation in
+            for state in states {
+                continuation.yield(state)
+            }
+            if stateWhileLeaving == nil {
+                continuation.finish()
+            } else {
+                self.continuation = continuation
+            }
+        }
+    }
+
+    func ExitTrip(tripID: UUID, participantID: UUID) async throws {
+        if let failure { throw failure }
+        await SendWhileLeaving()
+        exitedParticipantIDs.append(participantID)
+    }
+
+    func EndTrip(tripID: UUID, by leaderID: UUID) async throws {
+        if let failure { throw failure }
+        await SendWhileLeaving()
+        endedByLeaderIDs.append(leaderID)
+    }
+
+    private func SendWhileLeaving() async {
+        if let stateWhileLeaving {
+            continuation?.yield(stateWhileLeaving)
+        }
+        await whileLeaving?()
+    }
+
+    func CreateTrip(plan: TripPlan, profile: ParticipantProfile?) async throws -> TripSession {
+        throw TripServiceError.notAllowed
+    }
+
+    func JoinTrip(roomCode: String, profile: ParticipantProfile?) async throws -> TripSession {
+        throw TripServiceError.notAllowed
+    }
+
+    func FetchTrip(tripID: UUID) async throws -> TripState {
+        guard let last = states.last else { throw TripServiceError.notFound }
+        return last
+    }
+
+    func StartTrip(tripID: UUID, by leaderID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
+
+    func RemoveParticipants(_ participantIDs: [UUID], tripID: UUID, by leaderID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
+
+    func SetLeader(_ newLeaderID: UUID, tripID: UUID, replacing expectedLeaderID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
+
+    func UpdateLocation(_ update: LocationUpdate, participantID: UUID, tripID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
+
+    func SetAlert(_ alert: FormationAlert, participantID: UUID, tripID: UUID) async throws {
+        if let failure = nextAlertFailure {
+            nextAlertFailure = nil
+            throw failure
+        }
+        savedAlerts.append(alert)
+    }
+
+    func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws {
+        if let failure = nextAdvanceFailure {
+            nextAdvanceFailure = nil
+            throw failure
+        }
+        advancedCheckpointIndexes.append(waypointIndex)
+    }
+
+    func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
+        if let failure = nextSaveRouteFailure {
+            nextSaveRouteFailure = nil
+            throw failure
+        }
+        await whileSavingRoute?()
+        savedRoutes.append(plan)
+    }
+
+    func StartNewDestination(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
+
+    func UpdateProfile(_ profile: ParticipantProfile, participantID: UUID, tripID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
+}

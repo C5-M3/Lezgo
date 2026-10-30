@@ -1,3 +1,10 @@
+//
+//  MotionStateDetector.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 
 /// Decides whether a car is driving or stopped (`specs/UserStories.md` → US-06, "Car status").

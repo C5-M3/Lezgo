@@ -104,7 +104,10 @@ iOSInjectionProject/
 .gemini/
 .mcp.json
 .gemini-swarm/
+.omc/
 skills-lock.json
+docs/superpowers/
+.superpowers/
 
 # --------------------------------------------------
 # Per-developer signing settings (ADR 0015)
@@ -134,3 +137,6 @@ CODE_AUDIT.md
 # --------------------------------------------------
 context/
 tasks/
+
+# mock routes
+*.gpx

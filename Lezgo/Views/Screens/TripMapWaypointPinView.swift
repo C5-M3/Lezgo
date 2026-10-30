@@ -1,8 +1,15 @@
+//
+//  TripMapWaypointPinView.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
 /// A start point, checkpoint or destination on the trip map. Visited checkpoints are shown with a check mark.
 struct TripMapWaypointPinView: View {
-    let waypoint: TripMapWaypoint
+    let waypoint: Waypoint
     let isVisited: Bool
 
     var body: some View {
@@ -38,12 +45,15 @@ struct TripMapWaypointPinView: View {
 }
 
 #Preview("Every kind of waypoint") {
-    let coordinate = TripMapCoordinate(latitude: 0, longitude: 0)
-    let waypoints = [
-        TripMapWaypoint(id: UUID(), orderIndex: 0, kind: .start, name: "Tunjungan Plaza", coordinate: coordinate),
-        TripMapWaypoint(id: UUID(), orderIndex: 1, kind: .checkpoint, name: "Ciputra World", coordinate: coordinate),
-        TripMapWaypoint(id: UUID(), orderIndex: 2, kind: .destination, name: "Pakuwon mall", coordinate: coordinate)
+    let coordinate = Coordinate(latitude: 0, longitude: 0)
+    let stops: [(WaypointKind, String)] = [
+        (.start, "Tunjungan Plaza"),
+        (.checkpoint, "Ciputra World"),
+        (.destination, "Pakuwon mall")
     ]
+    let waypoints = stops.enumerated().map { index, stop in
+        Waypoint(id: UUID(), tripID: UUID(), orderIndex: index, kind: stop.0, name: stop.1, coordinate: coordinate)
+    }
     HStack(spacing: 16) {
         ForEach(waypoints) { waypoint in
             TripMapWaypointPinView(waypoint: waypoint, isVisited: waypoint.kind == .start)

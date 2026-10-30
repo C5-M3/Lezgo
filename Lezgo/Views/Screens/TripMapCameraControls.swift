@@ -1,13 +1,25 @@
+//
+//  TripMapCameraControls.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
-/// The two round map buttons: show the whole route, and follow my car.
+/// The round map buttons: Edit Route (leader only), show the whole route, and follow my car.
 struct TripMapCameraControls: View {
-    let cameraMode: TripMapCameraMode
+    let cameraMode: TripMapViewModel.CameraMode
     let showWholeRoute: () -> Void
     let followMyCar: () -> Void
+    /// Opens Edit Route; `nil` hides the button, as on a member's phone.
+    var editRoute: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 12) {
+            if let editRoute {
+                Button(.tripMapEditRoute, systemImage: "pencil", action: editRoute)
+            }
             Button(
                 .tripMapShowWholeRoute,
                 systemImage: "point.topleft.down.to.point.bottomright.curvepath",
@@ -34,8 +46,8 @@ struct TripMapCameraControls: View {
         .padding()
 }
 
-#Preview("Whole route, largest text") {
-    TripMapCameraControls(cameraMode: .wholeRoute, showWholeRoute: {}, followMyCar: {})
+#Preview("Leader, largest text") {
+    TripMapCameraControls(cameraMode: .wholeRoute, showWholeRoute: {}, followMyCar: {}, editRoute: {})
         .padding()
         .dynamicTypeSize(.accessibility5)
 }

@@ -1,3 +1,10 @@
+//
+//  LocationSharer.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 
 /// Sends this phone's position to the trip once per `interval` while it runs (#170).

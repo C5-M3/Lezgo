@@ -1,3 +1,10 @@
+//
+//  TripMapViewModelSharingTests.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 27/10/26.
+//
+
 import Foundation
 import Testing
 @testable import Lezgo
@@ -16,8 +23,10 @@ struct TripMapViewModelSharingTests {
         )
         let viewModel = TripMapViewModel(
             tripID: SampleTrip.tripID,
-            service: TripServiceMapAdapter(tripService: service, myParticipantID: SampleTrip.budiID),
+            myParticipantID: SampleTrip.budiID,
+            tripService: service,
             navigator: MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
             locationSharer: sharer
         )
 
@@ -46,8 +55,10 @@ struct TripMapViewModelSharingTests {
         )
         let viewModel = TripMapViewModel(
             tripID: SampleTrip.tripID,
-            service: TripServiceMapAdapter(tripService: service, myParticipantID: SampleTrip.budiID),
+            myParticipantID: SampleTrip.budiID,
+            tripService: service,
             navigator: MockTripMapNavigator(results: [.success(TripMapFixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
             locationSharer: sharer
         )
         let open = Task { await viewModel.Start() }

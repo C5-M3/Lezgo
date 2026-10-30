@@ -12,12 +12,8 @@ import SwiftUI
 /// - iOS 18 ke atas: Menggunakan sistem Liquid Glass (HIG) dengan `glassEffect` dan `buttonStyle(.glass)`.
 /// - Di bawah iOS 18: Menggunakan Material standar Apple HIG (`.ultraThinMaterial` / `.regularMaterial`).
 struct TravelSearchBar: View {
-    @Binding var text: String
     var placeholder: String = "Where do you want to travel ?"
-    var isSearching: Bool = false
-    var isFocused: FocusState<Bool>.Binding?
-    var onSearch: (() -> Void)?
-    var onSubmit: (() -> Void)?
+    var onTap: (() -> Void)?
 
     var body: some View {
         if #available(iOS 18.0, *) {
@@ -32,9 +28,9 @@ struct TravelSearchBar: View {
     @available(iOS 18.0, *)
     private var liquidGlassSearchBar: some View {
         HStack(spacing: 8) {
-            // Kolom input pencarian dengan Liquid Glass
+            // Kolom teks pencarian dengan Liquid Glass
             HStack(spacing: 8) {
-                textFieldView
+                searchPromptView
             }
             .padding(.horizontal, 18)
             .frame(height: 48)
@@ -42,9 +38,7 @@ struct TravelSearchBar: View {
 
             // Tombol ikon pencarian dengan tombol kaca HIG
             Button {
-                isFocused?.wrappedValue = false
-                hideKeyboard()
-                onSearch?()
+                onTap?()
             } label: {
                 searchIconView
                     .frame(width: 30, height: 40)
@@ -58,15 +52,20 @@ struct TravelSearchBar: View {
                 .fill(Color(uiColor: .systemGray4).opacity(0.35))
         }
         .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 5)
+        .contentShape(Capsule())
+        .onTapGesture {
+            onTap?()
+        }
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Pre-iOS 18 Standard Material Implementation
 
     private var legacyMaterialSearchBar: some View {
         HStack(spacing: 8) {
-            // Kolom input pencarian dengan Material standar
+            // Kolom teks pencarian dengan Material standar
             HStack(spacing: 8) {
-                textFieldView
+                searchPromptView
             }
             .padding(.horizontal, 18)
             .frame(height: 48)
@@ -74,9 +73,7 @@ struct TravelSearchBar: View {
 
             // Tombol ikon pencarian dengan material bundar
             Button {
-                isFocused?.wrappedValue = false
-                hideKeyboard()
-                onSearch?()
+                onTap?()
             } label: {
                 searchIconView
                     .foregroundStyle(Color(uiColor: .label).opacity(0.85))
@@ -96,137 +93,29 @@ struct TravelSearchBar: View {
                 )
         }
         .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 5)
+        .contentShape(Capsule())
+        .onTapGesture {
+            onTap?()
+        }
+        .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - Shared Views
 
-    private var textFieldView: some View {
+    private var searchPromptView: some View {
         HStack(spacing: 8) {
-            Group {
-                if let isFocused {
-                    textFieldInput
-                        .focused(isFocused)
-                } else {
-                    textFieldInput
-                }
-            }
-
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundStyle(Color(uiColor: .tertiaryLabel))
-                        .accessibilityHidden(true)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Hapus teks pencarian")
-            }
-        }
-    }
-
-    private var textFieldInput: some View {
-        TextField(
-            "",
-            text: $text,
-            prompt: Text(placeholder)
+            Text(placeholder)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(Color(uiColor: .placeholderText).opacity(0.85))
-        )
-        .font(.system(size: 16, weight: .medium))
-        .foregroundStyle(Color.primary)
-        .autocorrectionDisabled()
-        .textInputAutocapitalization(.never)
-        .submitLabel(.search)
-        .onSubmit {
-            isFocused?.wrappedValue = false
-            hideKeyboard()
-            onSubmit?()
+                .lineLimit(1)
+            Spacer()
         }
     }
 
-    @ViewBuilder
     private var searchIconView: some View {
-        if isSearching {
-            ProgressView()
-                .scaleEffect(0.85)
-        } else {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 20, weight: .medium))
-                .accessibilityHidden(true)
-        }
-    }
-}
-
-/// Tampilan daftar saran/rekomendasi pencarian tempat dari Apple MapKit (`MKLocalSearchCompletion`).
-struct LocationSuggestionsListView: View {
-    var suggestions: [MKLocalSearchCompletion]
-    var onSelect: (MKLocalSearchCompletion) -> Void
-
-    var body: some View {
-        if #available(iOS 18.0, *) {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: 18))
-                .shadow(color: .black.opacity(0.14), radius: 12, x: 0, y: 6)
-        } else {
-            content
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
-                .shadow(color: .black.opacity(0.14), radius: 12, x: 0, y: 6)
-        }
-    }
-
-    private var content: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(suggestions.prefix(6).enumerated()), id: \.offset) { index, item in
-                    Button {
-                        onSelect(item)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.system(size: 22))
-                                .foregroundStyle(.blue)
-                                .accessibilityHidden(true)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.title)
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(Color.primary)
-                                    .lineLimit(1)
-
-                                if !item.subtitle.isEmpty {
-                                    Text(item.subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(Color.secondary)
-                                        .lineLimit(1)
-                                }
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "arrow.up.left")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(uiColor: .tertiaryLabel))
-                                .accessibilityHidden(true)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    if index < min(suggestions.count, 6) - 1 {
-                        Divider()
-                            .padding(.leading, 50)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .frame(maxHeight: 220)
+        Image(systemName: "magnifyingglass")
+            .font(.system(size: 20, weight: .medium))
+            .accessibilityHidden(true)
     }
 }
 
@@ -244,7 +133,7 @@ struct MapDoorButton: View {
                     .accessibilityHidden(true)
             }
             .buttonStyle(.glass)
-            .accessibilityLabel("Kembali ke Lokasi Pengguna atau Reset")
+            .accessibilityLabel("Buka Menu Room Trip")
         } else {
             Button(action: action) {
                 Image(systemName: "door.left.hand.closed")
@@ -256,23 +145,36 @@ struct MapDoorButton: View {
                     .accessibilityHidden(true)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Kembali ke Lokasi Pengguna atau Reset")
+            .accessibilityLabel("Buka Menu Room Trip")
         }
     }
 }
 
-/// Komponen gabungan yang menyertakan tombol pintu melayang, daftar saran pencarian (autocomplete),
-/// dan bilah pencarian mengambang.
+/// Komponen gabungan yang menyertakan tombol pintu melayang dan bilah pencarian mengambang.
 struct TravelMapControlsView: View {
-    @Binding var searchText: String
     var placeholder: String = "Where do you want to travel ?"
-    var suggestions: [MKLocalSearchCompletion] = []
-    var isSearching: Bool = false
-    var isFocused: FocusState<Bool>.Binding?
     var onDoorTapped: (() -> Void)?
-    var onSearch: (() -> Void)?
-    var onSubmit: (() -> Void)?
-    var onSelectSuggestion: ((MKLocalSearchCompletion) -> Void)?
+    var onTap: (() -> Void)?
+
+    init(
+        placeholder: String = "Where do you want to travel ?",
+        onDoorTapped: (() -> Void)? = nil,
+        onTap: (() -> Void)? = nil
+    ) {
+        self.placeholder = placeholder
+        self.onDoorTapped = onDoorTapped
+        self.onTap = onTap
+    }
+
+    init(
+        placeholder: String = "Where do you want to travel ?",
+        onDoorTapped: (() -> Void)? = nil,
+        onTapSearch: (() -> Void)? = nil
+    ) {
+        self.placeholder = placeholder
+        self.onDoorTapped = onDoorTapped
+        self.onTap = onTapSearch
+    }
 
     var body: some View {
         if #available(iOS 18.0, *) {
@@ -288,32 +190,15 @@ struct TravelMapControlsView: View {
         VStack(alignment: .trailing, spacing: 12) {
             // Tombol pintu melayang di kanan atas
             MapDoorButton {
-                isFocused?.wrappedValue = false
-                hideKeyboard()
                 onDoorTapped?()
-            }
-
-            // Daftar saran autocomplete yang muncul ketika ada hasil saran dan kolom pencarian aktif
-            if (isFocused?.wrappedValue ?? true) && !suggestions.isEmpty {
-                LocationSuggestionsListView(suggestions: suggestions) { suggestion in
-                    isFocused?.wrappedValue = false
-                    hideKeyboard()
-                    onSelectSuggestion?(suggestion)
-                }
-                .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .bottom)))
             }
 
             // Bilah pencarian di bagian bawah
             TravelSearchBar(
-                text: $searchText,
                 placeholder: placeholder,
-                isSearching: isSearching,
-                isFocused: isFocused,
-                onSearch: onSearch,
-                onSubmit: onSubmit
+                onTap: onTap
             )
         }
-        .animation(.easeInOut(duration: 0.25), value: suggestions.isEmpty)
     }
 }
 
@@ -335,7 +220,7 @@ extension View {
         Map()
             .ignoresSafeArea()
 
-        TravelMapControlsView(searchText: .constant(""))
+        TravelMapControlsView(onTap: {})
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
     }

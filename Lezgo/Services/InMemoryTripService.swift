@@ -1,3 +1,10 @@
+//
+//  InMemoryTripService.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// A complete `TripService` that keeps trips in an `InMemoryTripStore` instead of iCloud (ADR 0017).
@@ -115,6 +122,10 @@ final class InMemoryTripService: TripService {
             guard state.trip.leaderParticipantID == expectedLeaderID else { throw TripServiceError.conflict }
             guard state.participants.contains(where: { $0.id == newLeaderID }) else { throw TripServiceError.notFound }
             state.trip.leaderParticipantID = newLeaderID
+            // The leader never has a formation alert, so one saved as a member is cleared.
+            if let index = state.participants.firstIndex(where: { $0.id == newLeaderID }) {
+                state.participants[index].alert = .none
+            }
         }
     }
 

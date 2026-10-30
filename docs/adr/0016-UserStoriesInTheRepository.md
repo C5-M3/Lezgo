@@ -1,6 +1,6 @@
 # 0016. User stories in the repository
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-26
 - Deciders: Nathan
 

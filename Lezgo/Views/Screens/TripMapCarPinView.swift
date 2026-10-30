@@ -1,9 +1,19 @@
+//
+//  TripMapCarPinView.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import SwiftUI
 
 /// A car on the trip map. My car shows an arrow, the leader a crown, and other cars a car.
-/// A stopped car gets a pause badge, and an offline car is faded at its last position.
+/// A stopped car gets a pause badge, and an offline car is faded at its last position. The tapped car has a halo.
+/// A car off the route or ahead of the leader gets a red ring and a warning badge.
 struct TripMapCarPinView: View {
     let pin: TripMapCarPin
+    /// Whether this car's status card is open.
+    var isSelected = false
 
     var body: some View {
         Image(systemName: Symbol())
@@ -11,7 +21,17 @@ struct TripMapCarPinView: View {
             .foregroundStyle(pin.motionState == .stopped ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
             .frame(width: 44, height: 44)
             .background(.background, in: .circle)
-            .overlay { Circle().strokeBorder(.tint, lineWidth: pin.isMe ? 3 : 1) }
+            .overlay(alignment: .topTrailing) {
+                if pin.isAlerting {
+                    Circle().strokeBorder(Color(.formationAlertBackground), lineWidth: 4)
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.white, Color(.formationAlertBackground))
+                        .accessibilityHidden(true)
+                } else {
+                    Circle().strokeBorder(.tint, lineWidth: pin.isMe ? 3 : 1)
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 if pin.motionState == .stopped {
                     Image(systemName: "pause.circle.fill")
@@ -28,6 +48,15 @@ struct TripMapCarPinView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: pin.displayName))
             .accessibilityValue(Text(Statuses().formatted(.list(type: .and, width: .narrow))))
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .background {
+                // The halo around the tapped car, like the focus ring in the lo-fi.
+                if isSelected {
+                    Circle()
+                        .fill(.tint.opacity(0.25))
+                        .padding(-10)
+                }
+            }
     }
 
     private func Symbol() -> String {
@@ -40,6 +69,7 @@ struct TripMapCarPinView: View {
         var statuses: [String] = []
         if pin.isMe { statuses.append(String(localized: .tripMapCarYou)) }
         if pin.isLeader { statuses.append(String(localized: .tripMapCarLeader)) }
+        if pin.isAlerting { statuses.append(String(localized: .tripMapCarAlert)) }
         if pin.isOffline {
             statuses.append(String(localized: .tripMapCarOffline))
         } else {
@@ -50,12 +80,13 @@ struct TripMapCarPinView: View {
 }
 
 #Preview("Every kind of car") {
-    let coordinate = TripMapCoordinate(latitude: 0, longitude: 0)
+    let coordinate = Coordinate(latitude: 0, longitude: 0)
     let pins = [
-        ("Budi", TripMapMotionState.driving, false, false, false),
+        ("Budi", MotionState.driving, false, false, false),
         ("Me", .driving, false, true, false),
         ("Agus", .driving, true, false, false),
         ("Dewi", .stopped, false, false, false),
+        ("Eka", .driving, false, false, false),
         ("Citra", .stopped, false, false, true)
     ].map { name, motionState, isLeader, isMe, isOffline in
         TripMapCarPin(
@@ -65,12 +96,13 @@ struct TripMapCarPinView: View {
             motionState: motionState,
             isLeader: isLeader,
             isMe: isMe,
-            isOffline: isOffline
+            isOffline: isOffline,
+            isAlerting: name == "Eka"
         )
     }
     HStack(spacing: 16) {
         ForEach(pins) { pin in
-            TripMapCarPinView(pin: pin)
+            TripMapCarPinView(pin: pin, isSelected: pin.displayName == "Budi")
         }
     }
     .padding()

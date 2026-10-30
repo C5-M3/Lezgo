@@ -1,6 +1,6 @@
 # 0014. CloudKit public database for trip sync
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-10-23
 - Deciders: Nathan Sudiara
 

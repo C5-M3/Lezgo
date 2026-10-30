@@ -1,3 +1,10 @@
+//
+//  TripServiceRoadTests.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 import Testing
 @testable import Lezgo
@@ -51,6 +58,17 @@ struct TripServiceRoadTests {
         try await phones.budi.SetAlert(.offRoute, participantID: group.budiID, tripID: group.tripID)
 
         #expect(try await phones.Budi(in: group)?.alert == .offRoute)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewLeaderLosesTheirAlert(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroupOnTheRoad()
+        try await phones.budi.SetAlert(.aheadOfLeader, participantID: group.budiID, tripID: group.tripID)
+
+        try await phones.agus.SetLeader(group.budiID, tripID: group.tripID, replacing: group.agusID)
+
+        #expect(try await phones.Budi(in: group)?.alert == FormationAlert.none)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)

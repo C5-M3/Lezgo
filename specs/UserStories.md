@@ -292,6 +292,9 @@ Feature: Resume an unfinished trip
 
 **Invite**
 - `+` next to "Participants" opens a sheet with the room code in large text, "or", and "Share Link" (iOS share sheet with the invite link). Leader and members can both invite.
+- Tapping the room code copies the 6 digits and shows "Copied" in the box for 2 seconds. Touching and holding it shows "Copy Code". The lo-fi has no copy button, so copying lives on the code itself.
+- "Share Link" sends "Join my Lezgo trip with code 897654" together with the invite link.
+- Copying and "Share Link" stay disabled until the room code has loaded.
 
 **Edit my name and car** — **Needs lo-fi** (tap my own row → edit sheet)
 - I can only edit my own row. Name: 1–30 characters, required. Car description: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
@@ -326,7 +329,12 @@ Feature: Trip Room
     When "Budi" taps "+"
     Then "Budi" sees "897654" in large text
     When "Budi" taps "Share Link"
-    Then the share sheet opens with "lezgo://join?code=897654"
+    Then the share sheet opens with "Join my Lezgo trip with code 897654" and "lezgo://join?code=897654"
+
+  Scenario: Copy the room code
+    When "Budi" taps "+" and then the room code
+    Then "897654" is on the pasteboard
+    And "Budi" sees "Copied"
 
   Scenario: Edit my name and car
     When "Budi" taps his own row and sets "Budi" and "White Avanza"
@@ -375,6 +383,7 @@ Only the leader sees these actions, and only in the Trip Room.
 **Remove members**
 - Swipe a row left → "Kick", or `...` → "Select" → tick rows (or "Select all") → "Remove".
 - The leader cannot remove themselves ("Kick" disabled, no checkbox on the leader's row).
+- On the leader's own row "Kick" and "Set Lead" are gray and do nothing. VoiceOver adds the hint "Not available for the leader." to both, so the gray color is not the only sign.
 - Confirm: "Remove XX from the trip?" or "Remove XX and N others from the trip?" → "Cancel" / "Remove".
 - A removed member sees "You were removed from the trip." and returns to Home. They can join again with the code.
 
@@ -476,6 +485,8 @@ Feature: Manage the group and start
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
 - Tap elsewhere or swipe down to close.
+- An offline car's card shows no ETA, because its last position is out of date.
+- Until the street and ETA are known (or without network), the card shows the status alone ("Driving").
 
 **Formation alerts (members only)**
 

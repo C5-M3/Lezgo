@@ -1,3 +1,10 @@
+//
+//  InMemoryTripStore.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
 import Foundation
 
 /// The trips an `InMemoryTripService` keeps, like a tiny server in memory.
