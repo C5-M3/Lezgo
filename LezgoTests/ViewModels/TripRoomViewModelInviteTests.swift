@@ -15,7 +15,7 @@ struct TripRoomViewModelInviteTests {
     @Test func InviteLinkCarriesTheRoomCode() {
         let viewModel = MakeViewModel(me: SampleTrip.budiID, state: SampleTrip.State(status: .lobby))
 
-        #expect(viewModel.inviteURL.absoluteString == "lezgo://join?code=897654")
+        #expect(viewModel.inviteURL.absoluteString == "https://lezgo-trip.netlify.app/join?code=897654")
     }
 
     @Test func ShareMessageNamesTheRoomCode() {

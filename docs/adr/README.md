@@ -34,3 +34,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0017](0017-TripServiceContractFirst.md) | Trip service contract first, with an in-memory service | Accepted | 2026-10-26 |
 | [0018](0018-DebugToolsInTheirOwnFolder.md) | Debug tools in their own folder | Accepted | 2026-10-27 |
 | [0019](0019-SmallTypesStayWithTheirOwner.md) | Small helper types stay with the type that uses them | Accepted | 2026-10-27 |
+| [0020](0020-UniversalInviteLinkOnNetlify.md) | Universal invite link on a free Netlify site | Proposed | 2026-10-30 |
