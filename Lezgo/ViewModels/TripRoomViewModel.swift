@@ -171,7 +171,11 @@ final class TripRoomViewModel {
                 activeTripStorage.ClearActiveTrip()
             }
 
-            if !wasRemovedFromTrip && newState.trip.status == .inTrip {
+            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
+            // the participants, but is not removed, so the check above does not catch them.
+            if !wasRemovedFromTrip && !isLeaving && !hasLeft
+                && (isStillInTrip || isCurrentUserLeader)
+                && newState.trip.status == .inTrip {
                 hasTripStarted = true
             }
 
