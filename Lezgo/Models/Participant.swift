@@ -27,6 +27,8 @@ struct Participant: Identifiable, Hashable, Codable {
     var motionState: MotionState
     var alert: FormationAlert
     var lastSeenAt: Date
+    /// The way the car was heading at its last position, in degrees clockwise from north; `nil` when unknown.
+    var course: Double?
 
     func IsLeader(in trip: Trip) -> Bool {
         id == trip.leaderParticipantID

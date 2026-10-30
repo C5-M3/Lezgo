@@ -13,6 +13,8 @@ struct TripMapCarPin: Identifiable, Hashable {
     var displayName: String
     var coordinate: Coordinate
     var motionState: MotionState
+    /// The way the car is heading, in degrees clockwise from north; `nil` draws the car without a direction.
+    var course: Double?
     var isLeader: Bool
     var isMe: Bool
     /// Offline cars stay at their last position and are drawn faded.

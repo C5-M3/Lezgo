@@ -159,6 +159,7 @@ final class InMemoryTripService: TripService {
             participant.speedKmh = update.speedKmh
             participant.motionState = update.motionState
             participant.lastSeenAt = update.recordedAt
+            participant.course = update.course
         }
     }
 

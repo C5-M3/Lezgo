@@ -99,6 +99,7 @@ enum TripRecordMapper {
         record["motionState"] = participant.motionState.rawValue
         record["alert"] = participant.alert.rawValue
         record["lastSeenAt"] = participant.lastSeenAt
+        record["course"] = participant.course
     }
 
     static func MakeParticipant(from record: CKRecord) throws -> Participant {
@@ -117,7 +118,8 @@ enum TripRecordMapper {
             speedKmh: reader.OptionalValue("speedKmh") ?? 0,
             motionState: try reader.Enum("motionState"),
             alert: try reader.Enum("alert"),
-            lastSeenAt: try reader.Value("lastSeenAt")
+            lastSeenAt: try reader.Value("lastSeenAt"),
+            course: reader.OptionalValue("course")
         )
     }
 
@@ -129,6 +131,7 @@ enum TripRecordMapper {
         record["speedKmh"] = update.speedKmh
         record["motionState"] = update.motionState.rawValue
         record["lastSeenAt"] = update.recordedAt
+        record["course"] = update.course
     }
 
     // MARK: Route
