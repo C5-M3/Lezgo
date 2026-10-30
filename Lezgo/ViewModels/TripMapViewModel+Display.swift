@@ -36,6 +36,17 @@ extension TripMapViewModel {
         state == nil
     }
 
+    /// Only the leader can change the route, while the trip is open and once their position is known.
+    var canEditRoute: Bool {
+        isLeader && closeReason == nil && myCoordinate != nil
+    }
+
+    /// The trip as the Trip Room opens it, once the map closed to go back there after a New Destination.
+    var tripRoomSession: TripSession? {
+        guard closeReason == .backToTripRoom, let state else { return nil }
+        return TripSession(myParticipantID: myParticipantID, state: state)
+    }
+
     /// Whether the leader has already moved the trip past this waypoint.
     func IsVisited(_ waypoint: Waypoint) -> Bool {
         guard let state else { return false }
