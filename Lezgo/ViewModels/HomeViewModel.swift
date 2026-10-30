@@ -234,6 +234,12 @@ final class HomeViewModel {
         }
     }
 
+    /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
+    func OpenInviteLink(_ url: URL) {
+        guard let roomCode = InviteLink.RoomCode(from: url) else { return }
+        inviteRoomCode = roomCode
+    }
+
     /// Menangani perubahan teks pencarian saat kolom pencarian sedang fokus.
     func onSearchTextChanged(_ newValue: String, isFocused: Bool = true) {
         searchText = newValue
