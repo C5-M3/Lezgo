@@ -26,6 +26,8 @@ final class TripRoomViewModel {
     var wasRemovedFromTrip: Bool = false
     /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
     var wasEndedByLeader = false
+    private(set) var hasTripStarted = false
+    private(set) var isStartingTrip = false
     private(set) var isSavingProfile = false
     /// `true` while an exit request is on its way; Exit is disabled meanwhile.
     private(set) var isLeaving = false
@@ -60,7 +62,7 @@ final class TripRoomViewModel {
     }
 
     var canStartTrip: Bool {
-        guard isCurrentUserLeader, let state else { return false }
+        guard isCurrentUserLeader, !isStartingTrip, !hasTripStarted, let state else { return false }
         return state.participants.count > 1
     }
 
@@ -140,6 +142,13 @@ final class TripRoomViewModel {
         self.state = initialState
         self.isSelectionMode = false
         self.selectedParticipantIds = []
+        if let initialState, initialState.trip.status == .inTrip {
+            let isLeader = initialState.trip.leaderParticipantID == myParticipantID
+            let isStillInTrip = initialState.participants.contains(where: { $0.id == myParticipantID })
+            if isLeader || isStillInTrip {
+                self.hasTripStarted = true
+            }
+        }
     }
 
     func Listen() async {
@@ -162,6 +171,14 @@ final class TripRoomViewModel {
                 activeTripStorage.ClearActiveTrip()
             }
 
+            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
+            // the participants, but is not removed, so the check above does not catch them.
+            if !wasRemovedFromTrip && !isLeaving && !hasLeft
+                && (isStillInTrip || isCurrentUserLeader)
+                && newState.trip.status == .inTrip {
+                hasTripStarted = true
+            }
+
             if !isCurrentUserLeader && isSelectionMode {
                 isSelectionMode = false
                 selectedParticipantIds.removeAll()
@@ -170,8 +187,12 @@ final class TripRoomViewModel {
     }
 
     func StartTrip() async throws {
-        guard isCurrentUserLeader, canStartTrip else { return }
+        // `canStartTrip` is false while a start is saving or after it, so a second tap does nothing.
+        guard canStartTrip else { return }
+        isStartingTrip = true
+        defer { isStartingTrip = false }
         try await tripService.StartTrip(tripID: tripID, by: myParticipantID)
+        hasTripStarted = true
     }
 
     func ToggleSelectionMode() {

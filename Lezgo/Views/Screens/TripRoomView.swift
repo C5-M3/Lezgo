@@ -15,6 +15,8 @@ struct TripRoomView: View {
     private let myParticipantID: UUID
     /// `nil` uses the phone's saved trip; simulated screens pass one in memory.
     private let activeTripStorage: (any ActiveTripStorage)?
+    private let onTripStarted: () -> Void
+    @State private var hasFiredTripStarted = false
 
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
@@ -27,17 +29,24 @@ struct TripRoomView: View {
     @State private var participantToEdit: Participant?
     @Environment(\.dismiss) private var dismiss
 
-    init(tripID: UUID, myParticipantID: UUID, activeTripStorage: (any ActiveTripStorage)? = nil) {
+    init(
+        tripID: UUID,
+        myParticipantID: UUID,
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        onTripStarted: @escaping () -> Void = {}
+    ) {
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.activeTripStorage = activeTripStorage
+        self.onTripStarted = onTripStarted
         self._viewModel = State(initialValue: nil)
     }
 
-    init(viewModel: TripRoomViewModel) {
+    init(viewModel: TripRoomViewModel, onTripStarted: @escaping () -> Void = {}) {
         self.tripID = viewModel.tripID
         self.myParticipantID = viewModel.myParticipantID
         self.activeTripStorage = nil
+        self.onTripStarted = onTripStarted
         self._viewModel = State(initialValue: viewModel)
     }
 
@@ -65,6 +74,12 @@ struct TripRoomView: View {
                 )
             }
             await viewModel?.Listen()
+        }
+        .onChange(of: viewModel?.hasTripStarted, initial: true) { _, hasStarted in
+            if hasStarted == true && !hasFiredTripStarted {
+                hasFiredTripStarted = true
+                onTripStarted()
+            }
         }
     }
 
