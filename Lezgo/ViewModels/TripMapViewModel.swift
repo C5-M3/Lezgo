@@ -33,11 +33,11 @@ final class TripMapViewModel {
         didSet { editRoute == nil ? reroute?.Resume() : reroute?.Pause() }
     }
     /// When the latest state arrived; offline cars are judged against this time.
-    private var updatedAt: Date?
+    private(set) var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
-    private var carLookups: [UUID: CarLookup] = [:]
+    private(set) var carLookups: [UUID: CarLookup] = [:]
     /// This phone's formation alert and the banners closed with ⓧ.
-    private var alerts: TripMapAlerts
+    private(set) var alerts: TripMapAlerts
     /// When this phone, as leader, moves the trip past a checkpoint.
     private var checkpointProgress = TripMapCheckpointProgress()
 
@@ -81,59 +81,6 @@ final class TripMapViewModel {
         }
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
-    }
-
-    /// A pin for every car that has sent a position; members without one yet have no pin.
-    var carPins: [TripMapCarPin] {
-        guard let state, let updatedAt else { return [] }
-        return state.participants.compactMap { participant in
-            guard let coordinate = participant.coordinate else { return nil }
-            return TripMapCarPin(
-                id: participant.id,
-                displayName: participant.displayName,
-                coordinate: coordinate,
-                motionState: participant.motionState,
-                isLeader: participant.IsLeader(in: state.trip),
-                isMe: participant.id == myParticipantID,
-                isOffline: participant.IsOnline(at: updatedAt) == false,
-                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
-            )
-        }
-    }
-
-    /// The status card of the tapped car, or `nil` while no car is tapped.
-    ///
-    /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
-    var selectedCarStatus: TripMapCarStatus? {
-        guard let updatedAt, let car = SelectedCar() else { return nil }
-        guard car.IsOnline(at: updatedAt) else {
-            let lastSeen = Duration.seconds(updatedAt.timeIntervalSince(car.lastSeenAt))
-            return TripMapCarStatus(id: car.id, displayName: car.displayName, activity: .offline(lastSeen: lastSeen))
-        }
-        let lookup = carLookups[car.id]
-        let activity: TripMapCarStatus.Activity = car.motionState == .driving
-            ? .driving(street: lookup?.street)
-            : .stopped(street: lookup?.street)
-        return TripMapCarStatus(
-            id: car.id,
-            displayName: car.displayName,
-            activity: activity,
-            timeLeft: lookup?.timeLeft
-        )
-    }
-
-    /// The one formation alert banner under the turn card, or `nil` when there is none to show.
-    var alertBanner: TripMapAlerts.Banner? {
-        guard let state, let updatedAt else { return nil }
-        return alerts.Banner(in: state, at: updatedAt)
-    }
-
-    /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
-    var arrivalCard: ArrivalCard? {
-        guard let state, let updatedAt else { return nil }
-        let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
-        guard arrival.hasArrived else { return nil }
-        return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
     }
 
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
@@ -278,12 +225,6 @@ final class TripMapViewModel {
             timeLeft: timeLeft ?? previous?.timeLeft,
             lookedUpAt: now
         )
-    }
-
-    /// The tapped car, while it is still in the trip with a position on the map.
-    private func SelectedCar() -> Participant? {
-        guard let selectedCarID else { return nil }
-        return state?.participants.first { $0.id == selectedCarID && $0.coordinate != nil }
     }
 
     /// A tapped car that left the trip, or was removed, closes its card.
