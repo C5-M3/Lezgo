@@ -27,8 +27,9 @@ extension TripMapViewModel {
         state?.trip.leaderParticipantID == myParticipantID
     }
 
+    /// This phone's car: its own latest GPS reading, or its position in the trip without one.
     var myCoordinate: Coordinate? {
-        state?.participants.first { $0.id == myParticipantID }?.coordinate
+        myReading?.coordinate ?? state?.participants.first { $0.id == myParticipantID }?.coordinate
     }
 
     /// `true` until the first trip update arrives.
@@ -52,6 +53,8 @@ extension TripMapViewModel {
         guard let state, let updatedAt else { return [] }
         return state.participants.compactMap { participant in
             guard let coordinate = participant.coordinate else { return nil }
+            // The location dot already shows this phone's car.
+            if showsMyLocationDot, participant.id == myParticipantID { return nil }
             return TripMapCarPin(
                 id: participant.id,
                 displayName: participant.displayName,

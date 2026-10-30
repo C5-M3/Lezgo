@@ -32,6 +32,9 @@ final class TripMapViewModel {
     private(set) var editRoute: EditRouteViewModel? {
         didSet { editRoute == nil ? reroute?.Resume() : reroute?.Pause() }
     }
+    /// This phone's latest GPS reading, straight from the sharer; `nil` without a sharer (previews and the simulated
+    /// drive) and before the first reading.
+    private(set) var myReading: LocationReading?
     /// When the latest state arrived; offline cars are judged against this time.
     private(set) var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
@@ -40,6 +43,8 @@ final class TripMapViewModel {
     private(set) var alerts: TripMapAlerts
     /// When this phone, as leader, moves the trip past a checkpoint.
     private var checkpointProgress = TripMapCheckpointProgress()
+    /// `true` while a guidance request is on its way, so GPS readings and trip updates do not ask twice at once.
+    private var isRefreshingGuidance = false
 
     /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
     private static let carLookupInterval: TimeInterval = 30
@@ -83,12 +88,22 @@ final class TripMapViewModel {
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
 
+    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
+    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
+    var showsMyLocationDot: Bool {
+        locationSharer != nil
+    }
+
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
     /// task is cancelled.
     func Start() async {
+        let (readings, echo) = AsyncStream.makeStream(of: LocationReading.self, bufferingPolicy: .bufferingNewest(1))
         await withTaskGroup(of: Void.self) { group in
             if let locationSharer {
-                group.addTask { await locationSharer.Run() }
+                group.addTask { await locationSharer.Run(echoingTo: echo) }
+                group.addTask { await self.FollowMyGPS(readings) }
+            } else {
+                echo.finish()
             }
             group.addTask { await self.FollowTrip() }
             // The trip stream ends when the trip closes on this phone; then sharing stops too.
@@ -259,7 +274,9 @@ final class TripMapViewModel {
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
     private func RefreshGuidance() async {
-        guard let state, let myCoordinate else { return }
+        guard isRefreshingGuidance == false, let state, let myCoordinate else { return }
+        isRefreshingGuidance = true
+        defer { isRefreshingGuidance = false }
         guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
         guidance = newGuidance
     }
@@ -326,7 +343,7 @@ extension TripMapViewModel {
         for await newState in tripService.TripUpdates(tripID: tripID) {
             // A late fetch can still carry the old route; phones never go back to an older version.
             if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
-            state = newState
+            state = WithMyGPS(newState)
             updatedAt = clock()
             NoticeTripClosed(newState)
             CloseEditRouteIfNotAllowed()
@@ -337,5 +354,28 @@ extension TripMapViewModel {
             rerouteInput.yield(newState)
             await RefreshGuidance()
         }
+    }
+
+    /// Every GPS reading moves this phone's car and its guidance at once, without waiting for the trip to send the
+    /// position back a moment later.
+    private func FollowMyGPS(_ readings: AsyncStream<LocationReading>) async {
+        for await reading in readings {
+            myReading = reading
+            state = state.map(WithMyGPS)
+            await RefreshGuidance()
+        }
+    }
+
+    /// The trip with this phone's car at its own latest GPS reading, so checkpoints, alerts and the reroute use it
+    /// too. The trip's copy of it is a few seconds old.
+    private func WithMyGPS(_ tripState: TripState) -> TripState {
+        guard let myReading else { return tripState }
+        var tripState = tripState
+        if let index = tripState.participants.firstIndex(where: { $0.id == myParticipantID }) {
+            tripState.participants[index].coordinate = myReading.coordinate
+            tripState.participants[index].speedKmh = myReading.speedKmh
+            tripState.participants[index].lastSeenAt = myReading.recordedAt
+        }
+        return tripState
     }
 }
