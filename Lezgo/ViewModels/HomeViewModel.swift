@@ -126,14 +126,7 @@ final class HomeViewModel {
     func JoinTrip(roomCode: String, tripService: any TripService) async -> Bool {
         do {
             let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
-            guard session.state.trip.status == .lobby else {
-                try? await tripService.ExitTrip(tripID: session.state.trip.id, participantID: session.myParticipantID)
-                return false
-            }
-            let summary = ActiveTripSummary.From(session: session)
-            activeTripStorage.SaveActiveTrip(summary)
-            activeDraftTrip = nil
-            activeTripSession = session
+            onTripJoined(session)
             return true
         } catch {
             return false
@@ -141,14 +134,12 @@ final class HomeViewModel {
     }
 
     /// Menangani sesi perjalanan yang berhasil diverifikasi dan bergabung (US-02).
-    /// Mengarahkan langsung ke Trip Room tanpa menampilkan layar Draft Trip.
-    /// Draft trip hanya akan dimuat dari storage saat aplikasi ditutup dan dibuka kembali.
+    /// Opens the Trip Room for a `LOBBY` trip and the map for an `IN_TRIP` trip (a late member), without the Draft
+    /// Trip screen. Draft trip hanya akan dimuat dari storage saat aplikasi ditutup dan dibuka kembali.
     func onTripJoined(_ session: TripSession) {
-        guard session.state.trip.status == .lobby else { return }
-        let summary = ActiveTripSummary.From(session: session)
-        activeTripStorage.SaveActiveTrip(summary)
-        activeDraftTrip = nil
-        activeTripSession = session
+        guard session.state.trip.status.isOpen else { return }
+        activeTripStorage.SaveActiveTrip(ActiveTripSummary.From(session: session))
+        applyActiveSession(session, isInTrip: session.state.trip.status == .inTrip)
     }
 
     /// Melanjutkan draft perjalanan yang tersimpan ke Trip Room (LOBBY) atau Trip Maps (IN_TRIP) (US-03).

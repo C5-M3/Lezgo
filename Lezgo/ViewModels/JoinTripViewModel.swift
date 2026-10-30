@@ -79,7 +79,7 @@ final class JoinTripViewModel {
         joinedSession = nil
     }
 
-    /// Mengirimkan dan memvalidasi kode ruangan ke database, serta memastikan perjalanan belum dimulai.
+    /// Mengirimkan dan memvalidasi kode ruangan ke database.
     @discardableResult
     func submitCode() async -> Bool {
         guard isValidCode else {
@@ -98,14 +98,8 @@ final class JoinTripViewModel {
         do {
             let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
 
-            // Pastikan perjalanan belum dimulai (harus berstatus .lobby)
-            guard session.state.trip.status == .lobby else {
-                try? await tripService.ExitTrip(tripID: session.state.trip.id, participantID: session.myParticipantID)
-                errorMessage = String(localized: "This trip has already begun.")
-                return false
-            }
-
-            // Validasi berhasil dan perjalanan belum dimulai
+            // A LOBBY trip opens the Trip Room and an IN_TRIP trip opens the map for a late member (US-02); the
+            // service already turns away ended and cancelled trips.
             let summary = ActiveTripSummary.From(session: session)
             storage.SaveActiveTrip(summary)
             self.joinedSession = session
