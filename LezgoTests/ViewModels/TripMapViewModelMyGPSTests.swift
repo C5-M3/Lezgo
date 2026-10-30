@@ -110,4 +110,23 @@ struct TripMapViewModelMyGPSTests {
         #expect(viewModel.myCoordinate == TripFixtures.ciputraWorld)
         #expect(viewModel.carPins.contains { $0.isMe })
     }
+
+    @Test func OtherCarsPointTheWayTheyDrive() async throws {
+        let viewModel = MakeMap()
+        try await service.UpdateLocation(
+            LocationUpdate(
+                coordinate: TripFixtures.ciputraWorld,
+                speedKmh: 40,
+                motionState: .driving,
+                recordedAt: .now,
+                course: 180
+            ),
+            participantID: SampleTrip.agusID,
+            tripID: SampleTrip.tripID
+        )
+
+        try await Drive(viewModel, to: TripFixtures.pakuwonMall)
+
+        #expect(viewModel.carPins.first { $0.id == SampleTrip.agusID }?.course == 180)
+    }
 }
