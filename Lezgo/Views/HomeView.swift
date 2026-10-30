@@ -159,6 +159,11 @@ struct HomeView: View {
                     onBack: {
                         handleSetRouteDismissed()
                         isSetRoutePresented = false
+                    },
+                    onExpand: {
+                        withAnimation {
+                            selectedDetent = .large
+                        }
                     }
                 )
                 .sheet(item: $boundMapViewModel.activeSelectionSheet) { sheetType in

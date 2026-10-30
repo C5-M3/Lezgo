@@ -15,10 +15,16 @@ final class MapViewModel {
     private let routingService = RoutingService()
     let searchService = LocationFindService()
     let locationService = LocationService()
+    var tripService: any TripService
+    var activeTripStorage: any ActiveTripStorage
 
     // MARK: - Route Planning State
     var startPoint: RoutePoint?
     var destinations: [RoutePoint] = []
+
+    // MARK: - Trip Creation State
+    var isCreatingTrip: Bool = false
+    var createdSession: TripSession?
 
     // MARK: - Computed Trip & Map State
     var routeLegs: [RouteLeg] = []
@@ -62,11 +68,21 @@ final class MapViewModel {
     var isLoadingRoute: Bool = false
     var errorMessage: String?
 
+    var canCreateTrip: Bool {
+        !isLoadingRoute && !isCreatingTrip && MakeTripPlan() != nil
+    }
+
     // MARK: - Modal Search Presentation State
     var activeSelectionSheet: ActivePointSelection?
     var searchQuery: String = ""
 
-    init() {
+    init(
+        tripService: (any TripService)? = nil,
+        activeTripStorage: (any ActiveTripStorage)? = nil
+    ) {
+        self.tripService = tripService ?? InMemoryTripService()
+        self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+
         // Automatically default the start point to the first GPS fix
         locationService.onFirstLocationFound = { [weak self] coord in
             guard let self = self else { return }
@@ -101,6 +117,8 @@ final class MapViewModel {
         searchQuery = ""
         searchService.updateQueryFragment("")
         errorMessage = nil
+        createdSession = nil
+        isCreatingTrip = false
         if let currentCoord = locationService.userLocation {
             startPoint = RoutePoint(
                 name: "Current Location",

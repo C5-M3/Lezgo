@@ -18,7 +18,7 @@ struct SetRouteMapView: View {
     private let nextTitle: LocalizedStringResource
     /// When `nil`, Back clears the plan and closes the planner (Set Route); Edit Route passes its own.
     private let onBack: (() -> Void)?
-    private let onNext: () -> Void
+    private let onNext: (() -> Void)?
     private let onDismiss: (() -> Void)?
     private let isBackDisabled: Bool
     private let isNextDisabled: Bool
@@ -29,7 +29,7 @@ struct SetRouteMapView: View {
         title: LocalizedStringResource = "Set Route",
         nextTitle: LocalizedStringResource = "Next",
         onBack: (() -> Void)? = nil,
-        onNext: @escaping () -> Void = {},
+        onNext: (() -> Void)? = nil,
         onDismiss: (() -> Void)? = nil,
         isBackDisabled: Bool = false,
         isNextDisabled: Bool = false,
@@ -108,6 +108,11 @@ struct SetRouteMapView: View {
                 nextTitle: nextTitle,
                 onBack: onBack ?? ClearAndClose,
                 onNext: onNext,
+                onExpand: {
+                    withAnimation {
+                        selectedDetent = .large
+                    }
+                },
                 isBackDisabled: isBackDisabled,
                 isNextDisabled: isNextDisabled,
                 isStartPointLocked: isStartPointLocked
@@ -127,12 +132,6 @@ struct SetRouteMapView: View {
             .presentationDragIndicator(.visible)
             .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
             .interactiveDismissDisabled()
-            // On the sheet, not the map: the map is always covered by this sheet, so an alert there never shows.
-            .alert("Notice", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("OK") { viewModel.errorMessage = nil }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
-            }
         }
         .onAppear {
             viewModel.onAppear()

@@ -13,6 +13,10 @@ struct TripRoomView: View {
     @State private var viewModel: TripRoomViewModel?
     private let tripID: UUID
     private let myParticipantID: UUID
+    /// `nil` uses the phone's saved trip; simulated screens pass one in memory.
+    private let activeTripStorage: (any ActiveTripStorage)?
+    private let onTripStarted: () -> Void
+    @State private var hasFiredTripStarted = false
 
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
@@ -25,15 +29,24 @@ struct TripRoomView: View {
     @State private var participantToEdit: Participant?
     @Environment(\.dismiss) private var dismiss
 
-    init(tripID: UUID, myParticipantID: UUID) {
+    init(
+        tripID: UUID,
+        myParticipantID: UUID,
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        onTripStarted: @escaping () -> Void = {}
+    ) {
         self.tripID = tripID
         self.myParticipantID = myParticipantID
+        self.activeTripStorage = activeTripStorage
+        self.onTripStarted = onTripStarted
         self._viewModel = State(initialValue: nil)
     }
 
-    init(viewModel: TripRoomViewModel) {
+    init(viewModel: TripRoomViewModel, onTripStarted: @escaping () -> Void = {}) {
         self.tripID = viewModel.tripID
         self.myParticipantID = viewModel.myParticipantID
+        self.activeTripStorage = nil
+        self.onTripStarted = onTripStarted
         self._viewModel = State(initialValue: viewModel)
     }
 
@@ -54,10 +67,19 @@ struct TripRoomView: View {
         .task {
             if viewModel == nil {
                 viewModel = TripRoomViewModel(
-                    tripService: tripService, tripID: tripID, myParticipantID: myParticipantID
+                    tripService: tripService,
+                    tripID: tripID,
+                    myParticipantID: myParticipantID,
+                    activeTripStorage: activeTripStorage
                 )
             }
             await viewModel?.Listen()
+        }
+        .onChange(of: viewModel?.hasTripStarted, initial: true) { _, hasStarted in
+            if hasStarted == true && !hasFiredTripStarted {
+                hasFiredTripStarted = true
+                onTripStarted()
+            }
         }
     }
 
@@ -156,7 +178,8 @@ private struct TopBarView: View {
                         .rotationEffect(.degrees(180)).circleBarButtonStyle()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(viewModel.isCurrentUserLeader ? "End trip" : "Leave trip room")
+                .disabled(viewModel.isLeaving)
+                .accessibilityLabel(Text(.tripRoomExit))
             }
             Spacer()
             if viewModel.isSelectionMode {
@@ -272,7 +295,8 @@ private struct BottomActionView: View {
         tripService: service,
         tripID: SampleTrip.tripID,
         myParticipantID: SampleTrip.agusID,
-        initialState: SampleTrip.State(status: .lobby)
+        initialState: SampleTrip.State(status: .lobby),
+        activeTripStorage: SimulatedActiveTripStorage()
     )
     TripRoomView(viewModel: viewModel)
         .environment(\.tripService, service)
@@ -284,7 +308,8 @@ private struct BottomActionView: View {
         tripService: service,
         tripID: SampleTrip.tripID,
         myParticipantID: SampleTrip.budiID,
-        initialState: SampleTrip.State(status: .lobby)
+        initialState: SampleTrip.State(status: .lobby),
+        activeTripStorage: SimulatedActiveTripStorage()
     )
     TripRoomView(viewModel: viewModel)
         .environment(\.tripService, service)

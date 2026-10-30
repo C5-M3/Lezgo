@@ -44,6 +44,7 @@ private struct TripLifecycleAlertsModifier: ViewModifier {
             .leaveAlert(viewModel: viewModel, isPresented: $showingLeave, dismissAction: dismissAction)
             .startAlert(viewModel: viewModel, isPresented: $showingStart)
             .removedAlert(viewModel: viewModel, dismissAction: dismissAction)
+            .endedByLeaderAlert(viewModel: viewModel, dismissAction: dismissAction)
             .errorAlert(viewModel: viewModel)
     }
 }
@@ -65,35 +66,30 @@ private struct ParticipantManagementAlertsModifier: ViewModifier {
 // MARK: - Alert View Extensions
 
 private extension View {
+    /// Exit asks first; the room closes only once leaving succeeded (`specs/UserStories.md` → US-07).
     func leaveAlert(
         viewModel: TripRoomViewModel,
         isPresented: Binding<Bool>,
         dismissAction: @escaping () -> Void
     ) -> some View {
-        alert(
-            viewModel.isCurrentUserLeader ? "End Trip?" : "Exit Trip?",
+        let isEndingForEveryone = viewModel.leaveConfirmation == .endTripForEveryone
+        return alert(
+            Text(isEndingForEveryone ? .tripRoomExitAndEndTripQuestion : .tripRoomExitRoomQuestion),
             isPresented: isPresented
         ) {
-            Button("Cancel", role: .cancel) { }
-            Button(
-                viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip",
-                role: .destructive
-            ) {
+            Button(role: .cancel) { } label: { Text(.tripRoomCancel) }
+            Button(role: isEndingForEveryone ? .destructive : nil) {
                 Task {
                     do {
                         try await viewModel.LeaveTrip()
-                        dismissAction()
+                        if viewModel.hasLeft { dismissAction() }
                     } catch {
                         viewModel.ShowError(error)
                     }
                 }
+            } label: {
+                Text(.tripRoomConfirm)
             }
-        } message: {
-            Text(
-                viewModel.isCurrentUserLeader
-                    ? "Leaving without handing over the lead will end the trip for everyone."
-                    : "Are you sure you want to leave this trip?"
-            )
         }
     }
 
@@ -121,6 +117,19 @@ private extension View {
             )
         ) {
             Button("OK") { dismissAction() }
+        }
+    }
+
+    /// A member whose leader left the room returns to Home; the trip is already cleared from the phone (US-07).
+    func endedByLeaderAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
+        alert(
+            Text(.tripRoomLeaderEndedTrip),
+            isPresented: Binding(
+                get: { viewModel.wasEndedByLeader },
+                set: { viewModel.wasEndedByLeader = $0 }
+            )
+        ) {
+            Button { dismissAction() } label: { Text(.tripRoomOK) }
         }
     }
 

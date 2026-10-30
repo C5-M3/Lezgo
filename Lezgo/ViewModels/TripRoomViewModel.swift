@@ -15,6 +15,8 @@ import Observation
 final class TripRoomViewModel {
     private(set) var state: TripState?
     private let tripService: any TripService
+    /// The trip saved on this phone, cleared once this person has left so Home no longer offers it.
+    private let activeTripStorage: any ActiveTripStorage
     let tripID: UUID
     let myParticipantID: UUID
 
@@ -22,7 +24,15 @@ final class TripRoomViewModel {
     var selectedParticipantIds: Set<UUID>
     var errorMessage: String?
     var wasRemovedFromTrip: Bool = false
+    /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
+    var wasEndedByLeader = false
+    private(set) var hasTripStarted = false
+    private(set) var isStartingTrip = false
     private(set) var isSavingProfile = false
+    /// `true` while an exit request is on its way; Exit is disabled meanwhile.
+    private(set) var isLeaving = false
+    /// Set once leaving succeeded, so the room closes only for the request that actually left.
+    private(set) var hasLeft = false
     /// Shown inside the edit sheet, which stays open when the save fails so the typed name and car are kept.
     var profileErrorMessage: String?
 
@@ -52,13 +62,18 @@ final class TripRoomViewModel {
     }
 
     var canStartTrip: Bool {
-        guard isCurrentUserLeader, let state else { return false }
+        guard isCurrentUserLeader, !isStartingTrip, !hasTripStarted, let state else { return false }
         return state.participants.count > 1
     }
 
     var isEveryoneReady: Bool {
         guard !participants.isEmpty else { return false }
         return participants.allSatisfy { IsParticipantReady($0) }
+    }
+
+    /// What Exit asks first (`specs/UserStories.md` → US-07, "Leave and end").
+    var leaveConfirmation: LeaveConfirmation {
+        isCurrentUserLeader ? .endTripForEveryone : .exitRoom
     }
 
     var startTripConfirmationTitle: String {
@@ -117,14 +132,23 @@ final class TripRoomViewModel {
         tripService: any TripService,
         tripID: UUID,
         myParticipantID: UUID,
-        initialState: TripState? = nil
+        initialState: TripState? = nil,
+        activeTripStorage: (any ActiveTripStorage)? = nil
     ) {
         self.tripService = tripService
+        self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.state = initialState
         self.isSelectionMode = false
         self.selectedParticipantIds = []
+        if let initialState, initialState.trip.status == .inTrip {
+            let isLeader = initialState.trip.leaderParticipantID == myParticipantID
+            let isStillInTrip = initialState.participants.contains(where: { $0.id == myParticipantID })
+            if isLeader || isStillInTrip {
+                self.hasTripStarted = true
+            }
+        }
     }
 
     func Listen() async {
@@ -134,9 +158,25 @@ final class TripRoomViewModel {
             state = newState
 
             // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
-            // even the first one (for example when I was removed before the room finished opening).
-            if !isStillInTrip && !isCurrentUserLeader {
+            // even the first one (for example when I was removed before the room finished opening). The update that
+            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
+            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
                 wasRemovedFromTrip = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // The leader who ended the trip leaves through Exit, so only the members are told.
+            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
+                wasEndedByLeader = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
+            // the participants, but is not removed, so the check above does not catch them.
+            if !wasRemovedFromTrip && !isLeaving && !hasLeft
+                && (isStillInTrip || isCurrentUserLeader)
+                && newState.trip.status == .inTrip {
+                hasTripStarted = true
             }
 
             if !isCurrentUserLeader && isSelectionMode {
@@ -147,8 +187,12 @@ final class TripRoomViewModel {
     }
 
     func StartTrip() async throws {
-        guard isCurrentUserLeader, canStartTrip else { return }
+        // `canStartTrip` is false while a start is saving or after it, so a second tap does nothing.
+        guard canStartTrip else { return }
+        isStartingTrip = true
+        defer { isStartingTrip = false }
         try await tripService.StartTrip(tripID: tripID, by: myParticipantID)
+        hasTripStarted = true
     }
 
     func ToggleSelectionMode() {
@@ -258,12 +302,19 @@ final class TripRoomViewModel {
         return false
     }
 
+    /// A member leaves the trip; the leader cancels it for everyone. The trip is cleared from this phone only after
+    /// the request succeeded, so a failure leaves the person in the room with their trip still saved.
     func LeaveTrip() async throws {
+        guard !isLeaving, !hasLeft else { return }
+        isLeaving = true
+        defer { isLeaving = false }
         if isCurrentUserLeader {
             try await tripService.EndTrip(tripID: tripID, by: myParticipantID)
         } else {
             try await tripService.ExitTrip(tripID: tripID, participantID: myParticipantID)
         }
+        activeTripStorage.ClearActiveTrip()
+        hasLeft = true
     }
 
     func IsLeader(participant: Participant) -> Bool {
@@ -278,5 +329,13 @@ final class TripRoomViewModel {
         let startLocation = CLLocation(latitude: startCoord.latitude, longitude: startCoord.longitude)
         let participantLocation = CLLocation(latitude: participantCoord.latitude, longitude: participantCoord.longitude)
         return startLocation.distance(from: participantLocation) <= 100
+    }
+
+    /// The confirmation Exit shows.
+    enum LeaveConfirmation: Hashable {
+        /// A member, or a leader who handed over the lead: "Exit the room?"
+        case exitRoom
+        /// The leader: the trip is cancelled for everyone.
+        case endTripForEveryone
     }
 }
