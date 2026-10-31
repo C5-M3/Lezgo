@@ -169,4 +169,38 @@ struct LocationSharerTests {
 
         #expect(try await phones.Budi(in: group)?.coordinate == TripFixtures.ciputraWorld)
     }
+
+    @Test func ImpreciseReadingIsNotSharedButReported() async throws {
+        let group = try await phones.MakeGroupOnTheRoad()
+        var rough = Reading(TripFixtures.ciputraWorld)
+        rough.isPrecise = false
+
+        let sharer = await Share(
+            as: phones.budi,
+            in: group,
+            for: .milliseconds(40),
+            readings: [rough],
+            until: { $0.isLocationImprecise }
+        )
+
+        #expect(sharer.isLocationImprecise)
+        #expect(try await phones.Budi(in: group)?.coordinate == nil)
+    }
+
+    @Test func PreciseReadingClearsTheReport() async throws {
+        let group = try await phones.MakeGroupOnTheRoad()
+        var rough = Reading(TripFixtures.tunjunganPlaza)
+        rough.isPrecise = false
+
+        let sharer = await Share(
+            as: phones.budi,
+            in: group,
+            for: .milliseconds(40),
+            readings: [rough, Reading(TripFixtures.ciputraWorld)],
+            until: { _ in (try? await phones.Budi(in: group)?.coordinate) == TripFixtures.ciputraWorld }
+        )
+
+        #expect(sharer.isLocationImprecise == false)
+        #expect(try await phones.Budi(in: group)?.coordinate == TripFixtures.ciputraWorld)
+    }
 }

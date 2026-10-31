@@ -47,13 +47,22 @@ struct LiveLocationProviderTests {
         #expect(reading.speedKmh == 0)
     }
 
-    @Test(arguments: [-1.0, 51, 101, 500])
-    func RoughOrInvalidFixIsSkipped(accuracy: CLLocationAccuracy) {
-        #expect(Read(Fix(accuracy: accuracy, speed: 10)) == nil)
+    @Test func InvalidFixIsSkipped() {
+        #expect(Read(Fix(accuracy: -1, speed: 10)) == nil)
     }
 
-    @Test func FixWithinFiftyMetresIsKept() {
-        #expect(Read(Fix(accuracy: 50, speed: 10)) != nil)
+    @Test(arguments: [51.0, 101, 3_000])
+    func RoughFixIsMarkedImprecise(accuracy: CLLocationAccuracy) throws {
+        // With Precise Location off, every fix is kilometres wide: the sharer must know, to tell the person.
+        let reading = try #require(Read(Fix(accuracy: accuracy, speed: 10)))
+
+        #expect(reading.isPrecise == false)
+    }
+
+    @Test func FixWithinFiftyMetresIsPrecise() throws {
+        let reading = try #require(Read(Fix(accuracy: 50, speed: 10)))
+
+        #expect(reading.isPrecise)
     }
 
     @Test func FixOlderThanFiveSecondsIsSkipped() {
