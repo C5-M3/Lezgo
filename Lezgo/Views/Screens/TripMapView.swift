@@ -47,8 +47,11 @@ struct TripMapView: View {
         .onTapGesture { viewModel.SelectCar(nil) }
         .safeAreaInset(edge: .top) {
             VStack(alignment: .trailing) {
-                // After arriving there is no next turn; the sheet says what to do instead.
-                if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
+                // After arriving there is no next turn; the sheet says what to do instead. While a new route is on its
+                // way, the card says so instead of showing a turn that no longer fits.
+                if viewModel.arrivalCard == nil, viewModel.isRerouting {
+                    TripMapTurnCard.Rerouting(isLeader: viewModel.isLeader)
+                } else if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
                 }
                 if viewModel.isLocationImprecise {
