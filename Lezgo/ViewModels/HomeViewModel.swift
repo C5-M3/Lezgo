@@ -48,6 +48,8 @@ final class HomeViewModel {
     var mapService: any MapServiceProtocol
     var searchService: any LocationSearchServiceProtocol
     let activeTripStorage: any ActiveTripStorage
+    /// My name and car, shown to every group I create or join.
+    let profileStorage: any ProfileStorage
 
     // MARK: - State Properties
     var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
@@ -61,13 +63,18 @@ final class HomeViewModel {
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
-    /// `true` until this phone has a saved name.
+    /// `true` until this phone has a saved name. iOS no longer tells apps the iCloud account's name, so Home asks
+    /// once instead; without it the group would see "Member 1d9d" (`specs/UserStories.md` → US-04).
     var isAskingForName = false
 
-    /// Saves my name for every trip.
+    /// Saves my name for every trip from now on. A blank name is not saved, and the question stays.
     @discardableResult
     func SaveName(_ name: String) -> Bool {
-        false
+        guard let cleanedName = ParticipantProfile.CleanedName(name) else { return false }
+        let carDescription = profileStorage.LoadProfile()?.carDescription ?? ""
+        profileStorage.SaveProfile(ParticipantProfile(displayName: cleanedName, carDescription: carDescription))
+        isAskingForName = false
+        return true
     }
 
     /// Why the saved trip could not be opened; the draft stays so the person can try again.
@@ -106,6 +113,9 @@ final class HomeViewModel {
         let storage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.activeTripStorage = storage
         self.activeDraftTrip = storage.LoadActiveTrip()
+        let profiles = profileStorage ?? UserDefaultsProfileStorage()
+        self.profileStorage = profiles
+        self.isAskingForName = profiles.LoadProfile() == nil
     }
 
     convenience init() {
@@ -141,7 +151,7 @@ final class HomeViewModel {
     @discardableResult
     func JoinTrip(roomCode: String, tripService: any TripService) async -> Bool {
         do {
-            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
+            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: profileStorage.LoadProfile())
             onTripJoined(session)
             return true
         } catch {

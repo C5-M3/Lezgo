@@ -20,6 +20,8 @@ final class TripRoomViewModel {
     private let locationSharer: LocationSharer?
     /// The trip saved on this phone, cleared once this person has left so Home no longer offers it.
     private let activeTripStorage: any ActiveTripStorage
+    /// Remembers my edited name and car for the next trip.
+    private let profileStorage: any ProfileStorage
     let tripID: UUID
     let myParticipantID: UUID
 
@@ -143,6 +145,7 @@ final class TripRoomViewModel {
         self.tripService = tripService
         self.locationSharer = locationSharer
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.state = initialState
@@ -253,6 +256,7 @@ final class TripRoomViewModel {
     func UpdateProfile(displayName: String, carDescription: String) async throws {
         let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
         try await tripService.UpdateProfile(profile, participantID: myParticipantID, tripID: tripID)
+        profileStorage.SaveProfile(profile)
     }
 
     /// Saves my profile for the edit sheet. Returns `true` only when the save succeeded, so the sheet closes then
