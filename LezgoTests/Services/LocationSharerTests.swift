@@ -18,11 +18,15 @@ struct LocationSharerTests {
     }
 
     /// Runs the sharer for `duration`, sending GPS readings at the start, then stops it like leaving the map.
+    ///
+    /// With `until`, it runs until that is true instead (at most 2 seconds): with every suite running at once, the
+    /// sharer's 10 ms timer may only get a turn or two within a fixed wait.
     private func Share(
         as service: any TripService,
         in group: TripGroup,
         for duration: Duration,
-        readings: [LocationReading]
+        readings: [LocationReading],
+        until isDone: ((LocationSharer) async -> Bool)? = nil
     ) async -> LocationSharer {
         let sharer = LocationSharer(
             tripService: service,
@@ -35,6 +39,11 @@ struct LocationSharerTests {
         try? await Task.sleep(for: .milliseconds(5))
         readings.forEach(gps.Send)
         try? await Task.sleep(for: duration)
+        if let isDone {
+            for _ in 0..<200 where await isDone(sharer) == false {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+        }
         run.cancel()
         await run.value
         return sharer
@@ -47,7 +56,8 @@ struct LocationSharerTests {
             as: phones.budi,
             in: group,
             for: .milliseconds(80),
-            readings: [Reading(TripFixtures.tunjunganPlaza), Reading(TripFixtures.ciputraWorld)]
+            readings: [Reading(TripFixtures.tunjunganPlaza), Reading(TripFixtures.ciputraWorld)],
+            until: { _ in (try? await phones.Budi(in: group)?.coordinate) == TripFixtures.ciputraWorld }
         )
 
         let budi = try #require(try await phones.Budi(in: group))
@@ -72,7 +82,8 @@ struct LocationSharerTests {
             as: phones.budi,
             in: group,
             for: .milliseconds(100),
-            readings: [Reading(TripFixtures.ciputraWorld)]
+            readings: [Reading(TripFixtures.ciputraWorld)],
+            until: { $0.sentCount >= 3 }
         )
 
         // One reading, but a send on every tick keeps `lastSeenAt` fresh so the car never looks offline.
@@ -91,13 +102,17 @@ struct LocationSharerTests {
             interval: .milliseconds(10)
         )
         let run = Task { await sharer.Run() }
-        try await Task.sleep(for: .milliseconds(5))
         gps.Send(Reading(TripFixtures.ciputraWorld))
-        try await Task.sleep(for: .milliseconds(40))
+        // Waits for each result rather than a fixed time: with every suite running at once it can take longer.
+        for _ in 0..<200 where sharer.lastError == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         let errorWhileOffline = sharer.lastError
 
         budi.simulatedFailure = nil
-        try await Task.sleep(for: .milliseconds(40))
+        for _ in 0..<200 where try await phones.Budi(in: group)?.coordinate != TripFixtures.ciputraWorld {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         run.cancel()
         await run.value
 
@@ -126,7 +141,13 @@ struct LocationSharerTests {
         var reading = Reading(TripFixtures.ciputraWorld)
         reading.course = 90
 
-        _ = await Share(as: phones.budi, in: group, for: .milliseconds(40), readings: [reading])
+        _ = await Share(
+            as: phones.budi,
+            in: group,
+            for: .milliseconds(40),
+            readings: [reading],
+            until: { _ in (try? await phones.Budi(in: group)?.course) == 90 }
+        )
 
         #expect(try await phones.Budi(in: group)?.course == 90)
     }
@@ -137,7 +158,14 @@ struct LocationSharerTests {
         var older = Reading(TripFixtures.tunjunganPlaza)
         older.recordedAt = newer.recordedAt.addingTimeInterval(-10)
 
-        _ = await Share(as: phones.budi, in: group, for: .milliseconds(40), readings: [newer, older])
+        // After two sends, an older reading that wrongly replaced the newer one would have been sent.
+        _ = await Share(
+            as: phones.budi,
+            in: group,
+            for: .milliseconds(40),
+            readings: [newer, older],
+            until: { $0.sentCount >= 2 }
+        )
 
         #expect(try await phones.Budi(in: group)?.coordinate == TripFixtures.ciputraWorld)
     }
