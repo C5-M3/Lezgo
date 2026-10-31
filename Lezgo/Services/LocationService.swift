@@ -25,19 +25,38 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         self.authorizationStatus = locationManager.authorizationStatus
     }
 
+    /// Whether a fix is good enough to be the trip's start point. The first fixes after the GPS starts can be
+    /// hundreds of metres wide, so with precise location the planner waits for a better one; without it, the rough
+    /// fix is all there is.
+    static func IsGoodForStartPoint(_ location: CLLocation, hasFullAccuracy: Bool) -> Bool {
+        guard hasFullAccuracy else { return true }
+        return location.horizontalAccuracy >= 0 && location.horizontalAccuracy <= 100
+    }
+
     func requestPermission() {
         if authorizationStatus == .notDetermined {
             locationManager.requestWhenInUseAuthorization()
         } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            locationManager.startUpdatingLocation()
+            StartUpdating()
         }
+    }
+
+    /// Starts the GPS, and asks for precise location first when it is off: a start point kilometres off would send
+    /// the whole group to the wrong place.
+    private func StartUpdating() {
+        if locationManager.accuracyAuthorization == .reducedAccuracy {
+            locationManager.requestTemporaryFullAccuracyAuthorization(
+                withPurposeKey: LiveLocationProvider.fullAccuracyPurposeKey
+            )
+        }
+        locationManager.startUpdatingLocation()
     }
 
     // MARK: - CLLocationManagerDelegate
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
         if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            locationManager.startUpdatingLocation()
+            StartUpdating()
         }
     }
 
@@ -46,7 +65,8 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         let coordinate = location.coordinate
         self.userLocation = coordinate
 
-        if let callback = onFirstLocationFound {
+        let hasFullAccuracy = manager.accuracyAuthorization == .fullAccuracy
+        if let callback = onFirstLocationFound, Self.IsGoodForStartPoint(location, hasFullAccuracy: hasFullAccuracy) {
             callback(coordinate)
             self.onFirstLocationFound = nil // Fire once for initial default
         }

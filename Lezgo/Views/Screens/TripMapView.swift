@@ -46,7 +46,9 @@ struct TripMapView: View {
                 if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
                 }
-                if viewModel.isConnectionLost {
+                if viewModel.isLocationImprecise {
+                    PreciseLocationNotice()
+                } else if viewModel.isConnectionLost {
                     ConnectionLostNotice()
                 }
                 if let alertBanner = viewModel.alertBanner {
