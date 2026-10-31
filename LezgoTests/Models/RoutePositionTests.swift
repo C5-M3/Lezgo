@@ -63,3 +63,33 @@ struct RoutePositionTests {
         #expect(position.distanceAlongRoute == 0)
     }
 }
+
+/// The part of the route still ahead of a car, which is all the trip map draws, as in Apple Maps.
+struct RouteAheadTests {
+    private let route = [
+        Coordinate(latitude: 0, longitude: 0),
+        Coordinate(latitude: 0, longitude: 0.01),
+        Coordinate(latitude: 0.01, longitude: 0.01)
+    ]
+
+    @Test func RouteAheadStartsWhereTheCarIs() {
+        let ahead = RoutePosition.RouteAhead(of: Coordinate(latitude: 0.0001, longitude: 0.005), on: route)
+
+        #expect(ahead.count == 3)
+        #expect(abs(ahead[0].latitude) < 0.000_001)
+        #expect(abs(ahead[0].longitude - 0.005) < 0.000_001)
+        #expect(Array(ahead.dropFirst()) == Array(route.dropFirst()))
+    }
+
+    @Test func PassedCornerIsNoLongerDrawn() {
+        let ahead = RoutePosition.RouteAhead(of: Coordinate(latitude: 0.005, longitude: 0.0101), on: route)
+
+        #expect(ahead.count == 2)
+        #expect(abs(ahead[0].latitude - 0.005) < 0.000_001)
+        #expect(ahead.last == route.last)
+    }
+
+    @Test func NoRouteHasNothingAhead() {
+        #expect(RoutePosition.RouteAhead(of: Coordinate(latitude: 0, longitude: 0), on: []).isEmpty)
+    }
+}

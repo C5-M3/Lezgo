@@ -127,6 +127,37 @@ struct HomeViewModelDraftTripTests {
         #expect(viewModel.lastTripEndedNotice == "Your last trip has ended.")
     }
 
+    @Test("continueDraftTrip keeps the draft and says so when the trip cannot be loaded")
+    func continueDraftTripCannotLoad() async {
+        let service = SampleTrip.Service(status: .inTrip, me: SampleTrip.agusID)
+        service.simulatedFailure = .noNetwork
+        let sampleDraft = ActiveTripSummary(
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            roomCode: SampleTrip.roomCode,
+            startName: "Start",
+            destinationName: "End",
+            memberNames: ["Agus"],
+            status: .lobby,
+            isLeader: true
+        )
+        let fakeStorage = FakeActiveTripStorage(initial: sampleDraft)
+        let viewModel = HomeViewModel(
+            mapService: MockMapService(),
+            searchService: MockLocationSearchService(),
+            activeTripStorage: fakeStorage
+        )
+
+        await viewModel.continueDraftTrip(tripService: service, retryDelay: .zero)
+
+        // An empty Trip Room without the route or the cars would look like the trip was lost.
+        #expect(viewModel.activeTripSession == nil)
+        #expect(viewModel.activeMapSession == nil)
+        #expect(viewModel.activeDraftTrip == sampleDraft)
+        #expect(fakeStorage.storedSummary == sampleDraft)
+        #expect(viewModel.draftTripErrorMessage != nil)
+    }
+
     @Test("handleDraftTripEnded clears storage, dismisses draft, and sets error notice")
     func handleDraftTripEnded() {
         let mockMap = MockMapService()
