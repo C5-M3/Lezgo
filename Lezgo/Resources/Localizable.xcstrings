@@ -486,6 +486,18 @@
         }
       }
     },
+    "tripMapAlertPassedDestination" : {
+      "comment" : "Banner on a member's map after driving more than 100 m past the destination (US-06). Only that car sees it.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You passed the destination"
+          }
+        }
+      }
+    },
     "tripMapArriveAt" : {
       "comment" : "The expected arrival time in the trip map sheet, for example Arrive 14.32 (#221).",
       "extractionState" : "manual",
