@@ -103,10 +103,7 @@ struct TripRoomView: View {
                     onSetLeader: { showingSetLeaderSheet = true }
                 ).padding(.bottom, 8)
 
-                if viewModel.isLocationImprecise {
-                    PreciseLocationNotice()
-                        .padding(.horizontal)
-                }
+                if viewModel.isLocationImprecise { PreciseLocationNotice().padding(.horizontal) }
 
                 List {
                     RouteSectionView(waypoints: viewModel.waypoints)
