@@ -181,20 +181,10 @@ struct TripMapViewModelTests {
         #expect(viewModel.waypoints.map(\.name) == ["Tunjungan Plaza", "Ciputra World", "Pakuwon mall"])
     }
 
-    @Test func CheckpointIsVisitedAfterTheLeaderPassesIt() async {
-        let viewModel = MakeViewModel(states: [Fixtures.State(currentWaypointIndex: 2)])
-
-        await viewModel.Start()
-
-        #expect(viewModel.IsVisited(Fixtures.startPoint))
-        #expect(viewModel.IsVisited(Fixtures.checkpoint))
-        #expect(viewModel.IsVisited(Fixtures.destination) == false)
-    }
-
-    @Test func NothingIsVisitedBeforeTheFirstUpdate() {
+    @Test func NoStopIsPinnedBeforeTheFirstUpdate() {
         let viewModel = MakeViewModel(states: [])
 
-        #expect(viewModel.IsVisited(Fixtures.startPoint) == false)
+        #expect(viewModel.upcomingWaypoints.isEmpty)
     }
 
     @Test func RouteLineFollowsTheRoute() async {

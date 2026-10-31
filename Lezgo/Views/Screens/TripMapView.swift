@@ -219,12 +219,13 @@ extension TripMapView {
 
         var body: some View {
             Map(position: $cameraPosition) {
-                MapPolyline(coordinates: viewModel.route.map(\.locationCoordinate))
+                // Only what is still ahead, as in Apple Maps: the part already driven and the stops passed go away.
+                MapPolyline(coordinates: viewModel.routeAhead.map(\.locationCoordinate))
                     .stroke(.tint, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
 
-                ForEach(viewModel.waypoints) { waypoint in
+                ForEach(viewModel.upcomingWaypoints) { waypoint in
                     Annotation(waypoint.name, coordinate: waypoint.coordinate.locationCoordinate, anchor: .bottom) {
-                        TripMapWaypointPinView(waypoint: waypoint, isVisited: viewModel.IsVisited(waypoint))
+                        TripMapWaypointPinView(waypoint: waypoint)
                     }
                 }
 
