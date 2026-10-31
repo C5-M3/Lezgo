@@ -12,4 +12,5 @@ enum FormationAlert: String, Hashable, Codable, CaseIterable {
     case offRoute
     case passedCheckpoint
     case aheadOfLeader
+    case passedDestination
 }
