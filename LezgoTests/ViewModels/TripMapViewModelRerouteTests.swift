@@ -177,7 +177,9 @@ struct TripMapViewModelRerouteTests {
 
         await viewModel.Start()
 
-        #expect(directions.requestedPoints.isEmpty)
+        // The member's phone only finds its own way back to the group's road (from the member, two points); it never
+        // changes the route for the group.
+        #expect(directions.requestedPoints.allSatisfy { $0.count == 2 && $0.first == Self.offRoute })
         #expect(service.savedRoutes.isEmpty)
     }
 
