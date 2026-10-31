@@ -594,6 +594,18 @@
         }
       }
     },
+    "tripMapConnectionLost" : {
+      "comment" : "Notice on the trip map while this phone cannot send its position to the group. The other cars may be out of date (#220).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connection lost"
+          }
+        }
+      }
+    },
     "tripMapContinueYourTrip" : {
       "comment" : "Arrival card line for the leader once everyone has arrived (US-07).",
       "extractionState" : "manual",
