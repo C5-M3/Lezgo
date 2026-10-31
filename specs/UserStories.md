@@ -475,8 +475,9 @@ Feature: Manage the group and start
 ### Rules
 
 **Map**
-- Shows the route, every checkpoint, the destination and every car.
+- Shows the route still ahead of my car, the checkpoints not visited yet, the destination and every car. As in Apple Maps, the part already driven, the start point and visited checkpoints are not drawn.
 - Top card: next turn ("200 m, Turn right"). Bottom card: "To [destination]" and time left ("50 min").
+- The bottom card is a sheet. Pulled up, it adds only End Trip (leader) or Exit Trip (member), and Edit Route for the leader. The cars are on the map, and the room code is in the Trip Room, so the sheet lists neither.
 - Map buttons: show the whole route, and follow my car.
 - Checkpoints follow the leader: when the leader's car is within 20 m of the next checkpoint, it is visited for everyone. The app does not wait for members.
 
@@ -501,7 +502,7 @@ Feature: Manage the group and start
 - The time and distance limits stop flicker from GPS noise.
 
 **Route changes (leader only)**
-- Automatic: the leader more than 100 m off the route for 15 s → new route from the leader through the unvisited checkpoints to the destination.
+- Automatic: the leader more than 50 m off the route for 5 s → new route from the leader through the unvisited checkpoints to the destination. These limits are tighter than a member's off-route alert so the group is rerouted within seconds, as in Apple Maps; 5 s still ignores short GPS jumps. A failed reroute is tried again after 10 s.
 - Manual: Edit Route opens the planner (US-01) with the leader's position as start point. The button that opens it on the map **needs lo-fi**.
 - Each new route has `routeVersion + 1`; members switch within 2 seconds and never go back to an older version.
 - **Rerouting notice** (like Apple Maps and Google Maps), visual only, on every phone. **Needs lo-fi.**
@@ -574,7 +575,7 @@ Feature: Drive together
     Then no alert appears
 
   Scenario: Leader takes another road
-    When "Agus" is more than 100 m off the route for 15 seconds
+    When "Agus" is more than 50 m off the route for 5 seconds
     Then a new route through "Ciputra World" to "Pakuwon mall" reaches every phone within 2 seconds
 
   Scenario: Members see the rerouting notice

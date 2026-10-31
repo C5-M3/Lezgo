@@ -570,18 +570,6 @@
         }
       }
     },
-    "tripMapCars" : {
-      "comment" : "Section title in the pulled-up trip map sheet that lists every car in the trip (#221).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cars"
-          }
-        }
-      }
-    },
     "tripMapCarStopped" : {
       "comment" : "VoiceOver status of a car pin: the car has had speed 0 for 30 seconds.",
       "extractionState" : "manual",
@@ -854,18 +842,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You were removed from the trip."
-          }
-        }
-      }
-    },
-    "tripMapRoomCode" : {
-      "comment" : "Label in the pulled-up trip map sheet for the 6-digit code others type to join the trip (#221).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Room code"
           }
         }
       }
