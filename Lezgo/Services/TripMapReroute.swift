@@ -6,6 +6,7 @@
 //
 
 import CoreLocation
+import Observation
 
 /// Reroutes the group when the leader leaves the route (`specs/UserStories.md` → US-06, "Route changes").
 ///
@@ -21,17 +22,24 @@ import CoreLocation
 ///
 /// While the leader has Edit Route open the reroute pauses, and a request already on its way is dropped, so it never
 /// replaces the route the leader chose by hand.
+@Observable
 final class TripMapReroute {
     /// How far from the route the leader must be before a reroute.
     static let offRouteDistance: CLLocationDistance = 50
     /// How long the leader must stay that far off before a reroute.
     static let holdTime: TimeInterval = 5
+    /// How long off the route before the turn card says "Rerouting…", so a GPS jump does not flash it.
+    static let noticeDelay: TimeInterval = 2
     /// How long to wait before trying again after a failed reroute.
     static let retryInterval: TimeInterval = 10
 
     private let tripID: UUID
     private let tripService: any TripService
     private let directionsService: any DirectionsService
+
+    /// `true` from 2 seconds off the route until the new route arrives or the leader is back on the route, so the
+    /// leader sees the app is working on it instead of wondering why nothing happens.
+    private(set) var isRerouting = false
 
     /// The route version the leader was last measured against.
     private var routeVersion: Int?
@@ -65,6 +73,7 @@ final class TripMapReroute {
         isPaused = true
         pauseCount += 1
         offRouteSince = nil
+        isRerouting = false
     }
 
     /// Edit Route closed. A saved route is a new route version, so the wait starts again either way.
@@ -78,8 +87,13 @@ final class TripMapReroute {
             Reset()
             return
         }
-        guard isPaused == false else { return }
-        guard let waypoints = WaypointsIfDue(state, leaderCoordinate: coordinate, at: leader.lastSeenAt) else { return }
+        guard isPaused == false else {
+            isRerouting = false
+            return
+        }
+        let waypoints = WaypointsIfDue(state, leaderCoordinate: coordinate, at: leader.lastSeenAt)
+        isRerouting = offRouteSince.map { leader.lastSeenAt.timeIntervalSince($0) >= Self.noticeDelay } ?? false
+        guard let waypoints else { return }
         let pausesBefore = pauseCount
         do {
             let path = try await directionsService.DrivingPath(through: waypoints.map(\.coordinate))
@@ -124,6 +138,7 @@ final class TripMapReroute {
         offRouteSince = nil
         hasRequested = false
         retryAt = nil
+        isRerouting = false
     }
 
     private func IsOffRoute(_ coordinate: Coordinate, in state: TripState) -> Bool {

@@ -62,7 +62,7 @@ final class TripMapViewModel {
     private let activeTripStorage: (any ActiveTripStorage)?
     /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
     /// and the simulated drive, where the leader never leaves the route).
-    private let reroute: TripMapReroute?
+    let reroute: TripMapReroute?
     private let clock: () -> Date
 
     init(

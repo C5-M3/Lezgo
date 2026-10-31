@@ -43,9 +43,10 @@ extension TripMapViewModel {
         return state.trail + [myCoordinate]
     }
 
-    /// `true` while a new route or a way back is on its way.
+    /// `true` while a new route is on its way: the leader's reroute, or a member's way back to the group's road. The
+    /// turn card then says "Rerouting…" instead of an old turn.
     var isRerouting: Bool {
-        false
+        following.isFindingWayBack || (isLeader && reroute?.isRerouting == true)
     }
 
     var destinationName: String? {

@@ -105,9 +105,9 @@ struct TripMapViewModelFootprintTests {
     }
 
     @Test func WayBackLeadsOnTowardsTheLeaderNotBack() async {
-        // Budi drove 150 m up the footprint, then turned off west. The nearest point of the footprint is behind
+        // Budi drove 120 m up the footprint, then turned off west. The nearest point of the footprint is behind
         // where he left it; the way back goes to the next point ahead of it instead, towards Agus.
-        let leftAt = Coordinate(latitude: Self.corner.latitude + 150 * Self.metre, longitude: Self.corner.longitude)
+        let leftAt = Coordinate(latitude: Self.corner.latitude + 120 * Self.metre, longitude: Self.corner.longitude)
         let lost = Coordinate(latitude: leftAt.latitude, longitude: leftAt.longitude - 300 * Self.metre)
         let directions = MockDirectionsService(results: [.success([lost, Self.north])])
 

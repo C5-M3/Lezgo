@@ -22,6 +22,10 @@ final class TripMapFootprint {
     static let offPathDistance: CLLocationDistance = 50
     /// How long a member must be off the road before a way back is asked for, so a GPS jump asks for nothing.
     static let holdTime: TimeInterval = 5
+    /// How long off the road before the turn card says "Rerouting…", so a GPS jump does not flash it.
+    static let noticeDelay: TimeInterval = 2
+    /// The way back joins the road at least this far beyond where the member left it.
+    static let rejoinAhead: CLLocationDistance = 50
     /// How long to wait before asking again after a way back failed or was left too.
     static let retryInterval: TimeInterval = 10
     /// A bend in the footprint sharper than this, in degrees, is a turn. Higher than for MapKit's roads, because GPS
@@ -32,6 +36,8 @@ final class TripMapFootprint {
     private(set) var trail = LeaderTrail()
     /// The road back to the group's road for a member who left it, or `nil` while they are on it.
     private(set) var wayBack: [Coordinate]?
+    /// `true` while a member is off the group's road and their way back is still on its way.
+    private(set) var isFindingWayBack = false
 
     /// Counts the points added, so the trail is saved only when it grew, also once it is full.
     private var addedCount = 0
@@ -40,6 +46,8 @@ final class TripMapFootprint {
     private var isSaving = false
     private var offPathSince: Date?
     private var askedAt: Date?
+    /// How far along the group's road this member last was while on it.
+    private var leftAt: CLLocationDistance?
     private var isAsking = false
 
     private let tripID: UUID
@@ -95,35 +103,40 @@ final class TripMapFootprint {
             + RoutePosition.RouteAhead(of: rejoin, on: state.groupPath).dropFirst()
     }
 
-    /// Once this member has been off the group's road for 5 seconds, asks for a way back to the nearest point on it,
-    /// and again when they leave that way too. Clears it once they are back on the road.
+    /// Once this member has been off the group's road for 5 seconds, asks for a way back to it, and again when they
+    /// leave that way too. Clears it once they are back on the road. From 2 seconds off the road until a way back
+    /// arrives, `isFindingWayBack` is `true`, so the turn card says the app is working on it.
     func FindWayBack(in state: TripState) async {
         guard let directionsService,
               let me = state.participants.first(where: { $0.id == myParticipantID }),
               me.IsLeader(in: state.trip) == false,
               let coordinate = me.coordinate,
               let position = RoutePosition.Locate(coordinate, on: state.groupPath) else {
-            offPathSince = nil
-            wayBack = nil
+            leftAt = nil
+            Reset()
             return
         }
         guard position.distanceFromRoute > Self.offPathDistance else {
-            offPathSince = nil
-            wayBack = nil
+            // On the road: remember how far along it this member got, so a way back never leads behind that.
+            leftAt = position.distanceAlongRoute
+            Reset()
             return
         }
         let since = offPathSince ?? me.lastSeenAt
         offPathSince = since
-        guard me.lastSeenAt.timeIntervalSince(since) >= Self.holdTime, IsOffWayBack(coordinate) else { return }
-        guard isAsking == false,
+        let offFor = me.lastSeenAt.timeIntervalSince(since)
+        let isOffWayBack = IsOffWayBack(coordinate)
+        isFindingWayBack = offFor >= Self.noticeDelay && isOffWayBack
+        guard offFor >= Self.holdTime, isOffWayBack, isAsking == false,
               askedAt.map({ me.lastSeenAt.timeIntervalSince($0) >= Self.retryInterval }) ?? true,
-              let rejoin = RoutePosition.RouteAhead(of: coordinate, on: state.groupPath).first else { return }
+              let rejoin = RejoinPoint(for: coordinate, on: state.groupPath) else { return }
         isAsking = true
         defer { isAsking = false }
         askedAt = me.lastSeenAt
         // On failure the last way back, if any, stays: an old way is more use to a driver than none.
         if let path = try? await directionsService.DrivingPath(through: [coordinate, rejoin]) {
             wayBack = path
+            isFindingWayBack = false
         }
     }
 
@@ -166,6 +179,25 @@ final class TripMapFootprint {
               let me = RoutePosition.Locate(coordinate, on: state.groupPath),
               let leader = RoutePosition.Locate(leaderCoordinate, on: state.groupPath) else { return false }
         return me.distanceAlongRoute < leader.distanceAlongRoute
+    }
+
+    /// Where the way back meets the group's road: its closest point that is at least 50 m beyond where this member
+    /// left it. The nearest point is usually the junction behind them, and going back there takes them further from
+    /// the leader; this one leads on towards the leader. Without a known place, the closest point past the start.
+    private func RejoinPoint(for coordinate: Coordinate, on path: [Coordinate]) -> Coordinate? {
+        let lengths = PathTurns.LengthsAlong(path)
+        let earliest = (leftAt ?? 0) + Self.rejoinAhead
+        let ahead = path.indices.filter { lengths[$0] >= earliest }
+        guard let closest = ahead.min(by: { path[$0].Distance(to: coordinate) < path[$1].Distance(to: coordinate) })
+        else { return path.last }
+        return path[closest]
+    }
+
+    /// Back on the road, or no longer a member on the road: nothing to find.
+    private func Reset() {
+        offPathSince = nil
+        wayBack = nil
+        isFindingWayBack = false
     }
 
     /// `true` without a way back, or once the member has left it too.
