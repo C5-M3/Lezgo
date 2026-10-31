@@ -24,7 +24,6 @@ extension TripMapViewModel {
             streetNameService: LiveStreetNameService(),
             locationSharer: LocationSharer(
                 tripService: tripService,
-                locationProvider: LiveLocationProvider(),
                 tripID: tripID,
                 participantID: session.myParticipantID
             ),

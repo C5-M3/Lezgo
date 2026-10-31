@@ -15,6 +15,9 @@ import Observation
 final class TripRoomViewModel {
     private(set) var state: TripState?
     private let tripService: any TripService
+    /// Sends this phone's position while the room is open, so the group sees who is at the start point; `nil` in
+    /// previews and tests that do not need it.
+    private let locationSharer: LocationSharer?
     /// The trip saved on this phone, cleared once this person has left so Home no longer offers it.
     private let activeTripStorage: any ActiveTripStorage
     let tripID: UUID
@@ -133,9 +136,11 @@ final class TripRoomViewModel {
         tripID: UUID,
         myParticipantID: UUID,
         initialState: TripState? = nil,
-        activeTripStorage: (any ActiveTripStorage)? = nil
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        locationSharer: LocationSharer? = nil
     ) {
         self.tripService = tripService
+        self.locationSharer = locationSharer
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.tripID = tripID
         self.myParticipantID = myParticipantID
@@ -151,7 +156,23 @@ final class TripRoomViewModel {
         }
     }
 
+    /// `true` while Precise Location is off: nobody can tell whether this car is at the start point.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
+    }
+
+    /// Follows the trip until the room closes, and shares this phone's position meanwhile (US-04, "Ready").
     func Listen() async {
+        await withTaskGroup(of: Void.self) { group in
+            if let locationSharer {
+                group.addTask { await locationSharer.Run() }
+            }
+            await FollowTrip()
+            group.cancelAll()
+        }
+    }
+
+    private func FollowTrip() async {
         for await newState in tripService.TripUpdates(tripID: tripID) {
             let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
 
