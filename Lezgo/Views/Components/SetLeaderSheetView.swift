@@ -26,11 +26,11 @@ struct SetLeaderSheetView: View {
                             .fill(Color.secondary.opacity(isLeader ? 0.15 : 0.3))
                             .frame(width: 36, height: 36)
                             .overlay {
-                                Text(String(participant.displayName.prefix(1))).font(.subheadline.bold())
+                                Text(String(viewModel.DisplayName(of: participant).prefix(1))).font(.subheadline.bold())
                             }
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(participant.displayName).font(.body.weight(.medium))
+                            Text(viewModel.DisplayName(of: participant)).font(.body.weight(.medium))
                             Text(participant.carDescription).font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -48,9 +48,7 @@ struct SetLeaderSheetView: View {
                 .disabled(isLeader)
                 .opacity(isLeader ? 0.5 : 1.0)
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(
-                    "\(participant.displayName), \(participant.carDescription), \(isLeader ? "Leader" : "Select")"
-                )
+                .accessibilityLabel(AccessibilityLabel(for: participant, isLeader: isLeader))
                 .accessibilityAddTraits(isLeader ? [] : .isButton)
             }
             .listStyle(.insetGrouped)
@@ -75,5 +73,10 @@ struct SetLeaderSheetView: View {
                 }
             }
         }
+    }
+
+    /// "Car 2, White Avanza, Select" for VoiceOver.
+    private func AccessibilityLabel(for participant: Participant, isLeader: Bool) -> String {
+        "\(viewModel.DisplayName(of: participant)), \(participant.carDescription), \(isLeader ? "Leader" : "Select")"
     }
 }

@@ -159,7 +159,7 @@ Feature: Plan a route
 
 - "Enter room code" opens from the join button on Home. The field uses the number pad: digits only, exactly 6. "Enter" is disabled until 6 digits are typed.
 - An invite link opens the same dialog with the code filled in. A link with no valid 6-digit code is ignored.
-- No form. My name and car description come from my saved profile (US-04). iOS does not tell apps the iCloud account's name, so the first time the app opens, Home asks "What's your name?" once (1–30 characters, spaces trimmed) and saves it on the phone for every trip I create or join. Editing my name in the Trip Room updates the saved profile too. Only a phone without a saved name falls back to "Member" plus the last 4 characters of my iCloud user ID.
+- No form, and the app never asks for a name. iOS does not tell apps the iCloud account's name, so a car whose driver typed no name is called "Leader" (the leader) or "Car 2", "Car 3", … (members, in the order they joined; the leader counts as car 1). A name typed in "Edit my name and car" (US-04) is shown instead and saved on the phone for every later trip I create or join.
 - `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
 - `ENDED` or `CANCELLED` → join is rejected.
 - Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car.

@@ -47,7 +47,7 @@ struct Participant: Identifiable, Hashable, Codable {
         profile: ParticipantProfile?,
         at date: Date
     ) -> Participant {
-        let profile = profile ?? ParticipantProfile.Default(forUserRecordID: userRecordID)
+        let profile = profile ?? ParticipantProfile.unnamed
         return Participant(
             id: UUID(),
             tripID: tripID,
