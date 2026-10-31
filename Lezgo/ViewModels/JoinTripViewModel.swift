@@ -51,7 +51,8 @@ final class JoinTripViewModel {
     init(
         roomCode: String = "",
         tripService: (any TripService)? = nil,
-        storage: (any ActiveTripStorage)? = nil
+        storage: (any ActiveTripStorage)? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         let digitsOnly = roomCode.filter { $0.isNumber }
         self.roomCode = String(digitsOnly.prefix(6))

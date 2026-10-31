@@ -61,6 +61,15 @@ final class HomeViewModel {
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
+    /// `true` until this phone has a saved name.
+    var isAskingForName = false
+
+    /// Saves my name for every trip.
+    @discardableResult
+    func SaveName(_ name: String) -> Bool {
+        false
+    }
+
     /// Why the saved trip could not be opened; the draft stays so the person can try again.
     var draftTripErrorMessage: String?
     /// How many times Continue tries to load the saved trip before saying it could not.
@@ -89,7 +98,8 @@ final class HomeViewModel {
     init(
         mapService: any MapServiceProtocol,
         searchService: any LocationSearchServiceProtocol,
-        activeTripStorage: (any ActiveTripStorage)? = nil
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         self.mapService = mapService
         self.searchService = searchService

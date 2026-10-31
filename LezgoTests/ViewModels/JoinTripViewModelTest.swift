@@ -97,6 +97,24 @@ struct JoinTripViewModelTest {
         #expect(storage.storedSummary?.status == .inTrip)
     }
 
+    @Test("Joining shows the group the name saved on this phone (US-04)")
+    func submitCodeUsesSavedName() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: UUID())
+        let viewModel = JoinTripViewModel(
+            roomCode: SampleTrip.roomCode,
+            tripService: service,
+            storage: FakeActiveTripStorage(),
+            profileStorage: FakeProfileStorage(ParticipantProfile(displayName: "Oky", carDescription: "Black Brio"))
+        )
+
+        await viewModel.submitCode()
+
+        let session = try #require(viewModel.joinedSession)
+        let me = session.state.participants.first { $0.id == session.myParticipantID }
+        #expect(me?.displayName == "Oky")
+        #expect(me?.carDescription == "Black Brio")
+    }
+
     @Test("Submit code when trip has already ended should display already ended error")
     func submitCodeWhenTripEnded() async {
         let service = SampleTrip.Service(status: .ended)

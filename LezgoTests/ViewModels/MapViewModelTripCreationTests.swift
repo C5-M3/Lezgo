@@ -96,6 +96,20 @@ struct MapViewModelTripCreationTests {
         #expect(viewModel.createdSession == session)
     }
 
+    @Test func CreateTripShowsTheGroupTheSavedName() async throws {
+        let profiles = FakeProfileStorage(ParticipantProfile(displayName: "Nathan", carDescription: ""))
+        let viewModel = MapViewModel(
+            tripService: InMemoryTripService(),
+            activeTripStorage: FakeActiveTripStorage(),
+            profileStorage: profiles
+        )
+        SetValidRoute(viewModel)
+
+        let session = try await viewModel.CreateTrip()
+
+        #expect(session.state.participants.first?.displayName == "Nathan")
+    }
+
     @Test func CreateTripPersistsActiveTripSummary() async throws {
         let service = InMemoryTripService()
         let storage = FakeActiveTripStorage()

@@ -137,7 +137,8 @@ final class TripRoomViewModel {
         myParticipantID: UUID,
         initialState: TripState? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
-        locationSharer: LocationSharer? = nil
+        locationSharer: LocationSharer? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         self.tripService = tripService
         self.locationSharer = locationSharer
