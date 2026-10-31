@@ -61,6 +61,8 @@ final class HomeViewModel {
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
+    /// Why the saved trip could not be opened.
+    var draftTripErrorMessage: String?
     /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
     var inviteRoomCode: String?
 
@@ -145,7 +147,7 @@ final class HomeViewModel {
     }
 
     /// Melanjutkan draft perjalanan yang tersimpan ke Trip Room (LOBBY) atau Trip Maps (IN_TRIP) (US-03).
-    func continueDraftTrip(tripService: any TripService) async {
+    func continueDraftTrip(tripService: any TripService, retryDelay: Duration = .seconds(1)) async {
         guard let draft = activeDraftTrip else { return }
         guard draft.status.isOpen else {
             handleDraftTripEnded()

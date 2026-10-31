@@ -46,6 +46,11 @@ struct RoutePosition: Hashable {
         return best
     }
 
+    /// The route from the point nearest `point` to its end.
+    static func RouteAhead(of point: Coordinate, on polyline: [Coordinate]) -> [Coordinate] {
+        []
+    }
+
     /// `point` in metres east (`x`) and north (`y`) of `origin`.
     private static func Offset(of point: Coordinate, from origin: Coordinate) -> (x: Double, y: Double) {
         let metresPerDegreeEast = metresPerDegree * cos(origin.latitude * .pi / 180)

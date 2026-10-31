@@ -19,6 +19,16 @@ extension TripMapViewModel {
         state?.route?.polyline ?? waypoints.map(\.coordinate)
     }
 
+    /// The route from this phone's car on.
+    var routeAhead: [Coordinate] {
+        []
+    }
+
+    /// The stops still ahead.
+    var upcomingWaypoints: [Waypoint] {
+        []
+    }
+
     var destinationName: String? {
         state?.destination?.name
     }
