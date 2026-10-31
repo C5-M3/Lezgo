@@ -16,12 +16,17 @@ struct TripState: Hashable {
     var participants: [Participant]
     /// `nil` only while a new trip is being created.
     var route: Route?
-    /// The road the leader has driven.
+    /// The road the leader has driven, oldest point first (see `LeaderTrail`); empty until the leader's phone saves it.
     var trail: [Coordinate] = []
 
-    /// The road every member follows.
+    /// The road every member follows: the leader's footprint, then the leader, then the route ahead of the leader.
+    /// After a reroute the route starts at the leader, so without the footprint every member still behind would be
+    /// off it. Without a footprint yet, the route itself; before a route exists, the straight line through the
+    /// waypoints, like the map draws it.
     var groupPath: [Coordinate] {
-        route?.polyline ?? waypoints.map(\.coordinate)
+        let planned = route?.polyline ?? waypoints.map(\.coordinate)
+        guard trail.isEmpty == false, let leaderCoordinate = leader?.coordinate else { return planned }
+        return trail + [leaderCoordinate] + RoutePosition.RouteAhead(of: leaderCoordinate, on: planned)
     }
 
     var leader: Participant? {

@@ -53,9 +53,10 @@ struct FormationAlertDetector {
         return .none
     }
 
-    /// The road path; before a route exists, the straight line through the waypoints, like the map draws it.
+    /// The group's road: the leader's footprint, then the route ahead of the leader (see `TripState.groupPath`). A
+    /// member behind the leader is measured against the road the leader actually took, not only the route ahead.
     private func Polyline(of state: TripState) -> [Coordinate] {
-        state.route?.polyline ?? state.waypoints.map(\.coordinate)
+        state.groupPath
     }
 
     /// Whether `condition` has held for `holdTime`, keeping in `since` when it started.
