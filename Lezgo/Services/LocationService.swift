@@ -41,14 +41,10 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         }
     }
 
-    /// Starts the GPS, and asks for precise location first when it is off: a start point kilometres off would send
-    /// the whole group to the wrong place.
+    /// Starts the GPS. It never asks for precise location "just this once": iOS forgets that answer as soon as the app
+    /// goes to the background, so it would ask on every launch. When Precise Location is off, the Trip Room and the
+    /// map say so with a button to Settings, where it is turned on for good.
     private func StartUpdating() {
-        if locationManager.accuracyAuthorization == .reducedAccuracy {
-            locationManager.requestTemporaryFullAccuracyAuthorization(
-                withPurposeKey: LiveLocationProvider.fullAccuracyPurposeKey
-            )
-        }
         locationManager.startUpdatingLocation()
     }
 

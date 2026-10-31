@@ -18,18 +18,15 @@ import Foundation
 final class LiveLocationProvider: LocationProvider {
     /// Readings less accurate than this (metres) are imprecise: a car drawn 100 m off sits on the wrong street.
     static let worstPreciseAccuracy: CLLocationAccuracy = 50
-    /// The `NSLocationTemporaryUsageDescriptionDictionary` entry iOS shows when it asks for precise location.
-    static let fullAccuracyPurposeKey = "TripLocation"
     /// Readings older than this (seconds) are skipped: CoreLocation can hand over a cached fix when updates start.
     static let maximumAge: TimeInterval = 5
 
     func Readings() -> AsyncStream<LocationReading> {
         AsyncStream { continuation in
             let task = Task {
-                let session = CLServiceSession(
-                    authorization: .whenInUse,
-                    fullAccuracyPurposeKey: Self.fullAccuracyPurposeKey
-                )
+                // Without a full-accuracy purpose: asking for precise location "just this once" would ask again on
+                // every launch. Imprecise readings are reported instead, and the screens point to Settings.
+                let session = CLServiceSession(authorization: .whenInUse)
                 let background = CLBackgroundActivitySession()
                 defer {
                     background.invalidate()

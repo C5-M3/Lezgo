@@ -29,7 +29,10 @@ final class MapService: NSObject, CLLocationManagerDelegate {
         authorizationStatus = locationManager.authorizationStatus
     }
 
+    /// Asks only while the person has not answered yet. After "Allow Once", iOS sets the answer back to "not
+    /// determined" at the next launch, so the question comes back then; "While Using the App" stops it.
     func requestLocationPermission() {
+        guard locationManager.authorizationStatus == .notDetermined else { return }
         locationManager.requestWhenInUseAuthorization()
     }
 

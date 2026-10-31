@@ -13,11 +13,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
-	<dict>
-		<key>TripLocation</key>
-		<string>Lezgo needs your precise location to show your car on the right street and to tell the group when you are at the start point.</string>
-	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>
