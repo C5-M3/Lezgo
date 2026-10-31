@@ -45,6 +45,7 @@ struct TripMapAlertBanner: View {
         switch banner {
         case .mine(.offRoute): .tripMapAlertOffRoute
         case .mine(.passedCheckpoint): .tripMapAlertPassedCheckpoint
+        case .mine(.passedDestination): .tripMapAlertPassedDestination
         case .mine: .tripMapAlertAheadOfLeader
         case let .otherCar(_, name, .offRoute): .tripMapAlertCarOffRoute(name)
         case let .otherCar(_, name, _): .tripMapAlertCarAheadOfLeader(name)
@@ -56,6 +57,7 @@ struct TripMapAlertBanner: View {
     VStack {
         TripMapAlertBanner(banner: .mine(.offRoute), onClose: {})
         TripMapAlertBanner(banner: .mine(.passedCheckpoint), onClose: {})
+        TripMapAlertBanner(banner: .mine(.passedDestination), onClose: {})
         TripMapAlertBanner(banner: .mine(.aheadOfLeader), onClose: {})
         TripMapAlertBanner(banner: .otherCar(id: UUID(), name: "Budi", alert: .offRoute), onClose: {})
         TripMapAlertBanner(banner: .otherCar(id: UUID(), name: "Budi", alert: .aheadOfLeader), onClose: {})

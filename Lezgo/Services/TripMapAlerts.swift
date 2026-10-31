@@ -85,7 +85,8 @@ struct TripMapAlerts {
 
     /// The formation alert banner under the turn card.
     enum Banner: Hashable {
-        /// This phone's own alert: "You're out of the way", "You pass a checkpoint" or "You Precede The Leader".
+        /// This phone's own alert: "You're out of the way", "You pass a checkpoint", "You passed the destination" or
+        /// "You Precede The Leader".
         case mine(FormationAlert)
         /// Another car's alert: "Car Budi - Out of The Way" or "Car Budi - Precede The Leader".
         case otherCar(id: UUID, name: String, alert: FormationAlert)
