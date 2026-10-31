@@ -108,6 +108,35 @@ struct TripMapViewModelRerouteTests {
         #expect(plan.polyline == Self.newPath)
     }
 
+    // MARK: Rerouting notice
+
+    @Test func LeaderOffTheRouteSeesReroutingBeforeTheNewRouteArrives() async {
+        // Three seconds off the route: not long enough to ask for a new route yet, but long enough to say so.
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 5),
+            State(agus: Self.offRoute, secondsAgo: 2)
+        ])
+        let viewModel = MakeViewModel(service: service)
+
+        await viewModel.Start()
+
+        #expect(viewModel.isRerouting)
+        #expect(service.savedRoutes.isEmpty)
+    }
+
+    @Test func LeaderBackOnTheRouteStopsRerouting() async {
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 5),
+            State(agus: Self.offRoute, secondsAgo: 2),
+            State(agus: Self.onRoute, secondsAgo: 1)
+        ])
+        let viewModel = MakeViewModel(service: service)
+
+        await viewModel.Start()
+
+        #expect(viewModel.isRerouting == false)
+    }
+
     @Test func GPSJumpOfAFewSecondsDoesNotReroute() async {
         let service = MockTripService(states: [
             State(agus: Self.offRoute, secondsAgo: 4),

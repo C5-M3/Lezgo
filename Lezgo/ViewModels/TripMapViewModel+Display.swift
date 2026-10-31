@@ -43,6 +43,11 @@ extension TripMapViewModel {
         return state.trail + [myCoordinate]
     }
 
+    /// `true` while a new route or a way back is on its way.
+    var isRerouting: Bool {
+        false
+    }
+
     var destinationName: String? {
         state?.destination?.name
     }

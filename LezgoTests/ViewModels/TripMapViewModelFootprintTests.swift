@@ -100,6 +100,40 @@ struct TripMapViewModelFootprintTests {
         #expect(directions.requestedPoints.first?.first == lost)
         #expect(viewModel.routeAhead.first == lost)
         #expect(viewModel.routeAhead.contains(Self.agusAt))
+        // The way back is found, so the turn card shows it instead of "Rerouting…".
+        #expect(viewModel.isRerouting == false)
+    }
+
+    @Test func WayBackLeadsOnTowardsTheLeaderNotBack() async {
+        // Budi drove 150 m up the footprint, then turned off west. The nearest point of the footprint is behind
+        // where he left it; the way back goes to the next point ahead of it instead, towards Agus.
+        let leftAt = Coordinate(latitude: Self.corner.latitude + 150 * Self.metre, longitude: Self.corner.longitude)
+        let lost = Coordinate(latitude: leftAt.latitude, longitude: leftAt.longitude - 300 * Self.metre)
+        let directions = MockDirectionsService(results: [.success([lost, Self.north])])
+
+        _ = await OpenMap(
+            [
+                Rerouted(budi: leftAt, budiSecondsAgo: 20),
+                Rerouted(budi: lost, budiSecondsAgo: 12),
+                Rerouted(budi: lost, budiSecondsAgo: 4)
+            ],
+            directions: directions
+        )
+
+        #expect(directions.requestedPoints.first == [lost, Self.north])
+    }
+
+    @Test func MemberOffTheFootprintSeesReroutingWhileTheWayBackIsFound() async {
+        // Three seconds off: too soon to ask MapKit, but the driver already sees the app is working on it.
+        let directions = MockDirectionsService(results: [])
+
+        let viewModel = await OpenMap(
+            [Rerouted(budi: Self.lostAt, budiSecondsAgo: 5), Rerouted(budi: Self.lostAt, budiSecondsAgo: 2)],
+            directions: directions
+        )
+
+        #expect(viewModel.isRerouting)
+        #expect(directions.requestedPoints.isEmpty)
     }
 
     @Test func ShortTripOffTheFootprintAsksForNothing() async {

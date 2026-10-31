@@ -132,17 +132,24 @@ struct FormationAlertDetectorTests {
 
     // MARK: Off route
 
-    @Test(arguments: [(seconds: 0.0, alert: FormationAlert.none), (14, .none), (15, .offRoute), (40, .offRoute)])
-    func CarOffTheRouteGetsTheAlertAfterFifteenSeconds(seconds: TimeInterval, alert: FormationAlert) {
+    @Test(arguments: [(seconds: 0.0, alert: FormationAlert.none), (4, .none), (5, .offRoute), (40, .offRoute)])
+    func CarOffTheRouteGetsTheAlertAfterFiveSeconds(seconds: TimeInterval, alert: FormationAlert) {
         let readings = [0, seconds].map { State(at: $0, budi: Self.Along(50, sideways: 150)) }
 
         #expect(Alert(after: readings) == alert)
     }
 
-    @Test func CarWithinHundredMetresOfTheRouteIsOnIt() {
-        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(50, sideways: 90)) }
+    @Test func CarWithinFiftyMetresOfTheRouteIsOnIt() {
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(50, sideways: 40)) }
 
         #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func CarOneStreetOverIsOffRoute() {
+        // 60 m off: already on another street, so the driver should know at once.
+        let readings = [0.0, 6].map { State(at: $0, budi: Self.Along(50, sideways: 60)) }
+
+        #expect(Alert(after: readings) == .offRoute)
     }
 
     @Test func GpsJumpGivesNoAlert() {
@@ -186,19 +193,47 @@ struct FormationAlertDetectorTests {
         #expect(Alert(after: [state]) == .none)
     }
 
+    // MARK: Passed destination
+
+    /// Agus 50 m before the destination, so being ahead of him is not what these tests check.
+    private static let nearDestination = Along(2 * checkpointAlongRoute - 50)
+
+    @Test func CarPastTheDestinationGetsTheAlert() {
+        // Every checkpoint visited; Budi drove on 150 m past the destination, at the end of the route.
+        let past = Self.Along(2 * Self.checkpointAlongRoute + 150)
+        let readings = [0.0, 5].map { State(at: $0, budi: past, agus: Self.nearDestination, currentWaypointIndex: 2) }
+
+        #expect(Alert(after: readings) == .passedDestination)
+    }
+
+    @Test func CarParkedJustPastTheDestinationHasNoAlert() {
+        let parked = Self.Along(2 * Self.checkpointAlongRoute + 30)
+        let readings = [0.0, 30].map { State(at: $0, budi: parked, agus: Self.nearDestination, currentWaypointIndex: 2) }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
     // MARK: Ahead of leader
 
-    @Test(arguments: [(seconds: 14.0, alert: FormationAlert.none), (15, .aheadOfLeader)])
-    func CarFarAheadOfTheLeaderGetsTheAlertAfterFifteenSeconds(seconds: TimeInterval, alert: FormationAlert) {
+    @Test(arguments: [(seconds: 4.0, alert: FormationAlert.none), (5, .aheadOfLeader)])
+    func CarFarAheadOfTheLeaderGetsTheAlertAfterFiveSeconds(seconds: TimeInterval, alert: FormationAlert) {
         let readings = [0, seconds].map { State(at: $0, budi: Self.Along(350)) }
 
         #expect(Alert(after: readings) == alert)
     }
 
     @Test func CarALittleAheadOfTheLeaderHasNoAlert() {
-        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(250)) }
+        // 80 m ahead of Agus: the gap between two cars at a light.
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(180)) }
 
         #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func CarPassingTheLeaderGetsTheAlert() {
+        // 150 m ahead of Agus for 5 seconds.
+        let readings = [0.0, 5].map { State(at: $0, budi: Self.Along(250)) }
+
+        #expect(Alert(after: readings) == .aheadOfLeader)
     }
 
     @Test func CarBehindTheLeaderHasNoAlert() {
