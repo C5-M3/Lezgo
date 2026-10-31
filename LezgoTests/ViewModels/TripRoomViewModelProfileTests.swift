@@ -31,6 +31,21 @@ struct TripRoomViewModelProfileTests {
         #expect(budi.carDescription == "White Avanza")
     }
 
+    @Test func SavedProfileIsRememberedForTheNextTrip() async {
+        let profiles = FakeProfileStorage()
+        let viewModel = TripRoomViewModel(
+            tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.budiID),
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.budiID,
+            initialState: SampleTrip.State(status: .lobby),
+            profileStorage: profiles
+        )
+
+        await viewModel.SaveProfile(displayName: "Budi", carDescription: "White Avanza")
+
+        #expect(profiles.savedProfile == ParticipantProfile(displayName: "Budi", carDescription: "White Avanza"))
+    }
+
     @Test func SaveProfileFailureKeepsTheSheetOpenWithAnError() async {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
         service.simulatedFailure = .noNetwork

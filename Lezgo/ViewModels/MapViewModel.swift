@@ -78,7 +78,8 @@ final class MapViewModel {
 
     init(
         tripService: (any TripService)? = nil,
-        activeTripStorage: (any ActiveTripStorage)? = nil
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         self.tripService = tripService ?? InMemoryTripService()
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
