@@ -21,9 +21,12 @@ extension TripMapViewModel {
 
     /// The route from this phone's car on, which is all the map draws, as in Apple Maps; the whole route until
     /// the car's position is known.
+    ///
+    /// A member's line follows the leader's footprint to the leader, and starts with a way back after a wrong turn.
     var routeAhead: [Coordinate] {
         guard let myCoordinate else { return route }
-        return RoutePosition.RouteAhead(of: myCoordinate, on: route)
+        guard isLeader == false, let state else { return RoutePosition.RouteAhead(of: myCoordinate, on: route) }
+        return following.RouteAhead(from: myCoordinate, in: state)
     }
 
     /// The stops still ahead: the checkpoints not visited yet and the destination. The start point is never shown on
@@ -33,9 +36,11 @@ extension TripMapViewModel {
         return waypoints.filter { $0.kind != .start && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
     }
 
-    /// The leader's footprint.
+    /// On the leader's phone, the road the leader has driven up to their car: the road the members behind follow,
+    /// so the leader can see them on it. Empty on a member's phone, which draws only what is ahead.
     var footprint: [Coordinate] {
-        []
+        guard isLeader, let state, state.trail.isEmpty == false, let myCoordinate else { return [] }
+        return state.trail + [myCoordinate]
     }
 
     var destinationName: String? {

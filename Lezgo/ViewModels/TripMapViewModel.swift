@@ -43,6 +43,8 @@ final class TripMapViewModel {
     private(set) var alerts: TripMapAlerts
     /// When this phone, as leader, moves the trip past a checkpoint.
     private var checkpointProgress = TripMapCheckpointProgress()
+    /// The leader's footprint: recorded on the leader's phone, followed on a member's.
+    let following: TripMapFootprint
     /// `true` while a guidance request is on its way, so GPS readings and trip updates do not ask twice at once.
     private var isRefreshingGuidance = false
 
@@ -81,6 +83,12 @@ final class TripMapViewModel {
         self.streetNameService = streetNameService
         self.locationSharer = locationSharer
         self.activeTripStorage = activeTripStorage
+        following = TripMapFootprint(
+            tripID: tripID,
+            myParticipantID: myParticipantID,
+            tripService: tripService,
+            directionsService: directionsService
+        )
         reroute = directionsService.map {
             TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
         }
@@ -289,7 +297,7 @@ final class TripMapViewModel {
         isRefreshingGuidance = true
         defer { isRefreshingGuidance = false }
         guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
-        guidance = newGuidance
+        guidance = following.Guidance(adjusting: newGuidance, from: myCoordinate, in: state) ?? newGuidance
     }
 }
 
@@ -361,6 +369,7 @@ extension TripMapViewModel {
             if closeReason != nil { return }
             CloseCardOfGoneCar()
             await UpdateMyAlert()
+            await following.FindWayBack(in: state ?? newState)
             await PassCheckpointIfReached()
             rerouteInput.yield(newState)
             await RefreshGuidance()
@@ -373,6 +382,7 @@ extension TripMapViewModel {
         for await reading in readings {
             myReading = reading
             state = state.map(WithMyGPS)
+            if let state { await following.Record(reading, in: state) }
             await RefreshGuidance()
         }
     }
@@ -380,13 +390,10 @@ extension TripMapViewModel {
     /// The trip with this phone's car at its own latest GPS reading, so checkpoints, alerts and the reroute use it
     /// too. The trip's copy of it is a few seconds old.
     private func WithMyGPS(_ tripState: TripState) -> TripState {
-        guard let myReading else { return tripState }
-        var tripState = tripState
-        if let index = tripState.participants.firstIndex(where: { $0.id == myParticipantID }) {
-            tripState.participants[index].coordinate = myReading.coordinate
-            tripState.participants[index].speedKmh = myReading.speedKmh
-            tripState.participants[index].lastSeenAt = myReading.recordedAt
-            tripState.participants[index].course = myReading.course
+        var tripState = myReading.map { tripState.Moving(myParticipantID, to: $0) } ?? tripState
+        // The leader's own footprint is fresher than the copy the trip sends back.
+        if following.trail.points.isEmpty == false, tripState.trip.leaderParticipantID == myParticipantID {
+            tripState.trail = following.trail.points
         }
         return tripState
     }

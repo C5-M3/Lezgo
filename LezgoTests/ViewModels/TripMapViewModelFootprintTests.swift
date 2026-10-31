@@ -21,6 +21,12 @@ struct TripMapViewModelFootprintTests {
     private static let north = Coordinate(latitude: corner.latitude + 200 * metre, longitude: corner.longitude)
     private static let agusAt = Coordinate(latitude: north.latitude, longitude: north.longitude + 200 * metre)
 
+    /// 100 m up the footprint's first street and 300 m west of it.
+    private static let lostAt = Coordinate(
+        latitude: corner.latitude + 100 * metre,
+        longitude: corner.longitude - 300 * metre
+    )
+
     /// The rerouted trip: the route starts at Agus, and his footprint leads to him from the corner.
     private func Rerouted(budi: Coordinate, budiSecondsAgo: Double = 1) -> TripState {
         var agus = Fixtures.Car(id: Fixtures.agusID, name: "Agus")
@@ -82,7 +88,7 @@ struct TripMapViewModelFootprintTests {
 
     @Test func MemberOffTheFootprintIsGuidedBackToIt() async {
         // 300 m west of the footprint for more than 5 seconds.
-        let lost = Coordinate(latitude: Self.corner.latitude + 100 * Self.metre, longitude: Self.corner.longitude - 300 * Self.metre)
+        let lost = Self.lostAt
         let wayBack = [lost, Coordinate(latitude: lost.latitude, longitude: Self.corner.longitude)]
         let directions = MockDirectionsService(results: [.success(wayBack)])
 
@@ -98,7 +104,7 @@ struct TripMapViewModelFootprintTests {
 
     @Test func ShortTripOffTheFootprintAsksForNothing() async {
         // A GPS jump of a few seconds is not a wrong turn.
-        let lost = Coordinate(latitude: Self.corner.latitude + 100 * Self.metre, longitude: Self.corner.longitude - 300 * Self.metre)
+        let lost = Self.lostAt
         let directions = MockDirectionsService(results: [])
 
         _ = await OpenMap(
@@ -154,8 +160,12 @@ struct TripMapViewModelFootprintRecordingTests {
         let start = Coordinate(latitude: -7.27, longitude: 112.73)
         let now = Date.now
         for step in 0..<3 {
-            let point = Coordinate(latitude: start.latitude + Double(step) * 30 * Self.metre, longitude: start.longitude)
-            gps.Send(LocationReading(coordinate: point, speedKmh: 30, recordedAt: now.addingTimeInterval(Double(step) * 6)))
+            let point = Coordinate(
+                latitude: start.latitude + Double(step) * 30 * Self.metre,
+                longitude: start.longitude
+            )
+            let recordedAt = now.addingTimeInterval(Double(step) * 6)
+            gps.Send(LocationReading(coordinate: point, speedKmh: 30, recordedAt: recordedAt))
             for _ in 0..<200 where (try? await service.FetchTrip(tripID: SampleTrip.tripID).trail.count) != step + 1 {
                 try await Task.sleep(for: .milliseconds(10))
             }
