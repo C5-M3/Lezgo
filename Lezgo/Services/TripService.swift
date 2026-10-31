@@ -74,7 +74,8 @@ protocol TripService {
     /// `currentWaypointIndex` to 1, because the new plan starts at the leader's position.
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws
 
-    /// Saves the road the leader has driven.
+    /// Replaces the road the leader has driven, their footprint (`TripState.trail`), so the members behind can follow
+    /// it. The leader's phone saves it every few seconds while driving.
     func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws
 
     /// New Destination after arriving: replaces the route as `routeVersion + 1`, sets the trip back to `LOBBY`

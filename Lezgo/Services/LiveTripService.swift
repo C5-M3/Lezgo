@@ -211,7 +211,14 @@ final class LiveTripService: TripService {
         }
     }
 
-    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {}
+    /// Replaces the footprint record. Only the leader writes it, so a plain overwrite cannot lose anyone's change.
+    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {
+        try await Run {
+            _ = try await reader.OpenTrip(tripID, by: leaderID)
+            let record = TripRecordMapper.MakeTrailRecord(trail, tripID: tripID)
+            try await database.Save([record], savePolicy: .allKeys)
+        }
+    }
 
     func StartNewDestination(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
         try await ReplaceRoute(tripID, with: plan, by: leaderID) { trip in

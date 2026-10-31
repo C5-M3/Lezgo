@@ -19,23 +19,29 @@ struct TripRecordReader {
     /// waypoints and route are reused, so a poll costs two requests (sent together) instead of four.
     /// - Parameter discoverMembers: `false` reads only the members in `previous`, by record ID. That is faster than
     ///   a query and always up to date, but it cannot see someone who just joined.
+    /// - Parameter loadTrail: `false` keeps the leader's footprint from `previous`. It is the largest record and
+    ///   changes only every few seconds, so polls read it less often.
     func LoadState(
         tripID: UUID,
         reusing previous: TripState? = nil,
-        discoverMembers: Bool = true
+        discoverMembers: Bool = true,
+        loadTrail: Bool = true
     ) async throws -> TripState {
-        // The trip and its members are independent requests, so they run at the same time.
+        // The trip, its members and the footprint are independent requests, so they run at the same time.
         async let tripRecord = database.Fetch(TripRecordMapper.RecordID(tripID))
         let known = discoverMembers ? nil : previous?.participants
         async let members = Members(of: tripID, known: known)
+        async let footprint = Trail(of: tripID, loading: loadTrail, previous: previous)
         let trip = try TripRecordMapper.MakeTrip(from: try await tripRecord)
         let participants = try await members
+        let trail = try await footprint
         if let previous, previous.trip.routeVersion == trip.routeVersion {
             return TripState(
                 trip: trip,
                 waypoints: previous.waypoints,
                 participants: participants,
-                route: previous.route
+                route: previous.route,
+                trail: trail
             )
         }
         async let waypointRecords = Children(of: tripID, type: TripRecordMapper.waypointType)
@@ -46,7 +52,14 @@ struct TripRecordReader {
         let route = try await routeRecords
             .compactMap { try? TripRecordMapper.MakeRoute(from: $0) }
             .first { $0.version == trip.routeVersion }
-        return TripState(trip: trip, waypoints: waypoints, participants: participants, route: route)
+        return TripState(trip: trip, waypoints: waypoints, participants: participants, route: route, trail: trail)
+    }
+
+    /// The leader's footprint, or the one in `previous` when this poll skips it. Empty before the leader saves one.
+    private func Trail(of tripID: UUID, loading: Bool, previous: TripState?) async throws -> [Coordinate] {
+        guard loading else { return previous?.trail ?? [] }
+        let records = try await database.Fetch([TripRecordMapper.TrailRecordID(tripID)])
+        return records.first.flatMap { try? TripRecordMapper.MakeTrail(from: $0) } ?? []
     }
 
     /// The trip every `interval`, at a fixed rate, sent only when it changed. A failed fetch (no network) is retried
@@ -54,8 +67,14 @@ struct TripRecordReader {
     /// stops it.
     ///
     /// Known members are read by record ID on every poll; the slower member query, which finds people who just
-    /// joined, runs every `discoverMembersEvery` polls (#69).
-    func Updates(tripID: UUID, every interval: Duration, discoverMembersEvery: Int = 2) -> AsyncStream<TripState> {
+    /// joined, runs every `discoverMembersEvery` polls (#69). The leader's footprint is read every `loadTrailEvery`
+    /// polls: the leader's phone saves it only every few seconds.
+    func Updates(
+        tripID: UUID,
+        every interval: Duration,
+        discoverMembersEvery: Int = 2,
+        loadTrailEvery: Int = 3
+    ) -> AsyncStream<TripState> {
         AsyncStream { continuation in
             let task = Task {
                 let clock = ContinuousClock()
@@ -64,9 +83,14 @@ struct TripRecordReader {
                 var poll = 0
                 while Task.isCancelled == false {
                     let discover = poll.isMultiple(of: max(discoverMembersEvery, 1))
+                    let loadTrail = poll.isMultiple(of: max(loadTrailEvery, 1))
                     poll += 1
-                    if let state = try? await LoadState(tripID: tripID, reusing: last, discoverMembers: discover),
-                       state != last {
+                    if let state = try? await LoadState(
+                        tripID: tripID,
+                        reusing: last,
+                        discoverMembers: discover,
+                        loadTrail: loadTrail
+                    ), state != last {
                         continuation.yield(state)
                         last = state
                     }
