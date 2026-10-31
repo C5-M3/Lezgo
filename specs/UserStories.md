@@ -485,7 +485,7 @@ Feature: Manage the group and start
 **Footprint**
 - The leader's phone records the road the leader drives (a point every 20 m, the last 1,500 points, about 30 km) and saves it every 5 seconds; the other phones read it every 3 seconds.
 - A member's map draws the road ahead along the footprint to the leader, then the route ahead of the leader. Its turn card follows that line ("Turn right", "Follow the leader's route"); the time and distance left stay MapKit's.
-- A member more than 50 m off the group's road for 5 seconds gets a way back to the nearest point on it, drawn and guided like the rest of the line. It is asked again after 10 seconds if they leave that way too, and it goes away once they are back on the road.
+- A member more than 50 m off the group's road for 5 seconds gets a way back to it, drawn and guided like the rest of the line. It joins the road at its closest point at least 50 m beyond where the member left it, so it leads on towards the leader instead of back to the junction behind them. It is asked again after 10 seconds if they leave that way too, and it goes away once they are back on the road.
 - The leader's map shows the footprint behind the leader as a faint dotted line, so the leader sees the road the members follow and the cars on it.
 - Location runs in the background (screen locked, another app in front) only on the trip map. Home, Set Route and the Trip Room stop using it when the app leaves the screen, and closing the app stops it.
 
@@ -501,21 +501,22 @@ Feature: Manage the group and start
 
 | Alert | When | Banner | Map |
 | --- | --- | --- | --- |
-| Off route | More than 100 m from the route for 15 s | "You're out of the way" | Fastest way back to the route |
+| Off route | More than 50 m from the group's road for 5 s | "You're out of the way" | Way back to the road, towards the leader |
 | Passed checkpoint | Past the next unvisited checkpoint by more than 200 m | "You pass a checkpoint" | Guides back to that checkpoint |
-| Ahead of leader | More than 200 m ahead of the leader for 15 s | "You Precede The Leader" | Nothing; slow down or wait |
+| Passed destination | More than 100 m past the end of the route, every checkpoint visited, for 5 s | "You passed the destination" | Nothing; only that car sees it |
+| Ahead of leader | More than 100 m ahead of the leader for 5 s | "You Precede The Leader" | Nothing; slow down or wait |
 
-- Visual only, under the turn card. One banner at a time (off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
+- Visual only, under the turn card. One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
 - Everyone else sees "[name] - Out of The Way" / "[name] - Precede The Leader" ("Car 3 - Out of The Way", "Budi - Out of The Way") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
-- The time and distance limits stop flicker from GPS noise.
+- The time and distance limits stop flicker from GPS noise. They were 100 m and 15 s at first; on the road a wrong turn then showed far too late, so they match the leader's reroute now (50 m, 5 s).
 
 **Route changes (leader only)**
 - Automatic: the leader more than 50 m off the route for 5 s → new route from the leader through the unvisited checkpoints to the destination. These limits are tighter than a member's off-route alert so the group is rerouted within seconds, as in Apple Maps; 5 s still ignores short GPS jumps. A failed reroute is tried again after 10 s.
 - Manual: Edit Route opens the planner (US-01) with the leader's position as start point. The button that opens it on the map **needs lo-fi**.
 - Each new route has `routeVersion + 1`; members switch within 2 seconds and never go back to an older version.
-- **Rerouting notice** (like Apple Maps and Google Maps), visual only, on every phone. **Needs lo-fi.**
-  - While the new route is being calculated, the turn card shows "Rerouting…" on the leader's phone.
-  - When the new route arrives, every phone shows a banner under the turn card for 5 seconds, then it hides on its own:
+- **Rerouting notice** (like Apple Maps and Google Maps), visual only. Lo-fi: `B6 Rerouting (leader)`.
+  - From 2 seconds off the road until the new route arrives, the turn card shows "Rerouting…" in its place: "Finding a new route for everyone" on the leader's phone, "Finding the way back to your group" on a member's phone looking for a way back. It replaces the turn card, so nothing is added on top of the map.
+  - Not built yet, to keep the map clear: when the new route arrives, every phone shows a banner under the turn card for 5 seconds, then it hides on its own:
     - Leader left the route: "New route · Following Agus" with the new time ("52 min").
     - Leader edited the route: "Route updated by Agus" with the new destination or checkpoint and the new time.
   - The map animates to the new route line and the old line disappears; guidance continues without any tap.
@@ -564,7 +565,7 @@ Feature: Drive together
     Then the pin of "Budi" shows the stopped style and no sound plays
 
   Scenario: Member leaves the route
-    When "Budi" is more than 100 m off the route for 15 seconds
+    When "Budi" is more than 50 m off the route for 5 seconds
     Then "Budi" sees "You're out of the way" and the way back
     And "Agus" sees "Budi - Out of The Way"
     When "Budi" is back on the route
@@ -575,7 +576,7 @@ Feature: Drive together
     Then "Budi" sees "You pass a checkpoint" and is guided back to it
 
   Scenario: Member drives ahead of the leader
-    When "Budi" is 250 m ahead of "Agus" for 15 seconds
+    When "Budi" is 150 m ahead of "Agus" for 5 seconds
     Then "Budi" sees "You Precede The Leader"
 
   Scenario: GPS jump
