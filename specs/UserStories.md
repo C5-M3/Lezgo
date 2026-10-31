@@ -477,9 +477,17 @@ Feature: Manage the group and start
 **Map**
 - Shows the route still ahead of my car, the checkpoints not visited yet, the destination and every car. As in Apple Maps, the part already driven, the start point and visited checkpoints are not drawn.
 - Top card: next turn ("200 m, Turn right"). Bottom card: "To [destination]" and time left ("50 min").
+- Members are measured against the group's road: the leader's footprint, then the leader, then the route ahead of the leader. A member behind the leader on the footprint is not off route, even after the leader was rerouted and the route now starts at the leader.
 - The bottom card is a sheet. Pulled up, it adds only End Trip (leader) or Exit Trip (member), and Edit Route for the leader. The cars are on the map, and the room code is in the Trip Room, so the sheet lists neither.
 - Map buttons: show the whole route, and follow my car.
 - Checkpoints follow the leader: when the leader's car is within 20 m of the next checkpoint, it is visited for everyone. The app does not wait for members.
+
+**Footprint**
+- The leader's phone records the road the leader drives (a point every 20 m, the last 1,500 points, about 30 km) and saves it every 5 seconds; the other phones read it every 3 seconds.
+- A member's map draws the road ahead along the footprint to the leader, then the route ahead of the leader. Its turn card follows that line ("Turn right", "Follow the leader's route"); the time and distance left stay MapKit's.
+- A member more than 50 m off the group's road for 5 seconds gets a way back to the nearest point on it, drawn and guided like the rest of the line. It is asked again after 10 seconds if they leave that way too, and it goes away once they are back on the road.
+- The leader's map shows the footprint behind the leader as a faint dotted line, so the leader sees the road the members follow and the cars on it.
+- Location runs in the background (screen locked, another app in front) only on the trip map. Home, Set Route and the Trip Room stop using it when the app leaves the screen, and closing the app stops it.
 
 **Car status**
 - Tap a car → card with name, status and street ("Driving at Ahmad Yani Street"), and ETA to the destination ("50 min").
@@ -498,7 +506,7 @@ Feature: Manage the group and start
 | Ahead of leader | More than 200 m ahead of the leader for 15 s | "You Precede The Leader" | Nothing; slow down or wait |
 
 - Visual only, under the turn card. One banner at a time (off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
-- Everyone else sees "Car X - Out of The Way" / "Car X - Precede The Leader" and the car highlighted.
+- Everyone else sees "[name] - Out of The Way" / "[name] - Precede The Leader" ("Car 3 - Out of The Way", "Budi - Out of The Way") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
 - The time and distance limits stop flicker from GPS noise.
 
 **Route changes (leader only)**
@@ -558,7 +566,7 @@ Feature: Drive together
   Scenario: Member leaves the route
     When "Budi" is more than 100 m off the route for 15 seconds
     Then "Budi" sees "You're out of the way" and the way back
-    And "Agus" sees "Car Budi - Out of The Way"
+    And "Agus" sees "Budi - Out of The Way"
     When "Budi" is back on the route
     Then the banner disappears
 

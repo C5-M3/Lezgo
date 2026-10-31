@@ -98,6 +98,8 @@ Rules: `IsLeader(in:)`; `IsOnline(at:)`, where a phone is offline when `lastSeen
 
 **`Route`**: `id`, `tripID`, `version` (matches `Trip.routeVersion`), `polyline: [Coordinate]`.
 
+**Footprint** (`TripState.trail: [Coordinate]`): the road the leader has driven, oldest point first, empty until the leader's phone saves it. `TripState.groupPath` joins it with the leader's position and the route ahead of the leader; members, their alerts and their map follow that road (`specs/UserStories.md` → US-06, "Footprint"). Stored as one `Trail` record per trip.
+
 ### 2.2 Inputs and outputs
 
 | Type | What it holds |
@@ -133,6 +135,7 @@ File: `Lezgo/Services/TripService.swift`. Every operation is `async`. All but `T
 | `SetAlert(_:participantID:tripID:)` | Member | Saves the formation alert | `notAllowed` for the leader |
 | `AdvanceCheckpoint(to:tripID:by:)` | Leader | Moves forward only | `notAllowed` |
 | `SaveRoute(_:tripID:by:)` | Leader | New route on the road (reroute or Edit Route): `routeVersion + 1`, index back to 1 | `notAllowed` |
+| `SaveTrail(_:tripID:by:)` | Leader | Replaces the footprint; the leader's phone saves it every 5 seconds while driving | `notAllowed` |
 | `StartNewDestination(_:tripID:by:)` | Leader | New Destination after arriving: new route, back to `LOBBY` with index 0; room code and members stay | `notAllowed` |
 | `UpdateProfile(_:participantID:tripID:)` | Anyone | Name and car | `notFound` |
 
@@ -251,8 +254,8 @@ File: `TripRecordMapper.swift`. Converts each model to and from a `CKRecord`.
 
 File: `TripRecordReader.swift`.
 
-- `LoadState(tripID:reusing:discoverMembers:)` builds a `TripState` from requests **sent together** (`async let`): the `Trip` record by ID, and the members, by ID for known ones or by query when discovering new ones. Waypoints and route are fetched again **only when `routeVersion` changes**.
-- `Updates(tripID:every:discoverMembersEvery:)` is the polling loop behind `TripUpdates` (section 9).
+- `LoadState(tripID:reusing:discoverMembers:loadTrail:)` builds a `TripState` from requests **sent together** (`async let`): the `Trip` record by ID, the members, by ID for known ones or by query when discovering new ones, and the `Trail` record by ID. Waypoints and route are fetched again **only when `routeVersion` changes**.
+- `Updates(tripID:every:discoverMembersEvery:loadTrailEvery:)` is the polling loop behind `TripUpdates` (section 9). It reads the footprint every 3rd poll: it is the largest record and changes only every 5 seconds.
 - `OpenTrip(_:by:)` checks that the trip is still open (and that the caller leads, when asked) before a change.
 - `IsRoomCodeInUse(_:)` checks whether an open trip already uses a code.
 
@@ -271,6 +274,7 @@ File: `LiveTripService.swift`. Every operation runs inside `Run { … }`, which 
 | `RemoveParticipants`, `ExitTrip` | Check trip and role → delete `Participant` records |
 | `UpdateLocation` | **One request:** a record with the participant's ID holding only the location fields, saved with `.changedKeys` |
 | `SetAlert`, `UpdateProfile` | Fetch the participant → change → save |
+| `SaveTrail` | Check the caller leads → save the trip's `Trail` record (named `<tripID>-trail`) with `.allKeys`: only the leader writes it |
 | `SaveRoute`, `StartNewDestination` | Save the new waypoints and route **first**, then raise the version on `Trip`, then delete the old ones, so no phone sees a route version without its route |
 
 **Error translation** (`TripServiceError+CloudKit.swift`):
@@ -295,6 +299,7 @@ erDiagram
     Trip ||--o{ Waypoint : "tripID (deleteSelf)"
     Trip ||--o{ Participant : "tripID (deleteSelf)"
     Trip ||--o{ Route : "tripID (deleteSelf), one per version"
+    Trip ||--o| Trail : "tripID (deleteSelf), the leader's footprint"
     Trip }o--|| Participant : "leaderParticipantID"
 
     Trip {
@@ -337,11 +342,16 @@ erDiagram
         Int64 version "sortable"
         Bytes polyline
     }
+    Trail {
+        String recordName PK "<tripID>-trail"
+        Reference tripID "queryable"
+        Bytes polyline
+    }
 ```
 
 Every type also has a queryable `recordName` (needed for subscriptions) and a queryable, sortable `modificationDate`.
 
-**Security roles:** `_world` can read; `_icloud` (signed in) can create and write all four types. "Creator only" writes would not work, because the leader deletes other members' records and a new leader updates a trip someone else created. The risk is small: record names are random UUIDs that a phone only learns by joining with the room code (ADR 0014).
+**Security roles:** `_world` can read; `_icloud` (signed in) can create and write all five types. "Creator only" writes would not work, because the leader deletes other members' records and a new leader updates a trip someone else created. The risk is small: record names are random UUIDs that a phone only learns by joining with the room code (ADR 0014).
 
 **Development and production:** builds from Xcode use the development environment; TestFlight and the App Store use production. **Deploy the schema to production before the first TestFlight build**, or every save from TestFlight fails.
 
