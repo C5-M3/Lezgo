@@ -211,6 +211,8 @@ final class LiveTripService: TripService {
         }
     }
 
+    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {}
+
     func StartNewDestination(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
         try await ReplaceRoute(tripID, with: plan, by: leaderID) { trip in
             trip.status = .lobby

@@ -23,6 +23,7 @@ final class MockTripService: TripService {
     private(set) var advancedCheckpointIndexes: [Int] = []
     private(set) var savedRoutes: [TripPlan] = []
     private(set) var newDestinationPlans: [TripPlan] = []
+    private(set) var savedTrails: [[Coordinate]] = []
     /// When set, the next `SaveRoute` or `StartNewDestination` throws it once.
     var nextSaveRouteFailure: TripServiceError?
     /// Runs while `SaveRoute` is on its way, before the route is recorded.
@@ -140,6 +141,10 @@ final class MockTripService: TripService {
         }
         await whileSavingRoute?()
         savedRoutes.append(plan)
+    }
+
+    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {
+        savedTrails.append(trail)
     }
 
     func StartNewDestination(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {

@@ -186,6 +186,8 @@ final class InMemoryTripService: TripService {
         }
     }
 
+    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {}
+
     func StartNewDestination(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
         try Validate(plan)
         try Change(tripID: tripID, by: leaderID) { state in
