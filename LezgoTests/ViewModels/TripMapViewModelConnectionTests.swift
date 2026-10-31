@@ -83,4 +83,21 @@ struct TripMapViewModelConnectionTests {
 
         #expect(viewModel.isConnectionLost == false)
     }
+
+    @Test func MapSaysWhenPreciseLocationIsOff() async throws {
+        let viewModel = MakeMap()
+        let open = Task { await viewModel.Start() }
+        var rough = LocationReading(coordinate: TripFixtures.pakuwonMall, speedKmh: 40, recordedAt: .now)
+        rough.isPrecise = false
+        gps.Send(rough)
+        for _ in 0..<200 where viewModel.isLocationImprecise == false {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        open.cancel()
+        await open.value
+
+        #expect(viewModel.isLocationImprecise)
+        // A reading kilometres wide would put this car on the wrong street, so the map does not use it.
+        #expect(viewModel.myReading == nil)
+    }
 }
