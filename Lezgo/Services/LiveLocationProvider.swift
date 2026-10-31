@@ -21,15 +21,26 @@ final class LiveLocationProvider: LocationProvider {
     /// Readings older than this (seconds) are skipped: CoreLocation can hand over a cached fix when updates start.
     static let maximumAge: TimeInterval = 5
 
+    /// `true` only on the trip map, while the trip is on the road: the readings go on with the screen locked or
+    /// another app in front, and iOS shows the location arrow meanwhile. Anywhere else the readings pause when the
+    /// app leaves the screen: an app closed while a background session runs may be started again by iOS to carry on,
+    /// so it keeps using the location after the person closed it.
+    private let keepsRunningInBackground: Bool
+
+    init(keepsRunningInBackground: Bool = false) {
+        self.keepsRunningInBackground = keepsRunningInBackground
+    }
+
     func Readings() -> AsyncStream<LocationReading> {
-        AsyncStream { continuation in
+        let keepsRunningInBackground = keepsRunningInBackground
+        return AsyncStream { continuation in
             let task = Task {
                 // Without a full-accuracy purpose: asking for precise location "just this once" would ask again on
                 // every launch. Imprecise readings are reported instead, and the screens point to Settings.
                 let session = CLServiceSession(authorization: .whenInUse)
-                let background = CLBackgroundActivitySession()
+                let background = keepsRunningInBackground ? CLBackgroundActivitySession() : nil
                 defer {
-                    background.invalidate()
+                    background?.invalidate()
                     session.invalidate()
                 }
                 do {

@@ -17,6 +17,8 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
     var onFirstLocationFound: ((CLLocationCoordinate2D) -> Void)?
+    /// Set once the planner asks for the location; until then the GPS stays off.
+    private var isWanted = false
 
     override init() {
         super.init()
@@ -34,6 +36,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     func requestPermission() {
+        isWanted = true
         if authorizationStatus == .notDetermined {
             locationManager.requestWhenInUseAuthorization()
         } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
@@ -51,7 +54,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     // MARK: - CLLocationManagerDelegate
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
-        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+        // iOS reports the permission as soon as the manager exists, also when it starts the app in the background;
+        // the GPS starts only once the planner asked for it.
+        if isWanted, authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
             StartUpdating()
         }
     }

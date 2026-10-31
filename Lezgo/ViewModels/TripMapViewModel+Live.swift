@@ -25,7 +25,8 @@ extension TripMapViewModel {
             locationSharer: LocationSharer(
                 tripService: tripService,
                 tripID: tripID,
-                participantID: session.myParticipantID
+                participantID: session.myParticipantID,
+                keepsRunningInBackground: true
             ),
             directionsService: LiveDirectionsService(),
             activeTripStorage: activeTripStorage
