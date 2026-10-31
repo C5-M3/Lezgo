@@ -445,7 +445,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Car %@ - Precede The Leader"
+            "value" : "%@ - Precede The Leader"
           }
         }
       }
@@ -457,7 +457,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Car %@ - Out of The Way"
+            "value" : "%@ - Out of The Way"
           }
         }
       }
