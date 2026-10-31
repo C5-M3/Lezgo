@@ -58,7 +58,12 @@ struct HomeView: View {
                         tripID: session.state.trip.id,
                         myParticipantID: session.myParticipantID,
                         initialState: session.state,
-                        activeTripStorage: viewModel.activeTripStorage
+                        activeTripStorage: viewModel.activeTripStorage,
+                        locationSharer: LocationSharer(
+                            tripService: tripService,
+                            tripID: session.state.trip.id,
+                            participantID: session.myParticipantID
+                        )
                     ),
                     onTripStarted: { viewModel.onTripStartedFromRoom(session: session) }
                 )
