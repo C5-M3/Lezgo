@@ -918,6 +918,42 @@
         }
       }
     },
+    "tripMapRerouting" : {
+      "comment" : "Turn card title while a new route is on its way (US-06, lo-fi B6).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rerouting…"
+          }
+        }
+      }
+    },
+    "tripMapReroutingLeader" : {
+      "comment" : "Turn card on the leader's phone while the group's new route is on its way (US-06, lo-fi B6).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding a new route for everyone"
+          }
+        }
+      }
+    },
+    "tripMapReroutingMember" : {
+      "comment" : "Turn card on a member's phone while their way back to the group's road is on its way (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finding the way back to your group"
+          }
+        }
+      }
+    },
     "tripMapShowWholeRoute" : {
       "comment" : "Round map button that zooms out to show the whole route of the trip.",
       "extractionState" : "manual",
