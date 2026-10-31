@@ -73,7 +73,11 @@ struct TripMapView: View {
         // There all the time, like the sheet in Apple Maps: it cannot be swiped away, and the map works behind it.
         // It steps aside only for Edit Route, which opens once it has gone.
         .sheet(isPresented: $showsSheet, onDismiss: ShowEditRoute) {
-            TripMapSheet(viewModel: viewModel, onNewDestination: NewDestinationAction())
+            TripMapSheet(
+                viewModel: viewModel,
+                onNewDestination: NewDestinationAction(),
+                showsActions: sheetDetent != .custom(CollapsedSheet.self)
+            )
                 .presentationDetents([.custom(CollapsedSheet.self), .medium, .large], selection: $sheetDetent)
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
                 .presentationDragIndicator(.visible)

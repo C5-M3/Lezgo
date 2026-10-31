@@ -16,6 +16,8 @@ struct TripMapSheet: View {
     let viewModel: TripMapViewModel
     /// Opens the planner for a New Destination after arriving; `nil` hides the button.
     let onNewDestination: (() -> Void)?
+    /// `false` while the sheet is collapsed: Edit Route and the red button would peek out under its top.
+    var showsActions = true
 
     var body: some View {
         List {
@@ -25,18 +27,20 @@ struct TripMapSheet: View {
             // The top reads as the sheet itself, not a card in it, as in Apple Maps.
             .listRowBackground(Color.clear)
 
-            if viewModel.canEditRoute {
+            if showsActions, viewModel.canEditRoute {
                 Section {
                     Button(.tripMapEditRoute, systemImage: "pencil", action: viewModel.RequestEditRoute)
                 }
             }
 
-            Section {
-                TripMapLeaveButton(isLeader: viewModel.isLeader, action: viewModel.RequestLeave)
-                    .disabled(viewModel.isLeaving)
+            if showsActions {
+                Section {
+                    TripMapLeaveButton(isLeader: viewModel.isLeader, action: viewModel.RequestLeave)
+                        .disabled(viewModel.isLeaving)
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
             }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets())
         }
         .scrollContentBackground(.hidden)
     }
