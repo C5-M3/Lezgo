@@ -906,18 +906,6 @@
         }
       }
     },
-    "tripMapVisited" : {
-      "comment" : "VoiceOver status of a checkpoint the leader has already passed.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Visited"
-          }
-        }
-      }
-    },
     "tripMapWaitingForEveryone" : {
       "comment" : "Arrival card line while other cars are still on the way (US-07).",
       "extractionState" : "manual",

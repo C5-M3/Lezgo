@@ -19,14 +19,20 @@ extension TripMapViewModel {
         state?.route?.polyline ?? waypoints.map(\.coordinate)
     }
 
-    /// The route from this phone's car on.
+    /// The route from this phone's car on, which is all the map draws, as in Apple Maps; the whole route until
+    /// the car's position is known.
     var routeAhead: [Coordinate] {
-        []
+        guard let myCoordinate else { return route }
+        return RoutePosition.RouteAhead(of: myCoordinate, on: route)
     }
 
-    /// The stops still ahead.
+    /// The stops still ahead: the checkpoints not visited yet and the destination. The start point is never shown on
+    /// the road, because after a reroute it is only the leader's position at that moment ("Current Location").
     var upcomingWaypoints: [Waypoint] {
-        []
+        guard let state else { return [] }
+        return waypoints.filter { waypoint in
+            waypoint.kind != .start && waypoint.IsVisited(currentWaypointIndex: state.trip.currentWaypointIndex) == false
+        }
     }
 
     var destinationName: String? {
@@ -147,11 +153,5 @@ extension TripMapViewModel {
     func SelectedCar() -> Participant? {
         guard let selectedCarID else { return nil }
         return state?.participants.first { $0.id == selectedCarID && $0.coordinate != nil }
-    }
-
-    /// Whether the leader has already moved the trip past this waypoint.
-    func IsVisited(_ waypoint: Waypoint) -> Bool {
-        guard let state else { return false }
-        return waypoint.IsVisited(currentWaypointIndex: state.trip.currentWaypointIndex)
     }
 }

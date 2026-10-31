@@ -24,31 +24,49 @@ struct RoutePosition: Hashable {
     /// changes the result by far less than GPS noise.
     static func Locate(_ point: Coordinate, on polyline: [Coordinate]) -> RoutePosition? {
         guard let first = polyline.first else { return nil }
-        var best = RoutePosition(distanceFromRoute: point.Distance(to: first), distanceAlongRoute: 0)
+        guard let nearest = Nearest(to: point, on: polyline) else {
+            return RoutePosition(distanceFromRoute: point.Distance(to: first), distanceAlongRoute: 0)
+        }
+        return RoutePosition(distanceFromRoute: nearest.distance, distanceAlongRoute: nearest.distanceAlongRoute)
+    }
+
+    /// The route from the point on it nearest `point` to its end: what is still ahead of a car, so the map can
+    /// leave out the part already driven, as Apple Maps does.
+    static func RouteAhead(of point: Coordinate, on polyline: [Coordinate]) -> [Coordinate] {
+        guard let nearest = Nearest(to: point, on: polyline) else { return polyline }
+        let start = polyline[nearest.legIndex]
+        let end = polyline[nearest.legIndex + 1]
+        let onRoute = Coordinate(
+            latitude: start.latitude + (end.latitude - start.latitude) * nearest.fraction,
+            longitude: start.longitude + (end.longitude - start.longitude) * nearest.fraction
+        )
+        return [onRoute] + polyline[(nearest.legIndex + 1)...]
+    }
+
+    /// The point on `polyline` nearest `point`: which leg it is on and how far along that leg (0 at its start, 1 at
+    /// its end). `nil` for a route without a leg.
+    private static func Nearest(to point: Coordinate, on polyline: [Coordinate]) -> NearestPoint? {
+        var best: NearestPoint?
         var legStartAlongRoute: CLLocationDistance = 0
-        for (start, end) in zip(polyline, polyline.dropFirst()) {
+        for (index, (start, end)) in zip(polyline, polyline.dropFirst()).enumerated() {
             let leg = Offset(of: end, from: start)
             let car = Offset(of: point, from: start)
             let legLength = (leg.x * leg.x + leg.y * leg.y).squareRoot()
-            // How far along this leg the nearest point is, from 0 (its start) to 1 (its end).
             let fraction = legLength > 0 ? min(max((car.x * leg.x + car.y * leg.y) / (legLength * legLength), 0), 1) : 0
             let gapX = car.x - leg.x * fraction
             let gapY = car.y - leg.y * fraction
-            let distanceFromLeg = (gapX * gapX + gapY * gapY).squareRoot()
-            if distanceFromLeg < best.distanceFromRoute {
-                best = RoutePosition(
-                    distanceFromRoute: distanceFromLeg,
+            let distance = (gapX * gapX + gapY * gapY).squareRoot()
+            if distance < best?.distance ?? .infinity {
+                best = NearestPoint(
+                    legIndex: index,
+                    fraction: fraction,
+                    distance: distance,
                     distanceAlongRoute: legStartAlongRoute + legLength * fraction
                 )
             }
             legStartAlongRoute += legLength
         }
         return best
-    }
-
-    /// The route from the point nearest `point` to its end.
-    static func RouteAhead(of point: Coordinate, on polyline: [Coordinate]) -> [Coordinate] {
-        []
     }
 
     /// `point` in metres east (`x`) and north (`y`) of `origin`.
@@ -58,5 +76,13 @@ struct RoutePosition: Hashable {
             x: (point.longitude - origin.longitude) * metresPerDegreeEast,
             y: (point.latitude - origin.latitude) * metresPerDegree
         )
+    }
+
+    /// The point on a route nearest a car (see `Nearest(to:on:)`).
+    private struct NearestPoint {
+        var legIndex: Int
+        var fraction: Double
+        var distance: CLLocationDistance
+        var distanceAlongRoute: CLLocationDistance
     }
 }
