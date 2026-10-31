@@ -61,8 +61,10 @@ final class HomeViewModel {
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
-    /// Why the saved trip could not be opened.
+    /// Why the saved trip could not be opened; the draft stays so the person can try again.
     var draftTripErrorMessage: String?
+    /// How many times Continue tries to load the saved trip before saying it could not.
+    private static let draftTripFetchAttempts = 3
     /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
     var inviteRoomCode: String?
 
@@ -147,50 +149,44 @@ final class HomeViewModel {
     }
 
     /// Melanjutkan draft perjalanan yang tersimpan ke Trip Room (LOBBY) atau Trip Maps (IN_TRIP) (US-03).
+    ///
+    /// Right after the app opens, iCloud may need a moment, so a failed fetch is tried twice more. If the trip still
+    /// cannot be loaded, the draft stays with a message: opening the room or map without the route and the cars
+    /// would look as if the trip was lost.
     func continueDraftTrip(tripService: any TripService, retryDelay: Duration = .seconds(1)) async {
         guard let draft = activeDraftTrip else { return }
         guard draft.status.isOpen else {
             handleDraftTripEnded()
             return
         }
+        draftTripErrorMessage = nil
 
-        do {
-            let state = try await tripService.FetchTrip(tripID: draft.tripID)
-            guard state.trip.status.isOpen else {
+        for attempt in 1...Self.draftTripFetchAttempts {
+            do {
+                let state = try await tripService.FetchTrip(tripID: draft.tripID)
+                guard state.trip.status.isOpen else {
+                    handleDraftTripEnded()
+                    return
+                }
+                applyActiveSession(
+                    TripSession(myParticipantID: draft.myParticipantID, state: state),
+                    isInTrip: state.trip.status == .inTrip
+                )
+                return
+            } catch let error as TripServiceError where error == .notFound || error == .tripEnded {
                 handleDraftTripEnded()
                 return
+            } catch {
+                guard attempt < Self.draftTripFetchAttempts else { break }
+                try? await Task.sleep(for: retryDelay)
             }
-            applyActiveSession(
-                TripSession(myParticipantID: draft.myParticipantID, state: state),
-                isInTrip: state.trip.status == .inTrip
-            )
-        } catch let error as TripServiceError where error == .notFound || error == .tripEnded {
-            handleDraftTripEnded()
-        } catch {
-            let fallback = fallbackSession(for: draft)
-            applyActiveSession(fallback, isInTrip: draft.status == .inTrip)
         }
+        draftTripErrorMessage = String(localized: "Couldn't open your trip. Check your connection and try again.")
     }
 
-    private func fallbackSession(for draft: ActiveTripSummary) -> TripSession {
-        let fallbackTrip = Trip(
-            id: draft.tripID,
-            roomCode: draft.roomCode,
-            status: draft.status,
-            leaderParticipantID: draft.isLeader ? draft.myParticipantID : UUID(),
-            currentWaypointIndex: 0,
-            routeVersion: 1,
-            createdAt: Date(),
-            startedAt: nil,
-            endedAt: nil
-        )
-        let fallbackState = TripState(
-            trip: fallbackTrip,
-            waypoints: [],
-            participants: [],
-            route: nil
-        )
-        return TripSession(myParticipantID: draft.myParticipantID, state: fallbackState)
+    /// "OK" on the message that the saved trip could not be opened.
+    func DismissDraftTripError() {
+        draftTripErrorMessage = nil
     }
 
     private func applyActiveSession(_ session: TripSession, isInTrip: Bool) {
