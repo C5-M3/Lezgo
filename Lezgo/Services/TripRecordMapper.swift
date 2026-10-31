@@ -18,6 +18,7 @@ enum TripRecordMapper {
     static let waypointType = "Waypoint"
     static let participantType = "Participant"
     static let routeType = "Route"
+    static let trailType = "Trail"
 
     // MARK: Trip
 
@@ -156,6 +157,30 @@ enum TripRecordMapper {
             version: try reader.Integer("version"),
             polyline: polyline
         )
+    }
+
+    // MARK: Trail
+
+    /// The leader's footprint, one record per trip, replaced by each save.
+    static func MakeTrailRecord(_ trail: [Coordinate], tripID: UUID) -> CKRecord {
+        let record = CKRecord(recordType: trailType, recordID: TrailRecordID(tripID))
+        record["tripID"] = TripReference(tripID)
+        record["polyline"] = PolylineBytes(trail)
+        return record
+    }
+
+    static func MakeTrail(from record: CKRecord) throws -> [Coordinate] {
+        let reader = try RecordReader(record, expectedType: trailType)
+        let bytes: Data = reader.OptionalValue("polyline") ?? Data()
+        guard let trail = Polyline(from: bytes) else {
+            throw InvalidTripRecord(recordType: trailType, field: "polyline")
+        }
+        return trail
+    }
+
+    /// The trip's footprint record: named after the trip, so every phone reads it by ID without a query.
+    static func TrailRecordID(_ tripID: UUID) -> CKRecord.ID {
+        CKRecord.ID(recordName: "\(tripID.uuidString)-trail")
     }
 
     // MARK: IDs and references
