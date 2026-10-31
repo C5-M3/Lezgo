@@ -46,9 +46,9 @@ struct TripMapAlerts {
         }
         let car = state.participants
             .filter { IsShared($0, in: state, at: date) && closedAlerts[$0.id] != $0.alert }
-            .min { (Order($0.alert), $0.displayName) < (Order($1.alert), $1.displayName) }
+            .min { (Order($0.alert), state.DisplayName(of: $0)) < (Order($1.alert), state.DisplayName(of: $1)) }
         guard let car else { return nil }
-        return .otherCar(id: car.id, name: car.displayName, alert: car.alert)
+        return .otherCar(id: car.id, name: state.DisplayName(of: car), alert: car.alert)
     }
 
     /// ⓧ on the banner: hides it until that alert happens again.

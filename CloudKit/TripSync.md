@@ -92,6 +92,7 @@ Files: `Lezgo/Models/`. All models are plain `Hashable`, `Codable` structs. They
 | `speedKmh`, `motionState` | Speed, and `.driving` or `.stopped` |
 | `alert` | `FormationAlert`: `.none`, `.offRoute`, `.passedCheckpoint`, `.aheadOfLeader` |
 | `lastSeenAt` | When this phone last sent a position |
+| `course?` | The way the car was heading, in degrees clockwise from north; `nil` when the phone does not know |
 
 Rules: `IsLeader(in:)`; `IsOnline(at:)`, where a phone is offline when `lastSeenAt` is **more than** 120 seconds old (exactly 120 seconds is still online); and `Participant.Joining(…)`, a new participant with no position, stopped, and no alert.
 
@@ -107,7 +108,7 @@ Rules: `IsLeader(in:)`; `IsOnline(at:)`, where a phone is offline when `lastSeen
 | `TripPlan` | `waypoints: [PlannedWaypoint]` and `polyline`, from the planner. `isValid` checks for a start first, a destination last, and only checkpoints between. `MakeWaypoints(tripID:)` turns the plan into waypoints |
 | `PlannedWaypoint` | `kind`, `name`, `coordinate`: a waypoint before it belongs to a trip |
 | `ParticipantProfile` | `displayName` and `carDescription`. `Default(forUserRecordID:)` gives "Member" plus the last 4 characters of the iCloud ID, for example "Member 7F3A" |
-| `LocationUpdate` | `coordinate`, `speedKmh`, `motionState`, `recordedAt` |
+| `LocationUpdate` | `coordinate`, `speedKmh`, `motionState`, `recordedAt`, `course?` |
 
 The `TripMap…` types (`TripMapSnapshot`, `TripMapCar` and so on) belong to the trip map screen. They were built before the shared models existed and are being fed from `TripService` through an adapter (#170).
 
@@ -328,6 +329,7 @@ erDiagram
         String motionState
         String alert
         Timestamp lastSeenAt
+        Double course
     }
     Route {
         UUID id PK

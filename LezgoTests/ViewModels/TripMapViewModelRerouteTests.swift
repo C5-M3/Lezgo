@@ -61,6 +61,32 @@ struct TripMapViewModelRerouteTests {
 
     // MARK: Leader leaves the route
 
+    @Test func LeaderOffTheRouteFor5SecondsReroutes() async {
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 10),
+            State(agus: Self.offRoute, secondsAgo: 4)
+        ])
+        let viewModel = MakeViewModel(service: service)
+
+        await viewModel.Start()
+
+        #expect(service.savedRoutes.count == 1)
+    }
+
+    @Test func LeaderOneSideStreetOffTheRouteReroutes() async {
+        // About 60 m off: far enough to be on another street, short of a member's 100 m alert.
+        let nearby = Coordinate(latitude: Self.onRoute.latitude + 0.00054, longitude: Self.onRoute.longitude)
+        let service = MockTripService(states: [
+            State(agus: nearby, secondsAgo: 30),
+            State(agus: nearby, secondsAgo: 20)
+        ])
+        let viewModel = MakeViewModel(service: service)
+
+        await viewModel.Start()
+
+        #expect(service.savedRoutes.count == 1)
+    }
+
     @Test func LeaderOffTheRouteFor15SecondsSavesANewRouteThroughTheCheckpoint() async throws {
         let service = MockTripService(states: [
             State(agus: Self.offRoute, secondsAgo: 30),
@@ -242,12 +268,12 @@ struct TripMapViewModelRerouteTests {
 
     // MARK: No network
 
-    @Test func FailedSaveIsTriedAgainAfter30Seconds() async {
+    @Test func FailedSaveIsTriedAgainAfter10Seconds() async {
         let service = MockTripService(states: [
             State(agus: Self.offRoute, secondsAgo: 60),
-            State(agus: Self.offRoute, secondsAgo: 44),
-            State(agus: Self.offRoute, secondsAgo: 20),
-            State(agus: Self.offRoute, secondsAgo: 10)
+            State(agus: Self.offRoute, secondsAgo: 54),
+            State(agus: Self.offRoute, secondsAgo: 50),
+            State(agus: Self.offRoute, secondsAgo: 40)
         ])
         service.nextSaveRouteFailure = .noNetwork
         let directions = MockDirectionsService(results: [.success(Self.newPath)])
@@ -255,17 +281,17 @@ struct TripMapViewModelRerouteTests {
 
         await viewModel.Start()
 
-        // Asked at 44 s ago (failed to save), not again at 20 s ago, again at 10 s ago (34 s later).
+        // Asked at 54 s ago (failed to save), not again at 50 s ago, again at 40 s ago (14 s later).
         #expect(directions.requestedPoints.count == 2)
         #expect(service.savedRoutes.count == 1)
     }
 
-    @Test func NoRouteFoundKeepsTheOldRouteAndTriesAgainAfter30Seconds() async {
+    @Test func NoRouteFoundKeepsTheOldRouteAndTriesAgainAfter10Seconds() async {
         let service = MockTripService(states: [
             State(agus: Self.offRoute, secondsAgo: 60),
-            State(agus: Self.offRoute, secondsAgo: 44),
-            State(agus: Self.offRoute, secondsAgo: 20),
-            State(agus: Self.offRoute, secondsAgo: 10)
+            State(agus: Self.offRoute, secondsAgo: 54),
+            State(agus: Self.offRoute, secondsAgo: 50),
+            State(agus: Self.offRoute, secondsAgo: 40)
         ])
         let directions = MockDirectionsService(results: [.failure(.init()), .success(Self.newPath)])
         let viewModel = MakeViewModel(service: service, directions: directions)

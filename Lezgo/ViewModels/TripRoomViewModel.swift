@@ -15,8 +15,13 @@ import Observation
 final class TripRoomViewModel {
     private(set) var state: TripState?
     private let tripService: any TripService
+    /// Sends this phone's position while the room is open, so the group sees who is at the start point; `nil` in
+    /// previews and tests that do not need it.
+    private let locationSharer: LocationSharer?
     /// The trip saved on this phone, cleared once this person has left so Home no longer offers it.
     private let activeTripStorage: any ActiveTripStorage
+    /// Remembers my edited name and car for the next trip.
+    private let profileStorage: any ProfileStorage
     let tripID: UUID
     let myParticipantID: UUID
 
@@ -106,11 +111,11 @@ final class TripRoomViewModel {
         guard let first = selected.first else { return "Remove participants from the trip?" }
         let remaining = selected.count - 1
         if remaining == 0 {
-            return "Remove \(first.displayName) from the trip?"
+            return "Remove \(DisplayName(of: first)) from the trip?"
         } else if remaining == 1 {
-            return "Remove \(first.displayName) and 1 other from the trip?"
+            return "Remove \(DisplayName(of: first)) and 1 other from the trip?"
         } else {
-            return "Remove \(first.displayName) and \(remaining) others from the trip?"
+            return "Remove \(DisplayName(of: first)) and \(remaining) others from the trip?"
         }
     }
 
@@ -133,10 +138,14 @@ final class TripRoomViewModel {
         tripID: UUID,
         myParticipantID: UUID,
         initialState: TripState? = nil,
-        activeTripStorage: (any ActiveTripStorage)? = nil
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        locationSharer: LocationSharer? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         self.tripService = tripService
+        self.locationSharer = locationSharer
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.state = initialState
@@ -147,41 +156,6 @@ final class TripRoomViewModel {
             let isStillInTrip = initialState.participants.contains(where: { $0.id == myParticipantID })
             if isLeader || isStillInTrip {
                 self.hasTripStarted = true
-            }
-        }
-    }
-
-    func Listen() async {
-        for await newState in tripService.TripUpdates(tripID: tripID) {
-            let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
-
-            state = newState
-
-            // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
-            // even the first one (for example when I was removed before the room finished opening). The update that
-            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
-            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
-                wasRemovedFromTrip = true
-                activeTripStorage.ClearActiveTrip()
-            }
-
-            // The leader who ended the trip leaves through Exit, so only the members are told.
-            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
-                wasEndedByLeader = true
-                activeTripStorage.ClearActiveTrip()
-            }
-
-            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
-            // the participants, but is not removed, so the check above does not catch them.
-            if !wasRemovedFromTrip && !isLeaving && !hasLeft
-                && (isStillInTrip || isCurrentUserLeader)
-                && newState.trip.status == .inTrip {
-                hasTripStarted = true
-            }
-
-            if !isCurrentUserLeader && isSelectionMode {
-                isSelectionMode = false
-                selectedParticipantIds.removeAll()
             }
         }
     }
@@ -236,7 +210,7 @@ final class TripRoomViewModel {
     }
 
     func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
-        "Remove \(participant.displayName) from the trip?"
+        "Remove \(DisplayName(of: participant)) from the trip?"
     }
 
     func CanKick(participant: Participant) -> Bool {
@@ -266,13 +240,18 @@ final class TripRoomViewModel {
     }
 
     func SetLeaderConfirmationTitle(for participant: Participant) -> String {
-        "Set \(participant.displayName) as Trip Leader?"
+        "Set \(DisplayName(of: participant)) as Trip Leader?"
     }
 
     /// Shows a failed call in the error alert. `TripServiceError` is not a `LocalizedError`, so
     /// `localizedDescription` would only say "The operation couldn't be completed".
     func ShowError(_ error: any Error) {
         errorMessage = String(localized: TripServiceError(cloudKitError: error).message)
+    }
+
+    /// The name the group sees for a car: the typed name, or "Leader", "Car 2", … (see `TripState.DisplayName(of:)`).
+    func DisplayName(of participant: Participant) -> String {
+        state?.DisplayName(of: participant) ?? participant.displayName
     }
 
     func CanEdit(participant: Participant) -> Bool {
@@ -282,6 +261,7 @@ final class TripRoomViewModel {
     func UpdateProfile(displayName: String, carDescription: String) async throws {
         let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
         try await tripService.UpdateProfile(profile, participantID: myParticipantID, tripID: tripID)
+        profileStorage.SaveProfile(profile)
     }
 
     /// Saves my profile for the edit sheet. Returns `true` only when the save succeeded, so the sheet closes then
@@ -337,5 +317,60 @@ final class TripRoomViewModel {
         case exitRoom
         /// The leader: the trip is cancelled for everyone.
         case endTripForEveryone
+    }
+}
+
+// MARK: Following the trip
+
+extension TripRoomViewModel {
+    /// `true` while Precise Location is off: nobody can tell whether this car is at the start point.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
+    }
+
+    /// Follows the trip until the room closes, and shares this phone's position meanwhile (US-04, "Ready").
+    func Listen() async {
+        await withTaskGroup(of: Void.self) { group in
+            if let locationSharer {
+                group.addTask { await locationSharer.Run() }
+            }
+            await FollowTrip()
+            group.cancelAll()
+        }
+    }
+
+    private func FollowTrip() async {
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
+
+            state = newState
+
+            // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
+            // even the first one (for example when I was removed before the room finished opening). The update that
+            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
+            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
+                wasRemovedFromTrip = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // The leader who ended the trip leaves through Exit, so only the members are told.
+            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
+                wasEndedByLeader = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
+            // the participants, but is not removed, so the check above does not catch them.
+            if !wasRemovedFromTrip && !isLeaving && !hasLeft
+                && (isStillInTrip || isCurrentUserLeader)
+                && newState.trip.status == .inTrip {
+                hasTripStarted = true
+            }
+
+            if !isCurrentUserLeader && isSelectionMode {
+                isSelectionMode = false
+                selectedParticipantIds.removeAll()
+            }
+        }
     }
 }

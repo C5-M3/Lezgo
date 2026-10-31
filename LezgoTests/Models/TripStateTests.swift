@@ -27,6 +27,62 @@ struct TripStateTests {
         #expect(state.leader == nil)
     }
 
+    // MARK: Names
+
+    /// A car whose driver typed no name: iOS does not tell apps the iCloud account's name.
+    private func Unnamed(_ id: UUID = UUID()) -> Participant {
+        var participant = TripFixtures.Participant(id: id)
+        participant.displayName = ""
+        return participant
+    }
+
+    @Test func UnnamedLeaderIsCalledLeader() {
+        let state = TripState(
+            trip: TripFixtures.Trip(),
+            waypoints: [],
+            participants: [Unnamed(TripFixtures.agusID)],
+            route: nil
+        )
+
+        #expect(state.DisplayName(of: state.participants[0]) == "Leader")
+    }
+
+    @Test func UnnamedMembersAreNumberedInTheOrderTheyJoined() {
+        // The leader counts as car 1, so the first member is car 2, wherever the leader is in the list.
+        let first = Unnamed()
+        let second = Unnamed()
+        let state = TripState(
+            trip: TripFixtures.Trip(),
+            waypoints: [],
+            participants: [first, Unnamed(TripFixtures.agusID), second],
+            route: nil
+        )
+
+        #expect(state.DisplayName(of: first) == "Car 2")
+        #expect(state.DisplayName(of: second) == "Car 3")
+    }
+
+    @Test func TypedNameIsKept() {
+        var budi = Unnamed()
+        budi.displayName = "Budi"
+        let state = TripState(trip: TripFixtures.Trip(), waypoints: [], participants: [budi], route: nil)
+
+        #expect(state.DisplayName(of: budi) == "Budi")
+    }
+
+    @Test func NameOfOnlySpacesCountsAsNoName() {
+        var member = Unnamed()
+        member.displayName = "   "
+        let state = TripState(
+            trip: TripFixtures.Trip(),
+            waypoints: [],
+            participants: [Unnamed(TripFixtures.agusID), member],
+            route: nil
+        )
+
+        #expect(state.DisplayName(of: member) == "Car 2")
+    }
+
     @Test func DestinationIsTheDestinationWaypoint() {
         let waypoints = [
             TripFixtures.Waypoint(orderIndex: 0, kind: .start),

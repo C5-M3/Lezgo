@@ -55,6 +55,7 @@ DEFINE SCHEMA
         motionState    STRING,
         alert          STRING,
         lastSeenAt     TIMESTAMP,
+        course         DOUBLE,
         GRANT WRITE TO "_icloud",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

@@ -17,6 +17,8 @@ final class MapViewModel {
     let locationService = LocationService()
     var tripService: any TripService
     var activeTripStorage: any ActiveTripStorage
+    /// My name and car, shown to the group as the leader.
+    let profileStorage: any ProfileStorage
 
     // MARK: - Route Planning State
     var startPoint: RoutePoint?
@@ -78,10 +80,12 @@ final class MapViewModel {
 
     init(
         tripService: (any TripService)? = nil,
-        activeTripStorage: (any ActiveTripStorage)? = nil
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         self.tripService = tripService ?? InMemoryTripService()
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
 
         // Automatically default the start point to the first GPS fix
         locationService.onFirstLocationFound = { [weak self] coord in

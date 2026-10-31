@@ -7,47 +7,35 @@
 
 import SwiftUI
 
-/// The card that opens when a car is tapped on the trip map: the driver, "Driving at [street]" (or "Stopped at",
-/// or "Last seen 3 min ago") and the time left. Swipe down to close.
+/// The top of the trip map sheet when a car is tapped: the driver, "Driving at [street]" (or "Stopped at", or
+/// "Last seen 3 min ago") and the time left, like a place card in Apple Maps. Close (ⓧ) goes back to the trip.
 struct TripMapCarStatusCard: View {
     let status: TripMapCarStatus
     let onClose: () -> Void
 
-    /// How far the card must be dragged down to close.
-    private static let closeDragDistance: CGFloat = 40
-
     var body: some View {
-        VStack(spacing: 8) {
-            Capsule()
-                .fill(.secondary)
-                .frame(width: 36, height: 5)
-                .accessibilityHidden(true)
-
+        HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: status.displayName)
-                    .font(.headline)
+                    .font(.title3.bold())
                 Text(verbatim: status.statusLine)
                     .font(.subheadline)
                 if let timeLeft = status.timeLeft {
-                    // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
                     Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
-            .accessibilityAction(named: Text(.tripMapCloseCarStatus), onClose)
+
+            Button(.tripMapCloseCarStatus, systemImage: "xmark", action: onClose)
+                .labelStyle(.iconOnly)
+                .buttonStyle(.bordered)
+                .buttonBorderShape(.circle)
+                .frame(minWidth: 44, minHeight: 44)
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .glassEffect(in: .rect(cornerRadius: 24))
-        .contentShape(.rect(cornerRadius: 24))
-        .gesture(
-            DragGesture(minimumDistance: 20).onEnded { drag in
-                if drag.translation.height > Self.closeDragDistance { onClose() }
-            }
-        )
         .accessibilityElement(children: .contain)
         .accessibilityAction(.escape, onClose)
     }

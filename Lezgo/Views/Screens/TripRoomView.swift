@@ -70,7 +70,12 @@ struct TripRoomView: View {
                     tripService: tripService,
                     tripID: tripID,
                     myParticipantID: myParticipantID,
-                    activeTripStorage: activeTripStorage
+                    activeTripStorage: activeTripStorage,
+                    locationSharer: LocationSharer(
+                        tripService: tripService,
+                        tripID: tripID,
+                        participantID: myParticipantID
+                    )
                 )
             }
             await viewModel?.Listen()
@@ -97,6 +102,8 @@ struct TripRoomView: View {
                     onLeave: { showingLeaveConfirmation = true },
                     onSetLeader: { showingSetLeaderSheet = true }
                 ).padding(.bottom, 8)
+
+                if viewModel.isLocationImprecise { PreciseLocationNotice().padding(.horizontal) }
 
                 List {
                     RouteSectionView(waypoints: viewModel.waypoints)

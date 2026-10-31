@@ -42,6 +42,9 @@ struct TripMapTurnCard: View {
         case .left: "arrow.turn.up.left"
         case .right: "arrow.turn.up.right"
         case .straight: "arrow.up"
+        // Indonesia drives on the left, so roundabouts go clockwise.
+        case .roundabout: "arrow.clockwise.circle"
+        case .uTurn: "arrow.uturn.down"
         }
     }
 }

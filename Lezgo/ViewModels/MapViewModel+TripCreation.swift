@@ -28,7 +28,10 @@ extension MapViewModel {
 
         let activeService = service ?? tripService
         do {
-            let session = try await activeService.CreateTrip(plan: plan, profile: profile)
+            let session = try await activeService.CreateTrip(
+                plan: plan,
+                profile: profile ?? profileStorage.LoadProfile()
+            )
             let distanceStr = totalDistance > 0 ? String(format: "%.1f km", totalDistance / 1000) : nil
             let summary = ActiveTripSummary.From(session: session, distanceText: distanceStr)
             activeTripStorage.SaveActiveTrip(summary)

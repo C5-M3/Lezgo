@@ -37,6 +37,7 @@ final class JoinTripViewModel {
 
     private var tripService: any TripService
     private let storage: any ActiveTripStorage
+    private let profileStorage: any ProfileStorage
     private let hasCustomService: Bool
 
     // MARK: - Computed Properties
@@ -51,13 +52,15 @@ final class JoinTripViewModel {
     init(
         roomCode: String = "",
         tripService: (any TripService)? = nil,
-        storage: (any ActiveTripStorage)? = nil
+        storage: (any ActiveTripStorage)? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         let digitsOnly = roomCode.filter { $0.isNumber }
         self.roomCode = String(digitsOnly.prefix(6))
         self.hasCustomService = tripService != nil
         self.tripService = tripService ?? InMemoryTripService.fallback
         self.storage = storage ?? UserDefaultsActiveTripStorage()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
     }
 
     // MARK: - Dependency Configuration
@@ -79,7 +82,7 @@ final class JoinTripViewModel {
         joinedSession = nil
     }
 
-    /// Mengirimkan dan memvalidasi kode ruangan ke database, serta memastikan perjalanan belum dimulai.
+    /// Mengirimkan dan memvalidasi kode ruangan ke database.
     @discardableResult
     func submitCode() async -> Bool {
         guard isValidCode else {
@@ -96,16 +99,10 @@ final class JoinTripViewModel {
         }
 
         do {
-            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
+            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: profileStorage.LoadProfile())
 
-            // Pastikan perjalanan belum dimulai (harus berstatus .lobby)
-            guard session.state.trip.status == .lobby else {
-                try? await tripService.ExitTrip(tripID: session.state.trip.id, participantID: session.myParticipantID)
-                errorMessage = String(localized: "This trip has already begun.")
-                return false
-            }
-
-            // Validasi berhasil dan perjalanan belum dimulai
+            // A LOBBY trip opens the Trip Room and an IN_TRIP trip opens the map for a late member (US-02); the
+            // service already turns away ended and cancelled trips.
             let summary = ActiveTripSummary.From(session: session)
             storage.SaveActiveTrip(summary)
             self.joinedSession = session

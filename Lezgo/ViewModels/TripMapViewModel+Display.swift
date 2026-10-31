@@ -19,6 +19,20 @@ extension TripMapViewModel {
         state?.route?.polyline ?? waypoints.map(\.coordinate)
     }
 
+    /// The route from this phone's car on, which is all the map draws, as in Apple Maps; the whole route until
+    /// the car's position is known.
+    var routeAhead: [Coordinate] {
+        guard let myCoordinate else { return route }
+        return RoutePosition.RouteAhead(of: myCoordinate, on: route)
+    }
+
+    /// The stops still ahead: the checkpoints not visited yet and the destination. The start point is never shown on
+    /// the road, because after a reroute it is only the leader's position at that moment ("Current Location").
+    var upcomingWaypoints: [Waypoint] {
+        guard let currentIndex = state?.trip.currentWaypointIndex else { return [] }
+        return waypoints.filter { $0.kind != .start && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
+    }
+
     var destinationName: String? {
         state?.destination?.name
     }
@@ -27,8 +41,9 @@ extension TripMapViewModel {
         state?.trip.leaderParticipantID == myParticipantID
     }
 
+    /// This phone's car: its own latest GPS reading, or its position in the trip without one.
     var myCoordinate: Coordinate? {
-        state?.participants.first { $0.id == myParticipantID }?.coordinate
+        myReading?.coordinate ?? state?.participants.first { $0.id == myParticipantID }?.coordinate
     }
 
     /// `true` until the first trip update arrives.
@@ -36,9 +51,86 @@ extension TripMapViewModel {
         state == nil
     }
 
-    /// Whether the leader has already moved the trip past this waypoint.
-    func IsVisited(_ waypoint: Waypoint) -> Bool {
-        guard let state else { return false }
-        return waypoint.IsVisited(currentWaypointIndex: state.trip.currentWaypointIndex)
+    /// Only the leader can change the route, while the trip is open and once their position is known.
+    var canEditRoute: Bool {
+        isLeader && closeReason == nil && myCoordinate != nil
+    }
+
+    /// The trip as the Trip Room opens it, once the map closed to go back there after a New Destination.
+    var tripRoomSession: TripSession? {
+        guard closeReason == .backToTripRoom, let state else { return nil }
+        return TripSession(myParticipantID: myParticipantID, state: state)
+    }
+
+    /// A pin for every car that has sent a position; members without one yet have no pin.
+    var carPins: [TripMapCarPin] {
+        guard let state, let updatedAt else { return [] }
+        return state.participants.compactMap { participant in
+            guard let coordinate = participant.coordinate else { return nil }
+            // The location dot already shows this phone's car.
+            if showsMyLocationDot, participant.id == myParticipantID { return nil }
+            return TripMapCarPin(
+                id: participant.id,
+                displayName: state.DisplayName(of: participant),
+                coordinate: coordinate,
+                motionState: participant.motionState,
+                course: participant.course,
+                isLeader: participant.IsLeader(in: state.trip),
+                isMe: participant.id == myParticipantID,
+                isOffline: participant.IsOnline(at: updatedAt) == false,
+                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
+            )
+        }
+    }
+
+    /// The status card of the tapped car, or `nil` while no car is tapped.
+    ///
+    /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
+    var selectedCarStatus: TripMapCarStatus? {
+        SelectedCar().flatMap(CarStatus)
+    }
+
+    /// What a car is doing, with the street and time left once they are looked up for it.
+    private func CarStatus(of car: Participant) -> TripMapCarStatus? {
+        guard let state, let updatedAt else { return nil }
+        let displayName = state.DisplayName(of: car)
+        guard car.IsOnline(at: updatedAt) else {
+            let lastSeen = Duration.seconds(updatedAt.timeIntervalSince(car.lastSeenAt))
+            return TripMapCarStatus(
+                id: car.id,
+                displayName: displayName,
+                activity: .offline(lastSeen: lastSeen)
+            )
+        }
+        let lookup = carLookups[car.id]
+        let activity: TripMapCarStatus.Activity = car.motionState == .driving
+            ? .driving(street: lookup?.street)
+            : .stopped(street: lookup?.street)
+        return TripMapCarStatus(
+            id: car.id,
+            displayName: displayName,
+            activity: activity,
+            timeLeft: lookup?.timeLeft
+        )
+    }
+
+    /// The one formation alert banner under the turn card, or `nil` when there is none to show.
+    var alertBanner: TripMapAlerts.Banner? {
+        guard let state, let updatedAt else { return nil }
+        return alerts.Banner(in: state, at: updatedAt)
+    }
+
+    /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
+    var arrivalCard: ArrivalCard? {
+        guard let state, let updatedAt else { return nil }
+        let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
+        guard arrival.hasArrived else { return nil }
+        return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
+    }
+
+    /// The tapped car, while it is still in the trip with a position on the map.
+    func SelectedCar() -> Participant? {
+        guard let selectedCarID else { return nil }
+        return state?.participants.first { $0.id == selectedCarID && $0.coordinate != nil }
     }
 }

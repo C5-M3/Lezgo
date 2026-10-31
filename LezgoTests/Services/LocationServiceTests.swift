@@ -82,4 +82,29 @@ struct LocationServiceTests {
 
         #expect(service.userLocation == nil)
     }
+
+    // MARK: Current Location as the start point (#213)
+
+    private func Fix(accuracy: CLLocationAccuracy) -> CLLocation {
+        CLLocation(
+            coordinate: CLLocationCoordinate2D(latitude: -6.2088, longitude: 106.8456),
+            altitude: 0,
+            horizontalAccuracy: accuracy,
+            verticalAccuracy: 10,
+            timestamp: .now
+        )
+    }
+
+    @Test func PreciseFixIsGoodForTheStartPoint() {
+        #expect(LocationService.IsGoodForStartPoint(Fix(accuracy: 20), hasFullAccuracy: true))
+    }
+
+    @Test func RoughFixWaitsForABetterOne() {
+        // The first fixes after the GPS starts can be hundreds of metres wide; the start point would be wrong.
+        #expect(LocationService.IsGoodForStartPoint(Fix(accuracy: 500), hasFullAccuracy: true) == false)
+    }
+
+    @Test func WithoutPreciseLocationTheRoughFixIsAllThereIs() {
+        #expect(LocationService.IsGoodForStartPoint(Fix(accuracy: 3_000), hasFullAccuracy: false))
+    }
 }

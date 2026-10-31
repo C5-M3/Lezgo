@@ -5,23 +5,29 @@
 //  Created by Nathan Sudiara on 28/10/26.
 //
 
-import Foundation
+import CoreLocation
 
 /// Reroutes the group when the leader leaves the route (`specs/UserStories.md` → US-06, "Route changes").
 ///
-/// The leader's phone checks every trip update. Once the leader is more than 100 m off the route for 15 seconds, the
-/// same limits as a member's off-route alert so a GPS jump never reroutes the group, it finds a new road path from
-/// the leader through the unvisited checkpoints to the destination and saves it as the next route version. Every
-/// phone picks it up with its next update. Time is read from the leader's own `lastSeenAt`.
+/// The leader's phone checks every trip update. Once the leader is more than 50 m off the route for 5 seconds, it
+/// finds a new road path from the leader through the unvisited checkpoints to the destination and saves it as the
+/// next route version. Every phone picks it up with its next update. Time is read from the leader's own `lastSeenAt`.
+///
+/// The limits are tighter than a member's off-route alert (100 m for 15 seconds), as Apple Maps reroutes within a
+/// few seconds of a missed turn; 5 seconds still outlasts the GPS jumps of a few seconds that should not reroute.
 ///
 /// Each route version is rerouted once. On failure (no network, no road found) the old route stays and the next try
-/// waits 30 seconds.
+/// waits 10 seconds.
 ///
 /// While the leader has Edit Route open the reroute pauses, and a request already on its way is dropped, so it never
 /// replaces the route the leader chose by hand.
 final class TripMapReroute {
+    /// How far from the route the leader must be before a reroute.
+    static let offRouteDistance: CLLocationDistance = 50
+    /// How long the leader must stay that far off before a reroute.
+    static let holdTime: TimeInterval = 5
     /// How long to wait before trying again after a failed reroute.
-    static let retryInterval: TimeInterval = 30
+    static let retryInterval: TimeInterval = 10
 
     private let tripID: UUID
     private let tripService: any TripService
@@ -104,7 +110,7 @@ final class TripMapReroute {
         }
         let since = offRouteSince ?? date
         offRouteSince = since
-        guard date.timeIntervalSince(since) >= FormationAlertDetector.holdTime,
+        guard date.timeIntervalSince(since) >= Self.holdTime,
               hasRequested == false,
               retryAt.map({ date >= $0 }) ?? true,
               let waypoints = state.RemainingWaypoints(from: .CurrentLocation(at: leaderCoordinate)) else { return nil }
@@ -124,6 +130,6 @@ final class TripMapReroute {
         // Before a route exists, the straight line through the waypoints, like the map draws it.
         let polyline = state.route?.polyline ?? state.waypoints.map(\.coordinate)
         guard let position = RoutePosition.Locate(coordinate, on: polyline) else { return false }
-        return position.distanceFromRoute > FormationAlertDetector.offRouteDistance
+        return position.distanceFromRoute > Self.offRouteDistance
     }
 }
