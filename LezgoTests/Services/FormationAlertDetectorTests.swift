@@ -208,7 +208,9 @@ struct FormationAlertDetectorTests {
 
     @Test func CarParkedJustPastTheDestinationHasNoAlert() {
         let parked = Self.Along(2 * Self.checkpointAlongRoute + 30)
-        let readings = [0.0, 30].map { State(at: $0, budi: parked, agus: Self.nearDestination, currentWaypointIndex: 2) }
+        let readings = [0.0, 30].map {
+            State(at: $0, budi: parked, agus: Self.nearDestination, currentWaypointIndex: 2)
+        }
 
         #expect(Alert(after: readings) == .none)
     }
