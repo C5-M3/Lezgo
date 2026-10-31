@@ -85,15 +85,7 @@ struct HomeView: View {
             }
         )
         .safeAreaInset(edge: .top) { topNoticeInset }
-        .alert(
-            Text(verbatim: viewModel.draftTripErrorMessage ?? ""),
-            isPresented: Binding(
-                get: { viewModel.draftTripErrorMessage != nil },
-                set: { if $0 == false { viewModel.DismissDraftTripError() } }
-            )
-        ) {
-            Button("OK", action: viewModel.DismissDraftTripError)
-        }
+        .modifier(Prompts(viewModel: viewModel))
         .onAppear { viewModel.onAppear() }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
         .onOpenURL { url in viewModel.OpenInviteLink(url) }
