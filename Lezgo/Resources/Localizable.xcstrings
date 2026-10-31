@@ -426,6 +426,18 @@
         }
       }
     },
+    "tripMapArriveAt" : {
+      "comment" : "The expected arrival time in the trip map sheet, for example Arrive 14.32 (#221).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrive %@"
+          }
+        }
+      }
+    },
     "tripMapCancel" : {
       "comment" : "Button on a confirmation that changes nothing (US-07).",
       "extractionState" : "manual",
@@ -506,6 +518,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Offline"
+          }
+        }
+      }
+    },
+    "tripMapCars" : {
+      "comment" : "Section title in the pulled-up trip map sheet that lists every car in the trip (#221).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cars"
           }
         }
       }
@@ -782,6 +806,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You were removed from the trip."
+          }
+        }
+      }
+    },
+    "tripMapRoomCode" : {
+      "comment" : "Label in the pulled-up trip map sheet for the 6-digit code others type to join the trip (#221).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Room code"
           }
         }
       }
