@@ -18,6 +18,10 @@ struct TripMapCarStatus: Identifiable, Hashable {
     var activity: Activity
     /// `nil` until the travel time is known, and for an offline car, whose last position is out of date.
     var timeLeft: Duration?
+    /// Whether this car leads the trip, for the "Leader" label in the sheet's list.
+    var isLeader = false
+    /// Whether this is the car of the person using this phone, for the "You" label in the sheet's list.
+    var isMe = false
 
     /// "Driving at Ahmad Yani Street", "Stopped at Ahmad Yani Street" or "Last seen 3 min ago".
     var statusLine: String {
