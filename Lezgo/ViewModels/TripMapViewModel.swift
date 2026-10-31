@@ -100,6 +100,11 @@ final class TripMapViewModel {
         locationSharer?.lastError != nil
     }
 
+    /// `true` while Precise Location is off: this phone's car is not shared, and the map asks to turn it on.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
+    }
+
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
     /// task is cancelled.
     func Start() async {

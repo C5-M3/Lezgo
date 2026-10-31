@@ -18,6 +18,9 @@ final class LocationSharer {
     /// The last send's error, or `nil` once a send works again.
     private(set) var lastError: TripServiceError?
     private(set) var sentCount = 0
+    /// `true` while the GPS gives only rough readings, as with Precise Location off. Nothing is sent meanwhile: a car
+    /// kilometres off would mislead the group more than a car that stands still.
+    private(set) var isLocationImprecise = false
 
     private var latest: LocationReading?
     private var detector = MotionStateDetector()
@@ -58,6 +61,8 @@ final class LocationSharer {
     /// Keeps the latest reading and the motion state up to date as readings arrive.
     private func ReadGPS(echoingTo echo: AsyncStream<LocationReading>.Continuation?) async {
         for await reading in locationProvider.Readings() {
+            isLocationImprecise = reading.isPrecise == false
+            if isLocationImprecise { continue }
             // A reading can arrive late; an older one must not move the car back.
             if let latest, reading.recordedAt < latest.recordedAt { continue }
             latest = reading
