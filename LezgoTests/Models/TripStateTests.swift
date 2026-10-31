@@ -83,6 +83,29 @@ struct TripStateTests {
         #expect(state.DisplayName(of: member) == "Car 2")
     }
 
+    // MARK: Group path
+
+    @Test func WithoutAFootprintTheGroupFollowsTheRoute() {
+        var state = TripMapFixtures.State()
+        state.trail = []
+
+        #expect(state.groupPath == state.route?.polyline)
+    }
+
+    @Test func GroupPathIsTheFootprintThenTheLeaderThenTheRouteAhead() {
+        // After a reroute the route starts at the leader; the members behind still follow the leader's footprint.
+        let behind = Coordinate(latitude: -7.2650, longitude: 112.7300)
+        let leaderAt = Coordinate(latitude: -7.2700, longitude: 112.7300)
+        let destination = TripMapFixtures.destination.coordinate
+        var state = TripMapFixtures.State(cars: [
+            TripMapFixtures.Car(id: TripMapFixtures.agusID, name: "Agus", latitude: leaderAt.latitude)
+        ])
+        state.route?.polyline = [leaderAt, destination]
+        state.trail = [behind]
+
+        #expect(state.groupPath == [behind, leaderAt, leaderAt, destination])
+    }
+
     @Test func DestinationIsTheDestinationWaypoint() {
         let waypoints = [
             TripFixtures.Waypoint(orderIndex: 0, kind: .start),

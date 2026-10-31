@@ -33,6 +33,11 @@ extension TripMapViewModel {
         return waypoints.filter { $0.kind != .start && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
     }
 
+    /// The leader's footprint.
+    var footprint: [Coordinate] {
+        []
+    }
+
     var destinationName: String? {
         state?.destination?.name
     }

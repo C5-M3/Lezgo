@@ -30,6 +30,37 @@ struct FormationAlertDetectorTests {
         )
     }
 
+    // MARK: Footprint
+
+    @Test func MemberBehindTheLeaderOnTheFootprintIsNotOffRoute() {
+        // Agus left the route and was rerouted: the route now starts at Agus, 600 m along. Budi, 200 m along,
+        // follows Agus's footprint, so he is on the group's road even though he is 400 m from the new route.
+        var detector = FormationAlertDetector()
+        let rerouted = { (seconds: TimeInterval) -> TripState in
+            var state = self.State(at: seconds, budi: Self.Along(200), agus: Self.Along(600))
+            state.route?.polyline = [Self.Along(600), Self.Along(2 * Self.checkpointAlongRoute)]
+            state.trail = [Self.Along(0), Self.Along(300)]
+            return state
+        }
+
+        _ = detector.Update(rerouted(0), for: Fixtures.budiID)
+
+        #expect(detector.Update(rerouted(20), for: Fixtures.budiID) == .none)
+    }
+
+    @Test func MemberOffTheFootprintToo() {
+        var detector = FormationAlertDetector()
+        let offEverything = { (seconds: TimeInterval) -> TripState in
+            var state = self.State(at: seconds, budi: Self.Along(200, sideways: 300), agus: Self.Along(600))
+            state.trail = [Self.Along(0), Self.Along(300)]
+            return state
+        }
+
+        _ = detector.Update(offEverything(0), for: Fixtures.budiID)
+
+        #expect(detector.Update(offEverything(20), for: Fixtures.budiID) == .offRoute)
+    }
+
     /// The trip when Budi's phone reads its position `seconds` after `start`.
     private func State(
         at seconds: TimeInterval,

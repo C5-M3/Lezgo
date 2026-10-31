@@ -16,6 +16,13 @@ struct TripState: Hashable {
     var participants: [Participant]
     /// `nil` only while a new trip is being created.
     var route: Route?
+    /// The road the leader has driven.
+    var trail: [Coordinate] = []
+
+    /// The road every member follows.
+    var groupPath: [Coordinate] {
+        route?.polyline ?? waypoints.map(\.coordinate)
+    }
 
     var leader: Participant? {
         participants.first { $0.IsLeader(in: trip) }
