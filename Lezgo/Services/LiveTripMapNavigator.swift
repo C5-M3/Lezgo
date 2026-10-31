@@ -99,7 +99,8 @@ final class LiveTripMapNavigator: TripMapNavigator {
             direction: nextTurn?.direction ?? .straight,
             instruction: nextTurn?.instruction ?? directions.turns.last?.instruction ?? "",
             distanceToTurn: Measurement(value: max(turnAlong - along, 0), unit: .meters),
-            timeLeft: .seconds(Int(timeLeft.rounded()))
+            timeLeft: .seconds(Int(timeLeft.rounded())),
+            distanceLeft: Measurement(value: remaining, unit: .meters)
         )
     }
 }
@@ -120,6 +121,9 @@ private struct KeptDirections {
 
     /// A bend sharper than this, in degrees, shows a left or right arrow.
     private static let turnThresholdDegrees = 20.0
+    /// How far before and after a turn the road's heading is measured, in metres, so a small kink right at the
+    /// corner does not hide the turn.
+    private static let headingDistance = 30.0
 
     struct Turn {
         let instruction: String
@@ -146,7 +150,8 @@ private struct KeptDirections {
         turns = zip(directions.steps, stepStarts).dropFirst().map { step, start in
             Turn(
                 instruction: step.instruction,
-                direction: Self.Direction(in: path, at: start),
+                direction: Self.Direction(saying: step.instruction)
+                    ?? Self.Direction(in: path, lengths: lengths, at: start),
                 distanceAlongRoute: lengths[start]
             )
         }
@@ -164,11 +169,32 @@ private struct KeptDirections {
         }
     }
 
-    /// Which way the road bends at `index`: compares the heading into it with the heading out of it.
-    private static func Direction(in path: [Coordinate], at index: Int) -> TripMapGuidance.TurnDirection {
+    /// The arrow MapKit's own instruction asks for, in English or Indonesian, or `nil` when it names no direction.
+    /// A roundabout or a U-turn wins; otherwise the first "left" or "right" counts, so a street name later in the
+    /// sentence ("… onto Jalan Kiri") cannot change it.
+    private static func Direction(saying instruction: String) -> TripMapGuidance.TurnDirection? {
+        let text = instruction.lowercased()
+        if text.contains("roundabout") || text.contains("bundaran") { return .roundabout }
+        if text.contains("u-turn") || text.contains("putar balik") { return .uTurn }
+        for word in text.split(whereSeparator: { $0.isLetter == false }) {
+            if word == "left" || word == "kiri" { return .left }
+            if word == "right" || word == "kanan" { return .right }
+        }
+        return nil
+    }
+
+    /// Which way the road bends at `index`: compares its heading over the 30 m before with the 30 m after.
+    private static func Direction(
+        in path: [Coordinate],
+        lengths: [Double],
+        at index: Int
+    ) -> TripMapGuidance.TurnDirection {
         guard index > 0, index < path.count - 1 else { return .straight }
-        let headingIn = Bearing(from: path[index - 1], to: path[index])
-        let change = Bearing(from: path[index], to: path[index + 1]) - headingIn
+        let before = path.indices[..<index].last { lengths[index] - lengths[$0] >= headingDistance } ?? 0
+        let after = path.indices[(index + 1)...].first { lengths[$0] - lengths[index] >= headingDistance }
+            ?? path.count - 1
+        let headingIn = Bearing(from: path[before], to: path[index])
+        let change = Bearing(from: path[index], to: path[after]) - headingIn
         let normalized = (change + 540).truncatingRemainder(dividingBy: 360) - 180
         if normalized > Self.turnThresholdDegrees { return .right }
         if normalized < -Self.turnThresholdDegrees { return .left }
