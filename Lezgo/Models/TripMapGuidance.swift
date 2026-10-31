@@ -14,6 +14,8 @@ struct TripMapGuidance: Hashable {
     var instruction: String
     var distanceToTurn: Measurement<UnitLength>
     var timeLeft: Duration
+    /// How far the car still has to drive to the destination; `nil` when the navigator cannot tell.
+    var distanceLeft: Measurement<UnitLength>?
 }
 
 extension TripMapGuidance {
@@ -22,5 +24,9 @@ extension TripMapGuidance {
         case left
         case right
         case straight
+        /// A roundabout: the instruction says which exit.
+        case roundabout
+        /// Turn back the way the car came.
+        case uTurn
     }
 }
