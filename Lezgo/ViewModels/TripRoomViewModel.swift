@@ -249,6 +249,11 @@ final class TripRoomViewModel {
         errorMessage = String(localized: TripServiceError(cloudKitError: error).message)
     }
 
+    /// The name the group sees for a car.
+    func DisplayName(of participant: Participant) -> String {
+        participant.displayName
+    }
+
     func CanEdit(participant: Participant) -> Bool {
         !isSelectionMode && participant.id == myParticipantID
     }

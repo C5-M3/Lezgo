@@ -63,3 +63,25 @@ struct TripRoomViewModelProfileTests {
         #expect(viewModel.profileErrorMessage == String(localized: TripServiceError.noNetwork.message))
     }
 }
+
+/// Rows without a typed name are called "Leader", "Car 2", "Car 3" in the Trip Room.
+@MainActor
+struct TripRoomViewModelCarNameTests {
+    @Test func UnnamedCarIsCalledByItsNumber() throws {
+        var state = SampleTrip.State(status: .lobby)
+        for index in state.participants.indices {
+            state.participants[index].displayName = ""
+        }
+        let viewModel = TripRoomViewModel(
+            tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: state
+        )
+
+        let leader = try #require(state.participants.first { $0.id == SampleTrip.agusID })
+        let member = try #require(state.participants.first { $0.id == SampleTrip.budiID })
+        #expect(viewModel.DisplayName(of: leader) == "Leader")
+        #expect(viewModel.DisplayName(of: member).hasPrefix("Car "))
+    }
+}

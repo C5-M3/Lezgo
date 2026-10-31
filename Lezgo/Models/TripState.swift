@@ -43,4 +43,9 @@ struct TripState: Hashable {
         let end = PlannedWaypoint(kind: .destination, name: destination.name, coordinate: destination.coordinate)
         return [start] + checkpoints + [end]
     }
+
+    /// The name the group sees for a car.
+    func DisplayName(of participant: Participant) -> String {
+        participant.displayName
+    }
 }
