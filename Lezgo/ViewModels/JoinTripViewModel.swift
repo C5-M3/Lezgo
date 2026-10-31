@@ -37,6 +37,7 @@ final class JoinTripViewModel {
 
     private var tripService: any TripService
     private let storage: any ActiveTripStorage
+    private let profileStorage: any ProfileStorage
     private let hasCustomService: Bool
 
     // MARK: - Computed Properties
@@ -59,6 +60,7 @@ final class JoinTripViewModel {
         self.hasCustomService = tripService != nil
         self.tripService = tripService ?? InMemoryTripService.fallback
         self.storage = storage ?? UserDefaultsActiveTripStorage()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
     }
 
     // MARK: - Dependency Configuration
@@ -97,7 +99,7 @@ final class JoinTripViewModel {
         }
 
         do {
-            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
+            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: profileStorage.LoadProfile())
 
             // A LOBBY trip opens the Trip Room and an IN_TRIP trip opens the map for a late member (US-02); the
             // service already turns away ended and cancelled trips.
