@@ -9,7 +9,8 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// Home asks for my name once, so the group sees it instead of "Member 1d9d" (`specs/UserStories.md` → US-04).
+/// Joining from Home uses the name saved on this phone, once I typed one in the Trip Room (`specs/UserStories.md` →
+/// US-04).
 @MainActor
 struct HomeViewModelNameTests {
     private func MakeHome(_ profiles: FakeProfileStorage) -> HomeViewModel {
@@ -19,49 +20,6 @@ struct HomeViewModelNameTests {
             activeTripStorage: FakeActiveTripStorage(),
             profileStorage: profiles
         )
-    }
-
-    @Test func AsksForANameTheFirstTime() {
-        let home = MakeHome(FakeProfileStorage())
-
-        #expect(home.isAskingForName)
-    }
-
-    @Test func DoesNotAskAgainOnceANameIsSaved() {
-        let home = MakeHome(FakeProfileStorage(ParticipantProfile(displayName: "Nathan", carDescription: "")))
-
-        #expect(home.isAskingForName == false)
-    }
-
-    @Test func NameIsTrimmedAndRemembered() {
-        let profiles = FakeProfileStorage()
-        let home = MakeHome(profiles)
-
-        let didSave = home.SaveName("  Nathan  ")
-
-        #expect(didSave)
-        #expect(home.isAskingForName == false)
-        #expect(profiles.savedProfile?.displayName == "Nathan")
-    }
-
-    @Test func BlankNameIsNotSaved() {
-        let profiles = FakeProfileStorage()
-        let home = MakeHome(profiles)
-
-        let didSave = home.SaveName("   ")
-
-        #expect(didSave == false)
-        #expect(home.isAskingForName)
-        #expect(profiles.savedProfile == nil)
-    }
-
-    @Test func LongNameIsCutTo30Characters() {
-        let profiles = FakeProfileStorage()
-        let home = MakeHome(profiles)
-
-        home.SaveName(String(repeating: "a", count: 45))
-
-        #expect(profiles.savedProfile?.displayName.count == 30)
     }
 
     @Test func JoiningUsesTheSavedName() async throws {

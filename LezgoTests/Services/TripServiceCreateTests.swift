@@ -61,10 +61,13 @@ struct TripServiceCreateTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
-    func NameDefaultsToMemberAndTheEndOfTheICloudID(kind: TripPhones.Kind) async throws {
+    func WithoutANameTheLeaderIsCalledLeader(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let session = try await phones.budi.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
 
-        #expect(session.state.leader?.displayName == "Member 7F3A")
+        // No name is saved, so a name typed later is never mixed up with a made-up one.
+        let leader = try #require(session.state.leader)
+        #expect(leader.displayName.isEmpty)
+        #expect(session.state.DisplayName(of: leader) == "Leader")
     }
 }

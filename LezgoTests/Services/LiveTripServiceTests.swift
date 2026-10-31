@@ -121,6 +121,6 @@ struct LiveTripServiceTests {
         #expect(server.saveCount == saves + 1)
         let me = try await agus.FetchTrip(tripID: created.state.trip.id).participants.first
         #expect(me?.coordinate == TripFixtures.ciputraWorld)
-        #expect(me?.displayName == "Member 0001")
+        #expect(me?.displayName == "")
     }
 }
