@@ -156,57 +156,6 @@ final class TripRoomViewModel {
         }
     }
 
-    /// `true` while Precise Location is off: nobody can tell whether this car is at the start point.
-    var isLocationImprecise: Bool {
-        locationSharer?.isLocationImprecise ?? false
-    }
-
-    /// Follows the trip until the room closes, and shares this phone's position meanwhile (US-04, "Ready").
-    func Listen() async {
-        await withTaskGroup(of: Void.self) { group in
-            if let locationSharer {
-                group.addTask { await locationSharer.Run() }
-            }
-            await FollowTrip()
-            group.cancelAll()
-        }
-    }
-
-    private func FollowTrip() async {
-        for await newState in tripService.TripUpdates(tripID: tripID) {
-            let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
-
-            state = newState
-
-            // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
-            // even the first one (for example when I was removed before the room finished opening). The update that
-            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
-            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
-                wasRemovedFromTrip = true
-                activeTripStorage.ClearActiveTrip()
-            }
-
-            // The leader who ended the trip leaves through Exit, so only the members are told.
-            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
-                wasEndedByLeader = true
-                activeTripStorage.ClearActiveTrip()
-            }
-
-            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
-            // the participants, but is not removed, so the check above does not catch them.
-            if !wasRemovedFromTrip && !isLeaving && !hasLeft
-                && (isStillInTrip || isCurrentUserLeader)
-                && newState.trip.status == .inTrip {
-                hasTripStarted = true
-            }
-
-            if !isCurrentUserLeader && isSelectionMode {
-                isSelectionMode = false
-                selectedParticipantIds.removeAll()
-            }
-        }
-    }
-
     func StartTrip() async throws {
         // `canStartTrip` is false while a start is saving or after it, so a second tap does nothing.
         guard canStartTrip else { return }
@@ -358,5 +307,60 @@ final class TripRoomViewModel {
         case exitRoom
         /// The leader: the trip is cancelled for everyone.
         case endTripForEveryone
+    }
+}
+
+// MARK: Following the trip
+
+extension TripRoomViewModel {
+    /// `true` while Precise Location is off: nobody can tell whether this car is at the start point.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
+    }
+
+    /// Follows the trip until the room closes, and shares this phone's position meanwhile (US-04, "Ready").
+    func Listen() async {
+        await withTaskGroup(of: Void.self) { group in
+            if let locationSharer {
+                group.addTask { await locationSharer.Run() }
+            }
+            await FollowTrip()
+            group.cancelAll()
+        }
+    }
+
+    private func FollowTrip() async {
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
+
+            state = newState
+
+            // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
+            // even the first one (for example when I was removed before the room finished opening). The update that
+            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
+            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
+                wasRemovedFromTrip = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // The leader who ended the trip leaves through Exit, so only the members are told.
+            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
+                wasEndedByLeader = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
+            // the participants, but is not removed, so the check above does not catch them.
+            if !wasRemovedFromTrip && !isLeaving && !hasLeft
+                && (isStillInTrip || isCurrentUserLeader)
+                && newState.trip.status == .inTrip {
+                hasTripStarted = true
+            }
+
+            if !isCurrentUserLeader && isSelectionMode {
+                isSelectionMode = false
+                selectedParticipantIds.removeAll()
+            }
+        }
     }
 }
