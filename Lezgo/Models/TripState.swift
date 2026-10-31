@@ -44,8 +44,16 @@ struct TripState: Hashable {
         return [start] + checkpoints + [end]
     }
 
-    /// The name the group sees for a car.
+    /// The name the group sees for a car: the name its driver typed, otherwise "Leader" for the leader and "Car 2",
+    /// "Car 3", … for the members in the order they joined (the leader counts as car 1). iOS does not tell apps the
+    /// iCloud account's name, and the team chose not to ask for one.
     func DisplayName(of participant: Participant) -> String {
-        participant.displayName
+        guard participant.displayName.allSatisfy(\.isWhitespace) else { return participant.displayName }
+        if participant.IsLeader(in: trip) {
+            return String(localized: .participantLeaderName)
+        }
+        let members = participants.filter { $0.IsLeader(in: trip) == false }
+        let number = (members.firstIndex { $0.id == participant.id } ?? members.count) + 2
+        return String(localized: .participantCarName(number))
     }
 }

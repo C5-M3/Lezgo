@@ -111,11 +111,11 @@ final class TripRoomViewModel {
         guard let first = selected.first else { return "Remove participants from the trip?" }
         let remaining = selected.count - 1
         if remaining == 0 {
-            return "Remove \(first.displayName) from the trip?"
+            return "Remove \(DisplayName(of: first)) from the trip?"
         } else if remaining == 1 {
-            return "Remove \(first.displayName) and 1 other from the trip?"
+            return "Remove \(DisplayName(of: first)) and 1 other from the trip?"
         } else {
-            return "Remove \(first.displayName) and \(remaining) others from the trip?"
+            return "Remove \(DisplayName(of: first)) and \(remaining) others from the trip?"
         }
     }
 
@@ -210,7 +210,7 @@ final class TripRoomViewModel {
     }
 
     func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
-        "Remove \(participant.displayName) from the trip?"
+        "Remove \(DisplayName(of: participant)) from the trip?"
     }
 
     func CanKick(participant: Participant) -> Bool {
@@ -240,7 +240,7 @@ final class TripRoomViewModel {
     }
 
     func SetLeaderConfirmationTitle(for participant: Participant) -> String {
-        "Set \(participant.displayName) as Trip Leader?"
+        "Set \(DisplayName(of: participant)) as Trip Leader?"
     }
 
     /// Shows a failed call in the error alert. `TripServiceError` is not a `LocalizedError`, so
@@ -249,9 +249,9 @@ final class TripRoomViewModel {
         errorMessage = String(localized: TripServiceError(cloudKitError: error).message)
     }
 
-    /// The name the group sees for a car.
+    /// The name the group sees for a car: the typed name, or "Leader", "Car 2", … (see `TripState.DisplayName(of:)`).
     func DisplayName(of participant: Participant) -> String {
-        participant.displayName
+        state?.DisplayName(of: participant) ?? participant.displayName
     }
 
     func CanEdit(participant: Participant) -> Bool {

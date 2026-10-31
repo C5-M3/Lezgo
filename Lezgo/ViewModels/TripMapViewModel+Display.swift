@@ -71,7 +71,7 @@ extension TripMapViewModel {
             if showsMyLocationDot, participant.id == myParticipantID { return nil }
             return TripMapCarPin(
                 id: participant.id,
-                displayName: participant.displayName,
+                displayName: state.DisplayName(of: participant),
                 coordinate: coordinate,
                 motionState: participant.motionState,
                 course: participant.course,
@@ -92,12 +92,13 @@ extension TripMapViewModel {
 
     /// What a car is doing, with the street and time left once they are looked up for it.
     private func CarStatus(of car: Participant) -> TripMapCarStatus? {
-        guard let updatedAt else { return nil }
+        guard let state, let updatedAt else { return nil }
+        let displayName = state.DisplayName(of: car)
         guard car.IsOnline(at: updatedAt) else {
             let lastSeen = Duration.seconds(updatedAt.timeIntervalSince(car.lastSeenAt))
             return TripMapCarStatus(
                 id: car.id,
-                displayName: car.displayName,
+                displayName: displayName,
                 activity: .offline(lastSeen: lastSeen)
             )
         }
@@ -107,7 +108,7 @@ extension TripMapViewModel {
             : .stopped(street: lookup?.street)
         return TripMapCarStatus(
             id: car.id,
-            displayName: car.displayName,
+            displayName: displayName,
             activity: activity,
             timeLeft: lookup?.timeLeft
         )

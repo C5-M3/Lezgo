@@ -120,7 +120,7 @@ final class DraftTripViewModel {
                 return false
             }
             summary.status = state.trip.status
-            summary.memberNames = state.participants.map(\.displayName)
+            summary.memberNames = state.participants.map(state.DisplayName)
             storage.SaveActiveTrip(summary)
             return true
         } catch {

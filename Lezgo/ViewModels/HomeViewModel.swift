@@ -48,7 +48,7 @@ final class HomeViewModel {
     var mapService: any MapServiceProtocol
     var searchService: any LocationSearchServiceProtocol
     let activeTripStorage: any ActiveTripStorage
-    /// My name and car, shown to every group I create or join.
+    /// My name and car once I typed them in the Trip Room, shown to every group I join after that.
     let profileStorage: any ProfileStorage
 
     // MARK: - State Properties
@@ -63,20 +63,6 @@ final class HomeViewModel {
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
-    /// `true` until this phone has a saved name. iOS no longer tells apps the iCloud account's name, so Home asks
-    /// once instead; without it the group would see "Member 1d9d" (`specs/UserStories.md` → US-04).
-    var isAskingForName = false
-
-    /// Saves my name for every trip from now on. A blank name is not saved, and the question stays.
-    @discardableResult
-    func SaveName(_ name: String) -> Bool {
-        guard let cleanedName = ParticipantProfile.CleanedName(name) else { return false }
-        let carDescription = profileStorage.LoadProfile()?.carDescription ?? ""
-        profileStorage.SaveProfile(ParticipantProfile(displayName: cleanedName, carDescription: carDescription))
-        isAskingForName = false
-        return true
-    }
-
     /// Why the saved trip could not be opened; the draft stays so the person can try again.
     var draftTripErrorMessage: String?
     /// How many times Continue tries to load the saved trip before saying it could not.
@@ -113,9 +99,7 @@ final class HomeViewModel {
         let storage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.activeTripStorage = storage
         self.activeDraftTrip = storage.LoadActiveTrip()
-        let profiles = profileStorage ?? UserDefaultsProfileStorage()
-        self.profileStorage = profiles
-        self.isAskingForName = profiles.LoadProfile() == nil
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
     }
 
     convenience init() {

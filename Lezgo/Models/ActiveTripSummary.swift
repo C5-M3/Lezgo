@@ -49,7 +49,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         let isLeader = session.state.trip.leaderParticipantID == session.myParticipantID
         let start = session.state.waypoints.first(where: { $0.kind == .start })?.name ?? "Start Point"
         let destination = session.state.destination?.name ?? "Destination"
-        let memberNames = session.state.participants.map(\.displayName)
+        let memberNames = session.state.participants.map(session.state.DisplayName)
 
         return ActiveTripSummary(
             tripID: session.state.trip.id,

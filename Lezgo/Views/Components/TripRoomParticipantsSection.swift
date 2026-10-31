@@ -118,6 +118,8 @@ private struct SetLeadSwipeButton: View {
 
 private struct ParticipantRowContent: View {
     let participant: Participant
+    /// The typed name, or "Leader", "Car 2", …
+    let displayName: String
     let isLeader: Bool
     let isReady: Bool
 
@@ -127,11 +129,11 @@ private struct ParticipantRowContent: View {
                 .fill(Color.secondary.opacity(isLeader ? 0.15 : 0.3))
                 .frame(width: 36, height: 36)
                 .overlay {
-                    Text(String(participant.displayName.prefix(1))).font(.subheadline.bold())
+                    Text(String(displayName.prefix(1))).font(.subheadline.bold())
                 }
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text(participant.displayName).font(.body.weight(.medium))
+                Text(displayName).font(.body.weight(.medium))
                 Text(participant.carDescription).font(.caption).foregroundStyle(.secondary)
                 HStack(spacing: 4) {
                     Circle()
@@ -182,7 +184,12 @@ private struct ParticipantRowView: View {
                     .frame(width: 24, height: 24)
                     .accessibilityHidden(true)
                 }
-                ParticipantRowContent(participant: participant, isLeader: isLeader, isReady: isReady)
+                ParticipantRowContent(
+                    participant: participant,
+                    displayName: viewModel.DisplayName(of: participant),
+                    isLeader: isLeader,
+                    isReady: isReady
+                )
             }
             .padding(.vertical, 4)
             .contentShape(Rectangle())
@@ -199,6 +206,6 @@ private struct ParticipantRowView: View {
         let role = isLeader ? ", Leader" : ""
         let ready = isReady ? ", ready at startpoint" : ", not ready at startpoint"
         let selection = viewModel.isSelectionMode ? (isSelected ? ", Selected" : ", Not selected") : ""
-        return "\(participant.displayName), \(participant.carDescription)\(role)\(ready)\(selection)"
+        return "\(viewModel.DisplayName(of: participant)), \(participant.carDescription)\(role)\(ready)\(selection)"
     }
 }
