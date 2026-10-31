@@ -17,6 +17,11 @@ struct TripMapView: View {
     @Environment(\.dismiss) private var dismiss
     /// How far the sheet is pulled up. It starts collapsed, so End Trip and Exit Trip are out of reach while driving.
     @State private var sheetDetent: PresentationDetent = .custom(CollapsedSheet.self)
+    /// `false` while Edit Route is open: the planner has its own sheet, and stacked on top of this one SwiftUI stops
+    /// updating it, so its buttons seem stuck.
+    @State private var showsSheet = true
+    /// The planner on screen, set only once the sheet has gone, and cleared when the planner closes.
+    @State private var presentedEditRoute: EditRouteViewModel?
 
     /// Returns to Home once the map closes; `nil` dismisses the map.
     private let onClose: (() -> Void)?
@@ -65,8 +70,9 @@ struct TripMapView: View {
             .padding(.horizontal)
             .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
         }
-        // Always there, like the sheet in Apple Maps: it cannot be swiped away, and the map works behind it.
-        .sheet(isPresented: .constant(true)) {
+        // There all the time, like the sheet in Apple Maps: it cannot be swiped away, and the map works behind it.
+        // It steps aside only for Edit Route, which opens once it has gone.
+        .sheet(isPresented: $showsSheet, onDismiss: ShowEditRoute) {
             TripMapSheet(viewModel: viewModel, onNewDestination: NewDestinationAction())
                 .presentationDetents([.custom(CollapsedSheet.self), .medium, .large], selection: $sheetDetent)
                 .presentationBackgroundInteraction(.enabled(upThrough: .medium))
@@ -74,6 +80,16 @@ struct TripMapView: View {
                 .interactiveDismissDisabled()
                 // The sheet is on top, so everything it opens is presented from it.
                 .modifier(Dialogs(viewModel: viewModel, close: Close))
+        }
+        .fullScreenCover(item: $presentedEditRoute, onDismiss: HideEditRoute) { editRoute in
+            EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
+        }
+        .onChange(of: viewModel.editRoute?.id) {
+            if viewModel.editRoute == nil {
+                presentedEditRoute = nil
+            } else {
+                showsSheet = false
+            }
         }
         .task { await viewModel.Start() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
@@ -94,6 +110,21 @@ struct TripMapView: View {
                 onReturnToTripRoom?(session)
             }
         }
+    }
+
+    /// The sheet has gone: opens Edit Route if it is still wanted, otherwise brings the sheet back.
+    private func ShowEditRoute() {
+        if let editRoute = viewModel.editRoute {
+            presentedEditRoute = editRoute
+        } else {
+            showsSheet = true
+        }
+    }
+
+    /// Edit Route has closed: the sheet comes back.
+    private func HideEditRoute() {
+        viewModel.CloseEditRoute()
+        showsSheet = true
     }
 
     private func Close() {
@@ -130,7 +161,7 @@ extension TripMapView {
         }
     }
 
-    /// Edit Route and the questions and messages about leaving the trip.
+    /// The questions and messages about leaving the trip.
     struct Dialogs: ViewModifier {
         let viewModel: TripMapViewModel
         /// Goes back to Home once someone else ended the trip or removed this member.
@@ -138,9 +169,6 @@ extension TripMapView {
 
         func body(content: Content) -> some View {
             content
-                .fullScreenCover(item: EditRoute()) { editRoute in
-                    EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
-                }
                 .alert(
                     Text(LeaveQuestion()),
                     isPresented: IsAskingToLeave(),
@@ -159,10 +187,6 @@ extension TripMapView {
                 .alert(Text(ClosedMessage()), isPresented: IsTellingWhyItClosed()) {
                     Button(action: close) { Text(.tripMapOK) }
                 }
-        }
-
-        private func EditRoute() -> Binding<EditRouteViewModel?> {
-            Binding(get: { viewModel.editRoute }, set: { if $0 == nil { viewModel.CloseEditRoute() } })
         }
 
         private func LeaveQuestion() -> LocalizedStringResource {
