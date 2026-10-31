@@ -29,10 +29,8 @@ extension TripMapViewModel {
     /// The stops still ahead: the checkpoints not visited yet and the destination. The start point is never shown on
     /// the road, because after a reroute it is only the leader's position at that moment ("Current Location").
     var upcomingWaypoints: [Waypoint] {
-        guard let state else { return [] }
-        return waypoints.filter { waypoint in
-            waypoint.kind != .start && waypoint.IsVisited(currentWaypointIndex: state.trip.currentWaypointIndex) == false
-        }
+        guard let currentIndex = state?.trip.currentWaypointIndex else { return [] }
+        return waypoints.filter { $0.kind != .start && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
     }
 
     var destinationName: String? {
