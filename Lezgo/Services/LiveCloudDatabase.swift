@@ -92,11 +92,32 @@ final class LiveCloudDatabase: CloudDatabase {
         }
     }
 
+    /// The longest wait before trying a busy request again; a car's position is useless much later than this.
+    static let longestRetryDelay: Duration = .seconds(30)
+
+    /// How long to wait before trying a request again after `error`, or `nil` when trying again would not help.
+    /// CloudKit says how long to wait when it is busy or limits this app; without that, one second.
+    static func RetryDelay(for error: any Error) -> Duration? {
+        guard let error = error as? CKError,
+              [.requestRateLimited, .zoneBusy, .serviceUnavailable].contains(error.code) else { return nil }
+        let delay = Duration.seconds(error.retryAfterSeconds ?? 1)
+        return min(delay, longestRetryDelay)
+    }
+
     /// Sends a request as user-initiated. By default CloudKit may hold back requests it thinks can wait, but a
     /// car's position is only useful within seconds (load check, #69).
+    ///
+    /// When CloudKit is busy, the request waits as long as CloudKit asks and is sent once more (#220). Asking again
+    /// at once, as every phone does each second, would keep the app limited.
     private func Send<Result>(_ request: (CKDatabase) async throws -> Result) async throws -> Result {
         let configuration = CKOperation.Configuration()
         configuration.qualityOfService = .userInitiated
-        return try await database.configuredWith(configuration: configuration) { try await request($0) }
+        do {
+            return try await database.configuredWith(configuration: configuration) { try await request($0) }
+        } catch {
+            guard let delay = Self.RetryDelay(for: error) else { throw error }
+            try await Task.sleep(for: delay)
+            return try await database.configuredWith(configuration: configuration) { try await request($0) }
+        }
     }
 }
