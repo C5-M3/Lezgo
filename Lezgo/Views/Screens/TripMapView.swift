@@ -9,12 +9,14 @@ import MapKit
 import SwiftUI
 
 /// The trip map (Trip Started screen): the shared route, its waypoints and every car, with the next turn on top
-/// and the destination and time left at the bottom.
+/// and a sheet at the bottom, as in Apple Maps.
 struct TripMapView: View {
     @State private var viewModel: TripMapViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Environment(\.dismiss) private var dismiss
+    /// How far the sheet is pulled up. It starts collapsed, so End Trip and Exit Trip are out of reach while driving.
+    @State private var sheetDetent: PresentationDetent = .custom(CollapsedSheet.self)
 
     /// Returns to Home once the map closes; `nil` dismisses the map.
     private let onClose: (() -> Void)?
@@ -32,15 +34,15 @@ struct TripMapView: View {
     }
 
     var body: some View {
-        // The map closes the car status card on a tap (below) but is not a button, so it gets no button trait;
-        // VoiceOver closes the card with its Close action or the escape gesture instead.
+        // The map closes the car status on a tap (below) but is not a button, so it gets no button trait;
+        // VoiceOver closes it with its Close button or the escape gesture instead.
         // swiftlint:disable:next accessibility_trait_for_button
         MapLayer(viewModel: viewModel)
-        // Tapping the map anywhere but a car closes the car status card.
+        // Tapping the map anywhere but a car closes the car status.
         .onTapGesture { viewModel.SelectCar(nil) }
         .safeAreaInset(edge: .top) {
-            VStack {
-                // After arriving there is no next turn; the arrival card says what to do instead.
+            VStack(alignment: .trailing) {
+                // After arriving there is no next turn; the sheet says what to do instead.
                 if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
                 }
@@ -52,69 +54,34 @@ struct TripMapView: View {
                     TripMapAlertBanner(banner: alertBanner, onClose: viewModel.DismissAlertBanner)
                         .transition(.opacity)
                 }
+                TripMapCameraControls(
+                    cameraMode: viewModel.cameraMode,
+                    showWholeRoute: viewModel.ShowWholeRoute,
+                    followMyCar: FollowMyCarAction()
+                )
             }
             .padding(.horizontal)
             .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
         }
-        .safeAreaInset(edge: .bottom) {
-            VStack(alignment: .trailing) {
-                TripMapCameraControls(
-                    cameraMode: viewModel.cameraMode,
-                    showWholeRoute: viewModel.ShowWholeRoute,
-                    followMyCar: FollowMyCarAction(),
-                    editRoute: EditRouteAction()
-                )
-                if let carStatus = viewModel.selectedCarStatus {
-                    TripMapCarStatusCard(status: carStatus, onClose: { viewModel.SelectCar(nil) })
-                } else if let arrivalCard = viewModel.arrivalCard {
-                    TripMapArrivalCardView(
-                        card: arrivalCard,
-                        isLeader: viewModel.isLeader,
-                        onNewDestination: NewDestinationAction(),
-                        onLeave: viewModel.RequestLeave
-                    )
-                    .disabled(viewModel.isLeaving)
-                } else if let destinationName = viewModel.destinationName {
-                    TripMapBottomCard(
-                        destinationName: destinationName,
-                        timeLeft: viewModel.guidance?.timeLeft,
-                        isLeader: viewModel.isLeader,
-                        onLeave: viewModel.RequestLeave
-                    )
-                    .disabled(viewModel.isLeaving)
-                }
-            }
-            .padding(.horizontal)
-        }
-        .overlay {
-            if viewModel.isLoading {
-                ProgressView(.tripMapLoading)
-                    .padding()
-                    .background(.regularMaterial, in: .rect(cornerRadius: 16))
-            }
-        }
-        .fullScreenCover(item: EditRoute()) { editRoute in
-            EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
+        // Always there, like the sheet in Apple Maps: it cannot be swiped away, and the map works behind it.
+        .sheet(isPresented: .constant(true)) {
+            TripMapSheet(viewModel: viewModel, onNewDestination: NewDestinationAction())
+                .presentationDetents([.custom(CollapsedSheet.self), .medium, .large], selection: $sheetDetent)
+                .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                .presentationDragIndicator(.visible)
+                .interactiveDismissDisabled()
+                // The sheet is on top, so everything it opens is presented from it.
+                .modifier(Dialogs(viewModel: viewModel, close: Close))
         }
         .task { await viewModel.Start() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
-        .alert(
-            Text(LeaveQuestion()),
-            isPresented: IsAskingToLeave(),
-            presenting: viewModel.leaveConfirmation
-        ) { confirmation in
-            Button(role: .cancel, action: viewModel.CancelLeave) { Text(.tripMapCancel) }
-            Button(role: viewModel.isLeader ? .destructive : nil) {
-                Task { await viewModel.ConfirmLeave(confirmation) }
-            } label: {
-                Text(.tripMapConfirm)
-            }
+        .onChange(of: viewModel.selectedCarID) {
+            // A car tapped in the list: the sheet goes down so the car shows on the map.
+            if viewModel.selectedCarID != nil { sheetDetent = .custom(CollapsedSheet.self) }
         }
-        .alert(Text(verbatim: viewModel.leaveErrorMessage ?? ""), isPresented: HasLeaveError()) {
-            Button(action: viewModel.DismissLeaveError) { Text(.tripMapOK) }
-        }
-        .alert(Text(ClosedMessage()), isPresented: IsTellingWhyItClosed()) {
-            Button(action: Close) { Text(.tripMapOK) }
+        .onChange(of: viewModel.arrivalCard) {
+            // Arriving is when the driver chooses what is next, so the sheet comes up with the choices.
+            if viewModel.arrivalCard != nil { sheetDetent = .medium }
         }
         .onChange(of: viewModel.closeReason) {
             // Leaving on purpose needs no message: go straight back to Home.
@@ -146,42 +113,85 @@ struct TripMapView: View {
         guard viewModel.showsMyLocationDot == false else { return nil }
         return viewModel.FollowMyCar
     }
+}
 
-    /// The pencil shows once the leader can change the route, so it never sits there doing nothing.
-    private func EditRouteAction() -> (() -> Void)? {
-        guard viewModel.canEditRoute else { return nil }
-        return viewModel.RequestEditRoute
-    }
-
-    private func EditRoute() -> Binding<EditRouteViewModel?> {
-        Binding(get: { viewModel.editRoute }, set: { if $0 == nil { viewModel.CloseEditRoute() } })
-    }
-
-    private func LeaveQuestion() -> LocalizedStringResource {
-        switch viewModel.leaveConfirmation {
-        case .endTrip(everyoneHasArrived: false): .tripMapEndTripNotEveryoneArrived
-        case .endTrip: .tripMapEndTripQuestion
-        case .exitTrip, nil: .tripMapExitTripQuestion
+extension TripMapView {
+    /// The collapsed sheet: just tall enough for its top (the destination, a tapped car or the arrival message),
+    /// and taller with bigger text.
+    struct CollapsedSheet: CustomPresentationDetent {
+        static func height(in context: Context) -> CGFloat? {
+            switch context.dynamicTypeSize {
+            case ...DynamicTypeSize.large: 140
+            case ...DynamicTypeSize.xxxLarge: 170
+            default: 260
+            }
         }
     }
 
-    private func ClosedMessage() -> LocalizedStringResource {
-        viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip
-    }
+    /// Edit Route and the questions and messages about leaving the trip.
+    struct Dialogs: ViewModifier {
+        let viewModel: TripMapViewModel
+        /// Goes back to Home once someone else ended the trip or removed this member.
+        let close: () -> Void
 
-    private func IsAskingToLeave() -> Binding<Bool> {
-        Binding(get: { viewModel.leaveConfirmation != nil }, set: { if $0 == false { viewModel.CancelLeave() } })
-    }
+        func body(content: Content) -> some View {
+            content
+                .fullScreenCover(item: EditRoute()) { editRoute in
+                    EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
+                }
+                .alert(
+                    Text(LeaveQuestion()),
+                    isPresented: IsAskingToLeave(),
+                    presenting: viewModel.leaveConfirmation
+                ) { confirmation in
+                    Button(role: .cancel, action: viewModel.CancelLeave) { Text(.tripMapCancel) }
+                    Button(role: viewModel.isLeader ? .destructive : nil) {
+                        Task { await viewModel.ConfirmLeave(confirmation) }
+                    } label: {
+                        Text(.tripMapConfirm)
+                    }
+                }
+                .alert(Text(verbatim: viewModel.leaveErrorMessage ?? ""), isPresented: HasLeaveError()) {
+                    Button(action: viewModel.DismissLeaveError) { Text(.tripMapOK) }
+                }
+                .alert(Text(ClosedMessage()), isPresented: IsTellingWhyItClosed()) {
+                    Button(action: close) { Text(.tripMapOK) }
+                }
+        }
 
-    private func HasLeaveError() -> Binding<Bool> {
-        Binding(get: { viewModel.leaveErrorMessage != nil }, set: { if $0 == false { viewModel.DismissLeaveError() } })
-    }
+        private func EditRoute() -> Binding<EditRouteViewModel?> {
+            Binding(get: { viewModel.editRoute }, set: { if $0 == nil { viewModel.CloseEditRoute() } })
+        }
 
-    private func IsTellingWhyItClosed() -> Binding<Bool> {
-        Binding(
-            get: { viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed },
-            set: { _ in }
-        )
+        private func LeaveQuestion() -> LocalizedStringResource {
+            switch viewModel.leaveConfirmation {
+            case .endTrip(everyoneHasArrived: false): .tripMapEndTripNotEveryoneArrived
+            case .endTrip: .tripMapEndTripQuestion
+            case .exitTrip, nil: .tripMapExitTripQuestion
+            }
+        }
+
+        private func ClosedMessage() -> LocalizedStringResource {
+            viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip
+        }
+
+        private func IsAskingToLeave() -> Binding<Bool> {
+            Binding(get: { viewModel.leaveConfirmation != nil }, set: { if $0 == false { viewModel.CancelLeave() } })
+        }
+
+        private func HasLeaveError() -> Binding<Bool> {
+            Binding(
+                get: { viewModel.leaveErrorMessage != nil },
+                set: { if $0 == false { viewModel.DismissLeaveError() } }
+            )
+        }
+
+        private func IsTellingWhyItClosed() -> Binding<Bool> {
+            Binding(
+                get: { viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed },
+                set: { _ in }
+            )
+        }
     }
 }
 

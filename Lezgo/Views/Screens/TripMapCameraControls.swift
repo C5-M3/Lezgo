@@ -7,20 +7,15 @@
 
 import SwiftUI
 
-/// The round map buttons: Edit Route (leader only), show the whole route, and follow my car.
+/// The round map buttons: show the whole route, and follow my car where the map has no location button of its own.
 struct TripMapCameraControls: View {
     let cameraMode: TripMapViewModel.CameraMode
     let showWholeRoute: () -> Void
     /// Follows this phone's car; `nil` hides the button when the map's own location button does it.
     let followMyCar: (() -> Void)?
-    /// Opens Edit Route; `nil` hides the button, as on a member's phone.
-    var editRoute: (() -> Void)?
 
     var body: some View {
         VStack(spacing: 12) {
-            if let editRoute {
-                Button(.tripMapEditRoute, systemImage: "pencil", action: editRoute)
-            }
             Button(
                 .tripMapShowWholeRoute,
                 systemImage: "point.topleft.down.to.point.bottomright.curvepath",
@@ -50,12 +45,12 @@ struct TripMapCameraControls: View {
 }
 
 #Preview("With the map's location button") {
-    TripMapCameraControls(cameraMode: .followMyCar, showWholeRoute: {}, followMyCar: nil, editRoute: {})
+    TripMapCameraControls(cameraMode: .followMyCar, showWholeRoute: {}, followMyCar: nil)
         .padding()
 }
 
-#Preview("Leader, largest text") {
-    TripMapCameraControls(cameraMode: .wholeRoute, showWholeRoute: {}, followMyCar: {}, editRoute: {})
+#Preview("Largest text") {
+    TripMapCameraControls(cameraMode: .wholeRoute, showWholeRoute: {}, followMyCar: {})
         .padding()
         .dynamicTypeSize(.accessibility5)
 }

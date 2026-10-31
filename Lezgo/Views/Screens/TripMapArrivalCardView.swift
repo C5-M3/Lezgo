@@ -7,21 +7,20 @@
 
 import SwiftUI
 
-/// The bottom card once this phone's car has arrived (`specs/UserStories.md` → US-07, "Arrive"): who has arrived,
-/// and for the leader the "New Destination" choice. The leader is never blocked by late cars, so the choice is
-/// there while others are still on the way.
+/// The top of the trip map sheet once this phone's car has arrived (`specs/UserStories.md` → US-07, "Arrive"): who
+/// has arrived, and for the leader the "New Destination" choice. The leader is never blocked by late cars, so the
+/// choice is there while others are still on the way.
 struct TripMapArrivalCardView: View {
     let card: TripMapViewModel.ArrivalCard
     let isLeader: Bool
     /// Opens the planner with the start point locked to this destination (#115). `nil` hides the button.
     let onNewDestination: (() -> Void)?
-    let onLeave: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Title())
-                    .font(.headline)
+                    .font(.title3.bold())
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle = Subtitle() {
                     Text(subtitle)
@@ -42,12 +41,8 @@ struct TripMapArrivalCardView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
             }
-
-            TripMapLeaveButton(isLeader: isLeader, action: onLeave)
         }
-        .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(in: .rect(cornerRadius: 24))
     }
 
     private func Title() -> LocalizedStringResource {
@@ -66,22 +61,22 @@ struct TripMapArrivalCardView: View {
 }
 
 #Preview("Member, waiting") {
-    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: false, onNewDestination: nil, onLeave: {})
+    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: false, onNewDestination: nil)
         .padding()
 }
 
 #Preview("Member, everyone arrived") {
-    TripMapArrivalCardView(card: .everyoneArrived, isLeader: false, onNewDestination: nil, onLeave: {})
+    TripMapArrivalCardView(card: .everyoneArrived, isLeader: false, onNewDestination: nil)
         .padding()
 }
 
 #Preview("Leader, waiting") {
-    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: true, onNewDestination: {}, onLeave: {})
+    TripMapArrivalCardView(card: .waitingForEveryone, isLeader: true, onNewDestination: {})
         .padding()
 }
 
 #Preview("Leader, everyone arrived, largest text") {
-    TripMapArrivalCardView(card: .everyoneArrived, isLeader: true, onNewDestination: {}, onLeave: {})
+    TripMapArrivalCardView(card: .everyoneArrived, isLeader: true, onNewDestination: {})
         .padding()
         .dynamicTypeSize(.accessibility5)
 }
