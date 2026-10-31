@@ -73,10 +73,37 @@ extension TripMapViewModel {
     ///
     /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
     var selectedCarStatus: TripMapCarStatus? {
-        guard let updatedAt, let car = SelectedCar() else { return nil }
+        SelectedCar().flatMap(CarStatus)
+    }
+
+    /// Every car in the trip for the pulled-up sheet, the leader first and then in the order they joined. Cars
+    /// without a position yet are listed too: they are in the trip, only not on the map.
+    var carStatuses: [TripMapCarStatus] {
+        guard let state else { return [] }
+        let leaders = state.participants.filter { $0.IsLeader(in: state.trip) }
+        let members = state.participants.filter { $0.IsLeader(in: state.trip) == false }
+        return (leaders + members).compactMap(CarStatus)
+    }
+
+    /// The 6-digit code others type to join, shown in the sheet so a late car can still join on the road.
+    var roomCode: String? {
+        state?.trip.roomCode
+    }
+
+    /// What a car is doing, with the street and time left once they are looked up for it.
+    private func CarStatus(of car: Participant) -> TripMapCarStatus? {
+        guard let state, let updatedAt else { return nil }
+        let isLeader = car.IsLeader(in: state.trip)
+        let isMe = car.id == myParticipantID
         guard car.IsOnline(at: updatedAt) else {
             let lastSeen = Duration.seconds(updatedAt.timeIntervalSince(car.lastSeenAt))
-            return TripMapCarStatus(id: car.id, displayName: car.displayName, activity: .offline(lastSeen: lastSeen))
+            return TripMapCarStatus(
+                id: car.id,
+                displayName: car.displayName,
+                activity: .offline(lastSeen: lastSeen),
+                isLeader: isLeader,
+                isMe: isMe
+            )
         }
         let lookup = carLookups[car.id]
         let activity: TripMapCarStatus.Activity = car.motionState == .driving
@@ -86,7 +113,9 @@ extension TripMapViewModel {
             id: car.id,
             displayName: car.displayName,
             activity: activity,
-            timeLeft: lookup?.timeLeft
+            timeLeft: lookup?.timeLeft,
+            isLeader: isLeader,
+            isMe: isMe
         )
     }
 
