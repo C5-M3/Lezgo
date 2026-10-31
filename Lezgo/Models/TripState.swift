@@ -68,4 +68,15 @@ struct TripState: Hashable {
         let number = (members.firstIndex { $0.id == participant.id } ?? members.count) + 2
         return String(localized: .participantCarName(number))
     }
+
+    /// The trip with one car at a new GPS reading: its position, speed, heading and `lastSeenAt`.
+    func Moving(_ participantID: UUID, to reading: LocationReading) -> TripState {
+        var moved = self
+        guard let index = moved.participants.firstIndex(where: { $0.id == participantID }) else { return moved }
+        moved.participants[index].coordinate = reading.coordinate
+        moved.participants[index].speedKmh = reading.speedKmh
+        moved.participants[index].lastSeenAt = reading.recordedAt
+        moved.participants[index].course = reading.course
+        return moved
+    }
 }

@@ -798,6 +798,54 @@
         }
       }
     },
+    "tripMapFootprintFollow" : {
+      "comment" : "Turn card while a member follows the road the leader drove and no turn is coming (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow the leader's route"
+          }
+        }
+      }
+    },
+    "tripMapFootprintTurnLeft" : {
+      "comment" : "Turn card while a member follows the road the leader drove (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn left"
+          }
+        }
+      }
+    },
+    "tripMapFootprintTurnRight" : {
+      "comment" : "Turn card while a member follows the road the leader drove (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn right"
+          }
+        }
+      }
+    },
+    "tripMapFootprintUTurn" : {
+      "comment" : "Turn card while a member follows the road the leader drove (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Make a U-turn"
+          }
+        }
+      }
+    },
     "tripMapLeaderEndedTrip" : {
       "comment" : "Shown on every member's phone when the leader ends the trip; OK returns to Home (US-07).",
       "extractionState" : "manual",

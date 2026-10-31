@@ -243,6 +243,14 @@ extension TripMapView {
 
         var body: some View {
             Map(position: $cameraPosition) {
+                // On the leader's map, the road the leader has driven: the members behind follow it, so the leader
+                // can see them on it. Dotted and faint, so it never reads as the way to go.
+                MapPolyline(coordinates: viewModel.footprint.map(\.locationCoordinate))
+                    .stroke(
+                        .tint.opacity(0.5),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round, dash: [0.5, 10])
+                    )
+
                 // Only what is still ahead, as in Apple Maps: the part already driven and the stops passed go away.
                 MapPolyline(coordinates: viewModel.routeAhead.map(\.locationCoordinate))
                     .stroke(.tint, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
