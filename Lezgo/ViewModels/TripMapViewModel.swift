@@ -94,6 +94,12 @@ final class TripMapViewModel {
         locationSharer != nil
     }
 
+    /// `true` while this phone cannot send its position, so the other phones see it standing still and its own
+    /// view of the other cars is probably out of date too. Hides as soon as a send works again.
+    var isConnectionLost: Bool {
+        locationSharer?.lastError != nil
+    }
+
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
     /// task is cancelled.
     func Start() async {

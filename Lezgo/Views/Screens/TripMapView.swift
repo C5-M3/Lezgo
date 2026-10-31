@@ -44,6 +44,9 @@ struct TripMapView: View {
                 if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
                 }
+                if viewModel.isConnectionLost {
+                    ConnectionLostNotice()
+                }
                 if let alertBanner = viewModel.alertBanner {
                     // A fade, not a slide: sliding in, the banner would pass behind the glass turn card.
                     TripMapAlertBanner(banner: alertBanner, onClose: viewModel.DismissAlertBanner)
@@ -307,4 +310,24 @@ extension TripMapView {
             return rect.insetBy(dx: -rect.width * 0.15, dy: -rect.height * 0.15)
         }
     }
+}
+
+extension TripMapView {
+    /// A quiet notice under the turn card while this phone cannot send its position (#220). It is not an alert:
+    /// the driver needs no action, and it goes away by itself when the connection is back.
+    struct ConnectionLostNotice: View {
+        var body: some View {
+            Label(.tripMapConnectionLost, systemImage: "wifi.slash")
+                .font(.subheadline.weight(.semibold))
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .glassEffect(in: .capsule)
+                .accessibilityAddTraits(.isStaticText)
+        }
+    }
+}
+
+#Preview("Connection lost") {
+    TripMapView.ConnectionLostNotice()
+        .padding()
 }
