@@ -121,9 +121,6 @@ private struct KeptDirections {
 
     /// A bend sharper than this, in degrees, shows a left or right arrow.
     private static let turnThresholdDegrees = 20.0
-    /// How far before and after a turn the road's heading is measured, in metres, so a small kink right at the
-    /// corner does not hide the turn.
-    private static let headingDistance = 30.0
 
     struct Turn {
         let instruction: String
@@ -139,7 +136,7 @@ private struct KeptDirections {
             path.append(contentsOf: step.path.first == path.last ? step.path.dropFirst() : step.path[...])
         }
         guard path.isEmpty == false else { return nil }
-        let lengths = Self.LengthsAlong(path)
+        let lengths = PathTurns.LengthsAlong(path)
 
         routeVersion = state.trip.routeVersion
         currentWaypointIndex = state.trip.currentWaypointIndex
@@ -150,8 +147,12 @@ private struct KeptDirections {
         turns = zip(directions.steps, stepStarts).dropFirst().map { step, start in
             Turn(
                 instruction: step.instruction,
-                direction: Self.Direction(saying: step.instruction)
-                    ?? Self.Direction(in: path, lengths: lengths, at: start),
+                direction: Self.Direction(saying: step.instruction) ?? PathTurns.Direction(
+                    in: path,
+                    lengths: lengths,
+                    at: start,
+                    threshold: Self.turnThresholdDegrees
+                ),
                 distanceAlongRoute: lengths[start]
             )
         }
@@ -159,14 +160,6 @@ private struct KeptDirections {
 
     func IsFor(_ state: TripState) -> Bool {
         routeVersion == state.trip.routeVersion && currentWaypointIndex == state.trip.currentWaypointIndex
-    }
-
-    /// Metres from the start of `path` to each of its points.
-    private static func LengthsAlong(_ path: [Coordinate]) -> [Double] {
-        zip(path, path.dropFirst()).reduce(into: [0]) { lengths, segment in
-            let segmentLength = RoutePosition.Locate(segment.1, on: [segment.0, segment.1])?.distanceAlongRoute ?? 0
-            lengths.append((lengths.last ?? 0) + segmentLength)
-        }
     }
 
     /// The arrow MapKit's own instruction asks for, in English or Indonesian, or `nil` when it names no direction.
@@ -181,32 +174,5 @@ private struct KeptDirections {
             if word == "right" || word == "kanan" { return .right }
         }
         return nil
-    }
-
-    /// Which way the road bends at `index`: compares its heading over the 30 m before with the 30 m after.
-    private static func Direction(
-        in path: [Coordinate],
-        lengths: [Double],
-        at index: Int
-    ) -> TripMapGuidance.TurnDirection {
-        guard index > 0, index < path.count - 1 else { return .straight }
-        let before = path.indices[..<index].last { lengths[index] - lengths[$0] >= headingDistance } ?? 0
-        let after = path.indices[(index + 1)...].first { lengths[$0] - lengths[index] >= headingDistance }
-            ?? path.count - 1
-        let headingIn = Bearing(from: path[before], to: path[index])
-        let change = Bearing(from: path[index], to: path[after]) - headingIn
-        let normalized = (change + 540).truncatingRemainder(dividingBy: 360) - 180
-        if normalized > Self.turnThresholdDegrees { return .right }
-        if normalized < -Self.turnThresholdDegrees { return .left }
-        return .straight
-    }
-
-    private static func Bearing(from start: Coordinate, to end: Coordinate) -> Double {
-        let latitude1 = start.latitude * .pi / 180
-        let latitude2 = end.latitude * .pi / 180
-        let longitudeDelta = (end.longitude - start.longitude) * .pi / 180
-        let y = sin(longitudeDelta) * cos(latitude2)
-        let x = cos(latitude1) * sin(latitude2) - sin(latitude1) * cos(latitude2) * cos(longitudeDelta)
-        return atan2(y, x) * 180 / .pi
     }
 }
