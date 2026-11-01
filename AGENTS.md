@@ -45,7 +45,7 @@ The team splits the work by screen, not by the tasks in the GitHub Project. The 
 
 | Item | Value |
 | --- | --- |
-| Platform | iOS 27.0+, Xcode 27.1 |
+| Platform | iOS 26.0+, Xcode 27.1 |
 | UI | SwiftUI (no UIKit unless asked) |
 | Persistence | SwiftData |
 | Concurrency | Default actor isolation `MainActor`, approachable concurrency on |
