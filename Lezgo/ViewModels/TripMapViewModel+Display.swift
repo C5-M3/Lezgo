@@ -49,9 +49,16 @@ extension TripMapViewModel {
         following.isFindingWayBack || (isLeader && reroute?.isRerouting == true)
     }
 
-    /// Members' way backs.
+    /// On the leader's phone, where each member who left the group's road is being sent, so the leader sees how that
+    /// car will catch up. Offline cars are left out: their last position is out of date, and so is their way back.
     var memberWayBacks: [MemberWayBack] {
-        []
+        guard isLeader, let state, let updatedAt else { return [] }
+        return state.participants.compactMap { car in
+            guard car.wayBack.isEmpty == false, car.IsLeader(in: state.trip) == false,
+                  car.IsOnline(at: updatedAt) else { return nil }
+            let left = car.coordinate.map { RoutePosition.RouteAhead(of: $0, on: car.wayBack) }
+            return MemberWayBack(id: car.id, path: left ?? car.wayBack)
+        }
     }
 
     var destinationName: String? {

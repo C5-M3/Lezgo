@@ -258,6 +258,16 @@ extension TripMapView {
                         style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round, dash: [0.5, 10])
                     )
 
+                // On the leader's map, where a member who left the road is being sent. Dashed and in the colour of
+                // that car's alert, so it never reads as the leader's own route.
+                ForEach(viewModel.memberWayBacks) { wayBack in
+                    MapPolyline(coordinates: wayBack.path.map(\.locationCoordinate))
+                        .stroke(
+                            Color(.formationAlertBackground),
+                            style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round, dash: [10, 10])
+                        )
+                }
+
                 // Only what is still ahead, as in Apple Maps: the part already driven and the stops passed go away.
                 MapPolyline(coordinates: viewModel.routeAhead.map(\.locationCoordinate))
                     .stroke(.tint, style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
