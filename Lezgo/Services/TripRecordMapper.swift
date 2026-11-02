@@ -101,6 +101,7 @@ enum TripRecordMapper {
         record["alert"] = participant.alert.rawValue
         record["lastSeenAt"] = participant.lastSeenAt
         record["course"] = participant.course
+        record["wayBack"] = participant.wayBack.isEmpty ? nil : PolylineBytes(participant.wayBack)
     }
 
     static func MakeParticipant(from record: CKRecord) throws -> Participant {
@@ -120,7 +121,8 @@ enum TripRecordMapper {
             motionState: try reader.Enum("motionState"),
             alert: try reader.Enum("alert"),
             lastSeenAt: try reader.Value("lastSeenAt"),
-            course: reader.OptionalValue("course")
+            course: reader.OptionalValue("course"),
+            wayBack: (reader.OptionalValue("wayBack") as Data?).flatMap(Polyline(from:)) ?? []
         )
     }
 

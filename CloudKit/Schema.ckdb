@@ -56,6 +56,7 @@ DEFINE SCHEMA
         alert          STRING,
         lastSeenAt     TIMESTAMP,
         course         DOUBLE,
+        wayBack        BYTES,
         GRANT WRITE TO "_icloud",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

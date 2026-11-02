@@ -29,7 +29,8 @@ struct Participant: Identifiable, Hashable, Codable {
     var lastSeenAt: Date
     /// The way the car was heading at its last position, in degrees clockwise from north; `nil` when unknown.
     var course: Double?
-    /// The road a member is being sent back to the group's road on.
+    /// The road this member's phone is sending them on to get back to the group's road, so the leader can see it;
+    /// empty while they are on the road (`specs/UserStories.md` → US-06, "Footprint").
     var wayBack: [Coordinate] = []
 
     func IsLeader(in trip: Trip) -> Bool {

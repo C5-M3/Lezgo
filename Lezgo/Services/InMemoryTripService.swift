@@ -170,7 +170,12 @@ final class InMemoryTripService: TripService {
         }
     }
 
-    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws {}
+    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws {
+        guard store.trips[tripID]?.trip.leaderParticipantID != participantID else { throw TripServiceError.notAllowed }
+        try ChangeParticipant(participantID, tripID: tripID) { participant in
+            participant.wayBack = wayBack
+        }
+    }
 
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws {
         try Change(tripID: tripID, by: leaderID) { state in
