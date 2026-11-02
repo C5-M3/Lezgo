@@ -198,6 +198,8 @@ final class LiveTripService: TripService {
         }
     }
 
+    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws {}
+
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws {
         try await ChangeTrip(tripID, by: leaderID) { trip in
             guard trip.status == .inTrip else { throw TripServiceError.notAllowed }
