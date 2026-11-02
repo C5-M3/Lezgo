@@ -49,6 +49,9 @@ final class TripMapFootprint {
     /// How far along the group's road this member last was while on it.
     private var leftAt: CLLocationDistance?
     private var isAsking = false
+    /// The way back the group last heard about; `nil` before this phone saved one.
+    private var sharedWayBack: [Coordinate]?
+    private var isSharingWayBack = false
 
     private let tripID: UUID
     private let myParticipantID: UUID
@@ -107,6 +110,11 @@ final class TripMapFootprint {
     /// leave that way too. Clears it once they are back on the road. From 2 seconds off the road until a way back
     /// arrives, `isFindingWayBack` is `true`, so the turn card says the app is working on it.
     func FindWayBack(in state: TripState) async {
+        await UpdateWayBack(in: state)
+        await ShareWayBack(in: state)
+    }
+
+    private func UpdateWayBack(in state: TripState) async {
         guard let directionsService,
               let me = state.participants.first(where: { $0.id == myParticipantID }),
               me.IsLeader(in: state.trip) == false,
@@ -138,6 +146,22 @@ final class TripMapFootprint {
             wayBack = path
             isFindingWayBack = false
         }
+    }
+
+    /// Tells the group when this member's way back changed, so the leader's map can show it. A failed save is tried
+    /// again with the next update. Before the first save, the trip says what was last shared, so a way back left over
+    /// from before the app restarted gets cleared.
+    private func ShareWayBack(in state: TripState) async {
+        guard let me = state.participants.first(where: { $0.id == myParticipantID }),
+              me.IsLeader(in: state.trip) == false, isSharingWayBack == false else { return }
+        let path = wayBack ?? []
+        guard path != (sharedWayBack ?? me.wayBack) else { return }
+        isSharingWayBack = true
+        defer { isSharingWayBack = false }
+        guard (try? await tripService.SetWayBack(path, participantID: myParticipantID, tripID: tripID)) != nil else {
+            return
+        }
+        sharedWayBack = path
     }
 
     /// The next turn along the line this member's map draws, while it follows the footprint or a way back. MapKit
