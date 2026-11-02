@@ -96,7 +96,7 @@ Trip recap, trip history, SOS button, prolonged-stop alerts, sound notifications
 
 - Whoever creates the trip becomes its leader.
 - The planner opens from the search bar on Home ("Where do you want to travel?").
-- The start point is the current location by default and can be changed by search.
+- The start point is the current location by default and can be changed by search. The planner says "Current Location", but the trip saves the real place (a street or place name from the map), because "Current Location" means nothing to a member in the Trip Room. A place the map has no name for is saved as "Leader's starting point".
 - Search uses MapKit suggestions with distance. A picked result stores its name and coordinate.
 - Checkpoints: 0 or more; add with "+ Add Stop", remove, and reorder with the drag handle.
 - The preview map shows the road route and travel time before saving.
@@ -296,9 +296,9 @@ Feature: Resume an unfinished trip
 - "Share Link" sends "Join my Lezgo trip with code 897654" together with the invite link.
 - Copying and "Share Link" stay disabled until the room code has loaded.
 
-**Edit my name and car** — **Needs lo-fi** (tap my own row → edit sheet)
-- I can only edit my own row. Name: 1–30 characters, required. Car description: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
-- Saved on my device and reused next time I join. Not editable during the trip (safety).
+**Edit name and car** — **Needs lo-fi** (tap a row → edit sheet)
+- A member can only edit their own row; the leader can edit every row. Name: 1–30 characters, required. Car description: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
+- My own details are saved on my device and reused next time I join; details the leader changes for a member are not saved on either device. Not editable during the trip (safety).
 
 **Ready**
 - Detected automatically; nobody taps a button.
@@ -341,9 +341,14 @@ Feature: Trip Room
     Then everyone sees "White Avanza" on the row of "Budi" within 2 seconds
     And next time "Budi" joins a trip he joins as "Budi" with "White Avanza"
 
-  Scenario: Cannot edit someone else
+  Scenario: A member cannot edit someone else
     When "Budi" taps the row of "Agus"
     Then no edit sheet opens
+
+  Scenario: The leader edits a member
+    When "Agus" taps the row of "Budi" and sets "Budi Santoso"
+    Then everyone sees "Budi Santoso" within 2 seconds
+    And next time "Agus" joins a trip he still joins as "Agus"
 
   Scenario: Empty name
     When "Budi" clears his name
@@ -487,6 +492,7 @@ Feature: Manage the group and start
 - A member's map draws the road ahead along the footprint to the leader, then the route ahead of the leader. Its turn card follows that line ("Turn right", "Follow the leader's route"); the time and distance left stay MapKit's.
 - A member more than 50 m off the group's road for 5 seconds gets a way back to it, drawn and guided like the rest of the line. It joins the road at its closest point at least 50 m beyond where the member left it, so it leads on towards the leader instead of back to the junction behind them. It is asked again after 10 seconds if they leave that way too, and it goes away once they are back on the road.
 - The leader's map shows the footprint behind the leader as a faint dotted line, so the leader sees the road the members follow and the cars on it.
+- A member's phone shares their way back (`Participant.wayBack`). The leader's map shows what is left of it as a dashed line in the alert colour, so the leader sees how a car that took another road will catch up. Offline cars' way backs are not shown, and members do not see each other's.
 - Location runs in the background (screen locked, another app in front) only on the trip map. Home, Set Route and the Trip Room stop using it when the app leaves the screen, and closing the app stops it.
 
 **Car status**

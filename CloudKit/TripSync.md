@@ -135,6 +135,7 @@ File: `Lezgo/Services/TripService.swift`. Every operation is `async`. All but `T
 | `SetAlert(_:participantID:tripID:)` | Member | Saves the formation alert | `notAllowed` for the leader |
 | `AdvanceCheckpoint(to:tripID:by:)` | Leader | Moves forward only | `notAllowed` |
 | `SaveRoute(_:tripID:by:)` | Leader | New route on the road (reroute or Edit Route): `routeVersion + 1`, index back to 1 | `notAllowed` |
+| `SetWayBack(_:participantID:tripID:)` | Member | Saves or, when empty, clears the way back of a member who left the group's road, for the leader's map | `notAllowed` for the leader |
 | `SaveTrail(_:tripID:by:)` | Leader | Replaces the footprint; the leader's phone saves it every 5 seconds while driving | `notAllowed` |
 | `StartNewDestination(_:tripID:by:)` | Leader | New Destination after arriving: new route, back to `LOBBY` with index 0; room code and members stay | `notAllowed` |
 | `UpdateProfile(_:participantID:tripID:)` | Anyone | Name and car | `notFound` |
@@ -273,7 +274,7 @@ File: `LiveTripService.swift`. Every operation runs inside `Run { … }`, which 
 | `SetLeader` | Fetch the `Trip` → check the current leader equals `replacing` → check the new leader is a member → save with **`.ifServerRecordUnchanged`**. If someone saved the trip in between, CloudKit answers `serverRecordChanged`, returned as `.conflict` |
 | `RemoveParticipants`, `ExitTrip` | Check trip and role → delete `Participant` records |
 | `UpdateLocation` | **One request:** a record with the participant's ID holding only the location fields, saved with `.changedKeys` |
-| `SetAlert`, `UpdateProfile` | Fetch the participant → change → save |
+| `SetAlert`, `SetWayBack`, `UpdateProfile` | Fetch the participant → change → save |
 | `SaveTrail` | Check the caller leads → save the trip's `Trail` record (named `<tripID>-trail`) with `.allKeys`: only the leader writes it |
 | `SaveRoute`, `StartNewDestination` | Save the new waypoints and route **first**, then raise the version on `Trip`, then delete the old ones, so no phone sees a route version without its route |
 
@@ -335,6 +336,7 @@ erDiagram
         String alert
         Timestamp lastSeenAt
         Double course
+        Bytes wayBack "optional"
     }
     Route {
         UUID id PK
