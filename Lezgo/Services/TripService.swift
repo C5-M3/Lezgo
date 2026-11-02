@@ -67,6 +67,9 @@ protocol TripService {
     /// Saves this phone's current formation alert. Members only; the leader never has one.
     func SetAlert(_ alert: FormationAlert, participantID: UUID, tripID: UUID) async throws
 
+    /// Saves the way back of a member who left the group's road.
+    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws
+
     /// Moves the trip past a checkpoint. Only forward: a lower or equal index changes nothing.
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws
 

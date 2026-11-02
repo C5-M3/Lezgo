@@ -49,6 +49,11 @@ extension TripMapViewModel {
         following.isFindingWayBack || (isLeader && reroute?.isRerouting == true)
     }
 
+    /// Members' way backs.
+    var memberWayBacks: [MemberWayBack] {
+        []
+    }
+
     var destinationName: String? {
         state?.destination?.name
     }

@@ -24,6 +24,9 @@ final class MockTripService: TripService {
     private(set) var savedRoutes: [TripPlan] = []
     private(set) var newDestinationPlans: [TripPlan] = []
     private(set) var savedTrails: [[Coordinate]] = []
+    private(set) var savedWayBacks: [[Coordinate]] = []
+    /// When set, the next `SetWayBack` throws it once.
+    var nextWayBackFailure: TripServiceError?
     /// When set, the next `SaveRoute` or `StartNewDestination` throws it once.
     var nextSaveRouteFailure: TripServiceError?
     /// Runs while `SaveRoute` is on its way, before the route is recorded.
@@ -141,6 +144,14 @@ final class MockTripService: TripService {
         }
         await whileSavingRoute?()
         savedRoutes.append(plan)
+    }
+
+    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws {
+        if let failure = nextWayBackFailure {
+            nextWayBackFailure = nil
+            throw failure
+        }
+        savedWayBacks.append(wayBack)
     }
 
     func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {

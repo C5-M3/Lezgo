@@ -29,6 +29,8 @@ struct Participant: Identifiable, Hashable, Codable {
     var lastSeenAt: Date
     /// The way the car was heading at its last position, in degrees clockwise from north; `nil` when unknown.
     var course: Double?
+    /// The road a member is being sent back to the group's road on.
+    var wayBack: [Coordinate] = []
 
     func IsLeader(in trip: Trip) -> Bool {
         id == trip.leaderParticipantID

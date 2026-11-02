@@ -164,6 +164,121 @@ struct TripMapViewModelFootprintTests {
     }
 }
 
+/// A member's way back reaches the leader's map, so the leader sees where a car that left the road is being sent.
+struct TripMapViewModelMemberWayBackTests {
+    private typealias Fixtures = TripMapFixtures
+    private static let metre = 1 / 111_320.0
+    private static let corner = Coordinate(latitude: -7.2700, longitude: 112.7300)
+    private static let lost = Coordinate(latitude: corner.latitude, longitude: corner.longitude - 300 * metre)
+    private static let wayBack = [lost, corner]
+
+    /// Agus leads along a route from the corner; Budi is at `budi`.
+    private func Trip(budi: Coordinate, secondsAgo: Double = 1, budiWayBack: [Coordinate] = []) -> TripState {
+        var agus = Fixtures.Car(id: Fixtures.agusID, name: "Agus")
+        agus.coordinate = Self.corner
+        var budiCar = Fixtures.Car(id: Fixtures.budiID, name: "Budi", lastSeenSecondsAgo: secondsAgo)
+        budiCar.coordinate = budi
+        budiCar.wayBack = budiWayBack
+        var state = Fixtures.State(cars: [agus, budiCar])
+        state.route?.polyline = [Self.corner, Fixtures.destination.coordinate]
+        return state
+    }
+
+    private func OpenMap(_ service: MockTripService, me: UUID) async -> TripMapViewModel {
+        let viewModel = TripMapViewModel(
+            tripID: Fixtures.tripID,
+            myParticipantID: me,
+            tripService: service,
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
+            directionsService: MockDirectionsService(results: [.success(Self.wayBack)]),
+            clock: { Fixtures.now }
+        )
+        await viewModel.Start()
+        return viewModel
+    }
+
+    @Test func MembersPhoneSharesItsWayBack() async {
+        let service = MockTripService(states: [
+            Trip(budi: Self.lost, secondsAgo: 10),
+            Trip(budi: Self.lost, secondsAgo: 4)
+        ])
+
+        _ = await OpenMap(service, me: Fixtures.budiID)
+
+        #expect(service.savedWayBacks == [Self.wayBack])
+    }
+
+    @Test func BackOnTheRoadClearsTheSharedWayBack() async {
+        let service = MockTripService(states: [
+            Trip(budi: Self.lost, secondsAgo: 10),
+            Trip(budi: Self.lost, secondsAgo: 4),
+            Trip(budi: Self.corner, secondsAgo: 1)
+        ])
+
+        _ = await OpenMap(service, me: Fixtures.budiID)
+
+        #expect(service.savedWayBacks == [Self.wayBack, []])
+    }
+
+    @Test func FailedShareIsTriedAgainWithTheNextUpdate() async {
+        let service = MockTripService(states: [
+            Trip(budi: Self.lost, secondsAgo: 10),
+            Trip(budi: Self.lost, secondsAgo: 4),
+            Trip(budi: Self.lost, secondsAgo: 3)
+        ])
+        service.nextWayBackFailure = .noNetwork
+
+        _ = await OpenMap(service, me: Fixtures.budiID)
+
+        #expect(service.savedWayBacks == [Self.wayBack])
+    }
+
+    @Test func LeftoverWayBackFromBeforeARestartIsCleared() async {
+        // The app was closed on a way back; the car is on the road again when it opens.
+        let service = MockTripService(states: [Trip(budi: Self.corner, budiWayBack: Self.wayBack)])
+
+        _ = await OpenMap(service, me: Fixtures.budiID)
+
+        #expect(service.savedWayBacks == [[]])
+    }
+
+    @Test func LeaderSeesWhatIsLeftOfAMembersWayBack() async {
+        // Budi has driven half of it, so the part behind him is no longer drawn.
+        let halfway = Coordinate(latitude: Self.corner.latitude, longitude: Self.corner.longitude - 150 * Self.metre)
+        let service = MockTripService(states: [Trip(budi: halfway, budiWayBack: Self.wayBack)])
+
+        let viewModel = await OpenMap(service, me: Fixtures.agusID)
+
+        #expect(viewModel.memberWayBacks.map(\.id) == [Fixtures.budiID])
+        #expect(viewModel.memberWayBacks.first?.path.count == 2)
+        #expect(viewModel.memberWayBacks.first?.path.last == Self.corner)
+        #expect(viewModel.memberWayBacks.first?.path.contains(Self.lost) == false)
+        #expect(service.savedWayBacks.isEmpty)
+    }
+
+    @Test func OfflineMembersWayBackIsNotDrawn() async {
+        // Their last position is out of date, so where they are being sent is too.
+        let service = MockTripService(states: [Trip(budi: Self.lost, secondsAgo: 300, budiWayBack: Self.wayBack)])
+
+        let viewModel = await OpenMap(service, me: Fixtures.agusID)
+
+        #expect(viewModel.memberWayBacks.isEmpty)
+    }
+
+    @Test func MembersDoNotSeeEachOthersWayBack() async {
+        var state = Trip(budi: Self.corner)
+        var citra = Fixtures.Car(id: Fixtures.citraID, name: "Citra")
+        citra.coordinate = Self.lost
+        citra.wayBack = Self.wayBack
+        state.participants.append(citra)
+
+        let viewModel = await OpenMap(MockTripService(states: [state]), me: Fixtures.budiID)
+
+        #expect(viewModel.memberWayBacks.isEmpty)
+    }
+}
+
 /// The leader's phone records where the leader drives and shares it with the group.
 struct TripMapViewModelFootprintRecordingTests {
     private static let metre = 1 / 111_320.0

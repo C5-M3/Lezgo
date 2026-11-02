@@ -266,7 +266,8 @@ final class TripRoomViewModel {
 
     /// Saves my profile for the edit sheet. Returns `true` only when the save succeeded, so the sheet closes then
     /// and stays open with `profileErrorMessage` otherwise. A second tap while saving is ignored.
-    func SaveProfile(displayName: String, carDescription: String) async -> Bool {
+    @discardableResult
+    func SaveProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async -> Bool {
         guard !isSavingProfile else { return false }
         isSavingProfile = true
         defer { isSavingProfile = false }

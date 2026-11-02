@@ -296,7 +296,7 @@ struct TripRoomViewModelTests {
         #expect(viewModel.CanSetLeader(participant: budi) == true)
         #expect(viewModel.CanSetLeader(participant: agus) == false)
         #expect(viewModel.CanEdit(participant: agus) == true)
-        #expect(viewModel.CanEdit(participant: budi) == false)
+        #expect(viewModel.CanEdit(participant: budi) == true)
         #expect(viewModel.IsLeader(participant: agus) == true)
         #expect(viewModel.IsLeader(participant: budi) == false)
 

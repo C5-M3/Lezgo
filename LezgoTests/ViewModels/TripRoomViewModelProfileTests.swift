@@ -64,6 +64,92 @@ struct TripRoomViewModelProfileTests {
     }
 }
 
+/// The leader can fix anyone's name and car in the Trip Room; a member only their own.
+@MainActor
+struct TripRoomViewModelLeaderEditTests {
+    private func OpenRoom(me: UUID, profiles: FakeProfileStorage = FakeProfileStorage()) -> TripRoomViewModel {
+        TripRoomViewModel(
+            tripService: SampleTrip.Service(status: .lobby, me: me),
+            tripID: SampleTrip.tripID,
+            myParticipantID: me,
+            initialState: SampleTrip.State(status: .lobby),
+            profileStorage: profiles
+        )
+    }
+
+    private func Car(_ id: UUID) throws -> Participant {
+        try #require(SampleTrip.State(status: .lobby).participants.first { $0.id == id })
+    }
+
+    @Test func MemberCannotEditSomeoneElse() throws {
+        let viewModel = OpenRoom(me: SampleTrip.budiID)
+
+        #expect(viewModel.CanEdit(participant: try Car(SampleTrip.agusID)) == false)
+        #expect(viewModel.CanEdit(participant: try Car(SampleTrip.budiID)))
+    }
+
+    @Test func LeaderChangesAMembersDetails() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: SampleTrip.State(status: .lobby),
+            profileStorage: FakeProfileStorage()
+        )
+
+        let didSave = await viewModel.SaveProfile(
+            displayName: "Budi Santoso",
+            carDescription: "Black Brio",
+            of: SampleTrip.budiID
+        )
+
+        #expect(didSave)
+        let budi = try await service.FetchTrip(tripID: SampleTrip.tripID).participants
+            .first { $0.id == SampleTrip.budiID }
+        #expect(budi?.displayName == "Budi Santoso")
+        #expect(budi?.carDescription == "Black Brio")
+    }
+
+    @Test func MembersDetailsDoNotBecomeTheLeadersOwnProfile() async {
+        // The saved profile is what this phone joins the next trip with.
+        let profiles = FakeProfileStorage()
+        let viewModel = OpenRoom(me: SampleTrip.agusID, profiles: profiles)
+
+        await viewModel.SaveProfile(displayName: "Budi Santoso", carDescription: "", of: SampleTrip.budiID)
+
+        #expect(profiles.savedProfile == nil)
+    }
+
+    @Test func LeadersOwnDetailsAreStillRemembered() async {
+        let profiles = FakeProfileStorage()
+        let viewModel = OpenRoom(me: SampleTrip.agusID, profiles: profiles)
+
+        await viewModel.SaveProfile(displayName: "Agus", carDescription: "Red Jazz", of: SampleTrip.agusID)
+
+        #expect(profiles.savedProfile == ParticipantProfile(displayName: "Agus", carDescription: "Red Jazz"))
+    }
+
+    @Test func MemberCannotSaveSomeoneElsesDetails() async throws {
+        // A member's room can be out of date, or the row tap can race a handover; the check is here as well.
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.budiID,
+            initialState: SampleTrip.State(status: .lobby),
+            profileStorage: FakeProfileStorage()
+        )
+
+        let didSave = await viewModel.SaveProfile(displayName: "Hacked", carDescription: "", of: SampleTrip.agusID)
+
+        #expect(didSave == false)
+        let agus = try await service.FetchTrip(tripID: SampleTrip.tripID).participants
+            .first { $0.id == SampleTrip.agusID }
+        #expect(agus?.displayName != "Hacked")
+    }
+}
+
 /// Rows without a typed name are called "Leader", "Car 2", "Car 3" in the Trip Room.
 @MainActor
 struct TripRoomViewModelCarNameTests {
