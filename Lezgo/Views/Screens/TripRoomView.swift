@@ -170,8 +170,8 @@ private extension View {
         } content: {
             SetLeaderSheetView(viewModel: viewModel) { pickedLeader.wrappedValue = $0 }
         }
-        .sheet(item: participantToEdit) { _ in
-            EditProfileSheetView(viewModel: viewModel)
+        .sheet(item: participantToEdit) { participant in
+            EditProfileSheetView(viewModel: viewModel, participant: participant)
         }
     }
 }
