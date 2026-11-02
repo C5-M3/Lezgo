@@ -255,24 +255,35 @@ final class TripRoomViewModel {
     }
 
     func CanEdit(participant: Participant) -> Bool {
-        !isSelectionMode && participant.id == myParticipantID
+        !isSelectionMode && (participant.id == myParticipantID || isCurrentUserLeader)
     }
 
-    func UpdateProfile(displayName: String, carDescription: String) async throws {
+    /// Changes a participant's name and car. Only my own details are remembered for my next trip; the leader fixing a
+    /// member's name must not make it the leader's own.
+    func UpdateProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async throws {
+        let participantID = participantID ?? myParticipantID
+        guard participantID == myParticipantID || isCurrentUserLeader else { throw TripServiceError.notAllowed }
         let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
-        try await tripService.UpdateProfile(profile, participantID: myParticipantID, tripID: tripID)
-        profileStorage.SaveProfile(profile)
+        try await tripService.UpdateProfile(profile, participantID: participantID, tripID: tripID)
+        if participantID == myParticipantID {
+            profileStorage.SaveProfile(profile)
+        }
     }
 
-    /// Saves my profile for the edit sheet. Returns `true` only when the save succeeded, so the sheet closes then
-    /// and stays open with `profileErrorMessage` otherwise. A second tap while saving is ignored.
+    /// Saves a profile for the edit sheet: my own, or anyone's when I lead; without `participantID`, my own. Returns
+    /// `true` only when the save succeeded, so the sheet closes then and stays open with `profileErrorMessage`
+    /// otherwise. A second tap while saving is ignored.
     @discardableResult
     func SaveProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async -> Bool {
         guard !isSavingProfile else { return false }
         isSavingProfile = true
         defer { isSavingProfile = false }
         do {
-            try await UpdateProfile(displayName: displayName, carDescription: carDescription)
+            try await UpdateProfile(
+                displayName: displayName,
+                carDescription: carDescription,
+                of: participantID
+            )
             profileErrorMessage = nil
             return true
         } catch let error as TripServiceError {
