@@ -17,6 +17,8 @@ final class MapViewModel {
     let locationService = LocationService()
     var tripService: any TripService
     var activeTripStorage: any ActiveTripStorage
+    /// Names the place where the trip starts when the start point is the leader's position.
+    let streetNameService: any StreetNameService
     /// My name and car, shown to the group as the leader.
     let profileStorage: any ProfileStorage
 
@@ -87,6 +89,7 @@ final class MapViewModel {
         self.tripService = tripService ?? InMemoryTripService()
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
+        self.streetNameService = streetNameService ?? LiveStreetNameService()
 
         // Automatically default the start point to the first GPS fix
         locationService.onFirstLocationFound = { [weak self] coord in
