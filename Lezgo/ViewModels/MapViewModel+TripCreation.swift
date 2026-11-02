@@ -29,7 +29,7 @@ extension MapViewModel {
         let activeService = service ?? tripService
         do {
             let session = try await activeService.CreateTrip(
-                plan: plan,
+                plan: await NamingStartPoint(of: plan),
                 profile: profile ?? profileStorage.LoadProfile()
             )
             let distanceStr = totalDistance > 0 ? String(format: "%.1f km", totalDistance / 1000) : nil
@@ -43,5 +43,18 @@ extension MapViewModel {
             errorMessage = String(localized: serviceError.message)
             throw error
         }
+    }
+
+    /// The plan with its start point named after the real place. "Current Location" only means something on the
+    /// leader's own planner; in the Trip Room it would leave the members wondering where to go. A place the map has
+    /// no name for must not stop the trip, so it gets a general name instead.
+    private func NamingStartPoint(of plan: TripPlan) async -> TripPlan {
+        guard let start = plan.waypoints.first, start.name == String(localized: .waypointCurrentLocation) else {
+            return plan
+        }
+        let placeName = try? await streetNameService.StreetName(at: start.coordinate)
+        var named = plan
+        named.waypoints[0].name = placeName ?? String(localized: .waypointLeaderStart)
+        return named
     }
 }
