@@ -47,9 +47,12 @@ final class SetRouteFlowUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(startPointRow.waitForExistence(timeout: 3), "Expected Starting Point element")
 
-        // Add destination button is visible in the card
+        // Add destination button is hidden when destinations is empty
         let addDestinationButton = app.buttons["Add Destination"]
-        XCTAssertTrue(addDestinationButton.exists, "Expected Add Destination button")
+        XCTAssertFalse(
+            addDestinationButton.exists,
+            "Expected Add Destination button to be hidden when destinations is empty"
+        )
     }
 
     @MainActor

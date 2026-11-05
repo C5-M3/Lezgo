@@ -32,6 +32,60 @@ struct RoutePlanCardTests {
         coordinate: CLLocationCoordinate2D(latitude: -7.31, longitude: 112.75)
     )
 
+    @Test func AddDestinationButtonHiddenWhenDestinationsEmpty() {
+        let card = RoutePlanCard(
+            startPoint: sampleStart,
+            destinations: [],
+            activeSelection: nil,
+            searchQuery: .constant(""),
+            isStartPointLocked: false,
+            isStopsExpanded: .constant(false),
+            onSelectPointForEditing: { _ in },
+            onClearSearch: {},
+            onAddDestination: {},
+            onRemoveDestination: { _ in },
+            onMoveDestination: nil
+        )
+
+        #expect(!card.canAddDestination)
+    }
+
+    @Test func AddDestinationButtonShownWhenDestinationsExist() {
+        let card = RoutePlanCard(
+            startPoint: sampleStart,
+            destinations: [dest1],
+            activeSelection: nil,
+            searchQuery: .constant(""),
+            isStartPointLocked: false,
+            isStopsExpanded: .constant(false),
+            onSelectPointForEditing: { _ in },
+            onClearSearch: {},
+            onAddDestination: {},
+            onRemoveDestination: { _ in },
+            onMoveDestination: nil
+        )
+
+        #expect(card.canAddDestination)
+    }
+
+    @Test func AddDestinationButtonHiddenWhileSearchingOrEditing() {
+        let card = RoutePlanCard(
+            startPoint: sampleStart,
+            destinations: [dest1],
+            activeSelection: .destination(index: 1),
+            searchQuery: .constant(""),
+            isStartPointLocked: false,
+            isStopsExpanded: .constant(false),
+            onSelectPointForEditing: { _ in },
+            onClearSearch: {},
+            onAddDestination: {},
+            onRemoveDestination: { _ in },
+            onMoveDestination: nil
+        )
+
+        #expect(!card.canAddDestination)
+    }
+
     @Test func IntermediateStopsEmptyWhenSingleDestination() {
         let card = RoutePlanCard(
             startPoint: sampleStart,
