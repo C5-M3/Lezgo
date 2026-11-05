@@ -15,7 +15,6 @@ struct HomeView: View {
     @State private var isJoinTripPresented: Bool = false
     @State private var isSetRoutePresented: Bool = false
     @State private var drawerHeight: CGFloat = 310
-    @State private var selectedDetent: PresentationDetent = .height(280)
 
     private var shouldHideHomeControls: Bool {
         viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
@@ -40,10 +39,22 @@ struct HomeView: View {
             joinTripOverlay
             draftTripOverlay
         }
-        .sheet(
+        .fullScreenCover(
             isPresented: $isSetRoutePresented,
             onDismiss: { handleSetRouteDismissed() },
-            content: { setRouteSheet() }
+            content: {
+                SetRouteView(
+                    viewModel: mapViewModel,
+                    onBack: {
+                        handleSetRouteDismissed()
+                        isSetRoutePresented = false
+                    },
+                    onTripCreated: { session in
+                        isSetRoutePresented = false
+                        viewModel.onTripJoined(session)
+                    }
+                )
+            }
         )
         .fullScreenCover(
             item: $boundHomeViewModel.activeTripSession,
@@ -253,38 +264,6 @@ private extension HomeView {
             .transition(.opacity)
             .zIndex(200)
         }
-    }
-
-    @ViewBuilder
-    func setRouteSheet() -> some View {
-        @Bindable var boundMapViewModel = mapViewModel
-        SetRouteSheet(
-            viewModel: mapViewModel,
-            isFullPresentation: selectedDetent == .large,
-            onBack: {
-                handleSetRouteDismissed()
-                isSetRoutePresented = false
-            },
-            onTripCreated: { session in
-                isSetRoutePresented = false
-                viewModel.onTripJoined(session)
-            },
-            onExpand: {
-                withAnimation {
-                    selectedDetent = .large
-                }
-            }
-        )
-        .sheet(item: $boundMapViewModel.activeSelectionSheet) { sheetType in
-            LocationSearchSheet(viewModel: mapViewModel, selectionType: sheetType)
-        }
-        .presentationDetents(
-            [.height(drawerHeight), .large],
-            selection: $selectedDetent
-        )
-        .presentationDragIndicator(.visible)
-        .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
-        .interactiveDismissDisabled(mapViewModel.hasPlanChanges)
     }
 
     @ViewBuilder
