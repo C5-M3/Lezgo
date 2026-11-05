@@ -247,15 +247,9 @@ private struct SaveButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text("Save")
-                .font(.headline)
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .background(Color(.brandYellow).opacity(isDisabled ? 0.4 : 1), in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .disabled(isDisabled)
+        Button("Save", action: action)
+            .buttonStyle(.yellowCapsule)
+            .disabled(isDisabled)
     }
 }
 

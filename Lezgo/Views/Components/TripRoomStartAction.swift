@@ -24,15 +24,9 @@ struct TripRoomStartAction: View {
             .frame(maxWidth: .infinity, minHeight: 56)
         } else if viewModel.isCurrentUserLeader {
             VStack(spacing: 6) {
-                Button(action: onStartTrip) {
-                    Text("Start Trip")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background(Color(.brandYellow).opacity(viewModel.canStartTrip ? 1 : 0.4), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .disabled(!viewModel.canStartTrip)
+                Button("Start Trip", action: onStartTrip)
+                    .buttonStyle(.yellowCapsule)
+                    .disabled(!viewModel.canStartTrip)
                 if !viewModel.canStartTrip {
                     Text("Invite at least one friend to start.")
                         .font(.footnote)

@@ -55,10 +55,8 @@ struct StartTripDialog: View {
                 .resizable()
                 .scaledToFit()
                 .frame(height: 22)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Color(.brandYellow), in: Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.yellowCapsule(minHeight: 52))
         .accessibilityLabel("Start")
     }
 }
