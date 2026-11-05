@@ -32,7 +32,7 @@ struct TripMapSheet: View {
                 }
             }
 
-            Button(action: { SetExpanded(isExpanded == false) }, label: {
+            Button(action: TapGrabber, label: {
                 Capsule()
                     .fill(Color(.tripCardSubtext))
                     .frame(width: 40, height: 3)
@@ -41,7 +41,7 @@ struct TripMapSheet: View {
                     .contentShape(.rect)
             })
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(isExpanded ? .tripMapCollapseCard : .tripMapExpandCard))
+            .accessibilityLabel(Text(GrabberLabel()))
         }
         .frame(maxWidth: .infinity)
         .foregroundStyle(Color(.tripCardText))
@@ -50,9 +50,28 @@ struct TripMapSheet: View {
         .gesture(
             DragGesture(minimumDistance: 12).onEnded { drag in
                 if drag.translation.height < -Self.dragDistance { SetExpanded(true) }
-                if drag.translation.height > Self.dragDistance { SetExpanded(false) }
+                if drag.translation.height > Self.dragDistance { PullDown() }
             }
         )
+    }
+
+    /// With a car's status open, the grabber closes it; otherwise it opens or closes the card.
+    private func TapGrabber() {
+        if viewModel.selectedCarStatus != nil {
+            viewModel.SelectCar(nil)
+        } else {
+            SetExpanded(isExpanded == false)
+        }
+    }
+
+    private func PullDown() {
+        if viewModel.selectedCarStatus != nil { viewModel.SelectCar(nil) }
+        SetExpanded(false)
+    }
+
+    private func GrabberLabel() -> LocalizedStringResource {
+        if viewModel.selectedCarStatus != nil { return .tripMapCloseCarStatus }
+        return isExpanded ? .tripMapCollapseCard : .tripMapExpandCard
     }
 
     private func SetExpanded(_ expanded: Bool) {

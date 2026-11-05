@@ -23,7 +23,7 @@ struct TripMapCarPinView: View {
     private static let bodySize = CGSize(width: 64, height: 53)
 
     var body: some View {
-        Image(RobotImage())
+        Image(pin.carColor.TopViewImage(isGlowing: isSelected))
             .resizable()
             .accessibilityHidden(true)
             .frame(width: Self.imageSize, height: Self.imageSize)
@@ -82,21 +82,6 @@ struct TripMapCarPinView: View {
             badges.append("pause.fill")
         }
         return badges
-    }
-
-    private func RobotImage() -> ImageResource {
-        switch (pin.carColor, isSelected) {
-        case (.yellow, false): .ontripNoglowYellow
-        case (.yellow, true): .ontripGlowYellow
-        case (.purple, false): .ontripNoglowPurple
-        case (.purple, true): .ontripGlowPurple
-        case (.pink, false): .ontripNoglowPink
-        case (.pink, true): .ontripGlowPink
-        case (.blue, false): .ontripNoglowBlue
-        case (.blue, true): .ontripGlowBlue
-        case (.green, false): .ontripNoglowGreen
-        case (.green, true): .ontripGlowGreen
-        }
     }
 
     private func Statuses() -> [String] {

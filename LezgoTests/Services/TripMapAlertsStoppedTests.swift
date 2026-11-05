@@ -58,7 +58,10 @@ struct TripMapAlertsStoppedTests {
         let state = State(citra: .stopped)
         _ = alerts.Update(state)
 
-        #expect(alerts.Banner(in: state, at: Fixtures.now) == nil)
+        // Far from the route, my car may have its own formation alert; it must never be told it has stopped.
+        if case .carStopped = alerts.Banner(in: state, at: Fixtures.now) {
+            Issue.record("My own car got a stopped banner")
+        }
     }
 
     @Test func ACarAtTheDestinationGetsNoBanner() {

@@ -39,7 +39,7 @@ final class TripMapViewModel {
     private(set) var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
     private(set) var carLookups: [UUID: CarLookup] = [:]
-    /// This phone's formation alert and the banners closed with ⓧ.
+    /// This phone's formation alert and the banners closed with a tap.
     private(set) var alerts: TripMapAlerts
     /// The cars at the destination, in the order this phone saw them arrive.
     private(set) var arrivalOrder = TripMapArrivalOrder()
@@ -200,7 +200,7 @@ final class TripMapViewModel {
         leaveErrorMessage = nil
     }
 
-    /// ⓧ on the alert banner: hides it until that alert happens again.
+    /// A tap on the alert banner: hides it until that alert happens again.
     func DismissAlertBanner() {
         guard let alertBanner else { return }
         alerts.Close(alertBanner)

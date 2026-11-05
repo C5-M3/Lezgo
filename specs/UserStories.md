@@ -500,6 +500,7 @@ Feature: Manage the group and start
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
 - Tap elsewhere or swipe down to close.
+- Cars so close that their robots would overlap on screen are drawn side by side on one dark card. A tapped car and a car with an alert stay on their own.
 - An offline car's card shows no ETA, because its last position is out of date.
 - Until the street and ETA are known (or without network), the card shows the status alone ("Driving").
 
@@ -513,7 +514,9 @@ Feature: Manage the group and start
 | Ahead of leader | More than 100 m ahead of the leader for 5 s | "You Precede The Leader" | Nothing; slow down or wait |
 
 - Visual only, under the turn card. One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
-- Everyone else sees "[name] - Out of The Way" / "[name] - Precede The Leader" ("Car 3 - Out of The Way", "Budi - Out of The Way") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
+- Everyone else sees "[name] has gone out of route" / "[name] - Precede The Leader" ("Car 3 has gone out of route", "Budi has gone out of route") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
+- **Stopped car:** another online car that was driving and has been at speed 0 for 30 seconds, short of the destination, shows "[name] has stopped" on a red banner, after every formation alert. It hides until that car has driven again. A car still waiting at the start does not count.
+- A tap on the banner hides it (the hi-fi has no ⓧ). Banners are yellow, and red for a stopped car.
 - The time and distance limits stop flicker from GPS noise. They were 100 m and 15 s at first; on the road a wrong turn then showed far too late, so they match the leader's reroute now (50 m, 5 s).
 
 **Route changes (leader only)**
@@ -573,7 +576,7 @@ Feature: Drive together
   Scenario: Member leaves the route
     When "Budi" is more than 50 m off the route for 5 seconds
     Then "Budi" sees "You're out of the way" and the way back
-    And "Agus" sees "Budi - Out of The Way"
+    And "Agus" sees "Budi has gone out of route"
     When "Budi" is back on the route
     Then the banner disappears
 
@@ -657,9 +660,9 @@ Feature: Drive together
 | Who | Where | Button | Confirmation | Result |
 | --- | --- | --- | --- | --- |
 | Member | Trip Room | Exit (top left) | "Exit the room?" | I leave; Home opens |
-| Member | On the road | "Exit Trip" | "Exit trip?" | I leave; my car disappears from every map |
+| Member | On the road | "Exit Trip" | "Exit trip?" · "Your car disappears from every map." | I leave; my car disappears from every map |
 | Leader | Trip Room | Exit (top left) | "Exit and end the trip for everyone? All members will leave this trip." | Trip `CANCELLED` for everyone |
-| Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip? Not everyone has arrived yet." | Trip `ENDED` for everyone |
+| Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip?" · "Not everyone has arrived yet." | Trip `ENDED` for everyone |
 | Leader | Draft card | "New Trip" (US-03) | "Create a new trip? Your current trip will end for everyone." | Old trip ends for everyone |
 
 - Every confirmation has "Cancel" and "Confirm"; the leader's warnings use the destructive style.
@@ -670,7 +673,7 @@ Feature: Drive together
 
 **Needs lo-fi**
 - `LEADER EXIT POP UP ALERT CONFIRM` ("Exit the room and set a new leader?") must change to the end-for-everyone warning above.
-- Copy check for "End trip? Not everyone has arrived yet."
+- Copy check for "End trip?" · "Not everyone has arrived yet."
 - Lo-fi grammar is corrected: "Everyone has arrived!", "Waiting for everyone to arrive".
 
 ### Acceptance criteria
@@ -712,7 +715,7 @@ Feature: Arrive, continue, leave and end
   Scenario: End before everyone arrived
     Given "Citra" has not arrived
     When "Agus" taps "End Trip"
-    Then "Agus" sees "End trip? Not everyone has arrived yet."
+    Then "Agus" sees "End trip?" and "Not everyone has arrived yet."
     When "Agus" taps "Confirm"
     Then the trip is ENDED
 

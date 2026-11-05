@@ -167,7 +167,9 @@ extension TripMapViewModel {
             return TripMapCarStatus(
                 id: car.id,
                 displayName: displayName,
-                activity: .offline(lastSeen: lastSeen)
+                activity: .offline(lastSeen: lastSeen),
+                carDescription: car.carDescription,
+                carColor: CarColor(of: car, in: state)
             )
         }
         let lookup = carLookups[car.id]
@@ -178,7 +180,9 @@ extension TripMapViewModel {
             id: car.id,
             displayName: displayName,
             activity: activity,
-            timeLeft: lookup?.timeLeft
+            timeLeft: lookup?.timeLeft,
+            carDescription: car.carDescription,
+            carColor: CarColor(of: car, in: state)
         )
     }
 

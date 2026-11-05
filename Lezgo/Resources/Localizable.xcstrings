@@ -457,7 +457,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ - Out of The Way"
+            "value" : "%@ has gone out of route"
+          }
+        }
+      }
+    },
+    "tripMapAlertCarStopped" : {
+      "comment" : "Banner when another car that was driving has stopped short of the destination (US-06). The placeholder is the driver's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ has stopped"
           }
         }
       }
@@ -774,14 +786,14 @@
         }
       }
     },
-    "tripMapEndTripNotEveryoneArrived" : {
-      "comment" : "Confirmation when the leader taps End Trip while someone has not arrived (US-07).",
+    "tripMapEndTripNotEveryoneMessage" : {
+      "comment" : "Line under \"End trip?\" on the trip map while cars are still on the way (US-07).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "End trip? Not everyone has arrived yet."
+            "value" : "Not everyone has arrived yet."
           }
         }
       }
@@ -818,6 +830,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exit Trip"
+          }
+        }
+      }
+    },
+    "tripMapExitTripMessage" : {
+      "comment" : "Line under \"Exit trip?\" on the trip map (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your car disappears from every map."
           }
         }
       }

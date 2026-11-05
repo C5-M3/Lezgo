@@ -75,7 +75,7 @@ struct TripMapArrivalTopCard: View {
         return ZStack(alignment: .trailing) {
             ForEach(Array(shownIDs.enumerated()), id: \.element) { index, id in
                 let placement = Placement(of: id, at: index, elapsed: elapsed)
-                Image(RobotImage(of: id))
+                Image((progress.robots.first { $0.id == id }?.carColor ?? .yellow).frontImage)
                     .resizable()
                     .accessibilityHidden(true)
                     .frame(width: Self.imageSize, height: Self.imageSize)
@@ -109,16 +109,6 @@ struct TripMapArrivalTopCard: View {
         guard rolling != nil else { return (place, rest) }
         let push = TripMapArrivalMotion.PushOffset(at: elapsed, rank: shownIDs.count - 2 - index)
         return (place + push, rest + TripMapArrivalMotion.RollDegrees(over: push))
-    }
-
-    private func RobotImage(of id: UUID) -> ImageResource {
-        switch progress.robots.first(where: { $0.id == id })?.carColor ?? .yellow {
-        case .yellow: .frontballActiveYellow
-        case .purple: .frontballActivePurple
-        case .pink: .frontballActivePink
-        case .blue: .frontballActiveBlue
-        case .green: .frontballActiveGreen
-        }
     }
 
     /// Brings the card up to date, one robot at a time. When a new arrival restarts this, a robot on its way finishes
