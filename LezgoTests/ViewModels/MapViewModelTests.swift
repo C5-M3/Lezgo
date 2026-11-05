@@ -279,4 +279,18 @@ struct MapViewModelTests {
         )
         #expect(!viewModel.hasPlanChanges)
     }
+
+    @Test func CloseSearchResetsActiveSelectionAndQuery() {
+        let viewModel = MapViewModel()
+        viewModel.activeSelectionSheet = .destination(index: 1)
+        viewModel.searchQuery = "Surabaya"
+
+        #expect(viewModel.isSearching)
+
+        viewModel.closeSearch()
+
+        #expect(!viewModel.isSearching)
+        #expect(viewModel.activeSelectionSheet == nil)
+        #expect(viewModel.searchQuery.isEmpty)
+    }
 }
