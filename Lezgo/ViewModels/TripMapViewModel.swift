@@ -58,7 +58,7 @@ final class TripMapViewModel {
     private let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
-    private let locationSharer: LocationSharer?
+    let locationSharer: LocationSharer?
     private let activeTripStorage: (any ActiveTripStorage)?
     /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
     /// and the simulated drive, where the leader never leaves the route).
@@ -98,23 +98,6 @@ final class TripMapViewModel {
         self.showsStartIntro = showsStartIntro
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
-    }
-
-    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
-    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
-    var showsMyLocationDot: Bool {
-        locationSharer != nil
-    }
-
-    /// `true` while this phone cannot send its position, so the other phones see it standing still and its own
-    /// view of the other cars is probably out of date too. Hides as soon as a send works again.
-    var isConnectionLost: Bool {
-        locationSharer?.lastError != nil
-    }
-
-    /// `true` while Precise Location is off: this phone's car is not shared, and the map asks to turn it on.
-    var isLocationImprecise: Bool {
-        locationSharer?.isLocationImprecise ?? false
     }
 
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the

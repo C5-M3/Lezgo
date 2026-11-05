@@ -7,45 +7,51 @@
 
 import SwiftUI
 
-/// The round map buttons: show the whole route, and follow my car where the map has no location button of its own.
+/// The round map buttons above the bottom card: show the whole route, and follow my car.
 struct TripMapCameraControls: View {
     let cameraMode: TripMapViewModel.CameraMode
     let showWholeRoute: () -> Void
-    /// Follows this phone's car; `nil` hides the button when the map's own location button does it.
-    let followMyCar: (() -> Void)?
+    let followMyCar: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             Button(
                 .tripMapShowWholeRoute,
                 systemImage: "point.topleft.down.to.point.bottomright.curvepath",
                 action: showWholeRoute
             )
-                .accessibilityAddTraits(cameraMode == .wholeRoute ? .isSelected : [])
-            if let followMyCar {
-                Button(
-                    .tripMapFollowMyCar,
-                    systemImage: cameraMode == .followMyCar ? "location.fill" : "location",
-                    action: followMyCar
-                )
-                .accessibilityAddTraits(cameraMode == .followMyCar ? .isSelected : [])
-            }
+            .accessibilityAddTraits(cameraMode == .wholeRoute ? .isSelected : [])
+
+            Button(
+                .tripMapFollowMyCar,
+                systemImage: cameraMode == .followMyCar ? "location.fill" : "location",
+                action: followMyCar
+            )
+            .accessibilityAddTraits(cameraMode == .followMyCar ? .isSelected : [])
         }
         .labelStyle(.iconOnly)
-        .font(.title2)
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
-        .controlSize(.large)
+        .buttonStyle(RoundStyle())
+    }
+}
+
+extension TripMapCameraControls {
+    /// A dark circle of a fixed size. The icon is a map graphic, so it stops growing before it would leave the circle.
+    struct RoundStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .font(.title.weight(.semibold))
+                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                .foregroundStyle(Color(.tripCardText))
+                .frame(width: 61, height: 61)
+                .background(Color(.tripCard), in: .circle)
+                .contentShape(.circle)
+                .opacity(configuration.isPressed ? 0.7 : 1)
+        }
     }
 }
 
 #Preview("Following my car") {
     TripMapCameraControls(cameraMode: .followMyCar, showWholeRoute: {}, followMyCar: {})
-        .padding()
-}
-
-#Preview("With the map's location button") {
-    TripMapCameraControls(cameraMode: .followMyCar, showWholeRoute: {}, followMyCar: nil)
         .padding()
 }
 

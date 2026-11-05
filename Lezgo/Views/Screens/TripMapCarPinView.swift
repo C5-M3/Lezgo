@@ -7,81 +7,96 @@
 
 import SwiftUI
 
-/// A car on the trip map. My car shows an arrow, the leader a crown, and other cars a car.
-/// A stopped car gets a pause badge, and an offline car is faded at its last position. The tapped car has a halo.
-/// A car off the route or ahead of the leader gets a red ring and a warning badge. A driving car with a known heading
-/// gets a small pointer on its ring, turned the way it drives on the map.
+/// A car on the trip map: its robot, turned the way it drives, with the driver's name under it.
+///
+/// The leader has a star. A stopped car has a pause badge, and an offline car is faded at its last position. The
+/// tapped car glows. A car off the route or ahead of the leader has a red ring, a warning badge and a red name.
 struct TripMapCarPinView: View {
     let pin: TripMapCarPin
     /// Whether this car's status card is open.
     var isSelected = false
-    /// Which way the map is turned, in degrees clockwise from north, so the pointer matches the streets.
+    /// Which way the map is turned, in degrees clockwise from north, so the robot matches the streets.
     var mapHeading: Double = 0
 
+    /// The robot's image has wide transparent margins, so it is drawn larger than the space it takes.
+    private static let imageSize = 114.0
+    private static let bodySize = CGSize(width: 64, height: 53)
+
     var body: some View {
-        Image(systemName: Symbol())
-            .font(.headline)
-            .foregroundStyle(pin.motionState == .stopped ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
-            .frame(width: 44, height: 44)
-            .background(.background, in: .circle)
-            .overlay(alignment: .topTrailing) {
+        Image(RobotImage())
+            .resizable()
+            .accessibilityHidden(true)
+            .frame(width: Self.imageSize, height: Self.imageSize)
+            .rotationEffect(.degrees((pin.course ?? mapHeading) - mapHeading))
+            .frame(width: Self.bodySize.width, height: Self.bodySize.height)
+            .background {
                 if pin.isAlerting {
-                    Circle().strokeBorder(Color(.formationAlertBackground), lineWidth: 4)
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.white, Color(.formationAlertBackground))
-                        .accessibilityHidden(true)
-                } else {
-                    Circle().strokeBorder(.tint, lineWidth: pin.isMe ? 3 : 1)
+                    Circle()
+                        .strokeBorder(Color(.formationAlertBackground), lineWidth: 4)
+                        .frame(width: 62, height: 62)
                 }
             }
-            .overlay(alignment: .bottomTrailing) {
-                if pin.motionState == .stopped {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .background(.background, in: .circle)
-                        .accessibilityHidden(true)
+            .overlay(alignment: .topTrailing) {
+                if let badge = Badges().first {
+                    BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
+                        .offset(x: 6, y: -6)
                 }
+            }
+            .overlay(alignment: .topLeading) {
+                if Badges().count > 1 {
+                    let badge = Badges()[1]
+                    BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
+                        .offset(x: -6, y: -6)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                Text(verbatim: pin.displayName)
+                    .font(.footnote.weight(.semibold))
+                    .lineLimit(1)
+                    .foregroundStyle(pin.isAlerting ? Color.white : Color(.tripCardText))
+                    .padding(.horizontal, 12)
+                    .frame(minWidth: 68, maxWidth: 130, minHeight: 22)
+                    .background(pin.isAlerting ? Color(.formationAlertBackground) : Color(.tripCard), in: .capsule)
+                    .fixedSize()
+                    .offset(y: 24)
             }
             .opacity(pin.isOffline ? 0.4 : 1)
-            // The pin is a map graphic with a fixed 44 pt circle; a bigger symbol would spill out of it.
-            // VoiceOver still reads the name and status at any text size.
+            // The pin is a map graphic of a fixed size; bigger text would cover the cars around it.
+            // VoiceOver still reads the name and status at any text size, and tapping the car shows its full name.
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: pin.displayName))
             .accessibilityValue(Text(Statuses().formatted(.list(type: .and, width: .narrow))))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-            .background {
-                // The halo around the tapped car, like the focus ring in the lo-fi.
-                if isSelected {
-                    Circle()
-                        .fill(.tint.opacity(0.25))
-                        .padding(-10)
-                }
-            }
-            .background {
-                if let direction = Direction() {
-                    Image(systemName: "arrowtriangle.up.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.tint)
-                        .offset(y: -27)
-                        .rotationEffect(direction)
-                        .accessibilityHidden(true)
-                }
-            }
     }
 
-    /// The way a driving car points on screen; a stopped car or one with an unknown heading has none.
-    private func Direction() -> Angle? {
-        guard pin.motionState == .driving, let course = pin.course else { return nil }
-        return .degrees(course - mapHeading)
+    private static let alertSymbol = "exclamationmark"
+
+    /// At most two: the first sits at the top right, as in the design, and the second at the top left.
+    private func Badges() -> [String] {
+        var badges: [String] = []
+        if pin.isLeader { badges.append("star.fill") }
+        if pin.isAlerting {
+            badges.append(Self.alertSymbol)
+        } else if pin.motionState == .stopped {
+            badges.append("pause.fill")
+        }
+        return badges
     }
 
-    private func Symbol() -> String {
-        if pin.isMe { return "location.north.fill" }
-        if pin.isLeader { return "crown.fill" }
-        return "car.fill"
+    private func RobotImage() -> ImageResource {
+        switch (pin.carColor, isSelected) {
+        case (.yellow, false): .ontripNoglowYellow
+        case (.yellow, true): .ontripGlowYellow
+        case (.purple, false): .ontripNoglowPurple
+        case (.purple, true): .ontripGlowPurple
+        case (.pink, false): .ontripNoglowPink
+        case (.pink, true): .ontripGlowPink
+        case (.blue, false): .ontripNoglowBlue
+        case (.blue, true): .ontripGlowBlue
+        case (.green, false): .ontripNoglowGreen
+        case (.green, true): .ontripGlowGreen
+        }
     }
 
     private func Statuses() -> [String] {
@@ -95,6 +110,24 @@ struct TripMapCarPinView: View {
             statuses.append(String(localized: pin.motionState == .stopped ? .tripMapCarStopped : .tripMapCarDriving))
         }
         return statuses
+    }
+}
+
+extension TripMapCarPinView {
+    /// A small round badge on the robot's shoulder.
+    struct BadgeView: View {
+        let symbol: String
+        let isAlert: Bool
+
+        var body: some View {
+            Image(systemName: symbol)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(isAlert ? Color(.formationAlertBackground) : Color(.tripCard), in: .circle)
+                .overlay { Circle().strokeBorder(.white, lineWidth: 1.5) }
+                .accessibilityHidden(true)
+        }
     }
 }
 
@@ -116,13 +149,15 @@ struct TripMapCarPinView: View {
             isLeader: isLeader,
             isMe: isMe,
             isOffline: isOffline,
-            isAlerting: name == "Eka"
+            isAlerting: name == "Eka",
+            carColor: .ForMember(atIndex: name.count)
         )
     }
-    HStack(spacing: 16) {
+    HStack(spacing: 24) {
         ForEach(pins) { pin in
             TripMapCarPinView(pin: pin, isSelected: pin.displayName == "Budi")
         }
     }
-    .padding()
+    .padding(40)
+    .background(.black)
 }

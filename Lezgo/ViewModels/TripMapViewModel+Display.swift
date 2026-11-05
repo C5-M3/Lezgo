@@ -90,6 +90,23 @@ extension TripMapViewModel {
         return TripSession(myParticipantID: myParticipantID, state: state)
     }
 
+    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
+    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
+    var showsMyLocationDot: Bool {
+        locationSharer != nil
+    }
+
+    /// `true` while this phone cannot send its position, so the other phones see it standing still and its own
+    /// view of the other cars is probably out of date too. Hides as soon as a send works again.
+    var isConnectionLost: Bool {
+        locationSharer?.lastError != nil
+    }
+
+    /// `true` while Precise Location is off: this phone's car is not shared, and the map asks to turn it on.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
+    }
+
     /// A pin for every car that has sent a position; members without one yet have no pin.
     var carPins: [TripMapCarPin] {
         guard let state, let updatedAt else { return [] }
