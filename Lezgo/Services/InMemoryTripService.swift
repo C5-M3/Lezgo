@@ -47,7 +47,13 @@ final class InMemoryTripService: TripService {
         try ThrowSimulatedFailure()
         try Validate(plan)
         let tripID = UUID()
-        let leader = Participant.Joining(tripID: tripID, userRecordID: userRecordID, profile: profile, at: clock())
+        let leader = Participant.Joining(
+            tripID: tripID,
+            userRecordID: userRecordID,
+            profile: profile,
+            isLeader: true,
+            at: clock()
+        )
         let trip = Trip(
             id: tripID,
             roomCode: try UnusedRoomCode(),
@@ -82,6 +88,7 @@ final class InMemoryTripService: TripService {
             tripID: state.trip.id,
             userRecordID: userRecordID,
             profile: profile,
+            isLeader: false,
             at: clock()
         )
         state.participants.append(member)
@@ -216,6 +223,7 @@ final class InMemoryTripService: TripService {
         try ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.displayName = profile.displayName
             participant.carDescription = profile.carDescription
+            participant.avatar = profile.avatar ?? participant.avatar
         }
     }
 

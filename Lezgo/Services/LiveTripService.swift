@@ -48,6 +48,7 @@ final class LiveTripService: TripService {
                 tripID: tripID,
                 userRecordID: try await UserRecordName(),
                 profile: profile,
+                isLeader: true,
                 at: clock()
             )
             let trip = Trip(
@@ -88,7 +89,9 @@ final class LiveTripService: TripService {
             if let record = existing.first, let participant = try? TripRecordMapper.MakeParticipant(from: record) {
                 return TripSession(myParticipantID: participant.id, state: try await reader.LoadState(tripID: trip.id))
             }
-            let member = Participant.Joining(tripID: trip.id, userRecordID: me, profile: profile, at: clock())
+            let member = Participant.Joining(
+                tripID: trip.id, userRecordID: me, profile: profile, isLeader: false, at: clock()
+            )
             try await database.Save([TripRecordMapper.MakeRecord(member)], savePolicy: .allKeys)
             return TripSession(myParticipantID: member.id, state: try await reader.LoadState(tripID: trip.id))
         }
@@ -225,6 +228,7 @@ final class LiveTripService: TripService {
         try await ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.displayName = profile.displayName
             participant.carDescription = profile.carDescription
+            participant.avatar = profile.avatar ?? participant.avatar
         }
     }
 

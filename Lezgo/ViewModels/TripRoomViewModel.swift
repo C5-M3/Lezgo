@@ -258,42 +258,6 @@ final class TripRoomViewModel {
         !isSelectionMode && (participant.id == myParticipantID || isCurrentUserLeader)
     }
 
-    /// Changes a participant's name and car. Only my own details are remembered for my next trip; the leader fixing a
-    /// member's name must not make it the leader's own.
-    func UpdateProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async throws {
-        let participantID = participantID ?? myParticipantID
-        guard participantID == myParticipantID || isCurrentUserLeader else { throw TripServiceError.notAllowed }
-        let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
-        try await tripService.UpdateProfile(profile, participantID: participantID, tripID: tripID)
-        if participantID == myParticipantID {
-            profileStorage.SaveProfile(profile)
-        }
-    }
-
-    /// Saves a profile for the edit sheet: my own, or anyone's when I lead; without `participantID`, my own. Returns
-    /// `true` only when the save succeeded, so the sheet closes then and stays open with `profileErrorMessage`
-    /// otherwise. A second tap while saving is ignored.
-    @discardableResult
-    func SaveProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async -> Bool {
-        guard !isSavingProfile else { return false }
-        isSavingProfile = true
-        defer { isSavingProfile = false }
-        do {
-            try await UpdateProfile(
-                displayName: displayName,
-                carDescription: carDescription,
-                of: participantID
-            )
-            profileErrorMessage = nil
-            return true
-        } catch let error as TripServiceError {
-            profileErrorMessage = String(localized: error.message)
-        } catch {
-            profileErrorMessage = String(localized: TripServiceError(cloudKitError: error).message)
-        }
-        return false
-    }
-
     /// A member leaves the trip; the leader cancels it for everyone. The trip is cleared from this phone only after
     /// the request succeeded, so a failure leaves the person in the room with their trip still saved.
     func LeaveTrip() async throws {
@@ -329,6 +293,49 @@ final class TripRoomViewModel {
         case exitRoom
         /// The leader: the trip is cancelled for everyone.
         case endTripForEveryone
+    }
+}
+
+// MARK: Profile
+
+extension TripRoomViewModel {
+    /// Changes a participant's name, car and avatar. Only my own details are remembered for my next trip; the leader
+    /// fixing a member's name must not make it the leader's own.
+    /// - Parameter avatar: `nil` keeps the current avatar.
+    func UpdateProfile(
+        displayName: String, carDescription: String, avatar: Avatar? = nil, of participantID: UUID? = nil
+    ) async throws {
+        let participantID = participantID ?? myParticipantID
+        guard participantID == myParticipantID || isCurrentUserLeader else { throw TripServiceError.notAllowed }
+        let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription, avatar: avatar)
+        try await tripService.UpdateProfile(profile, participantID: participantID, tripID: tripID)
+        if participantID == myParticipantID {
+            profileStorage.SaveProfile(profile)
+        }
+    }
+
+    /// Saves a profile for the edit sheet: my own, or anyone's when I lead; without `participantID`, my own. Returns
+    /// `true` only when the save succeeded, so the sheet closes then and stays open with `profileErrorMessage`
+    /// otherwise. A second tap while saving is ignored.
+    @discardableResult
+    func SaveProfile(
+        displayName: String, carDescription: String, avatar: Avatar? = nil, of participantID: UUID? = nil
+    ) async -> Bool {
+        guard !isSavingProfile else { return false }
+        isSavingProfile = true
+        defer { isSavingProfile = false }
+        do {
+            try await UpdateProfile(
+                displayName: displayName, carDescription: carDescription, avatar: avatar, of: participantID
+            )
+            profileErrorMessage = nil
+            return true
+        } catch let error as TripServiceError {
+            profileErrorMessage = String(localized: error.message)
+        } catch {
+            profileErrorMessage = String(localized: TripServiceError(cloudKitError: error).message)
+        }
+        return false
     }
 }
 
