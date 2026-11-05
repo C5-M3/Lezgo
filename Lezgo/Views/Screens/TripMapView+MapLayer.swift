@@ -21,8 +21,13 @@ extension TripMapView {
         @State private var carPins: [TripMapCarPin] = []
         /// Which way the map is turned, so the cars' direction pointers match the streets.
         @State private var mapHeading: Double = 0
+        /// How much of the world the map shows across, and how wide the map is, to tell which cars would overlap.
+        @State private var visibleWidthInMetres = 0.0
+        @State private var mapWidth = 0.0
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+        /// Cars closer than this on screen would overlap, in points.
+        private static let groupDistance = 60.0
         /// How far above the car the camera floats while following it, in metres.
         private static let followDistance: CLLocationDistance = 1_500
 
@@ -67,17 +72,10 @@ extension TripMapView {
                     UserAnnotation()
                 }
 
-                ForEach(carPins) { pin in
-                    Annotation(pin.displayName, coordinate: pin.coordinate.locationCoordinate) {
-                        Button { viewModel.SelectCar(pin.id) } label: {
-                            TripMapCarPinView(
-                                pin: pin,
-                                isSelected: pin.id == viewModel.selectedCarID,
-                                mapHeading: mapHeading
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .scaleEffect(showsCars ? 1 : 0)
+                ForEach(CarGroups()) { group in
+                    Annotation(group.pins[0].displayName, coordinate: group.coordinate.locationCoordinate) {
+                        CarGroupContent(group: group)
+                            .scaleEffect(showsCars ? 1 : 0)
                     }
                     .annotationTitles(.hidden)
                 }
@@ -89,12 +87,15 @@ extension TripMapView {
             .onMapCameraChange(frequency: .continuous) { context in
                 mapHeading = context.camera.heading
             }
-            .onMapCameraChange(frequency: .onEnd) {
+            .onMapCameraChange(frequency: .onEnd) { context in
                 // Panning or zooming by hand stops the camera from jumping back to the car every second.
                 if cameraPosition.positionedByUser {
                     viewModel.StopFollowing()
                 }
+                let metresPerMapPoint = 1 / MKMapPointsPerMeterAtLatitude(context.camera.centerCoordinate.latitude)
+                visibleWidthInMetres = context.rect.width * metresPerMapPoint
             }
+            .onGeometryChange(for: CGFloat.self, of: \.size.width) { mapWidth = Double($0) }
             .onAppear(perform: MoveCamera)
             .onChange(of: viewModel.myCoordinate) {
                 // The location dot camera follows the car by itself.
@@ -103,6 +104,31 @@ extension TripMapView {
             .onChange(of: viewModel.cameraMode) { MoveCamera() }
             .onChange(of: viewModel.route) { MoveCamera() }
             .onChange(of: viewModel.carPins, initial: true) { ShowCarPins() }
+        }
+
+        private func CarGroups() -> [TripMapCarGroup] {
+            let metresPerPoint = mapWidth > 0 ? visibleWidthInMetres / mapWidth : 0
+            return TripMapCarGroup.Make(
+                pins: carPins,
+                selectedID: viewModel.selectedCarID,
+                within: metresPerPoint * Self.groupDistance
+            )
+        }
+
+        @ViewBuilder
+        private func CarGroupContent(group: TripMapCarGroup) -> some View {
+            if group.pins.count == 1 {
+                Button { viewModel.SelectCar(group.pins[0].id) } label: {
+                    TripMapCarPinView(
+                        pin: group.pins[0],
+                        isSelected: group.pins[0].id == viewModel.selectedCarID,
+                        mapHeading: mapHeading
+                    )
+                }
+                .buttonStyle(.plain)
+            } else {
+                TripMapCarGroupView(group: group, onSelect: viewModel.SelectCar)
+            }
         }
 
         /// Moves the cars to their new positions over about the time between two updates, so they glide.
