@@ -14,6 +14,9 @@ struct TripRoomMapPreview: View {
     let start: Waypoint?
     let destination: Waypoint?
     let polyline: [Coordinate]
+    /// Off at the accessibility text sizes: MapKit draws the names at that size and they run off the edge. The
+    /// Overview under the map says the same names in text that scales.
+    var showsNames = true
 
     var body: some View {
         Map(initialPosition: .automatic, interactionModes: []) {
@@ -28,6 +31,7 @@ struct TripRoomMapPreview: View {
                         .stroke(.white, lineWidth: 3)
                         .frame(width: 18, height: 18)
                 }
+                .annotationTitles(showsNames ? .automatic : .hidden)
             }
             if let destination {
                 Marker(
@@ -36,6 +40,7 @@ struct TripRoomMapPreview: View {
                     coordinate: destination.coordinate.locationCoordinate
                 )
                 .tint(Color(.brandYellow))
+                .annotationTitles(showsNames ? .automatic : .hidden)
             }
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
