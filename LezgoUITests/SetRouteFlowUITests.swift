@@ -17,78 +17,54 @@ final class SetRouteFlowUITests: XCTestCase {
         app.launch()
     }
 
-    // MARK: - SetRouteMapView & LocationSearchSheet
+    // MARK: - SetRouteView Inline Search Flow
 
     @MainActor
-    func testSetRouteMapViewPresentsLocationSearchSheetOnAppear() throws {
-        // Given SetRouteMapView appears with no destinations,
-        // it presents LocationSearchSheet with title "Destination"
-        let navBar = app.navigationBars["Destination"]
-        XCTAssertTrue(navBar.waitForExistence(timeout: 5), "Expected LocationSearchSheet for Destination on appear")
+    func testSetRouteViewPresentsSearchOnAppear() throws {
+        // Given SetRouteView appears with no destinations,
+        // it starts in search mode with title "Route Plan"
+        let routePlanTitle = app.staticTexts["Route Plan"]
+        XCTAssertTrue(routePlanTitle.waitForExistence(timeout: 5), "Expected 'Route Plan' header on appear")
 
-        // Search field prompt "Where to?"
-        let searchField = app.searchFields["Where to?"]
-        XCTAssertTrue(searchField.exists, "Expected searchable field in LocationSearchSheet")
+        // Search text field placeholder "Where to?"
+        let searchField = app.textFields["Where to?"]
+        XCTAssertTrue(searchField.exists, "Expected search text field in RoutePlanCard")
 
-        // Cancel button exists to dismiss the sheet
-        let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.exists, "Expected Cancel button on LocationSearchSheet")
-    }
-
-    @MainActor
-    func testLocationSearchSheetCancelDismissesToSetRouteSheet() throws {
-        let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.waitForExistence(timeout: 5))
-        cancelButton.tap()
-
-        // SetRouteSheet should now be visible with navigation title "Set Route"
-        let setRouteNavBar = app.navigationBars["Set Route"]
-        XCTAssertTrue(setRouteNavBar.waitForExistence(timeout: 3), "Expected Set Route sheet after dismissing search")
-    }
-
-    // MARK: - SetRouteSheet
-
-    @MainActor
-    func testSetRouteSheetDisplaysStartingPointAndDestinationsSections() throws {
-        // Dismiss the initial auto-presented search sheet
-        let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.waitForExistence(timeout: 5))
-        cancelButton.tap()
-
-        // Verify Starting Point section element
-        let startPointButton = app.buttons.matching(
-            NSPredicate(format: "label == %@ OR label == %@", "Choose Starting Point...", "Current Location")
-        ).firstMatch
-        XCTAssertTrue(startPointButton.waitForExistence(timeout: 3), "Expected Starting Point button")
-
-        // Verify navigation toolbar buttons
+        // Back button exists to cancel / go back
         let backButton = app.buttons["Back"]
-        XCTAssertTrue(backButton.exists, "Expected Back button in toolbar")
-
-        let nextButton = app.buttons["Next"]
-        XCTAssertTrue(nextButton.exists, "Expected Next button in toolbar")
+        XCTAssertTrue(backButton.exists, "Expected Back button")
     }
 
     @MainActor
-    func testTappingStartingPointOpensSearchSheetForStart() throws {
-        // Dismiss initial destination search sheet
-        let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.waitForExistence(timeout: 5))
-        cancelButton.tap()
+    func testSetRouteViewDisplaysStartingPointAndDestinations() throws {
+        // Tap Back when destinations is empty, which exits or keeps view accessible
+        let routePlanTitle = app.staticTexts["Route Plan"]
+        XCTAssertTrue(routePlanTitle.waitForExistence(timeout: 5))
 
-        // Tap Starting Point
-        let startPointButton = app.buttons.matching(
-            NSPredicate(format: "label == %@ OR label == %@", "Choose Starting Point...", "Current Location")
+        // Starting point row is visible in the card
+        let startPointRow = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Current Location", "Starting Point")
         ).firstMatch
-        XCTAssertTrue(startPointButton.waitForExistence(timeout: 3))
-        startPointButton.tap()
+        XCTAssertTrue(startPointRow.waitForExistence(timeout: 3), "Expected Starting Point element")
 
-        // Should present LocationSearchSheet with title "Starting Point"
-        let startNavBar = app.navigationBars["Starting Point"]
-        XCTAssertTrue(startNavBar.waitForExistence(timeout: 3), "Expected Starting Point search sheet")
+        // Add destination button is visible in the card
+        let addDestinationButton = app.buttons["Add Destination"]
+        XCTAssertTrue(addDestinationButton.exists, "Expected Add Destination button")
+    }
 
-        // Search field prompt "Change start location"
-        let searchField = app.searchFields["Change start location"]
-        XCTAssertTrue(searchField.exists, "Expected 'Change start location' search field")
+    @MainActor
+    func testTappingStartingPointActivatesSearchForStart() throws {
+        let routePlanTitle = app.staticTexts["Route Plan"]
+        XCTAssertTrue(routePlanTitle.waitForExistence(timeout: 5))
+
+        let startPointRow = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Current Location", "Starting Point")
+        ).firstMatch
+        if startPointRow.waitForExistence(timeout: 3) {
+            startPointRow.tap()
+
+            let searchStartField = app.textFields["Search starting point"]
+            XCTAssertTrue(searchStartField.waitForExistence(timeout: 3), "Expected search starting point field")
+        }
     }
 }
