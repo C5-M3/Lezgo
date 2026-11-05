@@ -152,7 +152,7 @@ private struct AvatarPicker: View {
             // The chosen avatar is scrolled to the middle, so a member whose avatar is at the end still sees it.
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: -50) {
                         ForEach(Avatar.allCases, id: \.self) { avatar in
                             AvatarChoice(avatar: avatar, isChosen: avatar == selection) {
                                 withAnimation(reduceMotion ? nil : .snappy) { selection = avatar }
@@ -160,7 +160,7 @@ private struct AvatarPicker: View {
                             .id(avatar)
                         }
                     }
-                    .frame(minHeight: 120)
+                    .frame(minHeight: 160)
                 }
                 .scrollIndicators(.hidden)
                 .onChange(of: selection, initial: true) { _, chosen in
@@ -179,7 +179,7 @@ private struct AvatarChoice: View {
     var body: some View {
         Button(action: action) {
             AvatarImage(avatar: avatar, isSelected: isChosen)
-                .frame(width: isChosen ? 120 : 72, height: isChosen ? 120 : 72)
+                .frame(width: isChosen ? 160 : 140, height: isChosen ? 160 : 140)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(avatar.accessibilityName)

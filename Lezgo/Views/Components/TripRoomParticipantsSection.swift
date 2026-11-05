@@ -69,9 +69,9 @@ private struct ParticipantCell: View {
 
     var body: some View {
         Button(action: onEdit) {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 AvatarImage(avatar: participant.avatar, isSelected: isReady)
-                    .frame(width: 72, height: 72)
+                    .frame(width: 160, height: 160).padding(.bottom, -20)
                 HStack(spacing: 4) {
                     Text(displayName)
                         .font(.headline)

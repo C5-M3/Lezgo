@@ -18,7 +18,7 @@ struct InviteSheetView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
+            VStack(spacing: 25) {
                 Text("Add Participants")
                     .font(.headline)
                     .accessibilityAddTraits(.isHeader)
@@ -36,17 +36,23 @@ struct InviteSheetView: View {
                 ShareLink(item: viewModel.inviteURL, message: Text(viewModel.shareMessage)) {
                     Label(.tripRoomShareLink, systemImage: "link")
                         .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .frame(maxWidth: .infinity)
                 }
                 .foregroundStyle(Color(.brandYellow))
             }
             .disabled(!viewModel.canShareInvite)
-            .padding()
+            .padding(.top, 30)
+            .padding(.horizontal, 16)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
+        .presentationBackground {
+            UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38)
+                .fill(Color.black)
+                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+        }
         // The Trip Room is always dark, and BrandYellow has no contrast on a light sheet.
         .preferredColorScheme(.dark)
         .sensoryFeedback(.success, trigger: copyCount)

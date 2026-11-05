@@ -178,6 +178,7 @@ private struct TripRoomContent: View {
             }
             .padding(.bottom)
         }
+        .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
         .background(.black)
     }
