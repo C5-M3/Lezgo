@@ -143,15 +143,6 @@ final class HomeViewModel {
         }
     }
 
-    /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
-    /// Returns whether the link was an invite, so Home only opens "Enter room code" for one.
-    @discardableResult
-    func OpenInviteLink(_ url: URL) -> Bool {
-        guard let roomCode = InviteLink.RoomCode(from: url) else { return false }
-        inviteRoomCode = roomCode
-        return true
-    }
-
     /// Menangani sesi perjalanan yang berhasil diverifikasi dan bergabung (US-02).
     /// Opens the Trip Room for a `LOBBY` trip and the map for an `IN_TRIP` trip (a late member), without the Draft
     /// Trip screen. Draft trip hanya akan dimuat dari storage saat aplikasi ditutup dan dibuka kembali.
