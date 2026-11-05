@@ -29,6 +29,28 @@ struct TripServiceCreateTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderWithoutAChosenColorIsYellow(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let session = try await phones.agus.CreateTrip(
+            plan: TripPlanFixtures.tunjunganToPakuwon,
+            profile: TripPlanFixtures.agusProfile
+        )
+
+        #expect(session.state.leader?.avatarColor == .yellow)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderKeepsTheColorTheyChose(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        var profile = TripPlanFixtures.agusProfile
+        profile.avatarColor = .pink
+
+        let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: profile)
+
+        #expect(session.state.leader?.avatarColor == .pink)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
     func NewTripHasASixDigitRoomCode(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)

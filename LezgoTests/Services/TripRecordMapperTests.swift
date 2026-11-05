@@ -113,6 +113,28 @@ struct TripRecordMapperTests {
         #expect(try TripRecordMapper.MakeParticipant(from: TripRecordMapper.MakeRecord(participant)) == participant)
     }
 
+    @Test(arguments: AvatarColor.allCases)
+    func ParticipantKeepsTheirAvatarColor(color: AvatarColor) throws {
+        var participant = TripFixtures.Participant()
+        participant.avatarColor = color
+
+        let record = TripRecordMapper.MakeRecord(participant)
+
+        #expect(record["avatarColor"] as? String == color.rawValue)
+        #expect(try TripRecordMapper.MakeParticipant(from: record) == participant)
+    }
+
+    @Test(arguments: [nil, "ORANGE"])
+    func ParticipantWithoutAKnownColorIsYellow(storedColor: String?) throws {
+        // Records saved before avatars existed have no color; a newer build may add colors this one does not know.
+        var participant = TripFixtures.Participant()
+        participant.avatarColor = .pink
+        let record = TripRecordMapper.MakeRecord(participant)
+        record["avatarColor"] = storedColor
+
+        #expect(try TripRecordMapper.MakeParticipant(from: record).avatarColor == .yellow)
+    }
+
     @Test func ParticipantIsDeletedWithItsTrip() throws {
         let record = TripRecordMapper.MakeRecord(TripFixtures.Participant())
 

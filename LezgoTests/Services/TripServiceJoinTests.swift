@@ -30,6 +30,33 @@ struct TripServiceJoinTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
+    func MemberWithoutAChosenColorIsNeverYellow(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let created = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+
+        let joined = try await phones.budi.JoinTrip(
+            roomCode: created.state.trip.roomCode,
+            profile: TripPlanFixtures.budiProfile
+        )
+
+        let budi = try #require(joined.state.participants.first { $0.id == joined.myParticipantID })
+        #expect(AvatarColor.memberColors.contains(budi.avatarColor))
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberKeepsTheColorTheyChoseEvenYellow(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let created = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        var profile = TripPlanFixtures.budiProfile
+        profile.avatarColor = .yellow
+
+        let joined = try await phones.budi.JoinTrip(roomCode: created.state.trip.roomCode, profile: profile)
+
+        let budi = try #require(joined.state.participants.first { $0.id == joined.myParticipantID })
+        #expect(budi.avatarColor == .yellow)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
     func MemberJoinsLateWhileTheTripIsOnTheRoad(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let created = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)

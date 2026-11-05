@@ -161,4 +161,28 @@ struct TripServiceRoadTests {
         #expect(budi.displayName == "Budi Santoso")
         #expect(budi.carDescription == "Silver Brio")
     }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func ColorChangeShowsToEveryone(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroup()
+        let profile = ParticipantProfile(displayName: "Budi", carDescription: "White Brio", avatarColor: .purple)
+
+        try await phones.budi.UpdateProfile(profile, participantID: group.budiID, tripID: group.tripID)
+
+        let budi = try #require(try await phones.Budi(in: group))
+        #expect(budi.avatarColor == .purple)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func ProfileWithoutAColorKeepsTheCurrentColor(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroup()
+        let before = try #require(try await phones.Budi(in: group)).avatarColor
+        let profile = ParticipantProfile(displayName: "Budi Santoso", carDescription: "Silver Brio")
+
+        try await phones.budi.UpdateProfile(profile, participantID: group.budiID, tripID: group.tripID)
+
+        #expect(try #require(try await phones.Budi(in: group)).avatarColor == before)
+    }
 }
