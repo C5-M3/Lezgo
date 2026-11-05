@@ -187,7 +187,14 @@ extension TripMapView {
                 } else if viewModel.isConnectionLost {
                     ConnectionLostNotice()
                 }
-                if let alertBanner = viewModel.alertBanner {
+                if let notice = viewModel.noticeBanner {
+                    TripMapNoticeBanner(
+                        notice: notice,
+                        timeLeft: viewModel.guidance?.timeLeft,
+                        onClose: { viewModel.DismissNotice(notice) }
+                    )
+                    .transition(.opacity)
+                } else if let alertBanner = viewModel.alertBanner {
                     // A fade, not a slide: sliding in, the banner would pass behind the turn card.
                     TripMapAlertBanner(banner: alertBanner, onClose: viewModel.DismissAlertBanner)
                         .transition(.opacity)
@@ -199,6 +206,7 @@ extension TripMapView {
             .padding(.horizontal, 12)
             .padding(.top, verticalSizeClass == .compact ? 8 : 0)
             .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
+            .animation(reduceMotion ? nil : .default, value: viewModel.noticeBanner)
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: viewModel.arrivalProgress == nil)
         }
     }

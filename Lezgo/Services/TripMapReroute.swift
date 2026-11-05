@@ -40,6 +40,8 @@ final class TripMapReroute {
     /// `true` from 2 seconds off the route until the new route arrives or the leader is back on the route, so the
     /// leader sees the app is working on it instead of wondering why nothing happens.
     private(set) var isRerouting = false
+    /// `true` after a failed reroute, until one works or the leader is back on the route: "Couldn't update the route."
+    private(set) var hasFailed = false
 
     /// The route version the leader was last measured against.
     private var routeVersion: Int?
@@ -103,7 +105,9 @@ final class TripMapReroute {
             }
             let plan = TripPlan(waypoints: waypoints, polyline: path)
             try await tripService.SaveRoute(plan, tripID: tripID, by: myParticipantID)
+            hasFailed = false
         } catch {
+            hasFailed = true
             hasRequested = false
             retryAt = leader.lastSeenAt.addingTimeInterval(Self.retryInterval)
         }
@@ -120,6 +124,7 @@ final class TripMapReroute {
         guard IsOffRoute(leaderCoordinate, in: state) else {
             offRouteSince = nil
             retryAt = nil
+            hasFailed = false
             return nil
         }
         let since = offRouteSince ?? date
@@ -139,6 +144,7 @@ final class TripMapReroute {
         hasRequested = false
         retryAt = nil
         isRerouting = false
+        hasFailed = false
     }
 
     private func IsOffRoute(_ coordinate: Coordinate, in state: TripState) -> Bool {

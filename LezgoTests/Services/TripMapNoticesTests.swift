@@ -120,11 +120,11 @@ struct TripMapNoticesTests {
 
     @Test(arguments: [
         (seconds: 120.0, notice: TripMapNotice?.none),
-        (121, .leaderOffline(name: "Agus", canPickNewLeader: false)),
-        (299, .leaderOffline(name: "Agus", canPickNewLeader: false)),
-        (300, .leaderOffline(name: "Agus", canPickNewLeader: true))
+        (121, .leaderOffline(name: "Agus")),
+        (300, .leaderOffline(name: "Agus")),
+        (3_600, .leaderOffline(name: "Agus"))
     ])
-    func AnOfflineLeaderIsShownAndCanBeReplacedAfterFiveMinutes(seconds: Double, notice: TripMapNotice?) {
+    func AnOfflineLeaderIsShownAfterTwoMinutes(seconds: Double, notice: TripMapNotice?) {
         #expect(Notice(after: [State(leaderSecondsAgo: seconds)]) == notice)
     }
 
@@ -138,20 +138,19 @@ struct TripMapNoticesTests {
         #expect(Notice(after: [State(leaderSecondsAgo: 300)], me: Fixtures.agusID) == nil)
     }
 
-    @Test func ClosedOfflineBannerComesBackWhenPickingBecomesPossible() throws {
+    @Test func AClosedOfflineBannerStaysHiddenUntilTheLeaderHasBeenBack() throws {
         var notices = TripMapNotices()
-        let early = State(leaderSecondsAgo: 180)
-        let late = State(leaderSecondsAgo: 300)
+        let offline = State(leaderSecondsAgo: 180)
         let me = Fixtures.budiID
-        notices.Update(early)
-        notices.Close(try #require(notices.Notice(in: early, me: me, rerouteFailed: false, at: Fixtures.now)))
-        #expect(notices.Notice(in: early, me: me, rerouteFailed: false, at: Fixtures.now) == nil)
+        notices.Update(offline)
+        notices.Close(try #require(notices.Notice(in: offline, me: me, rerouteFailed: false, at: Fixtures.now)))
+        #expect(notices.Notice(in: offline, me: me, rerouteFailed: false, at: Fixtures.now) == nil)
 
-        notices.Update(late)
+        notices.Update(State(leaderSecondsAgo: 1))
+        notices.Update(offline)
 
         #expect(
-            notices.Notice(in: late, me: me, rerouteFailed: false, at: Fixtures.now)
-                == .leaderOffline(name: "Agus", canPickNewLeader: true)
+            notices.Notice(in: offline, me: me, rerouteFailed: false, at: Fixtures.now) == .leaderOffline(name: "Agus")
         )
     }
 
@@ -161,7 +160,7 @@ struct TripMapNoticesTests {
             State(leaderSecondsAgo: 180, routeVersion: 2, waypoints: ReroutedWaypoints())
         ])
 
-        #expect(notice == .leaderOffline(name: "Agus", canPickNewLeader: false))
+        #expect(notice == .leaderOffline(name: "Agus"))
     }
 
     // MARK: New leader
@@ -172,16 +171,13 @@ struct TripMapNoticesTests {
         #expect(notice == .newLeader(name: "Citra"))
     }
 
-    // MARK: Picking
+    @Test func TheNewLeaderIsToldToo() {
+        let notice = Notice(after: [State(), State(leaderID: Fixtures.budiID)], me: Fixtures.budiID)
 
-    @Test func OnlineMembersCanBePicked() {
-        var state = State(leaderSecondsAgo: 300)
-        state.participants.append(Fixtures.Car(id: UUID(), name: "Dewi", lastSeenSecondsAgo: 300))
-
-        let candidates = TripMapNotices.LeaderCandidates(in: state, at: Fixtures.now)
-
-        #expect(candidates.map(\.displayName) == ["Budi", "Citra"])
+        #expect(notice == .newLeader(name: "Budi"))
     }
+
+    // MARK: Taking over
 
     @Test(arguments: [
         (seconds: 299.0, includesCitra: false, expected: false),

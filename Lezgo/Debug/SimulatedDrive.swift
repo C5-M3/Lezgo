@@ -18,6 +18,7 @@ struct SimulatedDrive {
     /// About 40 km/h.
     static let metresPerSecond = 11.0
     private static let budiStopSecond = 8
+    private static let routeChangeSecond = 6
 
     let tripService: any TripService
     /// How far into the drive to start, in seconds; a large value starts with the cars at the destination.
@@ -27,13 +28,27 @@ struct SimulatedDrive {
     var budiLeavesRoute = false
     /// Budi stops on the road after 8 seconds and stays there, to show the "has stopped" banner.
     var budiStops = false
+    /// Agus's phone last sent a position 6 minutes ago.
+    var agusIsOffline = false
+    /// After 6 seconds Agus gets a new route, with the same stops or another destination, or Budi becomes the leader.
+    var agusChangesRoute: RouteChange?
+
+    /// How the simulated leader changes the route.
+    enum RouteChange {
+        case sameStops, newDestination, budiLeads
+    }
 
     /// Moves the cars until the task is cancelled.
     func Run() async {
         var second = startSecond
         while Task.isCancelled == false {
             let agusDistance = 400 + Double(second) * Self.metresPerSecond
-            await Move(SampleTrip.agusID, metresAlongRoute: agusDistance)
+            await Move(
+                SampleTrip.agusID,
+                metresAlongRoute: agusDistance,
+                recordedAt: agusIsOffline ? .now.addingTimeInterval(-360) : .now
+            )
+            if second - startSecond == Self.routeChangeSecond { await ChangeRoute() }
             let hasBudiStopped = budiStops && second - startSecond >= Self.budiStopSecond
             let budiSecond = hasBudiStopped ? startSecond + Self.budiStopSecond : second
             await Move(
@@ -53,12 +68,27 @@ struct SimulatedDrive {
         }
     }
 
+    private func ChangeRoute() async {
+        guard let agusChangesRoute else { return }
+        if agusChangesRoute == .budiLeads {
+            try? await tripService.SetLeader(SampleTrip.budiID, tripID: SampleTrip.tripID, replacing: SampleTrip.agusID)
+            return
+        }
+        var waypoints = SampleTrip.plan.waypoints
+        if agusChangesRoute == .newDestination, let last = waypoints.indices.last {
+            waypoints[last].name = "Pakuwon city mall"
+        }
+        let plan = TripPlan(waypoints: waypoints, polyline: SampleTrip.plan.polyline)
+        try? await tripService.SaveRoute(plan, tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+    }
+
     /// Moves a car to `distance` metres along the route, and `sideways` metres to the left of it.
     private func Move(
         _ participantID: UUID,
         metresAlongRoute distance: Double,
         isStopped: Bool = false,
-        sideways: Double = 0
+        sideways: Double = 0,
+        recordedAt: Date = .now
     ) async {
         let reachedTheEnd = distance >= Self.DistanceAlongRoute(toPointAt: SampleTrip.plan.polyline.count - 1)
         let hasArrived = reachedTheEnd || isStopped
@@ -67,7 +97,7 @@ struct SimulatedDrive {
             coordinate: coordinate,
             speedKmh: hasArrived ? 0 : Self.metresPerSecond * 3.6,
             motionState: hasArrived ? .stopped : .driving,
-            recordedAt: .now
+            recordedAt: recordedAt
         )
         try? await tripService.UpdateLocation(update, participantID: participantID, tripID: SampleTrip.tripID)
     }

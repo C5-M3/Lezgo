@@ -48,6 +48,10 @@ import SwiftUI
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapLeaderSeesStoppedCar` | Trip Started map on the leader's phone after Budi stops on the road | N |
+/// | `tripMapMemberLeaderOffline` | Trip Started map on Budi's phone with Agus offline for 6 minutes | N |
+/// | `tripMapMemberNewRoute` | Trip Started map on Budi's phone when Agus gets a new route with the same stops | N |
+/// | `tripMapMemberRouteUpdated` | Trip Started map on Budi's phone when Agus changes the destination | N |
+/// | `tripMapMemberNewLeader` | Trip Started map on Citra's phone when Budi becomes the leader | N |
 /// | `tripMapArrivals` | The arrival robots and count with cars arriving one by one | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
@@ -77,6 +81,10 @@ enum DebugScreen: String, CaseIterable {
     case tripMapArrivedLeader
     case tripMapArrivals
     case tripMapLeaderSeesStoppedCar
+    case tripMapMemberLeaderOffline
+    case tripMapMemberNewRoute
+    case tripMapMemberRouteUpdated
+    case tripMapMemberNewLeader
     case syncCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
@@ -104,8 +112,15 @@ enum DebugScreen: String, CaseIterable {
             MakeTripRoomScreen()
         case .tripMapLeader:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
-        case .tripMapMember:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
+        case .tripMapMember, .tripMapMemberLeaderOffline, .tripMapMemberNewRoute, .tripMapMemberRouteUpdated,
+            .tripMapMemberNewLeader:
+            SimulatedTripMapScreen(
+                myParticipantID: self == .tripMapMemberNewLeader ? SampleTrip.citraID : SampleTrip.budiID,
+                agusIsOffline: self == .tripMapMemberLeaderOffline,
+                agusChangesRoute: self == .tripMapMemberNewRoute ? .sameStops
+                    : self == .tripMapMemberRouteUpdated ? .newDestination
+                    : self == .tripMapMemberNewLeader ? .budiLeads : nil
+            )
         case .tripMapMemberOffRoute, .tripMapLeaderSeesMemberOffRoute, .tripMapLeaderSeesStoppedCar:
             SimulatedTripMapScreen(
                 myParticipantID: self == .tripMapMemberOffRoute ? SampleTrip.budiID : SampleTrip.agusID,

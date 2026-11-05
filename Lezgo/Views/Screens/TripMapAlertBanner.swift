@@ -7,40 +7,19 @@
 
 import SwiftUI
 
-/// The silent alert under the turn card: a yellow pill for the way the group is driving, a red one for a car that has
-/// stopped. Dark text and an icon, so it reads at a glance in sunlight and without colour. No sound and no vibration
+/// The silent alert under the turn card, red for a car that has stopped. No sound and no vibration
 /// (`specs/UserStories.md` → US-06). A tap hides it until the alert happens again.
 struct TripMapAlertBanner: View {
     let banner: TripMapAlerts.Banner
     let onClose: () -> Void
 
     var body: some View {
-        Button(action: onClose) {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .accessibilityHidden(true)
-                Text(Message())
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .font(.subheadline.bold())
-            .foregroundStyle(Color(.tripCard))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(Background(), in: .rect(cornerRadius: 22))
-            .contentShape(.rect(cornerRadius: 22))
-        }
-        .buttonStyle(.plain)
-        // Any bigger, the banner and the turn card no longer fit above the map with the bottom card. VoiceOver still
-        // reads the whole message.
-        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-        .accessibilityHint(Text(.tripMapCloseAlert))
+        TripMapPill(message: Text(Message()), isUrgent: IsStopped(), onTap: onClose)
     }
 
-    private func Background() -> Color {
-        if case .carStopped = banner { return Color(.tripAlertRed) }
-        return Color(.brandYellow)
+    private func IsStopped() -> Bool {
+        if case .carStopped = banner { return true }
+        return false
     }
 
     private func Message() -> LocalizedStringResource {

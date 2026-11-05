@@ -525,21 +525,21 @@ Feature: Manage the group and start
 - Each new route has `routeVersion + 1`; members switch within 2 seconds and never go back to an older version.
 - **Rerouting notice** (like Apple Maps and Google Maps), visual only. Lo-fi: `B6 Rerouting (leader)`.
   - From 2 seconds off the road until the new route arrives, the turn card shows "Rerouting…" in its place: "Finding a new route for everyone" on the leader's phone, "Finding the way back to your group" on a member's phone looking for a way back. It replaces the turn card, so nothing is added on top of the map.
-  - Not built yet, to keep the map clear: when the new route arrives, every phone shows a banner under the turn card for 5 seconds, then it hides on its own:
-    - Leader left the route: "New route · Following Agus" with the new time ("52 min").
-    - Leader edited the route: "Route updated by Agus" with the new destination or checkpoint and the new time.
+  - When the new route arrives, every phone shows a yellow banner under the turn card for 5 seconds, then it hides on its own:
+    - The same stops: "New route · Following Agus · 52 min" ("New route · 52 min" on the leader's phone).
+    - Changed stops: "Route updated by Agus · 58 min" ("Route updated · 58 min" on the leader's phone). The bottom card shows the new destination.
   - The map animates to the new route line and the old line disappears; guidance continues without any tap.
   - A formation alert (off route, passed checkpoint, ahead of leader) has priority and stays on top; the rerouting notice waits until it is gone.
   - Several reroutes in a row show only the latest one.
-- No network → the old route stays, the leader sees "Couldn't update the route. Trying again." and the app retries every 30 s.
+- No network → the old route stays, the leader sees a red banner "Couldn't update the route. Trying again." and the app retries. It hides once a new route is saved or the leader is back on the route.
 
-**Leader offline** — banner **needs lo-fi**
+**Leader offline**
 - Covers a leader who disappears without leaving (dead phone, no signal, app deleted). A leader who leaves on purpose ends the trip (US-07).
-- Offline 2 min → everyone sees "Agus is offline"; navigation continues on the current route; checkpoint progress and "ahead of leader" pause. If the leader returns within 5 min, nothing else changes.
-- Offline 5 min → every member can open "Pick Your New Leader" (same picker as US-05). It never blocks the map. The first confirmed choice wins (conditional save); everyone sees "Budi is now the leader".
-- Only one member left → that member becomes leader automatically.
-- An old leader who returns after a new leader was picked becomes a member.
-- Why: the group keeps moving on the last known state, waits briefly in case the leader returns, then chooses a successor itself; the server decides when two people pick at once.
+- Offline 2 min → everyone sees a red banner "Agus is offline"; navigation continues on the current route; checkpoint progress and "ahead of leader" pause. If the leader returns within 5 min, nothing else changes.
+- Nobody picks a new leader on the road: the driver must not be distracted. The trip goes on without a leader, on the current route.
+- Offline 5 min with only one member left → that member becomes leader automatically; everyone sees "Budi is now the leader".
+- An old leader who returns after someone took over becomes a member.
+- Why: the group keeps moving on the last known state, and a choice like this does not belong on the road.
 
 ### Acceptance criteria
 
@@ -616,8 +616,13 @@ Feature: Drive together
 
   Scenario: Leader stays offline
     When "Agus" sends no location for 5 minutes
-    And "Budi" picks "Citra" in "Pick Your New Leader" and confirms
-    Then "Citra" is the leader on every phone within 2 seconds
+    Then "Budi" and "Citra" still see "Agus is offline" and keep navigating
+    And nobody is asked to pick a new leader
+
+  Scenario: Leader offline with one member left
+    Given only "Budi" is left with "Agus"
+    When "Agus" sends no location for 5 minutes
+    Then "Budi" becomes the leader without being asked
     And when "Agus" comes back he is a member
 ```
 

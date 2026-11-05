@@ -192,6 +192,21 @@ extension TripMapViewModel {
         return alerts.Banner(in: state, at: updatedAt)
     }
 
+    /// The notice under the turn card. A formation alert stays on top, so the notice waits until it has gone; a car
+    /// that has stopped matters less than a notice.
+    var noticeBanner: TripMapNotice? {
+        guard let state, let updatedAt else { return nil }
+        if let alertBanner {
+            guard case .carStopped = alertBanner else { return nil }
+        }
+        return notices.Notice(
+            in: state,
+            me: myParticipantID,
+            rerouteFailed: reroute?.hasFailed ?? false,
+            at: updatedAt
+        )
+    }
+
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
     var arrivalCard: ArrivalCard? {
         guard let state, let updatedAt else { return nil }

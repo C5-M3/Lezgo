@@ -41,6 +41,8 @@ final class TripMapViewModel {
     private(set) var carLookups: [UUID: CarLookup] = [:]
     /// This phone's formation alert and the banners closed with a tap.
     private(set) var alerts: TripMapAlerts
+    /// The banners about the route and the leader.
+    var notices = TripMapNotices()
     /// The cars at the destination, in the order this phone saw them arrive.
     private(set) var arrivalOrder = TripMapArrivalOrder()
     /// When this phone, as leader, moves the trip past a checkpoint.
@@ -55,8 +57,8 @@ final class TripMapViewModel {
 
     /// The participant who uses this phone.
     let myParticipantID: UUID
-    private let tripID: UUID
-    private let tripService: any TripService
+    let tripID: UUID
+    let tripService: any TripService
     private let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
@@ -354,6 +356,8 @@ extension TripMapViewModel {
             state = WithMyGPS(newState)
             updatedAt = clock()
             NoteArrivals()
+            notices.Update(newState)
+            await TakeOverIfOnlyMemberLeft()
             NoticeTripClosed(newState)
             CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }

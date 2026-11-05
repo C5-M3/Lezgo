@@ -954,6 +954,90 @@
         }
       }
     },
+    "tripMapNoticeLeaderOffline" : {
+      "comment" : "Banner when the leader has sent no location for 2 minutes (US-06). The placeholder is the leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is offline"
+          }
+        }
+      }
+    },
+    "tripMapNoticeNewLeader" : {
+      "comment" : "Banner after the leader changed (US-06). The placeholder is the new leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is now the leader"
+          }
+        }
+      }
+    },
+    "tripMapNoticeNewRoute" : {
+      "comment" : "Banner on the leader's own phone after a reroute (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New route"
+          }
+        }
+      }
+    },
+    "tripMapNoticeNewRouteFollowing" : {
+      "comment" : "Banner on members' phones after the leader left the route (US-06). The placeholder is the leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New route \u00b7 Following %@"
+          }
+        }
+      }
+    },
+    "tripMapNoticeRerouteFailed" : {
+      "comment" : "Banner on the leader's phone when a new route could not be saved (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't update the route. Trying again."
+          }
+        }
+      }
+    },
+    "tripMapNoticeRouteUpdated" : {
+      "comment" : "Banner on the leader's own phone after changing the stops (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route updated"
+          }
+        }
+      }
+    },
+    "tripMapNoticeRouteUpdatedBy" : {
+      "comment" : "Banner after the leader changed the stops (US-06). The placeholder is the leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route updated by %@"
+          }
+        }
+      }
+    },
     "tripMapOK" : {
       "comment" : "Button that closes a message on the trip map.",
       "extractionState" : "manual",
