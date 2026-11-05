@@ -68,8 +68,11 @@ final class TripRoomExitUITests: XCTestCase {
         let button = app.buttons[title]
         // The first launch on a cold simulator can take longer than the room usually needs to load.
         XCTAssertTrue(button.waitForExistence(timeout: 10))
-        // The button sits under the participants, below the fold on small screens and at large text sizes.
-        for _ in 0..<6 where !button.isHittable {
+        // The button sits under the participants, below the fold with five cars, on small screens and at large
+        // text sizes. It must also clear the bottom bar ("Start Trip" or "Waiting for others ..."), which sits on top.
+        let bottomBar = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label IN %@", ["Start Trip", "Waiting for others ..."])).firstMatch
+        for _ in 0..<6 where !button.isHittable || button.frame.maxY > bottomBar.frame.minY {
             app.swipeUp()
         }
         button.tap()
