@@ -25,7 +25,7 @@ struct TripRoomViewModelTests {
         #expect(viewModel.waypoints.count == 3)
         #expect(viewModel.waypoints.first?.kind == .start)
         #expect(viewModel.waypoints.last?.kind == .destination)
-        #expect(viewModel.participants.count == 3)
+        #expect(viewModel.participants.count == 5)
         #expect(viewModel.isCurrentUserLeader == true)
         #expect(viewModel.tripStatus == .lobby)
     }
