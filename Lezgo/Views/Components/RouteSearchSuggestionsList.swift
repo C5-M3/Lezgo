@@ -60,7 +60,7 @@ struct RouteSearchSuggestionsList: View {
                     .overlay(
                         Image(systemName: "location.fill")
                             .font(.system(size: 16))
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(Color.heroYellow)
                             .accessibilityHidden(true)
                     )
 

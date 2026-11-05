@@ -40,11 +40,11 @@ struct RouteMetricsBottomCard: View {
             if isLoadingRoute {
                 Text("Calculating…")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
             } else {
                 Text(FormattedDuration(duration))
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
             }
 
             Spacer()
@@ -74,7 +74,7 @@ struct RouteMetricsBottomCard: View {
             .frame(height: 52)
             .background(
                 Capsule()
-                    .fill(Color.yellow)
+                    .fill(Color.heroYellow)
             )
         }
         .disabled(!canSave || isSaving)

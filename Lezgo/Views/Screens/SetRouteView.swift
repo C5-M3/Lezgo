@@ -271,7 +271,7 @@ private extension SetRouteView {
                     ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
                         if routeIndex != leg.selectedRouteIndex {
                             MapPolyline(route.polyline)
-                                .stroke(Color.yellow.opacity(0.88), lineWidth: 5)
+                                .stroke(Color.heroYellow.opacity(0.88), lineWidth: 5)
                         }
                     }
                 }
