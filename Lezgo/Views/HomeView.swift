@@ -172,14 +172,14 @@ private extension HomeView {
             ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
                 if routeIndex != leg.selectedRouteIndex {
                     MapPolyline(route.polyline)
-                        .stroke(Color.heroYellow.opacity(0.88), lineWidth: 5)
+                        .stroke(Color.heroYellow.opacity(0.38), lineWidth: 5)
                 }
             }
         }
 
         ForEach(mapViewModel.selectedPolylines, id: \.self) { polyline in
             MapPolyline(polyline)
-                .stroke(.tint, lineWidth: 6)
+                .stroke(Color.heroYellow, lineWidth: 6)
         }
     }
 

@@ -36,11 +36,13 @@ struct RoutePlanCard: View {
 
             destinationRow
 
-            Divider()
-                .overlay(Color(white: 0.22))
-                .padding(.vertical, 12)
+            if canAddDestination {
+                Divider()
+                    .overlay(Color(white: 0.22))
+                    .padding(.vertical, 12)
 
-            addDestinationRow
+                addDestinationRow
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
@@ -61,6 +63,10 @@ struct RoutePlanCard: View {
 // MARK: - Internal Helpers
 
 extension RoutePlanCard {
+    var canAddDestination: Bool {
+        !destinations.isEmpty && activeSelection == nil
+    }
+
     var isAddingNewDestination: Bool {
         guard let activeSelection = activeSelection else { return false }
         if case .destination(let index) = activeSelection {
@@ -121,12 +127,6 @@ private extension RoutePlanCard {
                             .foregroundStyle(.white)
                             .lineLimit(1)
                         Spacer()
-                        if !isStartPointLocked {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Color(white: 0.35))
-                                .accessibilityHidden(true)
-                        }
                     }
                     .frame(minHeight: 28)
                     .contentShape(Rectangle())
@@ -141,38 +141,14 @@ private extension RoutePlanCard {
     var intermediateStopsSection: some View {
         let count = intermediateStops.count
 
-        Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                isStopsExpanded.toggle()
-            }
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
-
-                Text(count == 1 ? "1 stop" : "\(count) stops")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.heroYellow)
-
-                Spacer()
-
-                Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.heroYellow)
-                    .accessibilityHidden(true)
-            }
-            .frame(minHeight: 28)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-
-        if isStopsExpanded {
-            ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
-                connectingLine
-
+        if count == 1, let singleStop = intermediateStops.first {
+            stopRow(index: 0, stop: singleStop)
+        } else if count > 1 {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    isStopsExpanded.toggle()
+                }
+            } label: {
                 HStack(spacing: 12) {
                     Image(systemName: "mappin.circle.fill")
                         .font(.system(size: 16))
@@ -180,34 +156,81 @@ private extension RoutePlanCard {
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
 
-                    if activeSelection == .destination(index: index) {
-                        searchTextField(placeholder: "Search stop")
-                    } else {
-                        Button {
-                            onSelectPointForEditing(.destination(index: index))
-                        } label: {
-                            HStack {
-                                Text(stop.name)
-                                    .font(.system(size: 15))
-                                    .foregroundStyle(.white)
-                                    .lineLimit(1)
-                                Spacer()
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(Color(white: 0.35))
-                                    .accessibilityHidden(true)
-                            }
-                            .frame(minHeight: 28)
-                            .contentShape(Rectangle())
+                    Text("\(count) stops")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Color.heroYellow)
+
+                    Spacer()
+
+                    Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.heroYellow)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: 28)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isStopsExpanded {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
+                            connectingLine
+                            stopRow(index: index, stop: stop)
                         }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                onRemoveDestination(index)
-                            } label: {
-                                Label("Delete Stop", systemImage: "trash")
-                            }
-                        }
+                    }
+                }
+                .frame(maxHeight: 180)
+            }
+        }
+    }
+
+    func stopRow(index: Int, stop: RoutePoint) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "mappin.circle.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(Color.heroYellow)
+                .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
+
+            if activeSelection == .destination(index: index) {
+                searchTextField(placeholder: "Search stop")
+            } else {
+                Button {
+                    onSelectPointForEditing(.destination(index: index))
+                } label: {
+                    HStack {
+                        Text(stop.name)
+                            .font(.system(size: 15))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                        Spacer()
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.35))
+                            .accessibilityHidden(true)
+                    }
+                    .frame(minHeight: 28)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .swipeToDelete {
+                    onRemoveDestination(index)
+                }
+                .modifier(
+                    StopDragDropModifier(
+                        stop: stop,
+                        index: index,
+                        destinations: destinations,
+                        onMoveDestination: onMoveDestination
+                    )
+                )
+                .contextMenu {
+                    Button(role: .destructive) {
+                        onRemoveDestination(index)
+                    } label: {
+                        Label("Delete Stop", systemImage: "trash")
                     }
                 }
             }
@@ -250,6 +273,19 @@ private extension RoutePlanCard {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .swipeToDelete {
+                    if let lastIndex = lastIndex {
+                        onRemoveDestination(lastIndex)
+                    }
+                }
+                .modifier(
+                    DestinationDragDropModifier(
+                        lastPoint: destinations.last,
+                        lastIndex: lastIndex,
+                        destinations: destinations,
+                        onMoveDestination: onMoveDestination
+                    )
+                )
                 .contextMenu {
                     if let lastIndex = lastIndex {
                         Button(role: .destructive) {

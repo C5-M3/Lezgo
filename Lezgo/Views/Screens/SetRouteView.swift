@@ -59,6 +59,10 @@ struct SetRouteView: View {
                 Color.black.opacity(0.88)
                     .ignoresSafeArea()
                     .transition(.opacity)
+            } else {
+                mapVignetteOverlay
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
             }
 
             VStack(spacing: 12) {
@@ -241,11 +245,42 @@ private extension SetRouteView {
 // MARK: - Map
 
 private extension SetRouteView {
+    var mapVignetteOverlay: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.85),
+                    Color.black.opacity(0.4),
+                    Color.clear
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 200)
+
+            Spacer()
+
+            LinearGradient(
+                colors: [
+                    Color.clear,
+                    Color.black.opacity(0.45),
+                    Color.black.opacity(0.9)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 240)
+        }
+    }
+
     @ViewBuilder
     var mapSection: some View {
         @Bindable var boundViewModel = viewModel
         MapReader { proxy in
-            Map(position: $boundViewModel.cameraPosition) {
+            Map(
+                position: $boundViewModel.cameraPosition,
+                interactionModes: [.pan, .zoom]
+            ) {
                 UserAnnotation()
 
                 if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
@@ -271,14 +306,14 @@ private extension SetRouteView {
                     ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
                         if routeIndex != leg.selectedRouteIndex {
                             MapPolyline(route.polyline)
-                                .stroke(Color.heroYellow.opacity(0.88), lineWidth: 5)
+                                .stroke(Color.heroYellow.opacity(0.38), lineWidth: 5)
                         }
                     }
                 }
 
                 ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
                     MapPolyline(polyline)
-                        .stroke(.tint, lineWidth: 6)
+                        .stroke(Color.heroYellow, lineWidth: 6)
                 }
             }
             .onTapGesture { screenPoint in
@@ -287,11 +322,8 @@ private extension SetRouteView {
                 }
             }
             .accessibilityAddTraits(.isButton)
-            .mapControls {
-                MapUserLocationButton()
-                MapCompass()
-                MapScaleView()
-            }
+            .mapControls { }
+            .safeAreaPadding(.bottom, (viewModel.hasRoute || viewModel.isLoadingRoute) ? 170 : 30)
         }
     }
 }
