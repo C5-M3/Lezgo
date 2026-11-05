@@ -73,7 +73,8 @@ extension TripMapSheet {
                 Summary(viewModel: viewModel, onNewDestination: onNewDestination)
                 if isExpanded {
                     VStack(spacing: 10) {
-                        if viewModel.canEditRoute {
+                        // After arriving the choices are New Destination and leaving (US-07, "Arrive").
+                        if viewModel.canEditRoute, viewModel.arrivalCard == nil {
                             Button(action: viewModel.RequestEditRoute) {
                                 Label(.tripMapEditRoute, systemImage: "pencil")
                             }

@@ -666,6 +666,18 @@
         }
       }
     },
+    "tripMapArrivedCount" : {
+      "comment" : "VoiceOver label of the top card once this phone's car has arrived, for example \"2 of 4 cars have arrived\". The card shows it as robots and \"2/4\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld cars have arrived"
+          }
+        }
+      }
+    },
     "tripMapCollapseCard" : {
       "comment" : "VoiceOver label of the grabber on the trip map's bottom card while it is open.",
       "extractionState" : "manual",

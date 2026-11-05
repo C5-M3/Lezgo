@@ -167,12 +167,16 @@ extension TripMapView {
 
         var body: some View {
             VStack(alignment: .trailing) {
-                // After arriving there is no next turn; the card says what to do instead. While a new route is on its
+                // After arriving there is no next turn, so the card counts who is there. While a new route is on its
                 // way, the card says so instead of showing a turn that no longer fits.
-                if viewModel.arrivalCard == nil, viewModel.isRerouting {
+                if let arrivalProgress = viewModel.arrivalProgress {
+                    TripMapArrivalTopCard(progress: arrivalProgress)
+                        .transition(.opacity)
+                } else if viewModel.isRerouting {
                     TripMapTurnCard.Rerouting(isLeader: viewModel.isLeader)
-                } else if viewModel.arrivalCard == nil, let guidance = viewModel.guidance {
+                } else if let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
+                        .transition(.opacity)
                 }
                 if viewModel.isLocationImprecise {
                     PreciseLocationNotice()
@@ -191,6 +195,7 @@ extension TripMapView {
             .padding(.horizontal, 12)
             .padding(.top, verticalSizeClass == .compact ? 8 : 0)
             .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: viewModel.arrivalProgress == nil)
         }
     }
 

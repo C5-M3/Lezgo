@@ -47,6 +47,7 @@ import SwiftUI
 /// | `tripRoomLeaderOffline` | Trip Room lobby on the leader's phone where every save fails with no network | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
+/// | `tripMapArrivals` | The arrival robots and count with cars arriving one by one | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
 ///
@@ -73,6 +74,7 @@ enum DebugScreen: String, CaseIterable {
     case tripMapMemberOffRoute
     case tripMapLeaderSeesMemberOffRoute
     case tripMapArrivedLeader
+    case tripMapArrivals
     case syncCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
@@ -102,10 +104,13 @@ enum DebugScreen: String, CaseIterable {
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
         case .tripMapMember:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
-        case .tripMapMemberOffRoute:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID, budiLeavesRoute: true)
-        case .tripMapLeaderSeesMemberOffRoute:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, budiLeavesRoute: true)
+        case .tripMapMemberOffRoute, .tripMapLeaderSeesMemberOffRoute:
+            SimulatedTripMapScreen(
+                myParticipantID: self == .tripMapMemberOffRoute ? SampleTrip.budiID : SampleTrip.agusID,
+                budiLeavesRoute: true
+            )
+        case .tripMapArrivals:
+            SimulatedArrivalsScreen(totalCount: 7)
         case .tripMapArrivedLeader:
             SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, startSecond: 2_000)
         case .syncCheck:
