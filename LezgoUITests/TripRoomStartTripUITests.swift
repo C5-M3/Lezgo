@@ -19,7 +19,8 @@ final class TripRoomStartTripUITests: XCTestCase {
         app.launch()
     }
 
-    /// After the leader confirms the start, the lobby closes and the map opens with the leader's "End Trip".
+    /// After the leader taps LEZGO, the map opens over the lobby. The map's "Show whole route" is checked, not its
+    /// "End Trip": that one is hidden while the map's sheet is collapsed.
     @MainActor
     func testStartTripOpensTheMap() throws {
         let startTrip = app.buttons["Start Trip"]
@@ -27,12 +28,15 @@ final class TripRoomStartTripUITests: XCTestCase {
         Attach(named: "Lobby before the start")
 
         startTrip.tap()
+        // The LEZGO logo button; VoiceOver and this test know it as "Start". Citra is offline in the sample trip,
+        // so the dialog shows the not-ready warning.
         let start = app.alerts.buttons["Start"]
         XCTAssertTrue(start.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.alerts.staticTexts[notReadyWarning].exists)
         Attach(named: "Start trip confirmation")
         start.tap()
 
-        XCTAssertTrue(app.buttons["End Trip"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Show whole route"].waitForExistence(timeout: 5))
         // The map covers the lobby, which stays in the tree below it, so its button can no longer be tapped.
         XCTAssertFalse(startTrip.isHittable)
         Attach(named: "Map after the start")
@@ -49,9 +53,11 @@ final class TripRoomStartTripUITests: XCTestCase {
         XCTAssertTrue(cancel.waitForExistence(timeout: 3))
         cancel.tap()
 
-        XCTAssertFalse(app.buttons["End Trip"].waitForExistence(timeout: 2))
-        XCTAssertTrue(startTrip.exists)
+        XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(startTrip.isHittable)
     }
+
+    private let notReadyWarning = "Some participants are not yet ready, are you sure you want to start the trip?"
 
     private func Attach(named name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())

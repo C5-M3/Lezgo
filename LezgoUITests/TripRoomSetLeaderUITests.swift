@@ -7,8 +7,8 @@
 
 import XCTest
 
-/// Handing over the lead in the Trip Room (US-05). These run as UI tests because swipe actions and the picker
-/// sheet are SwiftUI behavior that a view model test cannot see.
+/// "Set Lead" in Edit Profile (US-05, "Hand over the lead"). These run as UI tests because the sheet closing and an
+/// error alert inside it are SwiftUI behavior that a view model test cannot see.
 final class TripRoomSetLeaderUITests: XCTestCase {
     private var app = XCUIApplication()
 
@@ -19,79 +19,53 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         app.launch()
     }
 
-    /// "Agus swipes Budi right, taps Set Lead and confirms": Agus becomes a member who waits for the others.
+    /// "Agus taps Budi, taps Set Lead and confirms": Agus becomes a member who waits for the others.
     @MainActor
-    func testSetLeadSwipeHandsOverTheLeadAfterConfirming() throws {
-        let budi = Row(named: "Budi")
-        XCTAssertTrue(budi.waitForExistence(timeout: 5))
-
-        budi.swipeRight()
+    func testSetLeadHandsOverTheLeadAfterConfirming() throws {
+        Avatar(named: "Budi").tap()
         let setLead = app.buttons["Set Lead"]
         XCTAssertTrue(setLead.waitForExistence(timeout: 3))
-        setLead.tap()
 
+        setLead.tap()
         XCTAssertTrue(app.alerts["Set Budi as Trip Leader?"].waitForExistence(timeout: 3))
         Attach(named: "Set Lead alert on Budi")
         app.alerts.buttons["Confirm"].tap()
 
         XCTAssertTrue(app.staticTexts["Waiting for others ..."].waitForExistence(timeout: 3))
-        XCTAssertFalse(app.buttons["Room options"].exists)
+        XCTAssertFalse(app.buttons["Start Trip"].exists)
         Attach(named: "Agus after handing over")
     }
 
-    /// On the leader's own row "Set Lead" shows but does nothing.
+    /// "Cancel" on the confirmation changes nothing and keeps Edit Profile open.
     @MainActor
-    func testSetLeadOnTheLeaderRowDoesNothing() throws {
-        let agus = Row(named: "Agus")
-        XCTAssertTrue(agus.waitForExistence(timeout: 5))
-
-        agus.swipeRight()
+    func testCancelKeepsTheLeader() throws {
+        Avatar(named: "Budi").tap()
         let setLead = app.buttons["Set Lead"]
         XCTAssertTrue(setLead.waitForExistence(timeout: 3))
-        Attach(named: "Set Lead on the leader row")
 
         setLead.tap()
+        app.alerts["Set Budi as Trip Leader?"].buttons["Cancel"].tap()
 
-        XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Room options"].exists)
+        XCTAssertTrue(setLead.waitForExistence(timeout: 2))
+        app.buttons["Back"].tap()
+        XCTAssertTrue(app.buttons["Start Trip"].waitForExistence(timeout: 2))
     }
 
-    /// "Cancel" on the picker changes nothing.
+    /// A failed handover keeps Edit Profile open and says why, so the leader does not think it worked.
     @MainActor
-    func testCancelOnThePickerKeepsTheLeader() throws {
-        let options = app.buttons["Room options"]
-        XCTAssertTrue(options.waitForExistence(timeout: 5))
-        options.tap()
-        app.buttons["Set leader"].tap()
-        XCTAssertTrue(app.navigationBars["Pick Your New Leader"].waitForExistence(timeout: 3))
-
-        app.navigationBars["Pick Your New Leader"].buttons["Cancel"].tap()
-
-        XCTAssertFalse(app.navigationBars["Pick Your New Leader"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Room options"].exists)
-    }
-
-    /// A failed handover from the picker must still show the error. The sheet closes on "Confirm", and an alert
-    /// presented while it is still closing is dropped, so the leader would think the handover worked.
-    @MainActor
-    func testFailedHandOverFromThePickerShowsTheError() throws {
+    func testFailedHandOverShowsTheError() throws {
         app.terminate()
         app.launchArguments = ["-DebugScreen", "tripRoomLeaderOffline"]
         app.launch()
-        let options = app.buttons["Room options"]
-        XCTAssertTrue(options.waitForExistence(timeout: 5))
-        options.tap()
-        app.buttons["Set leader"].tap()
-        // The picker row, not Budi's Trip Room row behind the sheet.
-        let budi = app.buttons["Budi, White Brio, Select"]
-        XCTAssertTrue(budi.waitForExistence(timeout: 3))
+        Avatar(named: "Budi").tap()
+        let setLead = app.buttons["Set Lead"]
+        XCTAssertTrue(setLead.waitForExistence(timeout: 3))
 
-        budi.tap()
-        XCTAssertTrue(app.alerts["Set Budi as Trip Leader?"].waitForExistence(timeout: 3))
-        app.alerts.buttons["Confirm"].tap()
+        setLead.tap()
+        app.alerts["Set Budi as Trip Leader?"].buttons["Confirm"].tap()
 
         XCTAssertTrue(app.alerts["Error"].waitForExistence(timeout: 5))
-        Attach(named: "Error after a failed handover from the picker")
+        Attach(named: "Error after a failed handover")
         let message = "No internet connection. Check your connection and try again."
         XCTAssertTrue(app.alerts["Error"].staticTexts[message].exists)
     }
@@ -103,14 +77,13 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         add(attachment)
     }
 
-    /// At the largest text sizes the participants sit below the route, and the list only builds rows on screen, so
-    /// this scrolls down until the row shows.
-    private func Row(named name: String) -> XCUIElement {
-        let row = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
-        _ = row.waitForExistence(timeout: 5)
-        for _ in 0..<6 where !row.isHittable {
+    /// A participant's avatar button, whose label starts with their name; scrolls until it shows at large text sizes.
+    private func Avatar(named name: String) -> XCUIElement {
+        let avatar = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
+        _ = avatar.waitForExistence(timeout: 5)
+        for _ in 0..<6 where avatar.exists && !avatar.isHittable {
             app.swipeUp()
         }
-        return row
+        return avatar
     }
 }
