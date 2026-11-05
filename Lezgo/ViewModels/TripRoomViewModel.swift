@@ -25,8 +25,6 @@ final class TripRoomViewModel {
     let tripID: UUID
     let myParticipantID: UUID
 
-    var isSelectionMode: Bool
-    var selectedParticipantIds: Set<UUID>
     var errorMessage: String?
     var wasRemovedFromTrip: Bool = false
     /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
@@ -51,6 +49,20 @@ final class TripRoomViewModel {
 
     var startPoint: Waypoint? {
         waypoints.first(where: { $0.kind == .start })
+    }
+
+    var destination: Waypoint? {
+        waypoints.first(where: { $0.kind == .destination })
+    }
+
+    /// "# OF STOPS" in the overview: the checkpoints only, without the start point and the destination.
+    var numberOfStops: Int {
+        waypoints.count(where: { $0.kind == .checkpoint })
+    }
+
+    /// The road the map preview draws; empty until the trip has loaded.
+    var routePolyline: [Coordinate] {
+        state?.route?.polyline ?? []
     }
 
     var participants: [Participant] {
@@ -83,40 +95,8 @@ final class TripRoomViewModel {
 
     var startTripConfirmationTitle: String {
         isEveryoneReady
-            ? "Start trip?"
+            ? "Start Trip?"
             : "Some participants are not yet ready, are you sure you want to start the trip?"
-    }
-
-    var areAllMembersSelected: Bool {
-        guard let state else { return false }
-        let memberIds = state.participants.filter { !$0.IsLeader(in: state.trip) }.map(\.id)
-        return !memberIds.isEmpty && selectedParticipantIds.count == memberIds.count
-    }
-
-    var canRemove: Bool { !selectedParticipantIds.isEmpty }
-
-    /// The leader can swipe every row to "Kick", their own too, where `CanKick` keeps it disabled (US-05).
-    var showsKickSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
-
-    /// The leader can swipe every row to "Set Lead", their own too, where `CanSetLeader` keeps it disabled (US-05).
-    var showsSetLeaderSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
-
-    var selectAllButtonTitle: String {
-        areAllMembersSelected ? "Deselect all" : "Select all"
-    }
-
-    var removeConfirmationTitle: String {
-        guard let state else { return "Remove participants from the trip?" }
-        let selected = state.participants.filter { selectedParticipantIds.contains($0.id) }
-        guard let first = selected.first else { return "Remove participants from the trip?" }
-        let remaining = selected.count - 1
-        if remaining == 0 {
-            return "Remove \(DisplayName(of: first)) from the trip?"
-        } else if remaining == 1 {
-            return "Remove \(DisplayName(of: first)) and 1 other from the trip?"
-        } else {
-            return "Remove \(DisplayName(of: first)) and \(remaining) others from the trip?"
-        }
     }
 
     var inviteURL: URL {
@@ -149,8 +129,6 @@ final class TripRoomViewModel {
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.state = initialState
-        self.isSelectionMode = false
-        self.selectedParticipantIds = []
         if let initialState, initialState.trip.status == .inTrip {
             let isLeader = initialState.trip.leaderParticipantID == myParticipantID
             let isStillInTrip = initialState.participants.contains(where: { $0.id == myParticipantID })
@@ -169,52 +147,21 @@ final class TripRoomViewModel {
         hasTripStarted = true
     }
 
-    func ToggleSelectionMode() {
-        guard isCurrentUserLeader else { return }
-        isSelectionMode.toggle()
-        if !isSelectionMode { selectedParticipantIds.removeAll() }
-    }
-
-    func ToggleParticipantSelection(id: UUID) {
-        guard let state,
-              let participant = state.participants.first(where: { $0.id == id }),
-              !participant.IsLeader(in: state.trip) else { return }
-        if selectedParticipantIds.contains(id) {
-            selectedParticipantIds.remove(id)
-        } else {
-            selectedParticipantIds.insert(id)
-        }
-    }
-
-    func SelectAll() {
-        guard let state else { return }
-        let memberIds = state.participants.filter { !$0.IsLeader(in: state.trip) }.map(\.id)
-        selectedParticipantIds = (selectedParticipantIds.count == memberIds.count) ? [] : Set(memberIds)
-    }
-
-    func RemoveSelectedParticipants() async throws {
-        guard isCurrentUserLeader, canRemove else { return }
-        let ids = Array(selectedParticipantIds)
-        try await tripService.RemoveParticipants(ids, tripID: tripID, by: myParticipantID)
-        selectedParticipantIds.removeAll()
-        isSelectionMode = false
-    }
-
     func RemoveParticipant(id: UUID) async throws {
         guard isCurrentUserLeader,
               let state,
               let target = state.participants.first(where: { $0.id == id }),
               !target.IsLeader(in: state.trip) else { return }
         try await tripService.RemoveParticipants([id], tripID: tripID, by: myParticipantID)
-        selectedParticipantIds.remove(id)
     }
 
     func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
         "Remove \(DisplayName(of: participant)) from the trip?"
     }
 
+    /// "Kick" in Edit Profile: only the leader, and never on their own profile (US-05).
     func CanKick(participant: Participant) -> Bool {
-        guard let state, isCurrentUserLeader, !isSelectionMode else { return false }
+        guard let state, isCurrentUserLeader else { return false }
         return !participant.IsLeader(in: state.trip)
     }
 
@@ -255,7 +202,7 @@ final class TripRoomViewModel {
     }
 
     func CanEdit(participant: Participant) -> Bool {
-        !isSelectionMode && (participant.id == myParticipantID || isCurrentUserLeader)
+        participant.id == myParticipantID || isCurrentUserLeader
     }
 
     /// A member leaves the trip; the leader cancels it for everyone. The trip is cleared from this phone only after
@@ -384,11 +331,6 @@ extension TripRoomViewModel {
                 && (isStillInTrip || isCurrentUserLeader)
                 && newState.trip.status == .inTrip {
                 hasTripStarted = true
-            }
-
-            if !isCurrentUserLeader && isSelectionMode {
-                isSelectionMode = false
-                selectedParticipantIds.removeAll()
             }
         }
     }

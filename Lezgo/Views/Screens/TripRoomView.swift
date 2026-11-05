@@ -21,13 +21,9 @@ struct TripRoomView: View {
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
     @State private var showingStartTripConfirmation = false
-    @State private var showingRemoveConfirmation = false
-    @State private var showingSetLeaderSheet = false
-    @State private var participantToKick: Participant?
-    @State private var participantToSetLeader: Participant?
-    @State private var pickedLeader: Participant?
     @State private var participantToEdit: Participant?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(
         tripID: UUID,
@@ -93,237 +89,183 @@ struct TripRoomView: View {
     }
 
     private func lobbyView(viewModel: TripRoomViewModel) -> some View {
-        ZStack {
-            Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
-            VStack(spacing: 0) {
-                TopBarView(
-                    viewModel: viewModel,
-                    isTransitioning: isTransitioning,
-                    onLeave: { showingLeaveConfirmation = true },
-                    onSetLeader: { showingSetLeaderSheet = true }
-                ).padding(.bottom, 8)
-
-                if viewModel.isLocationImprecise { PreciseLocationNotice().padding(.horizontal) }
-
-                List {
-                    RouteSectionView(waypoints: viewModel.waypoints)
-                    TripRoomParticipantsSection(
-                        viewModel: viewModel,
-                        isTransitioning: isTransitioning,
-                        onKick: { participantToKick = $0 },
-                        onSetLeader: { participantToSetLeader = $0 },
-                        onEdit: { participantToEdit = $0 },
-                        onInvite: { showingInviteSheet = true }
-                    )
-                }
-                .listStyle(.insetGrouped).scrollContentBackground(.hidden)
-                .disabled(isTransitioning)
-
-                BottomActionView(
-                    viewModel: viewModel,
-                    isTransitioning: isTransitioning,
-                    onStartTrip: { showingStartTripConfirmation = true },
-                    onRemove: { showingRemoveConfirmation = true }
-                ).padding(.horizontal, 16).padding(.vertical, 8)
+        TripRoomContent(
+            viewModel: viewModel,
+            isTransitioning: isTransitioning,
+            onEdit: { participantToEdit = $0 },
+            onInvite: { showingInviteSheet = true },
+            onLeave: { showingLeaveConfirmation = true }
+        )
+        .safeAreaInset(edge: .bottom) {
+            StartActionView(viewModel: viewModel, isTransitioning: isTransitioning) {
+                showingStartTripConfirmation = true
             }
-            .animation(.easeInOut(duration: 0.25), value: isTransitioning)
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(.black)
         }
+        .overlay {
+            if showingStartTripConfirmation {
+                StartTripDialog(
+                    title: viewModel.startTripConfirmationTitle,
+                    onCancel: { showingStartTripConfirmation = false },
+                    onStart: { StartTrip(viewModel) }
+                )
+            }
+        }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: isTransitioning)
         .navigationBarBackButtonHidden(true)
+        .toolbarVisibility(.hidden, for: .navigationBar)
         .modifier(TripRoomAlertsModifier(
             viewModel: viewModel,
             showingLeave: $showingLeaveConfirmation,
-            showingStart: $showingStartTripConfirmation,
-            showingRemove: $showingRemoveConfirmation,
-            participantToKick: $participantToKick,
-            participantToSetLeader: $participantToSetLeader,
             dismissAction: { dismiss() }
         ))
-        .tripRoomSheets(
-            viewModel: viewModel,
-            showingInvite: $showingInviteSheet,
-            showingSetLeader: $showingSetLeaderSheet,
-            pickedLeader: $pickedLeader,
-            participantToEdit: $participantToEdit
-        )
-    }
-}
-
-// MARK: - Sheets
-
-private extension View {
-    func tripRoomSheets(
-        viewModel: TripRoomViewModel,
-        showingInvite: Binding<Bool>,
-        showingSetLeader: Binding<Bool>,
-        pickedLeader: Binding<Participant?>,
-        participantToEdit: Binding<Participant?>
-    ) -> some View {
-        sheet(isPresented: showingInvite) {
+        .sheet(isPresented: $showingInviteSheet) {
             InviteSheetView(viewModel: viewModel)
         }
-        // The handover starts only once the picker has closed: an error alert presented while the sheet is still
-        // closing is dropped, and the leader would think the handover worked.
-        .sheet(isPresented: showingSetLeader) {
-            guard let candidate = pickedLeader.wrappedValue else { return }
-            pickedLeader.wrappedValue = nil
-            Task { await viewModel.HandOverLead(to: candidate) }
-        } content: {
-            SetLeaderSheetView(viewModel: viewModel) { pickedLeader.wrappedValue = $0 }
-        }
-        .sheet(item: participantToEdit) { participant in
+        .sheet(item: $participantToEdit) { participant in
             EditProfileSheetView(viewModel: viewModel, participant: participant)
+        }
+        // The hi-fi is dark only: BrandYellow text has no contrast on a light background (US-04, "Room").
+        .preferredColorScheme(.dark)
+    }
+
+    private func StartTrip(_ viewModel: TripRoomViewModel) {
+        showingStartTripConfirmation = false
+        Task {
+            do {
+                try await viewModel.StartTrip()
+            } catch {
+                viewModel.ShowError(error)
+            }
         }
     }
 }
 
 // MARK: - Subviews
 
-private struct TopBarView: View {
+/// Everything that scrolls: the map with the title, the overview, the participants and End Trip or Exit Trip.
+private struct TripRoomContent: View {
     let viewModel: TripRoomViewModel
     let isTransitioning: Bool
+    let onEdit: (Participant) -> Void
+    let onInvite: () -> Void
     let onLeave: () -> Void
-    let onSetLeader: () -> Void
 
     var body: some View {
-        HStack {
-            if !isTransitioning {
-                if viewModel.isSelectionMode {
-                    Button(viewModel.selectAllButtonTitle, action: viewModel.SelectAll)
-                        .font(.subheadline.weight(.medium)).foregroundStyle(.primary).padding(.horizontal, 16)
-                        .frame(height: 44).background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
-                        .buttonStyle(.plain)
-                } else {
-                    Button(action: onLeave) {
-                        Image(systemName: "iphone.and.arrow.forward.outward")
-                            .rotationEffect(.degrees(180)).circleBarButtonStyle()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                TripRoomHeader(viewModel: viewModel)
+                VStack(alignment: .leading, spacing: 28) {
+                    if viewModel.isLocationImprecise { PreciseLocationNotice() }
+                    TripRoomOverview(
+                        startName: viewModel.startPoint?.name,
+                        destinationName: viewModel.destination?.name,
+                        numberOfStops: viewModel.numberOfStops
+                    )
+                    TripRoomParticipantsSection(
+                        viewModel: viewModel,
+                        isTransitioning: isTransitioning,
+                        onEdit: onEdit,
+                        onInvite: onInvite
+                    )
+                    if !isTransitioning {
+                        LeaveButton(viewModel: viewModel, action: onLeave)
                     }
-                    .buttonStyle(.plain)
-                    .disabled(viewModel.isLeaving)
-                    .accessibilityLabel(Text(.tripRoomExit))
                 }
+                .padding(.horizontal)
             }
-            Spacer()
-            if !isTransitioning {
-                if viewModel.isSelectionMode {
-                    Button(action: viewModel.ToggleSelectionMode) {
-                        Image(systemName: "checkmark").circleBarButtonStyle()
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Done selecting")
-                } else if viewModel.isCurrentUserLeader {
-                    Menu {
-                        Button("Select", action: viewModel.ToggleSelectionMode)
-                        Button("Set leader", action: onSetLeader)
-                    } label: {
-                        Image(systemName: "ellipsis").circleBarButtonStyle()
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Room options")
-                }
-            }
-        }.padding(.horizontal, 16)
+            .padding(.bottom)
+        }
+        .ignoresSafeArea(edges: .top)
+        .background(.black)
     }
 }
 
-private extension View {
-    func circleBarButtonStyle() -> some View {
-        font(.system(size: 18, weight: .semibold)).foregroundStyle(.primary)
-            .frame(width: 44, height: 44).background(Color(uiColor: .secondarySystemGroupedBackground), in: Circle())
-            .accessibilityHidden(true)
-    }
-}
-
-private struct RouteSectionView: View {
-    let waypoints: [Waypoint]
+/// The map preview with "Lez Get Ready !" on its lower edge, fading into the black page like the hi-fi.
+private struct TripRoomHeader: View {
+    let viewModel: TripRoomViewModel
+    /// Fixed, not scaled with Dynamic Type: at large text sizes the map would push the overview off the screen.
+    private let mapHeight: CGFloat = 320
 
     var body: some View {
-        Section("Route Trip") {
-            ForEach(waypoints) { waypoint in
-                HStack(spacing: 12) {
-                    Image(systemName: waypoint.kind.iconName)
-                        .font(waypoint.kind == .checkpoint ? .system(size: 8) : .system(size: 16, weight: .semibold))
-                        .foregroundStyle(waypoint.kind == .checkpoint ? .secondary : .primary)
-                        .frame(width: 20, height: 20).accessibilityHidden(true)
-                    Text(waypoint.name).font(.body).lineLimit(2)
-                    Spacer()
-                }
-                .padding(.vertical, 4).accessibilityElement(children: .combine)
-                .accessibilityLabel("\(waypoint.kind.accessibilityPrefix): \(waypoint.name)")
-            }
+        TripRoomMapPreview(
+            start: viewModel.startPoint,
+            destination: viewModel.destination,
+            polyline: viewModel.routePolyline
+        )
+        .frame(height: mapHeight)
+        .overlay(alignment: .bottom) {
+            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                .frame(height: mapHeight / 2)
+                .allowsHitTesting(false)
+        }
+        .overlay(alignment: .bottomLeading) {
+            Text("Lez Get Ready !")
+                .font(.largeTitle.weight(.black))
+                .foregroundStyle(Color(.brandYellow))
+                .padding(.horizontal)
+                .accessibilityAddTraits(.isHeader)
         }
     }
 }
 
-private extension WaypointKind {
-    var iconName: String {
-        switch self {
-        case .start: return "house.fill"
-        case .checkpoint: return "circle.fill"
-        case .destination: return "mappin.and.ellipse"
-        }
-    }
+/// "End Trip" for the leader, "Exit Trip" for a member, under the participants (US-07, "Leave and end").
+private struct LeaveButton: View {
+    let viewModel: TripRoomViewModel
+    let action: () -> Void
 
-    var accessibilityPrefix: String {
-        switch self {
-        case .start: return "Starting point"
-        case .checkpoint: return "Checkpoint"
-        case .destination: return "Destination"
+    var body: some View {
+        Button(role: .destructive, action: action) {
+            Text(viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip")
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 44)
         }
+        .buttonStyle(.bordered)
+        .tint(.red)
+        .disabled(viewModel.isLeaving)
     }
 }
 
-private struct BottomActionView: View {
+/// "Start Trip" for the leader, "Waiting for others ..." for a member, and "Starting Trip..." once it starts.
+private struct StartActionView: View {
     let viewModel: TripRoomViewModel
     let isTransitioning: Bool
     let onStartTrip: () -> Void
-    let onRemove: () -> Void
 
     var body: some View {
         if isTransitioning {
             HStack(spacing: 12) {
                 ProgressView()
                 Text("Starting Trip...")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.vertical, 8)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
-        } else if viewModel.isSelectionMode {
-            HStack {
-                Spacer()
-                Button("Remove", action: onRemove)
-                    .font(.headline).foregroundStyle(viewModel.canRemove ? .primary : .secondary)
-                    .padding(.horizontal, 24).frame(height: 44).buttonStyle(.plain).disabled(!viewModel.canRemove)
-                    .background(
-                        Color(uiColor: .secondarySystemGroupedBackground).opacity(viewModel.canRemove ? 1 : 0.6),
-                        in: Capsule()
-                    )
-                    .accessibilityLabel("Remove selected participants")
-            }
-        } else {
-            VStack(spacing: 6) {
-                if viewModel.isCurrentUserLeader {
-                    Button("Start Trip", action: onStartTrip)
-                        .buttonStyle(.plain)
-                        .disabled(!viewModel.canStartTrip)
-                        .accessibilityLabel("Start Trip")
-
-                    if !viewModel.canStartTrip {
-                        Text("Invite at least one friend to start.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("Waiting for others ...")
-                        .font(.subheadline)
-                }
             }
             .font(.headline)
-            .foregroundStyle(viewModel.canStartTrip || !viewModel.isCurrentUserLeader ? .primary : .secondary)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.vertical, 8)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 14))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 56)
+        } else if viewModel.isCurrentUserLeader {
+            VStack(spacing: 6) {
+                Button(action: onStartTrip) {
+                    Text("Start Trip")
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity, minHeight: 56)
+                        .background(Color(.brandYellow).opacity(viewModel.canStartTrip ? 1 : 0.4), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!viewModel.canStartTrip)
+                if !viewModel.canStartTrip {
+                    Text("Invite at least one friend to start.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } else {
+            Text("Waiting for others ...")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
         }
     }
 }
@@ -353,5 +295,19 @@ private struct BottomActionView: View {
     )
     TripRoomView(viewModel: viewModel)
         .environment(\.tripService, service)
+}
+
+#Preview("Member, Accessibility XXXL") {
+    let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+    let viewModel = TripRoomViewModel(
+        tripService: service,
+        tripID: SampleTrip.tripID,
+        myParticipantID: SampleTrip.budiID,
+        initialState: SampleTrip.State(status: .lobby),
+        activeTripStorage: SimulatedActiveTripStorage()
+    )
+    TripRoomView(viewModel: viewModel)
+        .environment(\.tripService, service)
+        .dynamicTypeSize(.accessibility5)
 }
 #endif

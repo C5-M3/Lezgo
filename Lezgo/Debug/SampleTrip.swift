@@ -87,8 +87,10 @@ enum SampleTrip {
             ],
             participants: [
                 Member(agusID, "Agus", car: "Black Avanza", at: isOnTheRoad ? polyline[3] : tunjunganPlaza, now: now),
-                Member(budiID, "Budi", car: "White Brio", at: isOnTheRoad ? polyline[2] : tunjunganPlaza, now: now),
-                Member(citraID, "Citra", car: "Red Jazz", at: tunjunganPlaza, now: now.addingTimeInterval(-180))
+                Member(
+                    budiID, "Budi", car: "White Brio", .purple, at: isOnTheRoad ? polyline[2] : tunjunganPlaza, now: now
+                ),
+                Member(citraID, "Citra", car: "Red Jazz", .pink, at: tunjunganPlaza, now: now.addingTimeInterval(-180))
             ],
             route: Route(id: UUID(), tripID: tripID, version: 1, polyline: polyline)
         )
@@ -107,6 +109,7 @@ enum SampleTrip {
         _ id: UUID,
         _ name: String,
         car: String,
+        _ avatar: Avatar = .yellow,
         at coordinate: Coordinate,
         now: Date
     ) -> Participant {
@@ -120,7 +123,8 @@ enum SampleTrip {
             speedKmh: 0,
             motionState: .stopped,
             alert: .none,
-            lastSeenAt: now
+            lastSeenAt: now,
+            avatar: avatar
         )
     }
 

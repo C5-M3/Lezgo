@@ -47,7 +47,6 @@ struct TripRoomViewModelUS05Tests {
         #expect(memberViewModel.canStartTrip == false)
     }
 
-
     @Test func IsParticipantReadyWhenNearbyAndOnline() throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)

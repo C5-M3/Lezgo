@@ -61,6 +61,4 @@ struct TripRoomViewModelRemoveTests {
 
         #expect(viewModel.CanKick(participant: citra) == false)
     }
-
-
 }

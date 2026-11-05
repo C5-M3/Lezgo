@@ -12,13 +12,16 @@ struct InviteSheetView: View {
     @State private var didCopy = false
     /// Goes up with every copy, so a new tap restarts the 2 seconds that "Copied" stays on screen.
     @State private var copyCount = 0
-    /// The sheet is as tall as its content, like the lo-fi, and grows with Dynamic Type.
+    /// The sheet is as tall as its content, like the hi-fi, and grows with Dynamic Type.
     @State private var contentHeight: CGFloat = 270
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ScrollView {
-            VStack {
+            VStack(spacing: 20) {
+                Text("Add Participants")
+                    .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
                 Button(action: CopyCode) {
                     RoomCodeView(roomCode: viewModel.roomCode, isLoaded: viewModel.canShareInvite, didCopy: didCopy)
                 }
@@ -30,21 +33,12 @@ struct InviteSheetView: View {
                 .contextMenu {
                     Button(.tripRoomCopyCode, systemImage: "doc.on.doc", action: CopyCode)
                 }
-                HStack {
-                    VStack { Divider() }
-                    Text(.tripRoomInviteOr).font(.subheadline)
-                    VStack { Divider() }
-                }
                 ShareLink(item: viewModel.inviteURL, message: Text(viewModel.shareMessage)) {
                     Label(.tripRoomShareLink, systemImage: "link")
                         .font(.headline)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                 }
-                .foregroundStyle(.primary)
-                .buttonStyle(.borderedProminent)
-                // Opaque, like the code box, so nothing behind the sheet shows through and lowers the contrast.
-                .tint(Color(.inviteSurface))
-                .controlSize(.large)
+                .foregroundStyle(Color(.brandYellow))
             }
             .disabled(!viewModel.canShareInvite)
             .padding()
@@ -53,6 +47,8 @@ struct InviteSheetView: View {
         .scrollBounceBehavior(.basedOnSize)
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
+        // The Trip Room is always dark, and BrandYellow has no contrast on a light sheet.
+        .preferredColorScheme(.dark)
         .sensoryFeedback(.success, trigger: copyCount)
         .task(id: copyCount) {
             guard copyCount > 0, (try? await Task.sleep(for: .seconds(2))) != nil else { return }
@@ -153,7 +149,7 @@ private struct CopiedLabel: View {
     }
 }
 
-#Preview("Dark mode") {
+#Preview("Over the Trip Room") {
     Color.clear.sheet(isPresented: .constant(true)) {
         InviteSheetView(viewModel: TripRoomViewModel(
             tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.budiID),

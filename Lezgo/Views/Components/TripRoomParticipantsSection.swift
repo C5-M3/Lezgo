@@ -7,16 +7,33 @@
 
 import SwiftUI
 
+/// "Participants": every car's avatar, name and car, with "Add" to invite (US-04, "Room").
+///
+/// The avatar shows who is ready at the start point: the selected image when ready, the unselected one when not.
+/// Tapping an avatar opens Edit Profile when I may edit it; there the leader also finds "Kick" and "Set Lead" (US-05).
 struct TripRoomParticipantsSection: View {
     let viewModel: TripRoomViewModel
     var isTransitioning: Bool = false
-    let onKick: (Participant) -> Void
-    let onSetLeader: (Participant) -> Void
     let onEdit: (Participant) -> Void
     let onInvite: () -> Void
+    /// Grows with Dynamic Type, so large text gets fewer, wider columns instead of cut-off names.
+    @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 96
 
     var body: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Participants")
+                    .font(.title3.bold())
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                if !isTransitioning {
+                    Button("Add", action: onInvite)
+                        .font(.headline)
+                        .foregroundStyle(Color(.brandYellow))
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel("Add participants")
+                }
+            }
             if viewModel.participants.isEmpty {
                 Text("No participants yet")
                     .font(.subheadline)
@@ -24,188 +41,111 @@ struct TripRoomParticipantsSection: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             } else {
-                ForEach(viewModel.participants) { participant in
-                    ParticipantRowView(
-                        participant: participant,
-                        viewModel: viewModel,
-                        onEdit: { onEdit(participant) }
-                    )
-                    .disabled(isTransitioning)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        if !isTransitioning && viewModel.showsKickSwipe {
-                            KickSwipeButton(isEnabled: viewModel.CanKick(participant: participant)) {
-                                onKick(participant)
-                            }
-                        }
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        if !isTransitioning && viewModel.showsSetLeaderSwipe {
-                            SetLeadSwipeButton(isEnabled: viewModel.CanSetLeader(participant: participant)) {
-                                onSetLeader(participant)
-                            }
-                        }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: columnWidth), spacing: 16, alignment: .top)],
+                          spacing: 20) {
+                    ForEach(viewModel.participants) { participant in
+                        ParticipantCell(
+                            participant: participant,
+                            viewModel: viewModel,
+                            onEdit: { onEdit(participant) }
+                        )
+                        .disabled(isTransitioning)
                     }
                 }
             }
-        } header: {
-            HStack {
-                Text("Participants")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                    .textCase(nil)
-                Spacer()
-                if !isTransitioning {
-                    Button(action: onInvite) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 14, weight: .bold))
-                            .accessibilityHidden(true)
-                            .frame(width: 32, height: 32)
-                            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 8))
-                    }
-                    .buttonStyle(.plain)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel("Invite participant")
-                }
-            }
         }
     }
 }
 
-/// "Kick" in a row's swipe actions. It has no `.destructive` role: that role makes SwiftUI drop a row from the
-/// list as soon as it is tapped, before the leader confirms. Swipe actions also ignore `.disabled`, so the
-/// leader's own row gets a gray button that does nothing (lo-fi "SLIDE DELETE IF LEADER").
-private struct KickSwipeButton: View {
-    let isEnabled: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button {
-            guard isEnabled else { return }
-            action()
-        } label: {
-            Label("Kick", systemImage: "trash")
-        }
-        .tint(isEnabled ? Color.red : Color(uiColor: .systemGray4))
-        .disabled(!isEnabled)
-        .accessibilityLabel("Kick")
-        // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
-        // The hint says why it does nothing.
-        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomLeaderRowHint))
-    }
-}
-
-/// "Set Lead" in a row's swipe actions. Swipe actions ignore `.disabled`, so the leader's own row gets a lighter
-/// gray button that does nothing (lo-fi "SET LEAD IF LEADERS IS SELECTED VIA SLIDER").
-private struct SetLeadSwipeButton: View {
-    let isEnabled: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button {
-            guard isEnabled else { return }
-            action()
-        } label: {
-            Label("Set Lead", systemImage: "crown.fill")
-        }
-        .tint(Color(uiColor: isEnabled ? .systemGray : .systemGray4))
-        .disabled(!isEnabled)
-        .accessibilityLabel("Set Lead")
-        // `.disabled` does not reach swipe actions, so VoiceOver would not say "dimmed".
-        // The hint says why it does nothing.
-        .accessibilityHint(isEnabled ? Text(verbatim: "") : Text(.tripRoomLeaderRowHint))
-    }
-}
-
-private struct ParticipantRowContent: View {
-    let participant: Participant
-    /// The typed name, or "Leader", "Car 2", …
-    let displayName: String
-    let isLeader: Bool
-    let isReady: Bool
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(Color.secondary.opacity(isLeader ? 0.15 : 0.3))
-                .frame(width: 36, height: 36)
-                .overlay {
-                    Text(String(displayName.prefix(1))).font(.subheadline.bold())
-                }
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(displayName).font(.body.weight(.medium))
-                Text(participant.carDescription).font(.caption).foregroundStyle(.secondary)
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(isReady ? Color.green : Color.secondary)
-                        .frame(width: 6, height: 6)
-                    Text(isReady ? "ready at startpoint" : "not ready at startpoint")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 2)
-            }
-            Spacer()
-            if isLeader {
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel("Leader")
-            }
-        }
-    }
-}
-
-private struct ParticipantRowView: View {
+private struct ParticipantCell: View {
     let participant: Participant
     let viewModel: TripRoomViewModel
     let onEdit: () -> Void
 
-    private var isSelected: Bool { viewModel.selectedParticipantIds.contains(participant.id) }
     private var isLeader: Bool { viewModel.IsLeader(participant: participant) }
     private var isReady: Bool { viewModel.IsParticipantReady(participant) }
+    private var canEdit: Bool { viewModel.CanEdit(participant: participant) }
+    private var displayName: String { viewModel.DisplayName(of: participant) }
 
     var body: some View {
-        Button {
-            if viewModel.isSelectionMode {
-                viewModel.ToggleParticipantSelection(id: participant.id)
-            } else if viewModel.CanEdit(participant: participant) {
-                onEdit()
-            }
-        } label: {
-            HStack(spacing: 12) {
-                if viewModel.isSelectionMode && !isLeader {
-                    ZStack {
-                        Circle().fill(Color(uiColor: .systemGray4))
-                        if isSelected {
-                            Image(systemName: "checkmark").font(.system(size: 12, weight: .bold))
-                        }
+        Button(action: onEdit) {
+            VStack(spacing: 6) {
+                AvatarImage(avatar: participant.avatar, isSelected: isReady)
+                    .frame(width: 72, height: 72)
+                HStack(spacing: 4) {
+                    Text(displayName)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                    if isLeader {
+                        Image(systemName: "crown.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color(.brandYellow))
+                            .accessibilityHidden(true)
                     }
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
                 }
-                ParticipantRowContent(
-                    participant: participant,
-                    displayName: viewModel.DisplayName(of: participant),
-                    isLeader: isLeader,
-                    isReady: isReady
-                )
+                if !participant.carDescription.isEmpty {
+                    Text(participant.carDescription)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
             }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
+            .frame(maxWidth: .infinity)
+            .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        // A member's tap on someone else does nothing; disabling would dim the avatar, which looks like "not ready".
+        .allowsHitTesting(canEdit)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(
-            (viewModel.isSelectionMode && !isLeader) || viewModel.CanEdit(participant: participant) ? .isButton : []
-        )
+        .accessibilityAddTraits(canEdit ? .isButton : [])
+        .accessibilityHint(canEdit ? Text("Opens Edit Profile") : Text(verbatim: ""))
     }
 
     private var accessibilityLabel: String {
-        let role = isLeader ? ", Leader" : ""
-        let ready = isReady ? ", ready at startpoint" : ", not ready at startpoint"
-        let selection = viewModel.isSelectionMode ? (isSelected ? ", Selected" : ", Not selected") : ""
-        return "\(viewModel.DisplayName(of: participant)), \(participant.carDescription)\(role)\(ready)\(selection)"
+        let parts = [
+            displayName,
+            participant.carDescription.isEmpty ? nil : participant.carDescription,
+            isLeader ? String(localized: "Leader") : nil,
+            participant.avatar.accessibilityName,
+            isReady ? String(localized: "Ready at start point") : String(localized: "Not ready at start point")
+        ]
+        return parts.compactMap(\.self).joined(separator: ", ")
     }
 }
+
+#if DEBUG
+#Preview("Leader") {
+    ScrollView {
+        TripRoomParticipantsSection(
+            viewModel: TripRoomViewModel(
+                tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
+                tripID: SampleTrip.tripID,
+                myParticipantID: SampleTrip.agusID,
+                initialState: SampleTrip.State(status: .lobby)
+            ),
+            onEdit: { _ in },
+            onInvite: {}
+        )
+        .padding()
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Empty, Accessibility XXXL") {
+    TripRoomParticipantsSection(
+        viewModel: TripRoomViewModel(
+            tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID
+        ),
+        onEdit: { _ in },
+        onInvite: {}
+    )
+    .padding()
+    .dynamicTypeSize(.accessibility5)
+    .preferredColorScheme(.dark)
+}
+#endif

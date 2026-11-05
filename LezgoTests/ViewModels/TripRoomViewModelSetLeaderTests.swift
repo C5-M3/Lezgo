@@ -31,7 +31,6 @@ struct TripRoomViewModelSetLeaderTests {
         #expect(viewModel.CanSetLeader(participant: citra) == false)
     }
 
-
     /// Only the leader may hand over the lead. A member's phone must not even ask the service.
     @Test func MemberCannotHandOverTheLead() async throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)

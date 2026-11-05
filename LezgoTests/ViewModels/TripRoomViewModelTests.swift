@@ -96,7 +96,6 @@ struct TripRoomViewModelTests {
         #expect(!updated.participants.contains(where: { $0.id == SampleTrip.budiID }))
     }
 
-
     @Test func UpdateProfileUpdatesDisplayNameAndCar() async throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)
@@ -169,10 +168,6 @@ struct TripRoomViewModelTests {
 
         task.cancel()
     }
-
-
-
-
 
     @Test func FormattingTitlesAndPermissions() throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
