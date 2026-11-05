@@ -162,7 +162,8 @@ enum TripStartIntro {
         if time < zoomStarts {
             return 1 - 0.05 * Ease.PowerOut(Progress(time, from: zoomStarts - 0.12, duration: 0.12))
         }
-        return 0.95 + (finalZoom - 0.95) * Ease.PowerIn(Progress(time, from: zoomStarts, duration: duration - zoomStarts), 3)
+        let zooming = Progress(time, from: zoomStarts, duration: duration - zoomStarts)
+        return 0.95 + (finalZoom - 0.95) * Ease.PowerIn(zooming, 3)
     }
 
     /// How far along a step is, from 0 before it starts to 1 once it has finished.
