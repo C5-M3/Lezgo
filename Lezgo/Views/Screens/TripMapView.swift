@@ -83,6 +83,8 @@ struct TripMapView: View {
             if showsStartIntro {
                 TripStartIntroView()
                     .ignoresSafeArea()
+                    // The cards come in just before the yellow has gone, and must already answer a tap.
+                    .allowsHitTesting(isTripScreenRevealed == false)
                     .transition(.opacity)
             }
         }

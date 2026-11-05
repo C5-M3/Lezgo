@@ -36,6 +36,9 @@ final class TripRoomStartTripUITests: XCTestCase {
         let openCard = app.buttons["Show trip actions"]
         XCTAssertTrue(openCard.waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["End Trip"].exists)
+        // The card slides in, so it is only hittable once it has settled.
+        let settled = expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: openCard)
+        wait(for: [settled], timeout: 5)
         openCard.tap()
         XCTAssertTrue(app.buttons["End Trip"].waitForExistence(timeout: 3))
         // The map covers the lobby, which stays in the tree below it, so its button can no longer be tapped.
