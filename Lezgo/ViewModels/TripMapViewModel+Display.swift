@@ -106,9 +106,17 @@ extension TripMapViewModel {
                 isLeader: participant.IsLeader(in: state.trip),
                 isMe: participant.id == myParticipantID,
                 isOffline: participant.IsOnline(at: updatedAt) == false,
-                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
+                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt),
+                carColor: CarColor(of: participant, in: state)
             )
         }
+    }
+
+    /// Worked out from the whole group, so a member keeps their color before everyone has sent a position.
+    private func CarColor(of participant: Participant, in state: TripState) -> TripMapCarPin.CarColor {
+        let members = state.participants.filter { $0.IsLeader(in: state.trip) == false }
+        guard let index = members.firstIndex(where: { $0.id == participant.id }) else { return .yellow }
+        return .ForMember(atIndex: index)
     }
 
     /// The status card of the tapped car, or `nil` while no car is tapped.

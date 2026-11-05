@@ -64,6 +64,8 @@ final class TripMapViewModel {
     /// and the simulated drive, where the leader never leaves the route).
     let reroute: TripMapReroute?
     private let clock: () -> Date
+    /// Whether the map opens with the "Lez Go!" animation, because the trip has only just started.
+    let showsStartIntro: Bool
 
     init(
         tripID: UUID,
@@ -74,6 +76,7 @@ final class TripMapViewModel {
         locationSharer: LocationSharer? = nil,
         directionsService: (any DirectionsService)? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
+        showsStartIntro: Bool = false,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
@@ -92,6 +95,7 @@ final class TripMapViewModel {
         reroute = directionsService.map {
             TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
         }
+        self.showsStartIntro = showsStartIntro
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }

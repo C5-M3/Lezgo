@@ -21,4 +21,17 @@ struct TripMapCarPin: Identifiable, Hashable {
     var isOffline: Bool
     /// Another car that is off the route or ahead of the leader; its pin is highlighted.
     var isAlerting = false
+    /// Which robot this car drives.
+    var carColor = CarColor.yellow
+
+    /// The robot colors in the asset catalog: yellow for the leader, the others for the members.
+    enum CarColor: Hashable {
+        case yellow, purple, pink, blue, green
+
+        /// The color of the member at `index` among the members, in join order. Colors repeat after the fourth.
+        static func ForMember(atIndex index: Int) -> CarColor {
+            let memberColors: [CarColor] = [.purple, .pink, .blue, .green]
+            return memberColors[index % memberColors.count]
+        }
+    }
 }
