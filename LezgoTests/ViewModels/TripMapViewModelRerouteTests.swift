@@ -61,6 +61,27 @@ struct TripMapViewModelRerouteTests {
 
     // MARK: Leader leaves the route
 
+    @Test func AFailedRerouteIsReportedUntilTheLeaderIsBackOnTheRoute() async throws {
+        let service = MockTripService(states: [
+            State(agus: Self.offRoute, secondsAgo: 10),
+            State(agus: Self.offRoute, secondsAgo: 4)
+        ])
+        let viewModel = MakeViewModel(
+            service: service,
+            directions: MockDirectionsService(results: [.failure(.init())])
+        )
+
+        await viewModel.Start()
+
+        let reroute = try #require(viewModel.reroute)
+        var waited = 0
+        while reroute.hasFailed == false, waited < 200 {
+            try await Task.sleep(for: .milliseconds(10))
+            waited += 1
+        }
+        #expect(reroute.hasFailed)
+    }
+
     @Test func LeaderOffTheRouteFor5SecondsReroutes() async {
         let service = MockTripService(states: [
             State(agus: Self.offRoute, secondsAgo: 10),
