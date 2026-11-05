@@ -666,6 +666,30 @@
         }
       }
     },
+    "tripMapCollapseCard" : {
+      "comment" : "VoiceOver label of the grabber on the trip map's bottom card while it is open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide trip actions"
+          }
+        }
+      }
+    },
+    "tripMapExpandCard" : {
+      "comment" : "VoiceOver label of the grabber on the trip map's bottom card while it is collapsed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show trip actions"
+          }
+        }
+      }
+    },
     "tripMapConfirm" : {
       "comment" : "Button on a confirmation that goes ahead (US-07).",
       "extractionState" : "manual",
