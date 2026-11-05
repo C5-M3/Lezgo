@@ -48,6 +48,8 @@ final class HomeViewModel {
     var mapService: any MapServiceProtocol
     var searchService: any LocationSearchServiceProtocol
     let activeTripStorage: any ActiveTripStorage
+    /// My name and car once I typed them in the Trip Room, shown to every group I join after that.
+    let profileStorage: any ProfileStorage
 
     // MARK: - State Properties
     var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
@@ -58,7 +60,13 @@ final class HomeViewModel {
     var activeTripSession: TripSession?
     var activeMapSession: TripSession?
     var isTransitioningToTripMap: Bool = false
+    /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
+    private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
+    /// Why the saved trip could not be opened; the draft stays so the person can try again.
+    var draftTripErrorMessage: String?
+    /// How many times Continue tries to load the saved trip before saying it could not.
+    private static let draftTripFetchAttempts = 3
     /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
     var inviteRoomCode: String?
 
@@ -83,13 +91,15 @@ final class HomeViewModel {
     init(
         mapService: any MapServiceProtocol,
         searchService: any LocationSearchServiceProtocol,
-        activeTripStorage: (any ActiveTripStorage)? = nil
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        profileStorage: (any ProfileStorage)? = nil
     ) {
         self.mapService = mapService
         self.searchService = searchService
         let storage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.activeTripStorage = storage
         self.activeDraftTrip = storage.LoadActiveTrip()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
     }
 
     convenience init() {
@@ -125,15 +135,8 @@ final class HomeViewModel {
     @discardableResult
     func JoinTrip(roomCode: String, tripService: any TripService) async -> Bool {
         do {
-            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: nil)
-            guard session.state.trip.status == .lobby else {
-                try? await tripService.ExitTrip(tripID: session.state.trip.id, participantID: session.myParticipantID)
-                return false
-            }
-            let summary = ActiveTripSummary.From(session: session)
-            activeTripStorage.SaveActiveTrip(summary)
-            activeDraftTrip = nil
-            activeTripSession = session
+            let session = try await tripService.JoinTrip(roomCode: roomCode, profile: profileStorage.LoadProfile())
+            onTripJoined(session)
             return true
         } catch {
             return false
@@ -141,61 +144,53 @@ final class HomeViewModel {
     }
 
     /// Menangani sesi perjalanan yang berhasil diverifikasi dan bergabung (US-02).
-    /// Mengarahkan langsung ke Trip Room tanpa menampilkan layar Draft Trip.
-    /// Draft trip hanya akan dimuat dari storage saat aplikasi ditutup dan dibuka kembali.
+    /// Opens the Trip Room for a `LOBBY` trip and the map for an `IN_TRIP` trip (a late member), without the Draft
+    /// Trip screen. Draft trip hanya akan dimuat dari storage saat aplikasi ditutup dan dibuka kembali.
     func onTripJoined(_ session: TripSession) {
-        guard session.state.trip.status == .lobby else { return }
-        let summary = ActiveTripSummary.From(session: session)
-        activeTripStorage.SaveActiveTrip(summary)
-        activeDraftTrip = nil
-        activeTripSession = session
+        guard session.state.trip.status.isOpen else { return }
+        activeTripStorage.SaveActiveTrip(ActiveTripSummary.From(session: session))
+        applyActiveSession(session, isInTrip: session.state.trip.status == .inTrip)
     }
 
     /// Melanjutkan draft perjalanan yang tersimpan ke Trip Room (LOBBY) atau Trip Maps (IN_TRIP) (US-03).
-    func continueDraftTrip(tripService: any TripService) async {
+    ///
+    /// Right after the app opens, iCloud may need a moment, so a failed fetch is tried twice more. If the trip still
+    /// cannot be loaded, the draft stays with a message: opening the room or map without the route and the cars
+    /// would look as if the trip was lost.
+    func continueDraftTrip(tripService: any TripService, retryDelay: Duration = .seconds(1)) async {
         guard let draft = activeDraftTrip else { return }
         guard draft.status.isOpen else {
             handleDraftTripEnded()
             return
         }
+        draftTripErrorMessage = nil
 
-        do {
-            let state = try await tripService.FetchTrip(tripID: draft.tripID)
-            guard state.trip.status.isOpen else {
+        for attempt in 1...Self.draftTripFetchAttempts {
+            do {
+                let state = try await tripService.FetchTrip(tripID: draft.tripID)
+                guard state.trip.status.isOpen else {
+                    handleDraftTripEnded()
+                    return
+                }
+                applyActiveSession(
+                    TripSession(myParticipantID: draft.myParticipantID, state: state),
+                    isInTrip: state.trip.status == .inTrip
+                )
+                return
+            } catch let error as TripServiceError where error == .notFound || error == .tripEnded {
                 handleDraftTripEnded()
                 return
+            } catch {
+                guard attempt < Self.draftTripFetchAttempts else { break }
+                try? await Task.sleep(for: retryDelay)
             }
-            applyActiveSession(
-                TripSession(myParticipantID: draft.myParticipantID, state: state),
-                isInTrip: state.trip.status == .inTrip
-            )
-        } catch let error as TripServiceError where error == .notFound || error == .tripEnded {
-            handleDraftTripEnded()
-        } catch {
-            let fallback = fallbackSession(for: draft)
-            applyActiveSession(fallback, isInTrip: draft.status == .inTrip)
         }
+        draftTripErrorMessage = String(localized: "Couldn't open your trip. Check your connection and try again.")
     }
 
-    private func fallbackSession(for draft: ActiveTripSummary) -> TripSession {
-        let fallbackTrip = Trip(
-            id: draft.tripID,
-            roomCode: draft.roomCode,
-            status: draft.status,
-            leaderParticipantID: draft.isLeader ? draft.myParticipantID : UUID(),
-            currentWaypointIndex: 0,
-            routeVersion: 1,
-            createdAt: Date(),
-            startedAt: nil,
-            endedAt: nil
-        )
-        let fallbackState = TripState(
-            trip: fallbackTrip,
-            waypoints: [],
-            participants: [],
-            route: nil
-        )
-        return TripSession(myParticipantID: draft.myParticipantID, state: fallbackState)
+    /// "OK" on the message that the saved trip could not be opened.
+    func DismissDraftTripError() {
+        draftTripErrorMessage = nil
     }
 
     private func applyActiveSession(_ session: TripSession, isInTrip: Bool) {
@@ -218,6 +213,9 @@ final class HomeViewModel {
 
     /// Menangani saat user keluar atau mengakhiri trip dari Trip Map View (US-07).
     func onMapSessionClosed() {
+        // The map's cover also reports its dismissal on the way back to the Trip Room, possibly after the room is
+        // open; the trip goes on then.
+        guard !isReturningToTripRoom, activeTripSession == nil else { return }
         activeTripStorage.ClearActiveTrip()
         activeDraftTrip = nil
         activeMapSession = nil
@@ -232,6 +230,25 @@ final class HomeViewModel {
             self.activeMapSession = session
             self.isTransitioningToTripMap = false
         }
+    }
+
+    /// After a New Destination the trip is back in `LOBBY`: the map closes and the Trip Room opens with the new route
+    /// (US-07). The map already saved the trip with its new status.
+    func onReturnedToTripRoom(_ session: TripSession) {
+        isReturningToTripRoom = true
+        activeMapSession = nil
+        Task { @MainActor in
+            // One full-screen cover has to finish closing before the next one can open.
+            try? await Task.sleep(for: .milliseconds(300))
+            self.activeTripSession = session
+            self.isReturningToTripRoom = false
+        }
+    }
+
+    /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
+    func OpenInviteLink(_ url: URL) {
+        guard let roomCode = InviteLink.RoomCode(from: url) else { return }
+        inviteRoomCode = roomCode
     }
 
     /// Menangani perubahan teks pencarian saat kolom pencarian sedang fokus.

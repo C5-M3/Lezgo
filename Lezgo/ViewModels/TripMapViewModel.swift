@@ -32,14 +32,21 @@ final class TripMapViewModel {
     private(set) var editRoute: EditRouteViewModel? {
         didSet { editRoute == nil ? reroute?.Resume() : reroute?.Pause() }
     }
+    /// This phone's latest GPS reading, straight from the sharer; `nil` without a sharer (previews and the simulated
+    /// drive) and before the first reading.
+    private(set) var myReading: LocationReading?
     /// When the latest state arrived; offline cars are judged against this time.
-    private var updatedAt: Date?
+    private(set) var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
-    private var carLookups: [UUID: CarLookup] = [:]
+    private(set) var carLookups: [UUID: CarLookup] = [:]
     /// This phone's formation alert and the banners closed with ⓧ.
-    private var alerts: TripMapAlerts
+    private(set) var alerts: TripMapAlerts
     /// When this phone, as leader, moves the trip past a checkpoint.
     private var checkpointProgress = TripMapCheckpointProgress()
+    /// The leader's footprint: recorded on the leader's phone, followed on a member's.
+    let following: TripMapFootprint
+    /// `true` while a guidance request is on its way, so GPS readings and trip updates do not ask twice at once.
+    private var isRefreshingGuidance = false
 
     /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
     private static let carLookupInterval: TimeInterval = 30
@@ -55,7 +62,7 @@ final class TripMapViewModel {
     private let activeTripStorage: (any ActiveTripStorage)?
     /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
     /// and the simulated drive, where the leader never leaves the route).
-    private let reroute: TripMapReroute?
+    let reroute: TripMapReroute?
     private let clock: () -> Date
 
     init(
@@ -76,6 +83,12 @@ final class TripMapViewModel {
         self.streetNameService = streetNameService
         self.locationSharer = locationSharer
         self.activeTripStorage = activeTripStorage
+        following = TripMapFootprint(
+            tripID: tripID,
+            myParticipantID: myParticipantID,
+            tripService: tripService,
+            directionsService: directionsService
+        )
         reroute = directionsService.map {
             TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
         }
@@ -83,65 +96,33 @@ final class TripMapViewModel {
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
 
-    /// A pin for every car that has sent a position; members without one yet have no pin.
-    var carPins: [TripMapCarPin] {
-        guard let state, let updatedAt else { return [] }
-        return state.participants.compactMap { participant in
-            guard let coordinate = participant.coordinate else { return nil }
-            return TripMapCarPin(
-                id: participant.id,
-                displayName: participant.displayName,
-                coordinate: coordinate,
-                motionState: participant.motionState,
-                isLeader: participant.IsLeader(in: state.trip),
-                isMe: participant.id == myParticipantID,
-                isOffline: participant.IsOnline(at: updatedAt) == false,
-                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
-            )
-        }
+    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
+    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
+    var showsMyLocationDot: Bool {
+        locationSharer != nil
     }
 
-    /// The status card of the tapped car, or `nil` while no car is tapped.
-    ///
-    /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.
-    var selectedCarStatus: TripMapCarStatus? {
-        guard let updatedAt, let car = SelectedCar() else { return nil }
-        guard car.IsOnline(at: updatedAt) else {
-            let lastSeen = Duration.seconds(updatedAt.timeIntervalSince(car.lastSeenAt))
-            return TripMapCarStatus(id: car.id, displayName: car.displayName, activity: .offline(lastSeen: lastSeen))
-        }
-        let lookup = carLookups[car.id]
-        let activity: TripMapCarStatus.Activity = car.motionState == .driving
-            ? .driving(street: lookup?.street)
-            : .stopped(street: lookup?.street)
-        return TripMapCarStatus(
-            id: car.id,
-            displayName: car.displayName,
-            activity: activity,
-            timeLeft: lookup?.timeLeft
-        )
+    /// `true` while this phone cannot send its position, so the other phones see it standing still and its own
+    /// view of the other cars is probably out of date too. Hides as soon as a send works again.
+    var isConnectionLost: Bool {
+        locationSharer?.lastError != nil
     }
 
-    /// The one formation alert banner under the turn card, or `nil` when there is none to show.
-    var alertBanner: TripMapAlerts.Banner? {
-        guard let state, let updatedAt else { return nil }
-        return alerts.Banner(in: state, at: updatedAt)
-    }
-
-    /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.
-    var arrivalCard: ArrivalCard? {
-        guard let state, let updatedAt else { return nil }
-        let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
-        guard arrival.hasArrived else { return nil }
-        return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
+    /// `true` while Precise Location is off: this phone's car is not shared, and the map asks to turn it on.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
     }
 
     /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
     /// task is cancelled.
     func Start() async {
+        let (readings, echo) = AsyncStream.makeStream(of: LocationReading.self, bufferingPolicy: .bufferingNewest(1))
         await withTaskGroup(of: Void.self) { group in
             if let locationSharer {
-                group.addTask { await locationSharer.Run() }
+                group.addTask { await locationSharer.Run(echoingTo: echo) }
+                group.addTask { await self.FollowMyGPS(readings) }
+            } else {
+                echo.finish()
             }
             group.addTask { await self.FollowTrip() }
             // The trip stream ends when the trip closes on this phone; then sharing stops too.
@@ -150,7 +131,7 @@ final class TripMapViewModel {
         }
     }
 
-    /// The leader ended the trip, or removed this member, from another phone.
+    /// The leader ended the trip, removed this member or planned a New Destination, from another phone or this one.
     ///
     /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
     /// the reason then, so the person is not told they were removed or that the leader ended the trip.
@@ -163,6 +144,10 @@ final class TripMapViewModel {
         } else if newState.participants.contains(where: { $0.id == myParticipantID }) == false {
             activeTripStorage?.ClearActiveTrip()
             closeReason = .removed
+        } else if newState.trip.status == .lobby {
+            let session = TripSession(myParticipantID: myParticipantID, state: newState)
+            activeTripStorage?.SaveActiveTrip(.From(session: session))
+            closeReason = .backToTripRoom
         }
         // An open "Exit trip?" would hide the message about why the map closed.
         if closeReason != nil {
@@ -276,12 +261,6 @@ final class TripMapViewModel {
         )
     }
 
-    /// The tapped car, while it is still in the trip with a position on the map.
-    private func SelectedCar() -> Participant? {
-        guard let selectedCarID else { return nil }
-        return state?.participants.first { $0.id == selectedCarID && $0.coordinate != nil }
-    }
-
     /// A tapped car that left the trip, or was removed, closes its card.
     private func CloseCardOfGoneCar() {
         guard selectedCarID != nil, SelectedCar() == nil else { return }
@@ -314,20 +293,17 @@ final class TripMapViewModel {
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
     private func RefreshGuidance() async {
-        guard let state, let myCoordinate else { return }
+        guard isRefreshingGuidance == false, let state, let myCoordinate else { return }
+        isRefreshingGuidance = true
+        defer { isRefreshingGuidance = false }
         guard let newGuidance = try? await navigator.Guidance(from: myCoordinate, along: state) else { return }
-        guidance = newGuidance
+        guidance = following.Guidance(adjusting: newGuidance, from: myCoordinate, in: state) ?? newGuidance
     }
 }
 
 // MARK: Edit Route
 
 extension TripMapViewModel {
-    /// Only the leader can change the route, while the trip is open and once their position is known.
-    var canEditRoute: Bool {
-        isLeader && closeReason == nil && myCoordinate != nil
-    }
-
     /// "Edit Route" on the leader's map: the planner from the leader's position through what is left of the route.
     func RequestEditRoute() {
         guard editRoute == nil, canEditRoute, let state, let myCoordinate,
@@ -340,7 +316,17 @@ extension TripMapViewModel {
         )
     }
 
-    /// "Back" in Edit Route, or the route was saved.
+    /// "New Destination" on the leader's arrival card: the planner from the old destination, which stays locked.
+    func RequestNewDestination() {
+        guard editRoute == nil, isLeader, closeReason == nil, let destination = state?.destination else { return }
+        let start = PlannedWaypoint(kind: .start, name: destination.name, coordinate: destination.coordinate)
+        editRoute = EditRouteViewModel(
+            startingWaypoints: [start], tripID: tripID, myParticipantID: myParticipantID, tripService: tripService,
+            purpose: .newDestination
+        )
+    }
+
+    /// "Back" in the planner, or the route was saved.
     func CloseEditRoute() {
         editRoute = nil
     }
@@ -376,16 +362,39 @@ extension TripMapViewModel {
         for await newState in tripService.TripUpdates(tripID: tripID) {
             // A late fetch can still carry the old route; phones never go back to an older version.
             if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
-            state = newState
+            state = WithMyGPS(newState)
             updatedAt = clock()
             NoticeTripClosed(newState)
             CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }
             CloseCardOfGoneCar()
             await UpdateMyAlert()
+            await following.FindWayBack(in: state ?? newState)
             await PassCheckpointIfReached()
             rerouteInput.yield(newState)
             await RefreshGuidance()
         }
+    }
+
+    /// Every GPS reading moves this phone's car and its guidance at once, without waiting for the trip to send the
+    /// position back a moment later.
+    private func FollowMyGPS(_ readings: AsyncStream<LocationReading>) async {
+        for await reading in readings {
+            myReading = reading
+            state = state.map(WithMyGPS)
+            if let state { await following.Record(reading, in: state) }
+            await RefreshGuidance()
+        }
+    }
+
+    /// The trip with this phone's car at its own latest GPS reading, so checkpoints, alerts and the reroute use it
+    /// too. The trip's copy of it is a few seconds old.
+    private func WithMyGPS(_ tripState: TripState) -> TripState {
+        var tripState = myReading.map { tripState.Moving(myParticipantID, to: $0) } ?? tripState
+        // The leader's own footprint is fresher than the copy the trip sends back.
+        if following.trail.points.isEmpty == false, tripState.trip.leaderParticipantID == myParticipantID {
+            tripState.trail = following.trail.points
+        }
+        return tripState
     }
 }

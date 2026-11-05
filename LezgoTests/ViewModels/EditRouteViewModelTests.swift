@@ -118,4 +118,39 @@ struct EditRouteViewModelTests {
 
         #expect(viewModel.errorMessage == nil)
     }
+
+    // MARK: New Destination
+
+    private func MakeNewDestinationViewModel(service: MockTripService) -> EditRouteViewModel {
+        EditRouteViewModel(
+            startingWaypoints: [Self.startingWaypoints[0]],
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.agusID,
+            tripService: service,
+            purpose: .newDestination
+        )
+    }
+
+    @Test func NewDestinationStartsTheNextLegInsteadOfChangingTheRoute() async {
+        let service = MockTripService(states: [])
+        let viewModel = MakeNewDestinationViewModel(service: service)
+
+        await viewModel.Save(Self.changedPlan)
+
+        #expect(service.newDestinationPlans == [Self.changedPlan])
+        #expect(service.savedRoutes.isEmpty)
+        #expect(viewModel.didSave)
+    }
+
+    @Test func FailedNewDestinationKeepsThePlannerOpenWithAMessage() async {
+        let service = MockTripService(states: [])
+        service.nextSaveRouteFailure = .noNetwork
+        let viewModel = MakeNewDestinationViewModel(service: service)
+
+        await viewModel.Save(Self.changedPlan)
+
+        #expect(service.newDestinationPlans.isEmpty)
+        #expect(viewModel.didSave == false)
+        #expect(viewModel.errorMessage == String(localized: TripServiceError.noNetwork.message))
+    }
 }

@@ -159,6 +159,7 @@ final class InMemoryTripService: TripService {
             participant.speedKmh = update.speedKmh
             participant.motionState = update.motionState
             participant.lastSeenAt = update.recordedAt
+            participant.course = update.course
         }
     }
 
@@ -166,6 +167,13 @@ final class InMemoryTripService: TripService {
         guard store.trips[tripID]?.trip.leaderParticipantID != participantID else { throw TripServiceError.notAllowed }
         try ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.alert = alert
+        }
+    }
+
+    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws {
+        guard store.trips[tripID]?.trip.leaderParticipantID != participantID else { throw TripServiceError.notAllowed }
+        try ChangeParticipant(participantID, tripID: tripID) { participant in
+            participant.wayBack = wayBack
         }
     }
 
@@ -182,6 +190,12 @@ final class InMemoryTripService: TripService {
             guard state.trip.status == .inTrip else { throw TripServiceError.notAllowed }
             ReplaceRoute(in: &state, with: plan)
             state.trip.currentWaypointIndex = 1
+        }
+    }
+
+    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws {
+        try Change(tripID: tripID, by: leaderID) { state in
+            state.trail = trail
         }
     }
 

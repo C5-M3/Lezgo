@@ -67,12 +67,19 @@ protocol TripService {
     /// Saves this phone's current formation alert. Members only; the leader never has one.
     func SetAlert(_ alert: FormationAlert, participantID: UUID, tripID: UUID) async throws
 
+    /// Saves the way back of a member who left the group's road, for the leader's map; empty clears it. Members only.
+    func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws
+
     /// Moves the trip past a checkpoint. Only forward: a lower or equal index changes nothing.
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws
 
     /// Replaces the route on the road (automatic reroute or Edit Route) as `routeVersion + 1`, and sets
     /// `currentWaypointIndex` to 1, because the new plan starts at the leader's position.
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws
+
+    /// Replaces the road the leader has driven, their footprint (`TripState.trail`), so the members behind can follow
+    /// it. The leader's phone saves it every few seconds while driving.
+    func SaveTrail(_ trail: [Coordinate], tripID: UUID, by leaderID: UUID) async throws
 
     /// New Destination after arriving: replaces the route as `routeVersion + 1`, sets the trip back to `LOBBY`
     /// with `currentWaypointIndex` 0, and keeps the room code and members.

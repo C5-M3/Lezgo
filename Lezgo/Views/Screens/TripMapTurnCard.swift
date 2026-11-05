@@ -42,8 +42,58 @@ struct TripMapTurnCard: View {
         case .left: "arrow.turn.up.left"
         case .right: "arrow.turn.up.right"
         case .straight: "arrow.up"
+        // Indonesia drives on the left, so roundabouts go clockwise.
+        case .roundabout: "arrow.clockwise.circle"
+        case .uTurn: "arrow.uturn.down"
         }
     }
+}
+
+extension TripMapTurnCard {
+    /// The turn card while a new route is on its way (lo-fi `B6 Rerouting (leader)`): the old turn would point the
+    /// wrong way, and a card that just stops changing looks like the app froze. Shown in place of the turn card, so
+    /// it adds nothing on top of the map.
+    struct Rerouting: View {
+        /// The leader finds a new route for everyone; a member finds their own way back to the group.
+        let isLeader: Bool
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            HStack(spacing: 16) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(.tint)
+                    .symbolEffect(.rotate, options: .repeat(.continuous), isActive: reduceMotion == false)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading) {
+                    Text(.tripMapRerouting)
+                        .font(.largeTitle.bold())
+                    Text(isLeader ? .tripMapReroutingLeader : .tripMapReroutingMember)
+                        .font(.title3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassEffect(in: .rect(cornerRadius: 24))
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
+
+#Preview("Rerouting, leader and member") {
+    VStack {
+        TripMapTurnCard.Rerouting(isLeader: true)
+        TripMapTurnCard.Rerouting(isLeader: false)
+    }
+    .padding()
+}
+
+#Preview("Rerouting, largest text") {
+    TripMapTurnCard.Rerouting(isLeader: false)
+        .padding()
+        .dynamicTypeSize(.accessibility5)
 }
 
 #Preview("Turn right") {

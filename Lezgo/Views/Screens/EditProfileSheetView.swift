@@ -7,8 +7,10 @@
 
 import SwiftUI
 
+/// Edits one participant's name and car: my own, or anyone's when I lead the trip.
 struct EditProfileSheetView: View {
     let viewModel: TripRoomViewModel
+    let participant: Participant
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var description = ""
@@ -20,10 +22,6 @@ struct EditProfileSheetView: View {
 
     private var trimmedDescription: String {
         description.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var myParticipant: Participant? {
-        viewModel.participants.first(where: { $0.id == viewModel.myParticipantID })
     }
 
     var body: some View {
@@ -56,7 +54,8 @@ struct EditProfileSheetView: View {
                         Task {
                             let didSave = await viewModel.SaveProfile(
                                 displayName: trimmedName,
-                                carDescription: trimmedDescription
+                                carDescription: trimmedDescription,
+                                of: participant.id
                             )
                             if didSave { dismiss() }
                         }
@@ -78,13 +77,30 @@ struct EditProfileSheetView: View {
                 }
             }
             .onAppear {
-                if let me = myParticipant {
-                    name = me.displayName
-                    description = me.carDescription
-                }
+                name = participant.displayName
+                description = participant.carDescription
                 isNameFocused = true
             }
         }
         .presentationDetents([.medium, .large])
     }
 }
+
+#if DEBUG
+#Preview("Leader edits a member") {
+    let state = SampleTrip.State(status: .lobby)
+    Color.clear.sheet(isPresented: .constant(true)) {
+        if let member = state.participants.first(where: { $0.id == SampleTrip.budiID }) {
+            EditProfileSheetView(
+                viewModel: TripRoomViewModel(
+                    tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
+                    tripID: SampleTrip.tripID,
+                    myParticipantID: SampleTrip.agusID,
+                    initialState: state
+                ),
+                participant: member
+            )
+        }
+    }
+}
+#endif

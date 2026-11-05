@@ -69,7 +69,7 @@ LOBBY ──leader leaves──► CANCELLED
 | --- | --- | --- |
 | `Trip` | `id`, `roomCode`, `status`, `leaderParticipantID`, `currentWaypointIndex`, `routeVersion`, `createdAt`, `startedAt`, `endedAt` | The leader is stored **only** here, so there can never be two leaders. |
 | `Waypoint` | `id`, `tripID`, `orderIndex`, `kind` (`start`, `checkpoint`, `destination`), `name`, `latitude`, `longitude` | Order: start point `0`, checkpoints `1…n`, destination `n + 1`. Visited when `orderIndex < Trip.currentWaypointIndex`. |
-| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt` | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
+| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt`, `course` (degrees clockwise from north, empty when unknown) | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
 | `Route` | `id`, `tripID`, `version`, `polyline` | The road path. A new version replaces the old one. |
 
 ### Sync and timing
@@ -96,7 +96,7 @@ Trip recap, trip history, SOS button, prolonged-stop alerts, sound notifications
 
 - Whoever creates the trip becomes its leader.
 - The planner opens from the search bar on Home ("Where do you want to travel?").
-- The start point is the current location by default and can be changed by search.
+- The start point is the current location by default and can be changed by search. The planner says "Current Location", but the trip saves the real place (a street or place name from the map), because "Current Location" means nothing to a member in the Trip Room. A place the map has no name for is saved as "Leader's starting point".
 - Search uses MapKit suggestions with distance. A picked result stores its name and coordinate.
 - Checkpoints: 0 or more; add with "+ Add Stop", remove, and reorder with the drag handle.
 - The preview map shows the road route and travel time before saving.
@@ -159,7 +159,7 @@ Feature: Plan a route
 
 - "Enter room code" opens from the join button on Home. The field uses the number pad: digits only, exactly 6. "Enter" is disabled until 6 digits are typed.
 - An invite link opens the same dialog with the code filled in. A link with no valid 6-digit code is ignored.
-- No form. My name and car description come from my saved profile (US-04); the first time, the name is "Member" plus the last 4 characters of my iCloud user ID.
+- No form, and the app never asks for a name. iOS does not tell apps the iCloud account's name, so a car whose driver typed no name is called "Leader" (the leader) or "Car 2", "Car 3", … (members, in the order they joined; the leader counts as car 1). A name typed in "Edit my name and car" (US-04) is shown instead and saved on the phone for every later trip I create or join.
 - `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
 - `ENDED` or `CANCELLED` → join is rejected.
 - Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car.
@@ -296,9 +296,9 @@ Feature: Resume an unfinished trip
 - "Share Link" sends "Join my Lezgo trip with code 897654" together with the invite link.
 - Copying and "Share Link" stay disabled until the room code has loaded.
 
-**Edit my name and car** — **Needs lo-fi** (tap my own row → edit sheet)
-- I can only edit my own row. Name: 1–30 characters, required. Car description: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
-- Saved on my device and reused next time I join. Not editable during the trip (safety).
+**Edit name and car** — **Needs lo-fi** (tap a row → edit sheet)
+- A member can only edit their own row; the leader can edit every row. Name: 1–30 characters, required. Car description: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
+- My own details are saved on my device and reused next time I join; details the leader changes for a member are not saved on either device. Not editable during the trip (safety).
 
 **Ready**
 - Detected automatically; nobody taps a button.
@@ -341,9 +341,14 @@ Feature: Trip Room
     Then everyone sees "White Avanza" on the row of "Budi" within 2 seconds
     And next time "Budi" joins a trip he joins as "Budi" with "White Avanza"
 
-  Scenario: Cannot edit someone else
+  Scenario: A member cannot edit someone else
     When "Budi" taps the row of "Agus"
     Then no edit sheet opens
+
+  Scenario: The leader edits a member
+    When "Agus" taps the row of "Budi" and sets "Budi Santoso"
+    Then everyone sees "Budi Santoso" within 2 seconds
+    And next time "Agus" joins a trip he still joins as "Agus"
 
   Scenario: Empty name
     When "Budi" clears his name
@@ -475,10 +480,20 @@ Feature: Manage the group and start
 ### Rules
 
 **Map**
-- Shows the route, every checkpoint, the destination and every car.
+- Shows the route still ahead of my car, the checkpoints not visited yet, the destination and every car. As in Apple Maps, the part already driven, the start point and visited checkpoints are not drawn.
 - Top card: next turn ("200 m, Turn right"). Bottom card: "To [destination]" and time left ("50 min").
+- Members are measured against the group's road: the leader's footprint, then the leader, then the route ahead of the leader. A member behind the leader on the footprint is not off route, even after the leader was rerouted and the route now starts at the leader.
+- The bottom card is a sheet. Pulled up, it adds only End Trip (leader) or Exit Trip (member), and Edit Route for the leader. The cars are on the map, and the room code is in the Trip Room, so the sheet lists neither.
 - Map buttons: show the whole route, and follow my car.
 - Checkpoints follow the leader: when the leader's car is within 20 m of the next checkpoint, it is visited for everyone. The app does not wait for members.
+
+**Footprint**
+- The leader's phone records the road the leader drives (a point every 20 m, the last 1,500 points, about 30 km) and saves it every 5 seconds; the other phones read it every 3 seconds.
+- A member's map draws the road ahead along the footprint to the leader, then the route ahead of the leader. Its turn card follows that line ("Turn right", "Follow the leader's route"); the time and distance left stay MapKit's.
+- A member more than 50 m off the group's road for 5 seconds gets a way back to it, drawn and guided like the rest of the line. It joins the road at its closest point at least 50 m beyond where the member left it, so it leads on towards the leader instead of back to the junction behind them. It is asked again after 10 seconds if they leave that way too, and it goes away once they are back on the road.
+- The leader's map shows the footprint behind the leader as a faint dotted line, so the leader sees the road the members follow and the cars on it.
+- A member's phone shares their way back (`Participant.wayBack`). The leader's map shows what is left of it as a dashed line in the alert colour, so the leader sees how a car that took another road will catch up. Offline cars' way backs are not shown, and members do not see each other's.
+- Location runs in the background (screen locked, another app in front) only on the trip map. Home, Set Route and the Trip Room stop using it when the app leaves the screen, and closing the app stops it.
 
 **Car status**
 - Tap a car → card with name, status and street ("Driving at Ahmad Yani Street"), and ETA to the destination ("50 min").
@@ -492,21 +507,22 @@ Feature: Manage the group and start
 
 | Alert | When | Banner | Map |
 | --- | --- | --- | --- |
-| Off route | More than 100 m from the route for 15 s | "You're out of the way" | Fastest way back to the route |
+| Off route | More than 50 m from the group's road for 5 s | "You're out of the way" | Way back to the road, towards the leader |
 | Passed checkpoint | Past the next unvisited checkpoint by more than 200 m | "You pass a checkpoint" | Guides back to that checkpoint |
-| Ahead of leader | More than 200 m ahead of the leader for 15 s | "You Precede The Leader" | Nothing; slow down or wait |
+| Passed destination | More than 100 m past the end of the route, every checkpoint visited, for 5 s | "You passed the destination" | Nothing; only that car sees it |
+| Ahead of leader | More than 100 m ahead of the leader for 5 s | "You Precede The Leader" | Nothing; slow down or wait |
 
-- Visual only, under the turn card. One banner at a time (off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
-- Everyone else sees "Car X - Out of The Way" / "Car X - Precede The Leader" and the car highlighted.
-- The time and distance limits stop flicker from GPS noise.
+- Visual only, under the turn card. One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
+- Everyone else sees "[name] - Out of The Way" / "[name] - Precede The Leader" ("Car 3 - Out of The Way", "Budi - Out of The Way") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
+- The time and distance limits stop flicker from GPS noise. They were 100 m and 15 s at first; on the road a wrong turn then showed far too late, so they match the leader's reroute now (50 m, 5 s).
 
 **Route changes (leader only)**
-- Automatic: the leader more than 100 m off the route for 15 s → new route from the leader through the unvisited checkpoints to the destination.
+- Automatic: the leader more than 50 m off the route for 5 s → new route from the leader through the unvisited checkpoints to the destination. These limits are tighter than a member's off-route alert so the group is rerouted within seconds, as in Apple Maps; 5 s still ignores short GPS jumps. A failed reroute is tried again after 10 s.
 - Manual: Edit Route opens the planner (US-01) with the leader's position as start point. The button that opens it on the map **needs lo-fi**.
 - Each new route has `routeVersion + 1`; members switch within 2 seconds and never go back to an older version.
-- **Rerouting notice** (like Apple Maps and Google Maps), visual only, on every phone. **Needs lo-fi.**
-  - While the new route is being calculated, the turn card shows "Rerouting…" on the leader's phone.
-  - When the new route arrives, every phone shows a banner under the turn card for 5 seconds, then it hides on its own:
+- **Rerouting notice** (like Apple Maps and Google Maps), visual only. Lo-fi: `B6 Rerouting (leader)`.
+  - From 2 seconds off the road until the new route arrives, the turn card shows "Rerouting…" in its place: "Finding a new route for everyone" on the leader's phone, "Finding the way back to your group" on a member's phone looking for a way back. It replaces the turn card, so nothing is added on top of the map.
+  - Not built yet, to keep the map clear: when the new route arrives, every phone shows a banner under the turn card for 5 seconds, then it hides on its own:
     - Leader left the route: "New route · Following Agus" with the new time ("52 min").
     - Leader edited the route: "Route updated by Agus" with the new destination or checkpoint and the new time.
   - The map animates to the new route line and the old line disappears; guidance continues without any tap.
@@ -555,9 +571,9 @@ Feature: Drive together
     Then the pin of "Budi" shows the stopped style and no sound plays
 
   Scenario: Member leaves the route
-    When "Budi" is more than 100 m off the route for 15 seconds
+    When "Budi" is more than 50 m off the route for 5 seconds
     Then "Budi" sees "You're out of the way" and the way back
-    And "Agus" sees "Car Budi - Out of The Way"
+    And "Agus" sees "Budi - Out of The Way"
     When "Budi" is back on the route
     Then the banner disappears
 
@@ -566,7 +582,7 @@ Feature: Drive together
     Then "Budi" sees "You pass a checkpoint" and is guided back to it
 
   Scenario: Member drives ahead of the leader
-    When "Budi" is 250 m ahead of "Agus" for 15 seconds
+    When "Budi" is 150 m ahead of "Agus" for 5 seconds
     Then "Budi" sees "You Precede The Leader"
 
   Scenario: GPS jump
@@ -574,7 +590,7 @@ Feature: Drive together
     Then no alert appears
 
   Scenario: Leader takes another road
-    When "Agus" is more than 100 m off the route for 15 seconds
+    When "Agus" is more than 50 m off the route for 5 seconds
     Then a new route through "Ciputra World" to "Pakuwon mall" reaches every phone within 2 seconds
 
   Scenario: Members see the rerouting notice
@@ -608,7 +624,7 @@ Feature: Drive together
 | --- | --- | --- |
 | Route | `Route`, `Trip` | `polyline`, `version`, `routeVersion` |
 | Progress | `Trip` | `currentWaypointIndex` (written by the leader only) |
-| Cars | `Participant` | `latitude`, `longitude`, `speedKmh`, `motionState`, `alert`, `lastSeenAt` |
+| Cars | `Participant` | `latitude`, `longitude`, `speedKmh`, `motionState`, `alert`, `lastSeenAt`, `course` |
 | Street and ETA | Derived | reverse geocode (at most every 30 s per car), MapKit travel time |
 | Way back | Device only | MapKit directions; never saved to the server |
 

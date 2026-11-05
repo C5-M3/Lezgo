@@ -55,6 +55,22 @@ DEFINE SCHEMA
         motionState    STRING,
         alert          STRING,
         lastSeenAt     TIMESTAMP,
+        course         DOUBLE,
+        wayBack        BYTES,
+        GRANT WRITE TO "_icloud",
+        GRANT CREATE TO "_icloud",
+        GRANT READ TO "_world"
+    );
+
+    RECORD TYPE Trail (
+        "___createTime" TIMESTAMP,
+        "___createdBy"  REFERENCE,
+        "___etag"       STRING,
+        "___modTime"    TIMESTAMP QUERYABLE SORTABLE,
+        "___modifiedBy" REFERENCE,
+        "___recordID"   REFERENCE QUERYABLE,
+        tripID   REFERENCE QUERYABLE,
+        polyline BYTES,
         GRANT WRITE TO "_icloud",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

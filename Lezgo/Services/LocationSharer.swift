@@ -18,6 +18,9 @@ final class LocationSharer {
     /// The last send's error, or `nil` once a send works again.
     private(set) var lastError: TripServiceError?
     private(set) var sentCount = 0
+    /// `true` while the GPS gives only rough readings, as with Precise Location off. Nothing is sent meanwhile: a car
+    /// kilometres off would mislead the group more than a car that stands still.
+    private(set) var isLocationImprecise = false
 
     private var latest: LocationReading?
     private var detector = MotionStateDetector()
@@ -46,17 +49,24 @@ final class LocationSharer {
     }
 
     /// Shares the position until the task is cancelled, for example when the trip ends or this person leaves.
-    func Run() async {
+    /// - Parameter echo: also gets every reading as it arrives, so the map can show this phone's car without
+    ///   waiting for the trip to send it back.
+    func Run(echoingTo echo: AsyncStream<LocationReading>.Continuation? = nil) async {
         await withTaskGroup(of: Void.self) { group in
-            group.addTask { await self.ReadGPS() }
+            group.addTask { await self.ReadGPS(echoingTo: echo) }
             group.addTask { await self.SendOnSchedule() }
         }
     }
 
     /// Keeps the latest reading and the motion state up to date as readings arrive.
-    private func ReadGPS() async {
+    private func ReadGPS(echoingTo echo: AsyncStream<LocationReading>.Continuation?) async {
         for await reading in locationProvider.Readings() {
+            isLocationImprecise = reading.isPrecise == false
+            if isLocationImprecise { continue }
+            // A reading can arrive late; an older one must not move the car back.
+            if let latest, reading.recordedAt < latest.recordedAt { continue }
             latest = reading
+            echo?.yield(reading)
             _ = detector.Update(speedKmh: reading.speedKmh, at: reading.recordedAt)
         }
     }
@@ -78,7 +88,8 @@ final class LocationSharer {
             coordinate: latest.coordinate,
             speedKmh: latest.speedKmh,
             motionState: detector.state,
-            recordedAt: clock()
+            recordedAt: clock(),
+            course: latest.course
         )
         do {
             try await tripService.UpdateLocation(update, participantID: participantID, tripID: tripID)

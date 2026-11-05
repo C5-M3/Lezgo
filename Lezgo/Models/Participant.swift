@@ -27,6 +27,11 @@ struct Participant: Identifiable, Hashable, Codable {
     var motionState: MotionState
     var alert: FormationAlert
     var lastSeenAt: Date
+    /// The way the car was heading at its last position, in degrees clockwise from north; `nil` when unknown.
+    var course: Double?
+    /// The road this member's phone is sending them on to get back to the group's road, so the leader can see it;
+    /// empty while they are on the road (`specs/UserStories.md` → US-06, "Footprint").
+    var wayBack: [Coordinate] = []
 
     func IsLeader(in trip: Trip) -> Bool {
         id == trip.leaderParticipantID
@@ -45,7 +50,7 @@ struct Participant: Identifiable, Hashable, Codable {
         profile: ParticipantProfile?,
         at date: Date
     ) -> Participant {
-        let profile = profile ?? ParticipantProfile.Default(forUserRecordID: userRecordID)
+        let profile = profile ?? ParticipantProfile.unnamed
         return Participant(
             id: UUID(),
             tripID: tripID,

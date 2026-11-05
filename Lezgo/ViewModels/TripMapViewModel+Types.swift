@@ -10,6 +10,12 @@ import Foundation
 // The trip map's small state types, nested in `TripMapViewModel` (ADR 0019), kept here so the view model file stays
 // within SwiftLint's file length.
 extension TripMapViewModel {
+    /// What is left of a member's way back to the group's road, as the leader's map draws it.
+    struct MemberWayBack: Identifiable, Hashable {
+        let id: UUID
+        let path: [Coordinate]
+    }
+
     /// What the trip map camera follows.
     enum CameraMode: Hashable {
         /// The camera stays on this phone's car as it moves.
@@ -28,8 +34,10 @@ extension TripMapViewModel {
         case endTrip(everyoneHasArrived: Bool)
     }
 
-    /// Why the trip map closed on this phone, which then returns to Home.
+    /// Why the trip map closed on this phone, which then returns to Home, or to the Trip Room for `backToTripRoom`.
     enum CloseReason: Hashable {
+        /// The leader planned a New Destination: the trip is back in `LOBBY` and every phone opens the Trip Room.
+        case backToTripRoom
         /// This member chose "Exit Trip".
         case exited
         /// This leader chose "End Trip".

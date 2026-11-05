@@ -33,7 +33,10 @@ struct TripMapViewModelSharingTests {
         let open = Task { await viewModel.Start() }
         try await Task.sleep(for: .milliseconds(10))
         gps.Send(LocationReading(coordinate: TripFixtures.pakuwonMall, speedKmh: 30, recordedAt: .now))
-        try await Task.sleep(for: .milliseconds(60))
+        // Waits for the send rather than a fixed time: with every suite running at once it can take longer.
+        for _ in 0..<200 where try await MyCoordinate(in: service) != TripFixtures.pakuwonMall {
+            try await Task.sleep(for: .milliseconds(10))
+        }
         open.cancel()
         await open.value
 
@@ -41,6 +44,11 @@ struct TripMapViewModelSharingTests {
         let participants = try await service.FetchTrip(tripID: SampleTrip.tripID).participants
         let budi = participants.first { $0.id == SampleTrip.budiID }
         #expect(budi?.coordinate == TripFixtures.pakuwonMall)
+    }
+
+    private func MyCoordinate(in service: InMemoryTripService) async throws -> Coordinate? {
+        try await service.FetchTrip(tripID: SampleTrip.tripID).participants
+            .first { $0.id == SampleTrip.budiID }?.coordinate
     }
 
     @Test func LeavingTheMapStopsSharing() async throws {

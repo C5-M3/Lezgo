@@ -27,6 +27,85 @@ struct TripStateTests {
         #expect(state.leader == nil)
     }
 
+    // MARK: Names
+
+    /// A car whose driver typed no name: iOS does not tell apps the iCloud account's name.
+    private func Unnamed(_ id: UUID = UUID()) -> Participant {
+        var participant = TripFixtures.Participant(id: id)
+        participant.displayName = ""
+        return participant
+    }
+
+    @Test func UnnamedLeaderIsCalledLeader() {
+        let state = TripState(
+            trip: TripFixtures.Trip(),
+            waypoints: [],
+            participants: [Unnamed(TripFixtures.agusID)],
+            route: nil
+        )
+
+        #expect(state.DisplayName(of: state.participants[0]) == "Leader")
+    }
+
+    @Test func UnnamedMembersAreNumberedInTheOrderTheyJoined() {
+        // The leader counts as car 1, so the first member is car 2, wherever the leader is in the list.
+        let first = Unnamed()
+        let second = Unnamed()
+        let state = TripState(
+            trip: TripFixtures.Trip(),
+            waypoints: [],
+            participants: [first, Unnamed(TripFixtures.agusID), second],
+            route: nil
+        )
+
+        #expect(state.DisplayName(of: first) == "Car 2")
+        #expect(state.DisplayName(of: second) == "Car 3")
+    }
+
+    @Test func TypedNameIsKept() {
+        var budi = Unnamed()
+        budi.displayName = "Budi"
+        let state = TripState(trip: TripFixtures.Trip(), waypoints: [], participants: [budi], route: nil)
+
+        #expect(state.DisplayName(of: budi) == "Budi")
+    }
+
+    @Test func NameOfOnlySpacesCountsAsNoName() {
+        var member = Unnamed()
+        member.displayName = "   "
+        let state = TripState(
+            trip: TripFixtures.Trip(),
+            waypoints: [],
+            participants: [Unnamed(TripFixtures.agusID), member],
+            route: nil
+        )
+
+        #expect(state.DisplayName(of: member) == "Car 2")
+    }
+
+    // MARK: Group path
+
+    @Test func WithoutAFootprintTheGroupFollowsTheRoute() {
+        var state = TripMapFixtures.State()
+        state.trail = []
+
+        #expect(state.groupPath == state.route?.polyline)
+    }
+
+    @Test func GroupPathIsTheFootprintThenTheLeaderThenTheRouteAhead() {
+        // After a reroute the route starts at the leader; the members behind still follow the leader's footprint.
+        let behind = Coordinate(latitude: -7.2650, longitude: 112.7300)
+        let leaderAt = Coordinate(latitude: -7.2700, longitude: 112.7300)
+        let destination = TripMapFixtures.destination.coordinate
+        var state = TripMapFixtures.State(cars: [
+            TripMapFixtures.Car(id: TripMapFixtures.agusID, name: "Agus", latitude: leaderAt.latitude)
+        ])
+        state.route?.polyline = [leaderAt, destination]
+        state.trail = [behind]
+
+        #expect(state.groupPath == [behind, leaderAt, leaderAt, destination])
+    }
+
     @Test func DestinationIsTheDestinationWaypoint() {
         let waypoints = [
             TripFixtures.Waypoint(orderIndex: 0, kind: .start),

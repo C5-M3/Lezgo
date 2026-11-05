@@ -18,7 +18,8 @@ struct HomeView: View {
     @State private var selectedDetent: PresentationDetent = .height(280)
 
     private var shouldHideHomeControls: Bool {
-        viewModel.isTransitioningToTripMap || viewModel.activeTripSession != nil || viewModel.activeMapSession != nil
+        viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
+            || viewModel.activeTripSession != nil || viewModel.activeMapSession != nil
     }
 
     var body: some View {
@@ -57,7 +58,12 @@ struct HomeView: View {
                         tripID: session.state.trip.id,
                         myParticipantID: session.myParticipantID,
                         initialState: session.state,
-                        activeTripStorage: viewModel.activeTripStorage
+                        activeTripStorage: viewModel.activeTripStorage,
+                        locationSharer: LocationSharer(
+                            tripService: tripService,
+                            tripID: session.state.trip.id,
+                            participantID: session.myParticipantID
+                        )
                     ),
                     onTripStarted: { viewModel.onTripStartedFromRoom(session: session) }
                 )
@@ -69,27 +75,29 @@ struct HomeView: View {
             content: { session in
                 TripMapView(
                     viewModel: TripMapViewModel(
-                        tripID: session.state.trip.id,
-                        myParticipantID: session.myParticipantID,
+                        session: session,
                         tripService: tripService,
-                        navigator: SimulatedTripMapNavigator(),
-                        streetNameService: LiveStreetNameService(),
-                        locationSharer: LocationSharer(
-                            tripService: tripService,
-                            locationProvider: LiveLocationProvider(),
-                            tripID: session.state.trip.id,
-                            participantID: session.myParticipantID
-                        ),
-                        directionsService: LiveDirectionsService(),
                         activeTripStorage: viewModel.activeTripStorage
                     ),
-                    onNewDestination: {},
-                    onClose: { viewModel.onMapSessionClosed() }
+                    onClose: { viewModel.onMapSessionClosed() },
+                    onReturnToTripRoom: { viewModel.onReturnedToTripRoom($0) }
                 )
             }
         )
         .safeAreaInset(edge: .top) { topNoticeInset }
+        .modifier(Prompts(viewModel: viewModel))
         .onAppear { viewModel.onAppear() }
+        // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
+        .onOpenURL { url in viewModel.OpenInviteLink(url) }
+        .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
+            guard roomCode != nil else { return }
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                isJoinTripPresented = true
+            }
+        }
+        .onChange(of: isJoinTripPresented) { _, isPresented in
+            if !isPresented { viewModel.inviteRoomCode = nil }
+        }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)
         }
@@ -199,6 +207,7 @@ private extension HomeView {
             JoinTripView(
                 isPresented: $isJoinTripPresented,
                 viewModel: JoinTripViewModel(
+                    roomCode: viewModel.inviteRoomCode ?? "",
                     tripService: tripService,
                     storage: viewModel.activeTripStorage
                 ),

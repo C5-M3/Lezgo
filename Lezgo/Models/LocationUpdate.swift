@@ -13,4 +13,6 @@ struct LocationUpdate: Hashable {
     var speedKmh: Double
     var motionState: MotionState
     var recordedAt: Date
+    /// The way the car is heading, in degrees clockwise from north; `nil` when the phone does not know.
+    var course: Double?
 }

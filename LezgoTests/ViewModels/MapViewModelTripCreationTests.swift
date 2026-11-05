@@ -96,6 +96,85 @@ struct MapViewModelTripCreationTests {
         #expect(viewModel.createdSession == session)
     }
 
+    @Test func CreateTripShowsTheGroupTheSavedName() async throws {
+        let profiles = FakeProfileStorage(ParticipantProfile(displayName: "Nathan", carDescription: ""))
+        let viewModel = MapViewModel(
+            tripService: InMemoryTripService(),
+            activeTripStorage: FakeActiveTripStorage(),
+            profileStorage: profiles
+        )
+        SetValidRoute(viewModel)
+
+        let session = try await viewModel.CreateTrip()
+
+        #expect(session.state.participants.first?.displayName == "Nathan")
+    }
+
+    // MARK: Start point name
+
+    /// A plan that starts at the leader's position, as Set Route does by default.
+    private func StartingAtCurrentLocation(_ names: MockStreetNameService) -> MapViewModel {
+        let viewModel = MapViewModel(
+            tripService: InMemoryTripService(),
+            activeTripStorage: FakeActiveTripStorage(),
+            profileStorage: FakeProfileStorage(),
+            streetNameService: names
+        )
+        SetValidRoute(viewModel)
+        let start = RoutePoint(
+            name: String(localized: .waypointCurrentLocation),
+            subtitle: "",
+            coordinate: Fixtures.startPoint.coordinate.locationCoordinate
+        )
+        viewModel.startPoint = start
+        viewModel.routedPoints = [start] + viewModel.destinations
+        return viewModel
+    }
+
+    @Test func CurrentLocationIsSavedAsTheRealPlace() async throws {
+        // "Current Location" means nothing on a member's phone in the Trip Room.
+        let names = MockStreetNameService(results: [.success("Jalan Citraraya Utama")])
+
+        let session = try await StartingAtCurrentLocation(names).CreateTrip()
+
+        #expect(session.state.waypoints.first?.name == "Jalan Citraraya Utama")
+        #expect(names.requestedCoordinates == [Fixtures.startPoint.coordinate])
+    }
+
+    @Test func PlannerKeepsSayingCurrentLocation() async throws {
+        let viewModel = StartingAtCurrentLocation(MockStreetNameService(results: [.success("Jalan Citraraya Utama")]))
+
+        try await viewModel.CreateTrip()
+
+        #expect(viewModel.startPoint?.name == String(localized: .waypointCurrentLocation))
+    }
+
+    @Test(arguments: [Result<String?, MockStreetNameService.LookupFailed>.success(nil), .failure(.init())])
+    func UnknownPlaceIsCalledTheLeadersStartingPoint(
+        result: Result<String?, MockStreetNameService.LookupFailed>
+    ) async throws {
+        // A failed name lookup must not stop the trip, and must not say "Current Location" either.
+        let session = try await StartingAtCurrentLocation(MockStreetNameService(results: [result])).CreateTrip()
+
+        #expect(session.state.waypoints.first?.name == "Leader's starting point")
+    }
+
+    @Test func SearchedStartPointKeepsItsName() async throws {
+        let names = MockStreetNameService()
+        let viewModel = MapViewModel(
+            tripService: InMemoryTripService(),
+            activeTripStorage: FakeActiveTripStorage(),
+            profileStorage: FakeProfileStorage(),
+            streetNameService: names
+        )
+        SetValidRoute(viewModel)
+
+        let session = try await viewModel.CreateTrip()
+
+        #expect(session.state.waypoints.first?.name == Fixtures.startPoint.name)
+        #expect(names.requestedCoordinates.isEmpty)
+    }
+
     @Test func CreateTripPersistsActiveTripSummary() async throws {
         let service = InMemoryTripService()
         let storage = FakeActiveTripStorage()

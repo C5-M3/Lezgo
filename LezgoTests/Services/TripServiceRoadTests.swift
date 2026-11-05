@@ -21,6 +21,18 @@ struct TripServiceRoadTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
+    func LocationUpdateSavesTheHeading(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroupOnTheRoad()
+        var update = Update(at: TripFixtures.ciputraWorld, speedKmh: 52, secondsLater: 5)
+        update.course = 270
+
+        try await phones.budi.UpdateLocation(update, participantID: group.budiID, tripID: group.tripID)
+
+        #expect(try await phones.Budi(in: group)?.course == 270)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
     func LocationUpdateMovesMyCar(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let group = try await phones.MakeGroupOnTheRoad()

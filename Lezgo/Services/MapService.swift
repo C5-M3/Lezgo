@@ -17,6 +17,8 @@ final class MapService: NSObject, CLLocationManagerDelegate {
     var userLocation: CLLocation?
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
     var errorMessage: String?
+    /// Set while Home wants the location; until then the GPS stays off.
+    private var isWanted = false
 
     var isAuthorized: Bool {
         authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
@@ -29,15 +31,22 @@ final class MapService: NSObject, CLLocationManagerDelegate {
         authorizationStatus = locationManager.authorizationStatus
     }
 
+    /// Asks only while the person has not answered yet. After "Allow Once", iOS sets the answer back to "not
+    /// determined" at the next launch, so the question comes back then; "While Using the App" stops it.
     func requestLocationPermission() {
+        // Home asks because it wants the location: once the person allows it, the GPS starts.
+        isWanted = true
+        guard locationManager.authorizationStatus == .notDetermined else { return }
         locationManager.requestWhenInUseAuthorization()
     }
 
     func startUpdatingLocation() {
+        isWanted = true
         locationManager.startUpdatingLocation()
     }
 
     func stopUpdatingLocation() {
+        isWanted = false
         locationManager.stopUpdatingLocation()
     }
 
@@ -45,7 +54,9 @@ final class MapService: NSObject, CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorizationStatus = manager.authorizationStatus
-        if isAuthorized {
+        // iOS reports the permission as soon as the manager exists, also when it starts the app in the background;
+        // the GPS starts only while Home asked for it.
+        if isAuthorized, isWanted {
             locationManager.startUpdatingLocation()
         }
     }
