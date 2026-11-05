@@ -26,7 +26,7 @@ struct RoutePlanCard: View {
         VStack(alignment: .leading, spacing: 0) {
             startPointRow
 
-            if destinations.count > 1 {
+            if !intermediateStops.isEmpty {
                 connectingLine
                 intermediateStopsSection
                 connectingLine
@@ -58,6 +58,44 @@ struct RoutePlanCard: View {
     }
 }
 
+// MARK: - Internal Helpers
+
+extension RoutePlanCard {
+    var isAddingNewDestination: Bool {
+        guard let activeSelection = activeSelection else { return false }
+        if case .destination(let index) = activeSelection {
+            return index >= destinations.count
+        }
+        return false
+    }
+
+    var intermediateStops: [RoutePoint] {
+        if isAddingNewDestination {
+            return destinations
+        } else if destinations.count > 1 {
+            return Array(destinations.dropLast())
+        } else {
+            return []
+        }
+    }
+
+    var isSearchingDestination: Bool {
+        guard let activeSelection = activeSelection else { return false }
+        switch activeSelection {
+        case .start:
+            return false
+        case .destination(let index):
+            if isAddingNewDestination {
+                return true
+            }
+            if destinations.isEmpty {
+                return index == 0
+            }
+            return index == destinations.count - 1
+        }
+    }
+}
+
 // MARK: - Subviews
 
 private extension RoutePlanCard {
@@ -65,7 +103,7 @@ private extension RoutePlanCard {
         HStack(spacing: 12) {
             Image(systemName: "house.fill")
                 .font(.system(size: 16))
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Color.heroYellow)
                 .frame(width: 24, height: 24)
                 .accessibilityHidden(true)
 
@@ -101,7 +139,6 @@ private extension RoutePlanCard {
 
     @ViewBuilder
     var intermediateStopsSection: some View {
-        let intermediateStops = Array(destinations.dropLast())
         let count = intermediateStops.count
 
         Button {
@@ -112,19 +149,19 @@ private extension RoutePlanCard {
             HStack(spacing: 12) {
                 Image(systemName: "mappin.circle.fill")
                     .font(.system(size: 16))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
                     .frame(width: 24, height: 24)
                     .accessibilityHidden(true)
 
                 Text(count == 1 ? "1 stop" : "\(count) stops")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
 
                 Spacer()
 
                 Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
                     .accessibilityHidden(true)
             }
             .frame(minHeight: 28)
@@ -139,7 +176,7 @@ private extension RoutePlanCard {
                 HStack(spacing: 12) {
                     Image(systemName: "mappin.circle.fill")
                         .font(.system(size: 16))
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(Color.heroYellow)
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
 
@@ -179,13 +216,13 @@ private extension RoutePlanCard {
 
     @ViewBuilder
     var destinationRow: some View {
-        let lastIndex = destinations.indices.last
+        let lastIndex = isAddingNewDestination ? destinations.count : destinations.indices.last
         let isEditingThisDestination = isSearchingDestination
 
         HStack(spacing: 12) {
             Image(systemName: "flag.checkered")
                 .font(.system(size: 16))
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Color.heroYellow)
                 .frame(width: 24, height: 24)
                 .accessibilityHidden(true)
 
@@ -231,13 +268,13 @@ private extension RoutePlanCard {
             HStack(spacing: 12) {
                 Image(systemName: "plus")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
                     .frame(width: 24, height: 24)
                     .accessibilityHidden(true)
 
                 Text("Add Destination")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.yellow)
+                    .foregroundStyle(Color.heroYellow)
 
                 Spacer()
             }
@@ -250,7 +287,7 @@ private extension RoutePlanCard {
     var connectingLine: some View {
         HStack(spacing: 0) {
             Rectangle()
-                .fill(Color.yellow.opacity(0.85))
+                .fill(Color.heroYellow.opacity(0.85))
                 .frame(width: 1.5, height: 16)
                 .padding(.leading, 11)
             Spacer()
@@ -280,93 +317,19 @@ private extension RoutePlanCard {
         .frame(height: 38)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.yellow, lineWidth: 1.5)
+                .strokeBorder(Color.heroYellow, lineWidth: 1.5)
         )
-    }
-
-    var isSearchingDestination: Bool {
-        guard let activeSelection = activeSelection else { return false }
-        switch activeSelection {
-        case .start:
-            return false
-        case .destination(let index):
-            return index >= max(0, destinations.count - 1)
-        }
     }
 }
 
-#Preview("2 Points") {
+#Preview("Route Plan Card") {
     ZStack {
         Color.black.ignoresSafeArea()
         RoutePlanCard(
-            startPoint: RoutePoint(
-                name: "Universitas Ciputra",
-                subtitle: "",
-                coordinate: .init(latitude: 0, longitude: 0)
-            ),
-            destinations: [
-                RoutePoint(
-                    name: "Ciputra World Surabaya",
-                    subtitle: "",
-                    coordinate: .init(latitude: 0, longitude: 0)
-                )
-            ],
+            startPoint: RoutePoint(name: "Universitas Ciputra", subtitle: "", coordinate: .init()),
+            destinations: [RoutePoint(name: "Ciputra World Surabaya", subtitle: "", coordinate: .init())],
             activeSelection: nil,
             searchQuery: .constant(""),
-            isStartPointLocked: false,
-            isStopsExpanded: .constant(false),
-            onSelectPointForEditing: { _ in },
-            onClearSearch: {},
-            onAddDestination: {},
-            onRemoveDestination: { _ in },
-            onMoveDestination: nil
-        )
-    }
-}
-
-#Preview("Collapsed 6 Stops") {
-    ZStack {
-        Color.black.ignoresSafeArea()
-        RoutePlanCard(
-            startPoint: RoutePoint(
-                name: "Universitas Ciputra",
-                subtitle: "",
-                coordinate: .init(latitude: 0, longitude: 0)
-            ),
-            destinations: [
-                RoutePoint(name: "Tugu Pahlawan", subtitle: "", coordinate: .init()),
-                RoutePoint(name: "House of Sampoerna", subtitle: "", coordinate: .init()),
-                RoutePoint(name: "Kya-Kya", subtitle: "", coordinate: .init()),
-                RoutePoint(name: "Taman Bungkul", subtitle: "", coordinate: .init()),
-                RoutePoint(name: "Sate Klopo", subtitle: "", coordinate: .init()),
-                RoutePoint(name: "Monumen", subtitle: "", coordinate: .init()),
-                RoutePoint(name: "Ciputra World Surabaya", subtitle: "", coordinate: .init())
-            ],
-            activeSelection: nil,
-            searchQuery: .constant(""),
-            isStartPointLocked: false,
-            isStopsExpanded: .constant(false),
-            onSelectPointForEditing: { _ in },
-            onClearSearch: {},
-            onAddDestination: {},
-            onRemoveDestination: { _ in },
-            onMoveDestination: nil
-        )
-    }
-}
-
-#Preview("Search Mode") {
-    ZStack {
-        Color.black.ignoresSafeArea()
-        RoutePlanCard(
-            startPoint: RoutePoint(
-                name: "Universitas Ciputra",
-                subtitle: "",
-                coordinate: .init(latitude: 0, longitude: 0)
-            ),
-            destinations: [],
-            activeSelection: .destination(index: 0),
-            searchQuery: .constant("Ciputra W"),
             isStartPointLocked: false,
             isStopsExpanded: .constant(false),
             onSelectPointForEditing: { _ in },
