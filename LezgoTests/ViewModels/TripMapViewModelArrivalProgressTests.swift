@@ -92,7 +92,8 @@ struct TripMapViewModelArrivalProgressTests {
 
     @Test func TheFirstFiveToArriveAreTheOnesShown() async throws {
         let extras = ExtraCars(5)
-        let viewModel = MakeViewModel(states: [Fixtures.State(cars: [Near(Fixtures.agusID, "Agus"), Near(Fixtures.budiID, "Budi")] + extras)])
+        let cars = [Near(Fixtures.agusID, "Agus"), Near(Fixtures.budiID, "Budi")] + extras
+        let viewModel = MakeViewModel(states: [Fixtures.State(cars: cars)])
 
         await viewModel.Start()
 

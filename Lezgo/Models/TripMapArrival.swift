@@ -32,4 +32,16 @@ struct TripMapArrival: Hashable {
         }
         return TripMapArrival(hasArrived: hasArrived, everyoneHasArrived: everyoneHasArrived)
     }
+
+    /// The cars at the destination, in the order of the participants. Offline cars do not count, except this phone's
+    /// own car: the driver can see it has arrived, whatever the last location update says.
+    static func ArrivedIDs(_ state: TripState, myParticipantID: UUID, at date: Date) -> [UUID] {
+        guard let destination = state.destination else { return [] }
+        return state.participants.filter { participant in
+            guard let coordinate = participant.coordinate else { return false }
+            guard coordinate.Distance(to: destination.coordinate) <= radius else { return false }
+            return participant.id == myParticipantID || participant.IsOnline(at: date)
+        }
+        .map(\.id)
+    }
 }

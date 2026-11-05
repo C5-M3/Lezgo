@@ -136,6 +136,21 @@ extension TripMapViewModel {
         return .ForMember(atIndex: index)
     }
 
+    /// The robots and the count on the top card, or `nil` until this phone's car has arrived.
+    var arrivalProgress: TripMapArrivalProgress? {
+        guard let state, arrivalCard != nil else { return nil }
+        let robots = arrivalOrder.ids.prefix(TripMapArrivalProgress.maxRobots).compactMap { id in
+            state.participants.first { $0.id == id }.map {
+                TripMapArrivalProgress.Robot(id: id, carColor: CarColor(of: $0, in: state))
+            }
+        }
+        return TripMapArrivalProgress(
+            robots: robots,
+            arrivedCount: arrivalOrder.ids.count,
+            totalCount: state.participants.count
+        )
+    }
+
     /// The status card of the tapped car, or `nil` while no car is tapped.
     ///
     /// The street and time left appear once they are looked up; an offline car shows when it was last seen instead.

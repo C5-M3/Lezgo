@@ -41,6 +41,8 @@ final class TripMapViewModel {
     private(set) var carLookups: [UUID: CarLookup] = [:]
     /// This phone's formation alert and the banners closed with ⓧ.
     private(set) var alerts: TripMapAlerts
+    /// The cars at the destination, in the order this phone saw them arrive.
+    private(set) var arrivalOrder = TripMapArrivalOrder()
     /// When this phone, as leader, moves the trip past a checkpoint.
     private var checkpointProgress = TripMapCheckpointProgress()
     /// The leader's footprint: recorded on the leader's phone, followed on a member's.
@@ -351,6 +353,7 @@ extension TripMapViewModel {
             if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
             state = WithMyGPS(newState)
             updatedAt = clock()
+            NoteArrivals()
             NoticeTripClosed(newState)
             CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }
@@ -369,9 +372,15 @@ extension TripMapViewModel {
         for await reading in readings {
             myReading = reading
             state = state.map(WithMyGPS)
+            NoteArrivals()
             if let state { await following.Record(reading, in: state) }
             await RefreshGuidance()
         }
+    }
+
+    private func NoteArrivals() {
+        guard let state else { return }
+        arrivalOrder.Update(state, myParticipantID: myParticipantID, at: updatedAt ?? clock())
     }
 
     /// The trip with this phone's car at its own latest GPS reading, so checkpoints, alerts and the reroute use it
