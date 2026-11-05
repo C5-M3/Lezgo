@@ -69,7 +69,7 @@ LOBBY ──leader leaves──► CANCELLED
 | --- | --- | --- |
 | `Trip` | `id`, `roomCode`, `status`, `leaderParticipantID`, `currentWaypointIndex`, `routeVersion`, `createdAt`, `startedAt`, `endedAt` | The leader is stored **only** here, so there can never be two leaders. |
 | `Waypoint` | `id`, `tripID`, `orderIndex`, `kind` (`start`, `checkpoint`, `destination`), `name`, `latitude`, `longitude` | Order: start point `0`, checkpoints `1…n`, destination `n + 1`. Visited when `orderIndex < Trip.currentWaypointIndex`. |
-| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt`, `course` (degrees clockwise from north, empty when unknown) | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
+| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `avatar` (`Yellow`, `Blue`, `Green`, `Pink`, `Purple`), `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt`, `course` (degrees clockwise from north, empty when unknown) | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
 | `Route` | `id`, `tripID`, `version`, `polyline` | The road path. A new version replaces the old one. |
 
 ### Sync and timing
@@ -281,29 +281,41 @@ Feature: Resume an unfinished trip
 
 **Lo-fi:** `TRIP ROOM (LEADER)`, `TRIP ROOM (JOINER)`, `TRIP ROOM (INVITE FRIENDS)`, `TRIP ROOM (INVITE FRIENDS) (JOINER)`
 
+**Hi-fi:** Trip Room, Add Participants, Edit Profile, Start Trip confirmation (#166). The hi-fi wins where it differs from the lo-fi.
+
 ### Rules
 
 **Room**
-- "Route Trip" lists the start point, checkpoints and destination.
-- "Participants" lists everyone with name and car description; the leader has a crown.
+- Always dark: the Trip Room and its sheets never show in light mode.
+- At the top, a map preview shows the start point, the destination and the road route only: no checkpoints, no other routes, no cars.
+- The title is "Lez Get Ready !".
+- "Overview" shows STARTING POINT, DESTINATION and "# OF STOPS" (the number of checkpoints, without the start point and the destination).
+- "Participants" shows everyone's avatar, name and car description; the leader has a crown.
 - The list updates within 2 seconds when someone joins, leaves, is removed, edits their profile, or the leader changes.
-- The leader sees "Start Trip" and the `...` menu (US-05). Members see "Waiting for others ...".
-- Top-left button: Exit (US-07). When the trip starts, every phone moves to the map.
+- The leader sees "Start Trip". Members see "Waiting for others ...".
+- Under the participants: the leader has "End Trip", a member has "Exit Trip" (US-07). Text buttons, no icon. When the trip starts, every phone moves to the map.
 
 **Invite**
-- `+` next to "Participants" opens a sheet with the room code in large text, "or", and "Share Link" (iOS share sheet with the invite link). Leader and members can both invite.
+- "Add" next to "Participants" opens "Add Participants": the room code in large text and "Share Link" (iOS share sheet with the invite link). Leader and members can both invite.
 - Tapping the room code copies the 6 digits and shows "Copied" in the box for 2 seconds. Touching and holding it shows "Copy Code". The lo-fi has no copy button, so copying lives on the code itself.
 - "Share Link" sends "Join my Lezgo trip with code 897654" together with the invite link.
 - Copying and "Share Link" stay disabled until the room code has loaded.
 
-**Edit name and car** — **Needs lo-fi** (tap a row → edit sheet)
-- A member can only edit their own row; the leader can edit every row. Name: 1–30 characters, required. Car description: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
-- My own details are saved on my device and reused next time I join; details the leader changes for a member are not saved on either device. Not editable during the trip (safety).
+**Edit Profile** (tap an avatar)
+- A member can only edit their own profile; the leader can edit everyone's. Avatar: one of the five. Name: 1–30 characters, required. Car details: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
+- My own details are saved on my device and reused next time I create or join a trip; details the leader changes for a member are not saved on either device. Not editable during the trip (safety).
+- When the leader edits a member, "Kick" and "Set Lead" sit between the form and "Save" (US-05).
+
+**Avatar**
+- Five avatars: Yellow, Blue, Green, Pink, Purple. Each is a set of finished mascot images told apart by asset name (`MainSelectedBlue`, `MainUnselectedBlue`, …); the trip stores only the key (`Blue`).
+- Several cars may have the same avatar.
+- Someone who never picked one gets Yellow when they create a trip and a random other avatar when they join.
+- Records without a known avatar show Yellow.
 
 **Ready**
 - Detected automatically; nobody taps a button.
 - Ready = within 100 m of the start point. Unknown location (no permission or offline) = not ready.
-- Each row shows a dot and text: green "ready at startpoint" or grey "not ready at startpoint" (never colour alone).
+- Each avatar shows it: the selected image (with the burst behind the mascot) when ready, the unselected image when not. The two differ in shape, not only colour, and VoiceOver reads "Ready at start point" or "Not ready at start point".
 - Not ready never blocks the start; it only adds a warning (US-05).
 
 ### Acceptance criteria
@@ -317,36 +329,45 @@ Feature: Trip Room
 
   Scenario: See the shared plan
     When "Budi" opens the Trip Room
-    Then "Budi" sees the route, "Agus" with a crown and "Budi"
-    And "Budi" sees "Waiting for others ..."
-    And "Agus" sees "Start Trip" and the "..." menu
+    Then "Budi" sees the map preview, the overview, "Agus" with a crown and "Budi"
+    And "Budi" sees "Waiting for others ..." and "Exit Trip"
+    And "Agus" sees "Start Trip" and "End Trip"
+
+  Scenario: Count the stops
+    Given the route has 2 checkpoints
+    Then the overview shows "2" under "# OF STOPS"
 
   Scenario: Someone joins
     When "Citra" joins with the room code
     Then "Agus" and "Budi" see "Citra" within 2 seconds
 
   Scenario: Invite friends
-    When "Budi" taps "+"
+    When "Budi" taps "Add"
     Then "Budi" sees "897654" in large text
     When "Budi" taps "Share Link"
     Then the share sheet opens with "Join my Lezgo trip with code 897654" and "https://lezgo-trip.netlify.app/join?code=897654"
 
   Scenario: Copy the room code
-    When "Budi" taps "+" and then the room code
+    When "Budi" taps "Add" and then the room code
     Then "897654" is on the pasteboard
     And "Budi" sees "Copied"
 
-  Scenario: Edit my name and car
-    When "Budi" taps his own row and sets "Budi" and "White Avanza"
-    Then everyone sees "White Avanza" on the row of "Budi" within 2 seconds
-    And next time "Budi" joins a trip he joins as "Budi" with "White Avanza"
+  Scenario: Edit my profile
+    When "Budi" taps his own avatar, picks Pink and sets "Budi" and "White Avanza"
+    Then everyone sees the Pink avatar and "White Avanza" for "Budi" within 2 seconds
+    And next time "Budi" joins a trip he joins as "Budi" with "White Avanza" and the Pink avatar
+
+  Scenario: Default avatars
+    Given "Citra" never picked an avatar
+    When "Citra" joins
+    Then "Citra" has an avatar that is not Yellow
 
   Scenario: A member cannot edit someone else
-    When "Budi" taps the row of "Agus"
+    When "Budi" taps the avatar of "Agus"
     Then no edit sheet opens
 
   Scenario: The leader edits a member
-    When "Agus" taps the row of "Budi" and sets "Budi Santoso"
+    When "Agus" taps the avatar of "Budi" and sets "Budi Santoso"
     Then everyone sees "Budi Santoso" within 2 seconds
     And next time "Agus" joins a trip he still joins as "Agus"
 
@@ -355,13 +376,13 @@ Feature: Trip Room
     Then saving is disabled
 
   Scenario: Arrive at the start point
-    Given "Budi" is 2 km away and shows "not ready at startpoint"
+    Given "Budi" is 2 km away and his avatar shows not ready
     When "Budi" comes within 100 m of "Universitas Ciputra"
-    Then "Agus" sees "Budi" as "ready at startpoint" within 2 seconds
+    Then "Agus" sees the avatar of "Budi" as ready within 2 seconds
 
   Scenario: No location permission
     Given "Budi" denied location permission
-    Then "Budi" shows "not ready at startpoint"
+    Then the avatar of "Budi" shows not ready
     And "Budi" sees how to turn on location in Settings
 ```
 
@@ -370,38 +391,39 @@ Feature: Trip Room
 | Element | Entity | Fields |
 | --- | --- | --- |
 | Route | `Waypoint` | `name`, `kind`, `orderIndex` |
-| Rows | `Participant` | `displayName`, `carDescription`, `latitude`, `longitude`, `lastSeenAt` |
+| Map preview | `Waypoint`, `Route` | start point, destination, `polyline` |
+| Participants | `Participant` | `displayName`, `carDescription`, `avatar`, `latitude`, `longitude`, `lastSeenAt` |
 | Crown | `Trip` | `leaderParticipantID` |
-| Saved profile | Device | `displayName`, `carDescription` |
+| Saved profile | Device | `displayName`, `carDescription`, `avatar` |
 
 ---
 
 <a id="us-05"></a>
 ## US-05 — As a leader, I want to manage the group and start the trip for everyone so that the right cars leave together.
 
+**Hi-fi:** Edit Profile, Start Trip confirmation (#166). It replaces the swipe, Select and picker lo-fi below.
+
 **Lo-fi:** `TRIP ROOM (EDIT)`, `SLIDE DELETE IF NOT LEADER`, `SLIDE DELETE IF LEADER`, `REMOVE PERSON POP UP ALERT CONFIRM VIA SLIDER`, `SELECT MEMBERS`, `MORE THAN 3 REMOVAL POP UP ALERT CONFIRM`, `SET LEAD IF NOT LEADER VIA SLIDER`, `SET LEAD IF LEADERS IS SELECTED VIA SLIDER`, `POP UP ALERT CONFIRM SET LEADER`, `PICK LEADER`, `LEADER POP UP ALERT CONFIRM`, `LEADER BECOMES JOINER`, `CONFIRM START TRIP`, `CONFIRM START TRIP WHEN NOT ALL MEMBER READY`
 
 ### Rules
 
-Only the leader sees these actions, and only in the Trip Room.
+Only the leader sees these actions, and only in the Trip Room. The hi-fi has no swipe actions, `...` menu or Select mode: removing and handing over happen one car at a time in Edit Profile (US-04).
 
 **Remove members**
-- Swipe a row left → "Kick", or `...` → "Select" → tick rows (or "Select all") → "Remove".
-- The leader cannot remove themselves ("Kick" disabled, no checkbox on the leader's row).
-- On the leader's own row "Kick" and "Set Lead" are gray and do nothing. VoiceOver adds the hint "Not available for the leader." to both, so the gray color is not the only sign.
-- Confirm: "Remove XX from the trip?" or "Remove XX and N others from the trip?" → "Cancel" / "Remove".
+- Tap a member's avatar → "Kick" in Edit Profile.
+- "Kick" and "Set Lead" are plain buttons, never as prominent as "Save"; "Kick" has red text. Both are hidden when the leader edits their own profile, so the leader cannot remove or hand over to themselves.
+- Confirm: "Remove XX from the trip?" → "Cancel" / "Remove". "Remove" closes the sheet; "Cancel" keeps it open.
 - A removed member sees "You were removed from the trip." and returns to Home. They can join again with the code.
 
 **Hand over the lead**
-- Swipe a member's row right → "Set Lead", or `...` → "Set leader" → "Pick Your New Leader" → tap a member.
-- "Set Lead" is disabled on the leader's own row. "Cancel" on the picker changes nothing.
+- Tap a member's avatar → "Set Lead" in Edit Profile.
 - Confirm: "Set XX as Trip Leader?" → "Cancel" / "Confirm".
-- The crown moves; the new leader gets "Start Trip" and `...`; the old leader becomes a member ("Waiting for others ..."). Saved with a conditional write so two leaders can never exist.
-- Handing over is how a leader leaves without ending the trip: hand over, then Exit as a member.
+- The crown moves; the new leader gets "Start Trip" and "End Trip"; the old leader becomes a member ("Waiting for others ..." and "Exit Trip"). Saved with a conditional write so two leaders can never exist.
+- Handing over is how a leader leaves without ending the trip: hand over, then "Exit Trip" as a member.
 
 **Start the trip**
 - "Start Trip" needs at least one member besides the leader; otherwise it is disabled with "Invite at least one friend to start."
-- Everyone ready → "Start trip?". Someone not ready → "Some participants are not yet ready, are you sure you want to start the trip?" → "Cancel" / "Start".
+- Everyone ready → "Start Trip?". Someone not ready → "Some participants are not yet ready, are you sure you want to start the trip?". Both → "Cancel" / the LEZGO logo button (VoiceOver: "Start").
 - Start sets the trip to `IN_TRIP` and moves every phone to the map within 1 second.
 
 ### Acceptance criteria
@@ -412,41 +434,31 @@ Feature: Manage the group and start
   Background:
     Given trip "897654" is in LOBBY with leader "Agus" and members "Budi", "Citra", "Doni", "Eka", "Fajar"
 
-  Scenario: Remove one member by swiping
-    When "Agus" swipes "Doni" left, taps "Kick" and confirms "Remove Doni from the trip?"
+  Scenario: Remove a member
+    When "Agus" taps the avatar of "Doni", taps "Kick" and confirms "Remove Doni from the trip?"
     Then "Doni" is no longer in Participants
     And "Doni" sees "You were removed from the trip." and returns to Home
 
-  Scenario: Remove several members
-    When "Agus" taps "..." and "Select", ticks "Citra", "Doni", "Eka" and "Fajar", and taps "Remove"
-    Then "Agus" sees "Remove Citra and 3 others from the trip?"
-    When "Agus" taps "Remove"
-    Then Participants shows only "Agus" and "Budi"
-
   Scenario: Cancel a removal
-    When "Agus" swipes "Doni" left, taps "Kick" and then "Cancel"
+    When "Agus" taps the avatar of "Doni", taps "Kick" and then "Cancel"
     Then "Doni" stays
 
   Scenario: Leader cannot remove or hand over to himself
-    When "Agus" swipes his own row
-    Then "Kick" and "Set Lead" are disabled
+    When "Agus" taps his own avatar
+    Then Edit Profile shows no "Kick" and no "Set Lead"
 
   Scenario: Members cannot manage the group
-    When "Budi" swipes the row of "Citra"
-    Then no action appears
+    When "Budi" taps his own avatar
+    Then Edit Profile shows no "Kick" and no "Set Lead"
 
   Scenario: Hand over the lead
-    When "Agus" swipes "Budi" right, taps "Set Lead" and confirms "Set Budi as Trip Leader?"
+    When "Agus" taps the avatar of "Budi", taps "Set Lead" and confirms "Set Budi as Trip Leader?"
     Then "Budi" has the crown and sees "Start Trip"
     And "Agus" sees "Waiting for others ..."
 
-  Scenario: Hand over from the menu
-    When "Agus" taps "..." and "Set leader", taps "Budi" and confirms
-    Then "Budi" is the leader
-
   Scenario: Start with everyone ready
     Given everyone is "ready at startpoint"
-    When "Agus" taps "Start Trip" and confirms "Start trip?"
+    When "Agus" taps "Start Trip" and confirms "Start Trip?"
     Then the trip is IN_TRIP
     And every phone shows the map within 1 second
 
@@ -454,7 +466,7 @@ Feature: Manage the group and start
     Given "Budi" is "not ready at startpoint"
     When "Agus" taps "Start Trip"
     Then "Agus" sees "Some participants are not yet ready, are you sure you want to start the trip?"
-    When "Agus" taps "Start"
+    When "Agus" taps the LEZGO button
     Then the trip is IN_TRIP
 
   Scenario: Leader alone
@@ -466,7 +478,7 @@ Feature: Manage the group and start
 
 | Action | Entity | Effect |
 | --- | --- | --- |
-| Remove | `Participant` | delete the selected records |
+| Remove | `Participant` | delete the member's record |
 | Hand over | `Trip` | `leaderParticipantID` (conditional save) |
 | Start | `Trip` | `status: IN_TRIP`, `startedAt: now`, `currentWaypointIndex: 1` |
 
@@ -656,9 +668,9 @@ Feature: Drive together
 
 | Who | Where | Button | Confirmation | Result |
 | --- | --- | --- | --- | --- |
-| Member | Trip Room | Exit (top left) | "Exit the room?" | I leave; Home opens |
+| Member | Trip Room | "Exit Trip" (under the participants) | "Exit the room?" | I leave; Home opens |
 | Member | On the road | "Exit Trip" | "Exit trip?" | I leave; my car disappears from every map |
-| Leader | Trip Room | Exit (top left) | "Exit and end the trip for everyone? All members will leave this trip." | Trip `CANCELLED` for everyone |
+| Leader | Trip Room | "End Trip" (under the participants) | "Exit and end the trip for everyone? All members will leave this trip." | Trip `CANCELLED` for everyone |
 | Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip? Not everyone has arrived yet." | Trip `ENDED` for everyone |
 | Leader | Draft card | "New Trip" (US-03) | "Create a new trip? Your current trip will end for everyone." | Old trip ends for everyone |
 
@@ -724,19 +736,19 @@ Feature: Arrive, continue, leave and end
 
   Scenario: Member exits the Trip Room
     Given the trip is in LOBBY
-    When "Budi" taps Exit and confirms "Exit the room?"
+    When "Budi" taps "Exit Trip" and confirms "Exit the room?"
     Then "Budi" is on Home and the others no longer see him
 
   Scenario: Leader exits the Trip Room
     Given the trip is in LOBBY
-    When "Agus" taps Exit
+    When "Agus" taps "End Trip"
     Then "Agus" sees "Exit and end the trip for everyone? All members will leave this trip."
     When "Agus" taps "Confirm"
     Then the trip is CANCELLED and every phone returns to Home
 
   Scenario: Leader leaves without ending
     Given the trip is in LOBBY and "Agus" handed the lead to "Budi"
-    When "Agus" taps Exit and confirms "Exit the room?"
+    When "Agus" taps "Exit Trip" and confirms "Exit the room?"
     Then the trip continues with "Budi" as leader
 
   Scenario: Cancel
