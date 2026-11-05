@@ -97,7 +97,7 @@ struct TripRoomView: View {
             onLeave: { showingLeaveConfirmation = true }
         )
         .safeAreaInset(edge: .bottom) {
-            StartActionView(viewModel: viewModel, isTransitioning: isTransitioning) {
+            TripRoomStartAction(viewModel: viewModel, isTransitioning: isTransitioning) {
                 showingStartTripConfirmation = true
             }
             .padding(.horizontal)
@@ -171,7 +171,7 @@ private struct TripRoomContent: View {
                         onInvite: onInvite
                     )
                     if !isTransitioning {
-                        LeaveButton(viewModel: viewModel, action: onLeave)
+                        TripRoomLeaveButton(viewModel: viewModel, action: onLeave)
                     }
                 }
                 .padding(.horizontal)
@@ -181,93 +181,6 @@ private struct TripRoomContent: View {
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
         .background(.black)
-    }
-}
-
-/// The map preview with "Lez Get Ready !" on its lower edge, fading into the black page like the hi-fi.
-private struct TripRoomHeader: View {
-    let viewModel: TripRoomViewModel
-    /// Fixed, not scaled with Dynamic Type: at large text sizes the map would push the overview off the screen.
-    private let mapHeight: CGFloat = 320
-
-    var body: some View {
-        TripRoomMapPreview(
-            start: viewModel.startPoint,
-            destination: viewModel.destination,
-            polyline: viewModel.routePolyline
-        )
-        .frame(height: mapHeight)
-        .overlay(alignment: .bottom) {
-            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
-                .frame(height: mapHeight / 2)
-                .allowsHitTesting(false)
-        }
-        .overlay(alignment: .bottomLeading) {
-            Text("Lez Get Ready !")
-                .font(.largeTitle.weight(.black))
-                .foregroundStyle(Color(.brandYellow))
-                .padding(.horizontal)
-                .accessibilityAddTraits(.isHeader)
-        }
-    }
-}
-
-/// "End Trip" for the leader, "Exit Trip" for a member, under the participants (US-07, "Leave and end").
-private struct LeaveButton: View {
-    let viewModel: TripRoomViewModel
-    let action: () -> Void
-
-    var body: some View {
-        Button(role: .destructive, action: action) {
-            Text(viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip")
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.bordered)
-        .tint(.red)
-        .disabled(viewModel.isLeaving)
-    }
-}
-
-/// "Start Trip" for the leader, "Waiting for others ..." for a member, and "Starting Trip..." once it starts.
-private struct StartActionView: View {
-    let viewModel: TripRoomViewModel
-    let isTransitioning: Bool
-    let onStartTrip: () -> Void
-
-    var body: some View {
-        if isTransitioning {
-            HStack(spacing: 12) {
-                ProgressView()
-                Text("Starting Trip...")
-            }
-            .font(.headline)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, minHeight: 56)
-        } else if viewModel.isCurrentUserLeader {
-            VStack(spacing: 6) {
-                Button(action: onStartTrip) {
-                    Text("Start Trip")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background(Color(.brandYellow).opacity(viewModel.canStartTrip ? 1 : 0.4), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .disabled(!viewModel.canStartTrip)
-                if !viewModel.canStartTrip {
-                    Text("Invite at least one friend to start.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } else {
-            Text("Waiting for others ...")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 56)
-                .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
-        }
     }
 }
 
