@@ -29,25 +29,25 @@ struct TripServiceCreateTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
-    func LeaderWithoutAChosenColorIsYellow(kind: TripPhones.Kind) async throws {
+    func LeaderWithoutAChosenAvatarIsYellow(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let session = try await phones.agus.CreateTrip(
             plan: TripPlanFixtures.tunjunganToPakuwon,
             profile: TripPlanFixtures.agusProfile
         )
 
-        #expect(session.state.leader?.avatarColor == .yellow)
+        #expect(session.state.leader?.avatar == .yellow)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
-    func LeaderKeepsTheColorTheyChose(kind: TripPhones.Kind) async throws {
+    func LeaderKeepsTheAvatarTheyChose(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         var profile = TripPlanFixtures.agusProfile
-        profile.avatarColor = .pink
+        profile.avatar = .pink
 
         let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: profile)
 
-        #expect(session.state.leader?.avatarColor == .pink)
+        #expect(session.state.leader?.avatar == .pink)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)

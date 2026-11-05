@@ -163,26 +163,26 @@ struct TripServiceRoadTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
-    func ColorChangeShowsToEveryone(kind: TripPhones.Kind) async throws {
+    func AvatarChangeShowsToEveryone(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
-        let profile = ParticipantProfile(displayName: "Budi", carDescription: "White Brio", avatarColor: .purple)
+        let profile = ParticipantProfile(displayName: "Budi", carDescription: "White Brio", avatar: .purple)
 
         try await phones.budi.UpdateProfile(profile, participantID: group.budiID, tripID: group.tripID)
 
         let budi = try #require(try await phones.Budi(in: group))
-        #expect(budi.avatarColor == .purple)
+        #expect(budi.avatar == .purple)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
-    func ProfileWithoutAColorKeepsTheCurrentColor(kind: TripPhones.Kind) async throws {
+    func ProfileWithoutAnAvatarKeepsTheCurrentAvatar(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let group = try await phones.MakeGroup()
-        let before = try #require(try await phones.Budi(in: group)).avatarColor
+        let before = try #require(try await phones.Budi(in: group)).avatar
         let profile = ParticipantProfile(displayName: "Budi Santoso", carDescription: "Silver Brio")
 
         try await phones.budi.UpdateProfile(profile, participantID: group.budiID, tripID: group.tripID)
 
-        #expect(try #require(try await phones.Budi(in: group)).avatarColor == before)
+        #expect(try #require(try await phones.Budi(in: group)).avatar == before)
     }
 }

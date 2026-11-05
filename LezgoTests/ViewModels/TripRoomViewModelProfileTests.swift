@@ -46,7 +46,7 @@ struct TripRoomViewModelProfileTests {
         #expect(profiles.savedProfile == ParticipantProfile(displayName: "Budi", carDescription: "White Avanza"))
     }
 
-    @Test func ChosenColorIsSavedAndRemembered() async throws {
+    @Test func ChosenAvatarIsSavedAndRemembered() async throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
         let profiles = FakeProfileStorage()
         let viewModel = TripRoomViewModel(
@@ -57,12 +57,12 @@ struct TripRoomViewModelProfileTests {
             profileStorage: profiles
         )
 
-        await viewModel.SaveProfile(displayName: "Budi", carDescription: "White Avanza", avatarColor: .blue)
+        await viewModel.SaveProfile(displayName: "Budi", carDescription: "White Avanza", avatar: .blue)
 
         let budi = try await service.FetchTrip(tripID: SampleTrip.tripID).participants
             .first { $0.id == SampleTrip.budiID }
-        #expect(budi?.avatarColor == .blue)
-        #expect(profiles.savedProfile?.avatarColor == .blue)
+        #expect(budi?.avatar == .blue)
+        #expect(profiles.savedProfile?.avatar == .blue)
     }
 
     @Test func SaveProfileFailureKeepsTheSheetOpenWithAnError() async {
@@ -120,7 +120,7 @@ struct TripRoomViewModelLeaderEditTests {
         let didSave = await viewModel.SaveProfile(
             displayName: "Budi Santoso",
             carDescription: "Black Brio",
-            avatarColor: .green,
+            avatar: .green,
             of: SampleTrip.budiID
         )
 
@@ -129,7 +129,7 @@ struct TripRoomViewModelLeaderEditTests {
             .first { $0.id == SampleTrip.budiID }
         #expect(budi?.displayName == "Budi Santoso")
         #expect(budi?.carDescription == "Black Brio")
-        #expect(budi?.avatarColor == .green)
+        #expect(budi?.avatar == .green)
     }
 
     @Test func MembersDetailsDoNotBecomeTheLeadersOwnProfile() async {

@@ -31,13 +31,13 @@ struct ProfileStorageTests {
         #expect(storage.LoadProfile() == ParticipantProfile(displayName: "Nathan", carDescription: "White Avanza"))
     }
 
-    @Test func SavedColorIsThereNextTime() {
+    @Test func SavedAvatarIsThereNextTime() {
         let storage = MakeStorage()
-        let profile = ParticipantProfile(displayName: "Nathan", carDescription: "", avatarColor: .green)
+        let profile = ParticipantProfile(displayName: "Nathan", carDescription: "", avatar: .green)
 
         storage.SaveProfile(profile)
 
-        #expect(storage.LoadProfile()?.avatarColor == .green)
+        #expect(storage.LoadProfile()?.avatar == .green)
     }
 
     @Test func ProfileSavedBeforeAvatarsStillLoads() throws {
@@ -50,6 +50,6 @@ struct ProfileStorageTests {
         let profile = UserDefaultsProfileStorage(userDefaults: defaults).LoadProfile()
 
         #expect(profile == ParticipantProfile(displayName: "Nathan", carDescription: "White Avanza"))
-        #expect(profile?.avatarColor == nil)
+        #expect(profile?.avatar == nil)
     }
 }
