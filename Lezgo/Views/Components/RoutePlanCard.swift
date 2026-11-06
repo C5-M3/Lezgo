@@ -25,34 +25,22 @@ struct RoutePlanCard: View {
     var body: some View {
         List {
             startPointRow
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 4, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
-            if showsConnectingLineAfterStart {
-                RouteConnectingLine()
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            }
-
             if !intermediateStops.isEmpty {
                 intermediateStopsSection
-
-                RouteConnectingLine()
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
             }
 
             destinationRow
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: canAddDestination ? 4 : 16, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
             if canAddDestination {
                 RouteAddDestinationRow(onAddDestination: onAddDestination)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 16, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
@@ -60,7 +48,7 @@ struct RoutePlanCard: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 0)
-        .scrollDisabled(!isStopsExpanded || intermediateStops.count <= 3)
+        .scrollDisabled(isScrollDisabled)
         .frame(height: calculatedHeight)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -118,30 +106,42 @@ extension RoutePlanCard {
         }
     }
 
-    var showsConnectingLineAfterStart: Bool {
+    var showsConnectingLine: Bool {
         !destinations.isEmpty || isSearchingDestination
     }
 
+    var isScrollDisabled: Bool {
+        !isStopsExpanded || intermediateStops.count <= 3
+    }
+
     var calculatedHeight: CGFloat {
-        var height: CGFloat = 40
-        if showsConnectingLineAfterStart {
-            height += 16
-        }
+        var height: CGFloat = 16 // Top padding
+
+        // Start point row
+        height += (activeSelection == .start) ? 52 : 44
+
+        // Intermediate stops
         if intermediateStops.count == 1 {
-            height += 40 + 16
+            height += 44
         } else if intermediateStops.count > 1 {
-            height += 40 + 16
+            height += 44 // Toggle row
             if isStopsExpanded {
-                let stopsCount = CGFloat(intermediateStops.count)
-                let expandedStopsHeight = stopsCount * 40 + max(0, stopsCount - 1) * 16
-                height += min(expandedStopsHeight, 200)
+                let count = CGFloat(intermediateStops.count)
+                let expandedHeight = count * 44
+                height += min(expandedHeight, 220)
             }
         }
-        height += 40
+
+        // Destination row
+        height += isSearchingDestination ? 54 : 44
+
+        // Add destination row
         if canAddDestination {
             height += 56
         }
-        height += 16
+
+        height += 16 // Bottom padding
+        height += 12 // Headroom to prevent clipping
         return height
     }
 
@@ -160,11 +160,11 @@ extension RoutePlanCard {
 private extension RoutePlanCard {
     var startPointRow: some View {
         HStack(spacing: 12) {
-            Image(systemName: "house.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
+            RouteNodeIcon(
+                systemName: "house.fill",
+                color: Color.heroYellow,
+                lineStyle: showsConnectingLine ? .start : .none
+            )
 
             if activeSelection == .start {
                 RouteSearchField(
@@ -180,7 +180,7 @@ private extension RoutePlanCard {
                     }
                 } label: {
                     Text(startPoint?.name ?? String(localized: .waypointCurrentLocation))
-                        .font(.system(size: 15))
+                        .font(.system(size: 17))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -199,26 +199,26 @@ private extension RoutePlanCard {
 
         if count == 1, let singleStop = intermediateStops.first {
             stopRow(index: 0, stop: singleStop)
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
         } else if count > 1 {
             stopsToggleRow
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
             if isStopsExpanded {
                 ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
-                    RouteConnectingLine()
-                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-
                     stopRow(index: index, stop: stop)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
+                }
+                .onDelete { indexSet in
+                    for index in indexSet.sorted().reversed() {
+                        onRemoveDestination(index)
+                    }
                 }
             }
         }
@@ -233,20 +233,20 @@ private extension RoutePlanCard {
             }
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
+                RouteNodeIcon(
+                    systemName: "mappin.circle.fill",
+                    color: Color.heroYellow,
+                    lineStyle: .middle
+                )
 
                 Text("\(count) stops")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(Color.heroYellow)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .frame(minHeight: 28)
 
                 Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Color.heroYellow)
                     .frame(width: 28, height: 28)
                     .accessibilityHidden(true)
@@ -258,11 +258,11 @@ private extension RoutePlanCard {
 
     func stopRow(index: Int, stop: RoutePoint) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: "mappin.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
+            RouteNodeIcon(
+                systemName: "mappin.circle.fill",
+                color: Color.heroYellow,
+                lineStyle: .middle
+            )
 
             if activeSelection == .destination(index: index) {
                 RouteSearchField(
@@ -276,7 +276,7 @@ private extension RoutePlanCard {
                     onSelectPointForEditing(.destination(index: index))
                 } label: {
                     Text(stop.name)
-                        .font(.system(size: 15))
+                        .font(.system(size: 17))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -295,10 +295,6 @@ private extension RoutePlanCard {
                 Label("Delete", systemImage: "trash")
             }
         }
-        .draggable(stop.id.uuidString)
-        .dropDestination(for: String.self) { items, _ in
-            handleDrop(items: items, targetIndex: index)
-        }
     }
 
     @ViewBuilder
@@ -307,11 +303,11 @@ private extension RoutePlanCard {
         let isEditingThisDestination = isSearchingDestination
 
         HStack(spacing: 12) {
-            Image(systemName: "flag.checkered")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
+            RouteNodeIcon(
+                systemName: "flag.checkered",
+                color: Color.heroYellow,
+                lineStyle: showsConnectingLine ? .end : .none
+            )
 
             if isEditingThisDestination {
                 RouteSearchField(
@@ -325,7 +321,7 @@ private extension RoutePlanCard {
                     onSelectPointForEditing(.destination(index: max(0, lastIndex)))
                 } label: {
                     Text(destinations.last?.name ?? "Choose destination...")
-                        .font(.system(size: 15))
+                        .font(.system(size: 17))
                         .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -348,21 +344,6 @@ private extension RoutePlanCard {
                 }
             }
         }
-        .draggable(destinations.last?.id.uuidString ?? "")
-        .dropDestination(for: String.self) { items, _ in
-            handleDrop(items: items, targetIndex: lastIndex)
-        }
-    }
-
-    func handleDrop(items: [String], targetIndex: Int) -> Bool {
-        guard let draggedID = items.first,
-              let fromIndex = destinations.firstIndex(where: { $0.id.uuidString == draggedID }),
-              fromIndex != targetIndex else {
-            return false
-        }
-        let toOffset = targetIndex > fromIndex ? targetIndex + 1 : targetIndex
-        MoveDestinationItem(from: fromIndex, to: toOffset)
-        return true
     }
 }
 

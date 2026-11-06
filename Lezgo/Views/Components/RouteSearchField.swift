@@ -16,7 +16,7 @@ struct RouteSearchField: View {
     var body: some View {
         HStack(spacing: 8) {
             TextField(placeholder, text: $text)
-                .font(.system(size: 15))
+                .font(.system(size: 17))
                 .foregroundStyle(.white)
                 .focused($isFocused)
                 .autocorrectionDisabled()
@@ -25,7 +25,7 @@ struct RouteSearchField: View {
             if !text.isEmpty {
                 Button(action: onClear) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                        .font(.system(size: 17))
                         .foregroundStyle(Color(white: 0.55))
                 }
                 .buttonStyle(.plain)
