@@ -121,7 +121,7 @@ extension RoutePlanCard {
         var height: CGFloat = showsStartConnectingLine ? 56 : 52
         if !intermediateStops.isEmpty {
             if isStopsExpanded {
-                height += 60
+                height += 80
                 let stopsHeight = CGFloat(intermediateStops.count) * 44
                 height += min(stopsHeight, 192)
             } else {
@@ -129,7 +129,7 @@ extension RoutePlanCard {
             }
         }
         if !isStopsExpanded {
-            height += isSearchingDestination ? 52 : 44
+            height += isSearchingDestination ? 65 : 60
         }
         if canAddDestination {
             height += 50
