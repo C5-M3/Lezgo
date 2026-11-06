@@ -142,7 +142,7 @@ extension TripMapView {
             case .wholeRoute:
                 guard viewModel.route.isEmpty == false else { return nil }
                 return .rect(RouteRect())
-            case .free:
+            case .free, .followCar:
                 return nil
             }
         }
