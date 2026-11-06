@@ -36,23 +36,28 @@ struct RouteMetricsBottomCard: View {
     }
 
     private var metricsHeaderRow: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             if isLoadingRoute {
                 Text("Calculating…")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.heroYellow)
+                    .lineLimit(1)
             } else {
                 Text(FormattedDuration(duration))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(Color.heroYellow)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             if !isLoadingRoute {
                 Text(formattedSummaryText)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundStyle(Color(white: 0.65))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
         }
     }
