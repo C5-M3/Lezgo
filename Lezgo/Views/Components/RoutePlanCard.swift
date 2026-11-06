@@ -23,33 +23,38 @@ struct RoutePlanCard: View {
     @FocusState var isFieldFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        List {
             startPointRow
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
 
             if !intermediateStops.isEmpty {
-                connectingLine
                 intermediateStopsSection
-                connectingLine
-            } else if !destinations.isEmpty || isSearchingDestination {
-                connectingLine
             }
 
             destinationRow
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
 
             if canAddDestination {
-                Divider()
-                    .overlay(Color(white: 0.22))
-                    .padding(.vertical, 12)
-
                 addDestinationRow
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 16)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
+        .scrollDisabled(!isStopsExpanded || intermediateStops.count <= 4)
+        .frame(height: calculatedHeight)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
         )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.35), radius: 14, x: 0, y: 6)
         .padding(.horizontal, 16)
         .onChange(of: activeSelection) { _, newActive in
@@ -100,18 +105,50 @@ extension RoutePlanCard {
             return index == destinations.count - 1
         }
     }
+
+    var showsStartConnectingLine: Bool {
+        !destinations.isEmpty || isSearchingDestination
+    }
+
+    var calculatedHeight: CGFloat {
+        var height: CGFloat = showsStartConnectingLine ? 48 : 44
+        if intermediateStops.count == 1 {
+            height += 48
+        } else if intermediateStops.count > 1 {
+            height += 48
+            if isStopsExpanded {
+                let stopsHeight = CGFloat(intermediateStops.count) * 48
+                height += min(stopsHeight, 192)
+            }
+        }
+        height += 44
+        if canAddDestination {
+            height += 56
+        }
+        height += 16
+        return height
+    }
 }
 
 // MARK: - Subviews
 
-private extension RoutePlanCard {
+extension RoutePlanCard {
     var startPointRow: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "house.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                Image(systemName: "house.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color.heroYellow)
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+
+                if showsStartConnectingLine {
+                    Rectangle()
+                        .fill(Color.heroYellow.opacity(0.85))
+                        .frame(width: 1.5, height: 16)
+                }
+            }
+            .frame(width: 24)
 
             if activeSelection == .start {
                 searchTextField(placeholder: "Search starting point")
@@ -121,15 +158,13 @@ private extension RoutePlanCard {
                         onSelectPointForEditing(.start)
                     }
                 } label: {
-                    HStack {
-                        Text(startPoint?.name ?? String(localized: .waypointCurrentLocation))
-                            .font(.system(size: 15))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Spacer()
-                    }
-                    .frame(minHeight: 28)
-                    .contentShape(Rectangle())
+                    Text(startPoint?.name ?? String(localized: .waypointCurrentLocation))
+                        .font(.system(size: 15))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(isStartPointLocked)
@@ -143,95 +178,29 @@ private extension RoutePlanCard {
 
         if count == 1, let singleStop = intermediateStops.first {
             stopRow(index: 0, stop: singleStop)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         } else if count > 1 {
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                    isStopsExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.heroYellow)
-                        .frame(width: 24, height: 24)
-                        .accessibilityHidden(true)
-
-                    Text("\(count) stops")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Color.heroYellow)
-
-                    Spacer()
-
-                    Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.heroYellow)
-                        .accessibilityHidden(true)
-                }
-                .frame(minHeight: 28)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+            stopsToggleRow
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
 
             if isStopsExpanded {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
-                            connectingLine
-                            stopRow(index: index, stop: stop)
-                        }
-                    }
+                ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
+                    stopRow(index: index, stop: stop)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                .frame(maxHeight: 180)
-            }
-        }
-    }
-
-    func stopRow(index: Int, stop: RoutePoint) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "mappin.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
-
-            if activeSelection == .destination(index: index) {
-                searchTextField(placeholder: "Search stop")
-            } else {
-                Button {
-                    onSelectPointForEditing(.destination(index: index))
-                } label: {
-                    HStack {
-                        Text(stop.name)
-                            .font(.system(size: 15))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Spacer()
-                        Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color(white: 0.35))
-                            .accessibilityHidden(true)
-                    }
-                    .frame(minHeight: 28)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .swipeToDelete {
-                    onRemoveDestination(index)
-                }
-                .modifier(
-                    StopDragDropModifier(
-                        stop: stop,
-                        index: index,
-                        destinations: destinations,
-                        onMoveDestination: onMoveDestination
-                    )
-                )
-                .contextMenu {
-                    Button(role: .destructive) {
+                .onDelete { indexSet in
+                    for index in indexSet.sorted().reversed() {
                         onRemoveDestination(index)
-                    } label: {
-                        Label("Delete Stop", systemImage: "trash")
                     }
+                }
+                .onMove { fromOffsets, toOffset in
+                    onMoveDestination?(fromOffsets, toOffset)
                 }
             }
         }
@@ -242,7 +211,7 @@ private extension RoutePlanCard {
         let lastIndex = isAddingNewDestination ? destinations.count : destinations.indices.last
         let isEditingThisDestination = isSearchingDestination
 
-        HStack(spacing: 12) {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: "flag.checkered")
                 .font(.system(size: 16))
                 .foregroundStyle(Color.heroYellow)
@@ -256,104 +225,42 @@ private extension RoutePlanCard {
                     let targetIndex = lastIndex ?? 0
                     onSelectPointForEditing(.destination(index: targetIndex))
                 } label: {
-                    HStack {
-                        Text(destinations.last?.name ?? "Choose destination...")
-                            .font(.system(size: 15))
-                            .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
-                            .lineLimit(1)
-                        Spacer()
-                        if !destinations.isEmpty {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Color(white: 0.35))
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    .frame(minHeight: 28)
-                    .contentShape(Rectangle())
+                    Text(destinations.last?.name ?? "Choose destination...")
+                        .font(.system(size: 15))
+                        .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: 28)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .swipeToDelete {
-                    if let lastIndex = lastIndex {
-                        onRemoveDestination(lastIndex)
-                    }
-                }
-                .modifier(
-                    DestinationDragDropModifier(
-                        lastPoint: destinations.last,
-                        lastIndex: lastIndex,
-                        destinations: destinations,
-                        onMoveDestination: onMoveDestination
-                    )
-                )
-                .contextMenu {
-                    if let lastIndex = lastIndex {
-                        Button(role: .destructive) {
-                            onRemoveDestination(lastIndex)
-                        } label: {
-                            Label("Delete Destination", systemImage: "trash")
-                        }
-                    }
+
+                if !destinations.isEmpty {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(white: 0.35))
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
+                        .accessibilityLabel("Reorder")
                 }
             }
         }
-    }
-
-    var addDestinationRow: some View {
-        Button(action: onAddDestination) {
-            HStack(spacing: 12) {
-                Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
-
-                Text("Add Destination")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.heroYellow)
-
-                Spacer()
-            }
-            .frame(minHeight: 28)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    var connectingLine: some View {
-        HStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.heroYellow.opacity(0.85))
-                .frame(width: 1.5, height: 16)
-                .padding(.leading, 11)
-            Spacer()
-        }
-    }
-
-    func searchTextField(placeholder: String) -> some View {
-        HStack(spacing: 8) {
-            TextField(placeholder, text: $searchQuery)
-                .font(.system(size: 15))
-                .foregroundStyle(.white)
-                .focused($isFieldFocused)
-                .autocorrectionDisabled()
-                .submitLabel(.search)
-
-            if !searchQuery.isEmpty {
-                Button(action: onClearSearch) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color(white: 0.55))
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if let lastIndex = lastIndex, !destinations.isEmpty {
+                Button(role: .destructive) {
+                    onRemoveDestination(lastIndex)
+                } label: {
+                    Label("Delete", systemImage: "trash")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search text")
             }
         }
-        .padding(.horizontal, 12)
-        .frame(height: 38)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.heroYellow, lineWidth: 1.5)
+        .modifier(
+            PointDragDropModifier(
+                point: destinations.last,
+                index: lastIndex,
+                destinations: destinations,
+                onMoveDestination: onMoveDestination
+            )
         )
     }
 }

@@ -7,26 +7,26 @@
 
 import SwiftUI
 
-struct DestinationDragDropModifier: ViewModifier {
-    let lastPoint: RoutePoint?
-    let lastIndex: Int?
+struct PointDragDropModifier: ViewModifier {
+    let point: RoutePoint?
+    let index: Int?
     let destinations: [RoutePoint]
     let onMoveDestination: ((IndexSet, Int) -> Void)?
 
     func body(content: Content) -> some View {
-        if let lastPoint = lastPoint, let lastIndex = lastIndex, destinations.count > 1 {
+        if let point = point, let index = index, destinations.count > 1 {
             content
-                .draggable(lastPoint.id.uuidString)
+                .draggable(point.id.uuidString)
                 .dropDestination(for: String.self) { items, _ in
                     guard let draggedID = items.first,
                           let fromIndex = destinations.firstIndex(where: { $0.id.uuidString == draggedID }),
-                          fromIndex != lastIndex else {
+                          fromIndex != index else {
                         return false
                     }
                     withAnimation {
                         onMoveDestination?(
                             IndexSet(integer: fromIndex),
-                            lastIndex > fromIndex ? lastIndex + 1 : lastIndex
+                            index > fromIndex ? index + 1 : index
                         )
                     }
                     return true
@@ -34,31 +34,5 @@ struct DestinationDragDropModifier: ViewModifier {
         } else {
             content
         }
-    }
-}
-
-struct StopDragDropModifier: ViewModifier {
-    let stop: RoutePoint
-    let index: Int
-    let destinations: [RoutePoint]
-    let onMoveDestination: ((IndexSet, Int) -> Void)?
-
-    func body(content: Content) -> some View {
-        content
-            .draggable(stop.id.uuidString)
-            .dropDestination(for: String.self) { items, _ in
-                guard let draggedID = items.first,
-                      let fromIndex = destinations.firstIndex(where: { $0.id.uuidString == draggedID }),
-                      fromIndex != index else {
-                    return false
-                }
-                withAnimation {
-                    onMoveDestination?(
-                        IndexSet(integer: fromIndex),
-                        index > fromIndex ? index + 1 : index
-                    )
-                }
-                return true
-            }
     }
 }
