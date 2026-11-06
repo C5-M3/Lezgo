@@ -17,7 +17,8 @@ import Observation
 final class TripMapViewModel {
     private(set) var state: TripState?
     private(set) var guidance: TripMapGuidance?
-    private(set) var cameraMode: CameraMode = .followMyCar
+    private var camera = TripMapCamera()
+    var cameraMode: CameraMode { camera.mode }
     /// The confirmation to show before leaving, or `nil`.
     private(set) var leaveConfirmation: LeaveConfirmation?
     /// Set once the map should close and the phone return to Home; sharing stops at the same time.
@@ -147,11 +148,11 @@ final class TripMapViewModel {
     }
 
     func ShowWholeRoute() {
-        cameraMode = .wholeRoute
+        camera.ShowWholeRoute()
     }
 
     func FollowMyCar() {
-        cameraMode = .followMyCar
+        camera.FollowMyCar()
     }
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
@@ -210,14 +211,14 @@ final class TripMapViewModel {
 
     /// Called when the person pans or zooms the map by hand.
     func StopFollowing() {
-        cameraMode = .free
+        camera.StopFollowing()
     }
 
-    /// Opens the status card of a tapped car, or closes it with `nil` (tap elsewhere or swipe down). The camera stays
-    /// as it is.
+    /// Opens a tapped car's status card and focuses the camera on it; `nil` closes it (`TripMapCamera`).
     func SelectCar(_ carID: UUID?) {
         guard carID != selectedCarID else { return }
         selectedCarID = carID
+        camera.Focus(on: carID, myCarID: myParticipantID)
     }
 
     /// Keeps the tapped car's street and time left up to date while its card is open. The view runs this in a task

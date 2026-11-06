@@ -103,7 +103,11 @@ extension TripMapView {
             }
             .onChange(of: viewModel.cameraMode) { MoveCamera() }
             .onChange(of: viewModel.route) { MoveCamera() }
-            .onChange(of: viewModel.carPins, initial: true) { ShowCarPins() }
+            .onChange(of: viewModel.carPins, initial: true) {
+                ShowCarPins()
+                // A tapped car is followed as it moves, gliding with its robot.
+                if case .followCar = viewModel.cameraMode { MoveCamera(animation: .linear(duration: 1)) }
+            }
         }
 
         private func CarGroups() -> [TripMapCarGroup] {
@@ -121,11 +125,15 @@ extension TripMapView {
         }
 
         private func MoveCamera() {
+            MoveCamera(animation: .easeInOut)
+        }
+
+        private func MoveCamera(animation: Animation) {
             guard let target = CameraTarget() else { return }
             if reduceMotion {
                 cameraPosition = target
             } else {
-                withAnimation(.easeInOut) { cameraPosition = target }
+                withAnimation(animation) { cameraPosition = target }
             }
         }
 
@@ -142,7 +150,16 @@ extension TripMapView {
             case .wholeRoute:
                 guard viewModel.route.isEmpty == false else { return nil }
                 return .rect(RouteRect())
-            case .free, .followCar:
+            case .followCar(let carID):
+                guard let car = viewModel.carPins.first(where: { $0.id == carID }) else { return nil }
+                // The map keeps its turn, so the streets do not spin while it moves to the car.
+                let camera = MapCamera(
+                    centerCoordinate: car.coordinate.locationCoordinate,
+                    distance: Self.followDistance,
+                    heading: mapHeading
+                )
+                return .camera(camera)
+            case .free:
                 return nil
             }
         }
