@@ -18,6 +18,10 @@ struct TripRoomParticipantsSection: View {
     var isTransitioning: Bool = false
     let onHold: (Participant) -> Void
     let onInvite: () -> Void
+    /// The participant whose avatar is lifted to the middle: its avatar leaves a gap here while it floats.
+    var heldParticipantID: UUID?
+    /// Joins this avatar to the one in `HeldAvatarOverlay`, so the avatar flies between the two.
+    let avatarNamespace: Namespace.ID
     /// Grows with Dynamic Type, so large text gets fewer, wider columns instead of cut-off names.
     @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 96
 
@@ -54,6 +58,8 @@ struct TripRoomParticipantsSection: View {
                         ParticipantCell(
                             participant: participant,
                             viewModel: viewModel,
+                            isHeld: participant.id == heldParticipantID,
+                            avatarNamespace: avatarNamespace,
                             onHold: { onHold(participant) }
                         )
                         .disabled(isTransitioning)
@@ -74,6 +80,8 @@ struct TripRoomParticipantsSection: View {
 private struct ParticipantCell: View {
     let participant: Participant
     let viewModel: TripRoomViewModel
+    let isHeld: Bool
+    let avatarNamespace: Namespace.ID
     let onHold: () -> Void
 
     private var isLeader: Bool { viewModel.IsLeader(participant: participant) }
@@ -95,6 +103,8 @@ private struct ParticipantCell: View {
         VStack(spacing: 4) {
             AvatarImage(avatar: participant.avatar, isSelected: isReady)
                 .frame(width: AvatarImage.roomSize, height: AvatarImage.roomSize)
+                .matchedGeometryEffect(id: participant.id, in: avatarNamespace)
+                .opacity(isHeld ? 0 : 1)
                 .padding(.bottom, -20)
             HStack(spacing: 4) {
                 Text(displayName)
@@ -138,6 +148,7 @@ private struct ParticipantCell: View {
 
 #if DEBUG
 #Preview("Leader") {
+    @Previewable @Namespace var avatarNamespace
     ScrollView {
         TripRoomParticipantsSection(
             viewModel: TripRoomViewModel(
@@ -147,7 +158,8 @@ private struct ParticipantCell: View {
                 initialState: SampleTrip.State(status: .lobby)
             ),
             onHold: { _ in },
-            onInvite: {}
+            onInvite: {},
+            avatarNamespace: avatarNamespace
         )
         .padding()
     }
@@ -155,6 +167,7 @@ private struct ParticipantCell: View {
 }
 
 #Preview("Empty, Accessibility XXXL") {
+    @Previewable @Namespace var avatarNamespace
     TripRoomParticipantsSection(
         viewModel: TripRoomViewModel(
             tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
@@ -162,7 +175,8 @@ private struct ParticipantCell: View {
             myParticipantID: SampleTrip.agusID
         ),
         onHold: { _ in },
-        onInvite: {}
+        onInvite: {},
+        avatarNamespace: avatarNamespace
     )
     .padding()
     .dynamicTypeSize(.accessibility5)

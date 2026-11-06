@@ -16,8 +16,13 @@ struct HeldAvatarOverlay: View {
     let participant: Participant
     let displayName: String
     let actions: [TripRoomViewModel.ParticipantAction]
+    let avatarNamespace: Namespace.ID
     let onSelect: (TripRoomViewModel.ParticipantAction) -> Void
     let onDismiss: () -> Void
+
+    /// Set a moment after the overlay appears, so the name and menu come in after the avatar has landed.
+    @State private var showsMenu = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let avatarSize: CGFloat = 200
     private let menuWidth: CGFloat = 280
@@ -32,6 +37,7 @@ struct HeldAvatarOverlay: View {
             // The avatar alone is centered; the text and the menu hang below it, so they do not push it up.
             AvatarImage(avatar: participant.avatar, isSelected: true)
                 .frame(width: avatarSize, height: avatarSize)
+                .matchedGeometryEffect(id: participant.id, in: avatarNamespace)
                 .overlay(alignment: .top) {
                     VStack(spacing: 16) {
                         details
@@ -39,7 +45,12 @@ struct HeldAvatarOverlay: View {
                     }
                     .frame(width: menuWidth)
                     .padding(.top, avatarSize)
+                    .opacity(showsMenu ? 1 : 0)
+                    .offset(y: showsMenu ? 0 : 24)
                 }
+        }
+        .task {
+            withAnimation(reduceMotion ? nil : .spring(duration: 0.4, bounce: 0.25).delay(0.12)) { showsMenu = true }
         }
         .ignoresSafeArea()
         .environment(\.colorScheme, .dark) // The Trip Room has no light mode.
@@ -98,10 +109,12 @@ extension TripRoomViewModel.ParticipantAction {
 
 #if DEBUG
 #Preview("Leader holds Budi") {
+    @Previewable @Namespace var avatarNamespace
     HeldAvatarOverlay(
         participant: SampleTrip.State(status: .lobby).participants[1],
         displayName: "Budi",
         actions: [.setLeader, .editDetails, .remove],
+        avatarNamespace: avatarNamespace,
         onSelect: { _ in },
         onDismiss: {}
     )

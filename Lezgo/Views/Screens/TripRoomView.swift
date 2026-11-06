@@ -22,6 +22,7 @@ struct TripRoomView: View {
     @State private var showingLeaveConfirmation = false
     @State private var showingStartTripConfirmation = false
     @State private var heldParticipant: Participant?
+    @Namespace private var avatarNamespace
     @State private var participantToEdit: Participant?
     @State private var participantToRemove: Participant?
     @State private var participantToMakeLeader: Participant?
@@ -95,7 +96,9 @@ struct TripRoomView: View {
         TripRoomContent(
             viewModel: viewModel,
             isTransitioning: isTransitioning,
-            onHold: { heldParticipant = $0 },
+            heldParticipantID: heldParticipant?.id,
+            avatarNamespace: avatarNamespace,
+            onHold: { Hold($0) },
             onInvite: { showingInviteSheet = true },
             onLeave: { showingLeaveConfirmation = true }
         )
@@ -109,7 +112,6 @@ struct TripRoomView: View {
         }
         .overlay { heldAvatarOverlay(viewModel: viewModel) }
         .sensoryFeedback(.impact, trigger: heldParticipant?.id)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: heldParticipant?.id)
         .confirmDialog(
             isPresented: $showingStartTripConfirmation,
             title: Text(verbatim: viewModel.startTripConfirmationTitle),
@@ -150,18 +152,28 @@ struct TripRoomView: View {
                 participant: participant,
                 displayName: viewModel.DisplayName(of: participant),
                 actions: viewModel.ManagementActions(for: participant),
+                avatarNamespace: avatarNamespace,
                 onSelect: { action in
-                    heldParticipant = nil
+                    Release()
                     switch action {
                     case .setLeader: participantToMakeLeader = participant
                     case .editDetails: participantToEdit = participant
                     case .remove: participantToRemove = participant
                     }
                 },
-                onDismiss: { heldParticipant = nil }
+                onDismiss: { Release() }
             )
             .transition(.opacity)
         }
+    }
+
+    /// The avatar flies to the middle of the screen; without motion it just appears there.
+    private func Hold(_ participant: Participant) {
+        withAnimation(reduceMotion ? nil : .spring(duration: 0.45, bounce: 0.2)) { heldParticipant = participant }
+    }
+
+    private func Release() {
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.3)) { heldParticipant = nil }
     }
 
     private func StartTrip(_ viewModel: TripRoomViewModel) {
@@ -181,6 +193,8 @@ struct TripRoomView: View {
 private struct TripRoomContent: View {
     let viewModel: TripRoomViewModel
     let isTransitioning: Bool
+    let heldParticipantID: UUID?
+    let avatarNamespace: Namespace.ID
     let onHold: (Participant) -> Void
     let onInvite: () -> Void
     let onLeave: () -> Void
@@ -200,7 +214,9 @@ private struct TripRoomContent: View {
                         viewModel: viewModel,
                         isTransitioning: isTransitioning,
                         onHold: onHold,
-                        onInvite: onInvite
+                        onInvite: onInvite,
+                        heldParticipantID: heldParticipantID,
+                        avatarNamespace: avatarNamespace
                     )
                     if !isTransitioning {
                         TripRoomLeaveButton(viewModel: viewModel, action: onLeave)
