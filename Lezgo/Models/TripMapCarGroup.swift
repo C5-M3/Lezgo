@@ -22,6 +22,23 @@ struct TripMapCarGroup: Identifiable, Hashable {
         )
     }
 
+    /// The most robots a closed card shows; the rest are counted, so the card never covers the map around it.
+    static let maxRobots = 4
+
+    /// Whether the card has cars it does not show, so tapping the count opens it.
+    var canOpen: Bool { pins.count > Self.maxRobots }
+
+    /// The robots on the card, the leader first so its crown is always in sight. A closed card shows `maxRobots`.
+    func ShownPins(isOpen: Bool) -> [TripMapCarPin] {
+        let leaderFirst = pins.filter(\.isLeader) + pins.filter { $0.isLeader == false }
+        return isOpen ? leaderFirst : Array(leaderFirst.prefix(Self.maxRobots))
+    }
+
+    /// How many cars the card counts instead of showing.
+    func HiddenCount(isOpen: Bool) -> Int {
+        pins.count - ShownPins(isOpen: isOpen).count
+    }
+
     /// Groups cars that are within `metres` of each other, directly or through a car between them.
     ///
     /// A car with an alert and the tapped car stay on their own, so their warning and glow still show. To reach a car
