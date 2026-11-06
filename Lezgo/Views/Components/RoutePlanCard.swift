@@ -285,7 +285,14 @@ private extension RoutePlanCard {
                 }
                 .buttonStyle(.plain)
 
-                RouteReorderHandle(index: index, count: destinations.count, onMove: MoveDestinationItem)
+                RouteReorderHandle(
+                    id: stop.id.uuidString,
+                    name: stop.name,
+                    iconName: "mappin.circle.fill",
+                    index: index,
+                    count: destinations.count,
+                    onMove: MoveDestinationItem
+                )
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -294,6 +301,9 @@ private extension RoutePlanCard {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+        }
+        .dropDestination(for: String.self) { items, _ in
+            handleDrop(items: items, targetIndex: index)
         }
     }
 
@@ -330,8 +340,15 @@ private extension RoutePlanCard {
                 }
                 .buttonStyle(.plain)
 
-                if destinations.count > 1 {
-                    RouteReorderHandle(index: lastIndex, count: destinations.count, onMove: MoveDestinationItem)
+                if destinations.count > 1, let lastDestination = destinations.last {
+                    RouteReorderHandle(
+                        id: lastDestination.id.uuidString,
+                        name: lastDestination.name,
+                        iconName: "flag.checkered",
+                        index: lastIndex,
+                        count: destinations.count,
+                        onMove: MoveDestinationItem
+                    )
                 }
             }
         }
@@ -344,6 +361,20 @@ private extension RoutePlanCard {
                 }
             }
         }
+        .dropDestination(for: String.self) { items, _ in
+            handleDrop(items: items, targetIndex: lastIndex)
+        }
+    }
+
+    func handleDrop(items: [String], targetIndex: Int) -> Bool {
+        guard let draggedID = items.first,
+              let fromIndex = destinations.firstIndex(where: { $0.id.uuidString == draggedID }),
+              fromIndex != targetIndex else {
+            return false
+        }
+        let toOffset = targetIndex > fromIndex ? targetIndex + 1 : targetIndex
+        MoveDestinationItem(from: fromIndex, to: toOffset)
+        return true
     }
 }
 
