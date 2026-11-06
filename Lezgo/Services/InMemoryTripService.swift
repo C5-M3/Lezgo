@@ -84,11 +84,10 @@ final class InMemoryTripService: TripService {
         if let existing = state.participants.first(where: { $0.userRecordID == userRecordID }) {
             return TripSession(myParticipantID: existing.id, state: state)
         }
-        if let profile, state.IsNameTaken(profile.displayName) { throw TripServiceError.nameAlreadyUsed }
         let member = Participant.Joining(
             tripID: state.trip.id,
             userRecordID: userRecordID,
-            profile: profile,
+            profile: profile.map { state.WithoutTakenName($0) },
             isLeader: false,
             at: clock()
         )

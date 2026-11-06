@@ -163,7 +163,7 @@ Feature: Plan a route
 - `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
 - `ENDED` or `CANCELLED` → join is rejected.
 - Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car.
-- If my saved name is already used by another car in the trip, join is rejected with "Name already used in this trip" and I stay on Home. I change my name and try again (US-04).
+- If my saved name is already used by another car in the trip, I still join: my name is left empty, so I am shown as "Car 2", "Car 3", …, and my car and avatar are kept. I can then change my name in Edit Profile (US-04), where the name is checked as usual.
 
 ### Acceptance criteria
 
@@ -201,8 +201,9 @@ Feature: Join a trip
     Given trip "897654" has a member called "Budi"
     And my saved name is "budi "
     When I enter "897654" and tap "Enter"
-    Then I see "Name already used in this trip"
-    And I am not added to the trip
+    Then I am added to the trip and the Trip Room opens
+    And my car is shown as "Car 2" with my car and avatar kept
+    And I can change my name in Edit Profile
 
   Scenario: Join twice
     Given I already joined trip "897654"

@@ -41,6 +41,15 @@ struct TripState: Hashable {
         }
     }
 
+    /// The profile of a car that joins: a name another car already has is dropped, so the car shows as "Car 2" and can
+    /// rename itself in Edit Profile. Rejecting the join would keep the person out of the only place to rename.
+    func WithoutTakenName(_ profile: ParticipantProfile) -> ParticipantProfile {
+        guard IsNameTaken(profile.displayName) else { return profile }
+        var joining = profile
+        joining.displayName = ""
+        return joining
+    }
+
     var leader: Participant? {
         participants.first { $0.IsLeader(in: trip) }
     }

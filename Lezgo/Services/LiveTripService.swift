@@ -89,9 +89,10 @@ final class LiveTripService: TripService {
             if let record = existing.first, let participant = try? TripRecordMapper.MakeParticipant(from: record) {
                 return TripSession(myParticipantID: participant.id, state: try await reader.LoadState(tripID: trip.id))
             }
-            if let profile { try await EnsureNameIsFree(profile.displayName, in: trip.id) }
+            let taken = try await Run { try await reader.LoadState(tripID: trip.id) }
             let member = Participant.Joining(
-                tripID: trip.id, userRecordID: me, profile: profile, isLeader: false, at: clock()
+                tripID: trip.id, userRecordID: me, profile: profile.map { taken.WithoutTakenName($0) },
+                isLeader: false, at: clock()
             )
             try await database.Save([TripRecordMapper.MakeRecord(member)], savePolicy: .allKeys)
             return TripSession(myParticipantID: member.id, state: try await reader.LoadState(tripID: trip.id))

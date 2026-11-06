@@ -72,7 +72,9 @@ struct EditProfileSheetView: View {
             }
             .confirmDialog(
                 isPresented: errorIsShown,
-                title: Text(verbatim: viewModel.isProfileNameTaken ? (viewModel.profileErrorMessage ?? "") : "Error"),
+                title: viewModel.isProfileNameTaken
+                    ? Text(verbatim: viewModel.profileErrorMessage ?? "")
+                    : Text("Error"),
                 message: viewModel.isProfileNameTaken ? nil : viewModel.profileErrorMessage.map { Text(verbatim: $0) },
                 cancelTitle: nil,
                 confirmTitle: .tripRoomOK,
