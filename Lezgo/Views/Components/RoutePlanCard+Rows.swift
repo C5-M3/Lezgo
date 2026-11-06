@@ -16,31 +16,39 @@ extension RoutePlanCard {
                 isStopsExpanded.toggle()
             }
         } label: {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 0) {
-                    Image(systemName: "mappin.circle.fill")
-                        .font(.system(size: 16))
+            VStack(spacing: 0) {
+                HStack(alignment: .center, spacing: 12) {
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.heroYellow.opacity(0.85))
+                            .frame(width: 1.5)
+
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.heroYellow)
+                            .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                            .frame(width: 24, height: 24)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(width: 24)
+
+                    Text("\(count) stops")
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(Color.heroYellow)
-                        .frame(width: 24, height: 24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(minHeight: 28)
+
+                    Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.heroYellow)
+                        .frame(width: 28, height: 28)
                         .accessibilityHidden(true)
-
-                    Rectangle()
-                        .fill(Color.heroYellow.opacity(0.85))
-                        .frame(width: 1.5, height: 16)
                 }
-                .frame(width: 24)
+                .frame(minHeight: 36)
 
-                Text("\(count) stops")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .frame(minHeight: 28)
-
-                Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(width: 28, height: 28)
-                    .accessibilityHidden(true)
+                Divider()
+                    .overlay(Color(white: 0.22))
+                    .padding(.leading, 36)
             }
             .contentShape(Rectangle())
         }
@@ -50,13 +58,22 @@ extension RoutePlanCard {
     func stopRow(index: Int, stop: RoutePoint) -> some View {
         let isFinalDestination = isStopsExpanded && index == destinations.count - 1
 
-        return HStack(alignment: .top, spacing: 12) {
-            stopRowLeadingIndicator(isFinalDestination: isFinalDestination)
+        return VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                stopRowLeadingIndicator(isFinalDestination: isFinalDestination)
 
-            if activeSelection == .destination(index: index) {
-                searchTextField(placeholder: isFinalDestination ? "Where to?" : "Search stop")
-            } else {
-                stopRowContent(index: index, stop: stop)
+                if activeSelection == .destination(index: index) {
+                    searchTextField(placeholder: isFinalDestination ? "Where to?" : "Search stop")
+                } else {
+                    stopRowContent(index: index, stop: stop)
+                }
+            }
+            .frame(minHeight: 36)
+
+            if !(isFinalDestination && !canAddDestination) {
+                Divider()
+                    .overlay(Color(white: 0.22))
+                    .padding(.leading, 36)
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -77,18 +94,26 @@ extension RoutePlanCard {
     }
 
     private func stopRowLeadingIndicator(isFinalDestination: Bool) -> some View {
-        VStack(spacing: 0) {
-            Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
-
+        ZStack {
             if !isFinalDestination {
                 Rectangle()
                     .fill(Color.heroYellow.opacity(0.85))
-                    .frame(width: 1.5, height: 16)
+                    .frame(width: 1.5)
+            } else {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.heroYellow.opacity(0.85))
+                        .frame(width: 1.5, height: 18)
+                    Spacer(minLength: 0)
+                }
             }
+
+            Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(Color.heroYellow)
+                .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
         }
         .frame(width: 24)
     }
@@ -118,29 +143,24 @@ extension RoutePlanCard {
     }
 
     var addDestinationRow: some View {
-        VStack(spacing: 12) {
-            Divider()
-                .overlay(Color(white: 0.22))
+        Button(action: onAddDestination) {
+            HStack(spacing: 12) {
+                Image(systemName: "plus")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color.heroYellow)
+                    .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
 
-            Button(action: onAddDestination) {
-                HStack(spacing: 12) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(Color.heroYellow)
-                        .frame(width: 24, height: 24)
-                        .accessibilityHidden(true)
+                Text("Add Destination")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.heroYellow)
 
-                    Text("Add Destination")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Color.heroYellow)
-
-                    Spacer()
-                }
-                .frame(minHeight: 28)
-                .contentShape(Rectangle())
+                Spacer()
             }
-            .buttonStyle(.plain)
+            .frame(minHeight: 28)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 
     func searchTextField(placeholder: String) -> some View {

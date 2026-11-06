@@ -47,7 +47,7 @@ struct RoutePlanCard: View {
 
             if canAddDestination {
                 addDestinationRow
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 30, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 10, leading: 16, bottom: 14, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
@@ -142,40 +142,53 @@ extension RoutePlanCard {
 
 extension RoutePlanCard {
     var startPointRow: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(spacing: 0) {
-                Image(systemName: "house.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    if showsStartConnectingLine {
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            Rectangle()
+                                .fill(Color.heroYellow.opacity(0.85))
+                                .frame(width: 1.5, height: 20)
+                        }
+                    }
 
-                if showsStartConnectingLine {
-                    Rectangle()
-                        .fill(Color.heroYellow.opacity(0.85))
-                        .frame(width: 1.5, height: 16)
+                    Image(systemName: "house.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.heroYellow)
+                        .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                        .frame(width: 24, height: 24)
+                        .accessibilityHidden(true)
+                }
+                .frame(width: 24)
+
+                if activeSelection == .start {
+                    searchTextField(placeholder: "Search starting point")
+                } else {
+                    Button {
+                        if !isStartPointLocked {
+                            onSelectPointForEditing(.start)
+                        }
+                    } label: {
+                        Text(startPoint?.name ?? String(localized: .waypointCurrentLocation))
+                            .font(.system(size: 15))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minHeight: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isStartPointLocked)
                 }
             }
-            .frame(width: 24)
+            .frame(minHeight: 36)
 
-            if activeSelection == .start {
-                searchTextField(placeholder: "Search starting point")
-            } else {
-                Button {
-                    if !isStartPointLocked {
-                        onSelectPointForEditing(.start)
-                    }
-                } label: {
-                    Text(startPoint?.name ?? String(localized: .waypointCurrentLocation))
-                        .font(.system(size: 15))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(minHeight: 28)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .disabled(isStartPointLocked)
+            if !destinations.isEmpty || isSearchingDestination {
+                Divider()
+                    .overlay(Color(white: 0.22))
+                    .padding(.leading, 36)
             }
         }
     }
@@ -221,39 +234,53 @@ extension RoutePlanCard {
         let lastIndex = isAddingNewDestination ? destinations.count : destinations.indices.last
         let isEditingThisDestination = isSearchingDestination
 
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "flag.checkered")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .frame(width: 24, height: 24)
-                .accessibilityHidden(true)
+        VStack(spacing: 0) {
+            HStack(alignment: .center, spacing: 12) {
+                ZStack {
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .fill(Color.heroYellow.opacity(0.85))
+                            .frame(width: 1.5, height: 18)
+                        Spacer(minLength: 0)
+                    }
 
-            if isEditingThisDestination {
-                searchTextField(placeholder: "Where to?")
-            } else {
-                Button {
-                    let targetIndex = lastIndex ?? 0
-                    onSelectPointForEditing(.destination(index: targetIndex))
-                } label: {
-                    Text(destinations.last?.name ?? "Choose destination...")
-                        .font(.system(size: 15))
-                        .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(minHeight: 28)
-                        .contentShape(Rectangle())
+                    Image(systemName: "flag.checkered")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.heroYellow)
+                        .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                        .frame(width: 24, height: 24)
+                        .accessibilityHidden(true)
                 }
-                .buttonStyle(.plain)
+                .frame(width: 24)
 
-                if !destinations.isEmpty {
-                    Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(white: 0.35))
-                        .frame(width: 28, height: 28)
-                        .contentShape(Rectangle())
-                        .accessibilityLabel("Reorder")
+                if isEditingThisDestination {
+                    searchTextField(placeholder: "Where to?")
+                } else {
+                    Button {
+                        let targetIndex = lastIndex ?? 0
+                        onSelectPointForEditing(.destination(index: targetIndex))
+                    } label: {
+                        Text(destinations.last?.name ?? "Choose destination...")
+                            .font(.system(size: 15))
+                            .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .frame(minHeight: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if !destinations.isEmpty {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.35))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                            .accessibilityLabel("Reorder")
+                    }
                 }
             }
+            .frame(minHeight: 36)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if let lastIndex = lastIndex, !destinations.isEmpty {
