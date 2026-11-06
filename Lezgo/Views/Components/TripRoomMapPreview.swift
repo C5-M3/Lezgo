@@ -26,10 +26,11 @@ struct TripRoomMapPreview: View {
             }
             if let start {
                 Annotation(start.name, coordinate: start.coordinate.locationCoordinate) {
-                    Circle()
-                        .fill(Color(.brandBlue))
-                        .stroke(.white, lineWidth: 3)
-                        .frame(width: 18, height: 18)
+                    Image(.ontripGlowYellow)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 48, height: 48)
+                        .accessibilityHidden(true)
                 }
                 .annotationTitles(showsNames ? .automatic : .hidden)
             }
