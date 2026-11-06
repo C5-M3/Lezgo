@@ -918,6 +918,30 @@
         }
       }
     },
+    "tripMapGroupShowFewer" : {
+      "comment" : "VoiceOver label of the button that closes an opened card of cars close together on the trip map.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show fewer cars"
+          }
+        }
+      }
+    },
+    "tripMapGroupShowMore" : {
+      "comment" : "VoiceOver label of the count on a card of cars close together on the trip map, for example \"+6\". Tapping it shows every car on the card.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %lld more cars"
+          }
+        }
+      }
+    },
     "tripMapLeaderEndedTrip" : {
       "comment" : "Shown on every member's phone when the leader ends the trip; OK returns to Home (US-07).",
       "extractionState" : "manual",

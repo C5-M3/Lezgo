@@ -28,32 +28,37 @@ struct TripMapCarGroup: Identifiable, Hashable {
     /// Whether the card has cars it does not show, so tapping the count opens it.
     var canOpen: Bool { pins.count > Self.maxRobots }
 
-    /// The robots on the card, the leader first so its crown is always in sight. A closed card shows `maxRobots`.
-    func ShownPins(isOpen: Bool) -> [TripMapCarPin] {
+    /// The robots on the card, the leader first so its crown is always in sight. A closed card shows `maxRobots`;
+    /// a tapped car it would hide takes the last place, so its glow shows too.
+    func ShownPins(isOpen: Bool, selectedID: UUID? = nil) -> [TripMapCarPin] {
         let leaderFirst = pins.filter(\.isLeader) + pins.filter { $0.isLeader == false }
-        return isOpen ? leaderFirst : Array(leaderFirst.prefix(Self.maxRobots))
+        guard isOpen == false else { return leaderFirst }
+        let shown = Array(leaderFirst.prefix(Self.maxRobots))
+        guard let selected = leaderFirst.dropFirst(Self.maxRobots).first(where: { $0.id == selectedID }) else {
+            return shown
+        }
+        return shown.dropLast() + [selected]
     }
 
     /// How many cars the card counts instead of showing.
     func HiddenCount(isOpen: Bool) -> Int {
-        pins.count - ShownPins(isOpen: isOpen).count
+        isOpen ? 0 : max(pins.count - Self.maxRobots, 0)
     }
 
     /// Groups cars that are within `metres` of each other, directly or through a car between them.
     ///
-    /// A car with an alert and the tapped car stay on their own, so their warning and glow still show. To reach a car
-    /// in a group, tap its robot: it then stands on its own.
-    static func Make(pins: [TripMapCarPin], selectedID: UUID?, within metres: Double) -> [TripMapCarGroup] {
+    /// A car with an alert stays on its own, so its warning still shows. A tapped car stays on its card and glows
+    /// there, so the card does not jump while its status is open.
+    static func Make(pins: [TripMapCarPin], within metres: Double) -> [TripMapCarGroup] {
         var groups: [[TripMapCarPin]] = []
         for pin in pins {
-            guard pin.isAlerting == false, pin.id != selectedID else {
+            guard pin.isAlerting == false else {
                 groups.append([pin])
                 continue
             }
             let isClose = { (group: [TripMapCarPin]) in
                 group.contains { other in
-                    other.isAlerting == false && other.id != selectedID
-                        && other.coordinate.Distance(to: pin.coordinate) <= metres
+                    other.isAlerting == false && other.coordinate.Distance(to: pin.coordinate) <= metres
                 }
             }
             let joined = groups.filter(isClose).flatMap { $0 } + [pin]

@@ -74,7 +74,7 @@ extension TripMapView {
 
                 ForEach(CarGroups()) { group in
                     Annotation(group.pins[0].displayName, coordinate: group.coordinate.locationCoordinate) {
-                        CarGroupContent(group: group)
+                        CarGroupMarker(group: group, viewModel: viewModel, mapHeading: mapHeading)
                             .scaleEffect(showsCars ? 1 : 0)
                     }
                     .annotationTitles(.hidden)
@@ -108,27 +108,7 @@ extension TripMapView {
 
         private func CarGroups() -> [TripMapCarGroup] {
             let metresPerPoint = mapWidth > 0 ? visibleWidthInMetres / mapWidth : 0
-            return TripMapCarGroup.Make(
-                pins: carPins,
-                selectedID: viewModel.selectedCarID,
-                within: metresPerPoint * Self.groupDistance
-            )
-        }
-
-        @ViewBuilder
-        private func CarGroupContent(group: TripMapCarGroup) -> some View {
-            if group.pins.count == 1 {
-                Button { viewModel.SelectCar(group.pins[0].id) } label: {
-                    TripMapCarPinView(
-                        pin: group.pins[0],
-                        isSelected: group.pins[0].id == viewModel.selectedCarID,
-                        mapHeading: mapHeading
-                    )
-                }
-                .buttonStyle(.plain)
-            } else {
-                TripMapCarGroupView(group: group, onSelect: viewModel.SelectCar)
-            }
+            return TripMapCarGroup.Make(pins: carPins, within: metresPerPoint * Self.groupDistance)
         }
 
         /// Moves the cars to their new positions over about the time between two updates, so they glide.
@@ -173,6 +153,31 @@ extension TripMapView {
                 .map { MKMapPoint($0.locationCoordinate) }
                 .reduce(MKMapRect.null) { $0.union(MKMapRect(origin: $1, size: MKMapSize(width: 0, height: 0))) }
             return rect.insetBy(dx: -rect.width * 0.15, dy: -rect.height * 0.15)
+        }
+    }
+}
+
+extension TripMapView.MapLayer {
+    /// A car on its own or a card of cars close together. It reads the tapped car from the view model itself: the map
+    /// keeps an annotation's view while its group is unchanged, so a value passed in would not redraw the glow.
+    struct CarGroupMarker: View {
+        let group: TripMapCarGroup
+        let viewModel: TripMapViewModel
+        let mapHeading: Double
+
+        var body: some View {
+            if group.pins.count == 1 {
+                Button { viewModel.SelectCar(group.pins[0].id) } label: {
+                    TripMapCarPinView(
+                        pin: group.pins[0],
+                        isSelected: group.pins[0].id == viewModel.selectedCarID,
+                        mapHeading: mapHeading
+                    )
+                }
+                .buttonStyle(.plain)
+            } else {
+                TripMapCarGroupView(group: group, selectedID: viewModel.selectedCarID, onSelect: viewModel.SelectCar)
+            }
         }
     }
 }

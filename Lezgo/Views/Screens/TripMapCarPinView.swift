@@ -9,8 +9,9 @@ import SwiftUI
 
 /// A car on the trip map: its robot, turned the way it drives, with the driver's name under it.
 ///
-/// The leader has a star. A stopped car has a pause badge, and an offline car is faded at its last position. The
-/// tapped car glows. A car off the route or ahead of the leader has a red ring, a warning badge and a red name.
+/// The leader has a crown beside the robot. A stopped car has a pause badge, and an offline car is faded at its last
+/// position. The tapped car glows. A car off the route or ahead of the leader has a red ring, a warning badge and a red
+/// name.
 struct TripMapCarPinView: View {
     let pin: TripMapCarPin
     /// Whether this car's status card is open.
@@ -37,15 +38,14 @@ struct TripMapCarPinView: View {
                 }
             }
             .overlay(alignment: .topTrailing) {
-                if let badge = Badges().first {
+                if let badge = Badge() {
                     BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
                         .offset(x: 6, y: -6)
                 }
             }
             .overlay(alignment: .topLeading) {
-                if Badges().count > 1 {
-                    let badge = Badges()[1]
-                    BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
+                if pin.isLeader {
+                    TripMapLeaderCrown()
                         .offset(x: -6, y: -6)
                 }
             }
@@ -72,16 +72,10 @@ struct TripMapCarPinView: View {
 
     private static let alertSymbol = "exclamationmark"
 
-    /// At most two: the first sits at the top right, as in the design, and the second at the top left.
-    private func Badges() -> [String] {
-        var badges: [String] = []
-        if pin.isLeader { badges.append("star.fill") }
-        if pin.isAlerting {
-            badges.append(Self.alertSymbol)
-        } else if pin.motionState == .stopped {
-            badges.append("pause.fill")
-        }
-        return badges
+    /// The status badge at the top right; the leader's crown sits at the top left.
+    private func Badge() -> String? {
+        if pin.isAlerting { return Self.alertSymbol }
+        return pin.motionState == .stopped ? "pause.fill" : nil
     }
 
     private func Statuses() -> [String] {
