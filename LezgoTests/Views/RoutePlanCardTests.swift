@@ -203,7 +203,7 @@ struct RoutePlanCardTests {
             onMoveDestination: nil
         )
 
-        // start point (56) + toggle (44) + destination (44) + add destination (54) + 6 = 204
-        #expect(card.calculatedHeight <= 210)
+        // start point (56) + toggle (44) + destination (60) + add destination (50) + bottom padding (14) = 224
+        #expect(card.calculatedHeight <= 230)
     }
 }

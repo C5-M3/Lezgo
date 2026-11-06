@@ -15,7 +15,6 @@ struct HomeView: View {
     @State private var isJoinTripPresented: Bool = false
     @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
-    @State private var drawerHeight: CGFloat = 310
 
     private let brandYellow = Color(red: 247/255, green: 255/255, blue: 0/255)
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
@@ -52,19 +51,6 @@ struct HomeView: View {
             transitionOverlay
             draftTripOverlay
         }
-        .fullScreenCover(
-            isPresented: $isSetRoutePresented,
-            onDismiss: { handleSetRouteDismissed() },
-            content: {
-                SetRouteView(
-                    viewModel: mapViewModel,
-                    onBack: {
-                        handleSetRouteDismissed()
-                        isSetRoutePresented = false
-                    },
-                    onTripCreated: { session in
-                        isSetRoutePresented = false
-                        viewModel.onTripJoined(session)
         .sheet(
             isPresented: $isJoinTripPresented,
             onDismiss: {
@@ -211,11 +197,6 @@ private extension HomeView {
                                 .fill(.black)
                                 .frame(width: 50, height: 50)
 
-        ForEach(mapViewModel.routeLegs) { leg in
-            ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
-                if routeIndex != leg.selectedRouteIndex {
-                    MapPolyline(route.polyline)
-                        .stroke(Color.heroYellow.opacity(0.38), lineWidth: 5)
                             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundStyle(brandYellow)
@@ -246,11 +227,6 @@ private extension HomeView {
             .frame(maxWidth: .infinity)
             .background(brandYellow)
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-        }
-
-        ForEach(mapViewModel.selectedPolylines, id: \.self) { polyline in
-            MapPolyline(polyline)
-                .stroke(Color.heroYellow, lineWidth: 6)
         }
         .buttonStyle(.plain)
     }
