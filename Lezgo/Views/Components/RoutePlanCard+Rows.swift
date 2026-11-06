@@ -45,6 +45,7 @@ extension RoutePlanCard {
                         .accessibilityHidden(true)
                 }
                 .frame(minHeight: 36)
+                .padding(.vertical, 4)
 
                 Divider()
                     .overlay(Color(white: 0.22))
@@ -69,6 +70,7 @@ extension RoutePlanCard {
                 }
             }
             .frame(minHeight: 36)
+            .padding(.vertical, 4)
 
             if !(isFinalDestination && !canAddDestination) {
                 Divider()
@@ -143,7 +145,12 @@ extension RoutePlanCard {
     }
 
     var addDestinationRow: some View {
-        Button(action: onAddDestination) {
+        Button {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                isStopsExpanded = false
+            }
+            onAddDestination()
+        } label: {
             HStack(spacing: 12) {
                 Image(systemName: "plus")
                     .font(.system(size: 14, weight: .bold))

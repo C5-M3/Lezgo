@@ -224,7 +224,7 @@ private extension SetRouteView {
         RouteMetricsBottomCard(
             duration: viewModel.totalDuration,
             distance: viewModel.totalDistance,
-            destinationCount: (viewModel.startPoint != nil ? 1 : 0) + viewModel.destinations.count,
+            destinationCount: viewModel.destinations.count,
             hasIntermediateStops: viewModel.destinations.count > 1,
             isLoadingRoute: viewModel.isLoadingRoute,
             canSave: canSaveRoute,

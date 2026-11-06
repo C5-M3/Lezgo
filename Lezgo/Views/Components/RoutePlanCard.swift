@@ -184,6 +184,7 @@ extension RoutePlanCard {
                 }
             }
             .frame(minHeight: 36)
+            .padding(.vertical, 4)
 
             if !destinations.isEmpty || isSearchingDestination {
                 Divider()
@@ -281,6 +282,7 @@ extension RoutePlanCard {
                 }
             }
             .frame(minHeight: 36)
+            .padding(.vertical, 4)
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if let lastIndex = lastIndex, !destinations.isEmpty {
