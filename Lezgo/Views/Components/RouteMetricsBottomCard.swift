@@ -43,7 +43,7 @@ struct RouteMetricsBottomCard: View {
                     .foregroundStyle(Color.heroYellow)
             } else {
                 Text(FormattedDuration(duration))
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 26, weight: .bold))
                     .foregroundStyle(Color.heroYellow)
             }
 

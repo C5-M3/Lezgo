@@ -47,7 +47,7 @@ struct RoutePlanCard: View {
 
             if canAddDestination {
                 addDestinationRow
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 14, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 30, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
@@ -121,7 +121,7 @@ extension RoutePlanCard {
         var height: CGFloat = showsStartConnectingLine ? 56 : 52
         if !intermediateStops.isEmpty {
             if isStopsExpanded {
-                height += 48
+                height += 60
                 let stopsHeight = CGFloat(intermediateStops.count) * 44
                 height += min(stopsHeight, 192)
             } else {
@@ -134,7 +134,7 @@ extension RoutePlanCard {
         if canAddDestination {
             height += 50
         }
-        return height + 16
+        return height + 14
     }
 }
 
@@ -198,7 +198,7 @@ extension RoutePlanCard {
             if isStopsExpanded {
                 ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
                     let isLast = index == intermediateStops.count - 1
-                    let bottomInset: CGFloat = (isLast && !canAddDestination) ? 14 : 6
+                    let bottomInset: CGFloat = (isLast && !canAddDestination) ? 20 : 6
                     stopRow(index: index, stop: stop)
                         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16))
                         .listRowBackground(Color.clear)
