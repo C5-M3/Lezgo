@@ -98,7 +98,13 @@ extension TripRoomViewModel.ParticipantAction {
     /// The title and icon of this action, in the menu and in VoiceOver's action list.
     @ViewBuilder var label: some View {
         switch self {
-        case .setLeader: Label("Set as Trip Leader", systemImage: "crown")
+        case .setLeader:
+            Label {
+                Text("Set as Trip Leader")
+            } icon: {
+                // The yellow crown is the leader's mark everywhere in the Trip Room.
+                Image(systemName: "crown.fill").foregroundStyle(Color(.brandYellow))
+            }
         case .editDetails: Label("Edit Details", systemImage: "pencil")
         case .remove: Label("Remove from Trip", systemImage: "person.badge.minus")
         }
