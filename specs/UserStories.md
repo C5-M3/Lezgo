@@ -535,11 +535,10 @@ Feature: Manage the group and start
 
 **Leader offline**
 - Covers a leader who disappears without leaving (dead phone, no signal, app deleted). A leader who leaves on purpose ends the trip (US-07).
-- Offline 2 min → everyone sees a red banner "Agus is offline"; navigation continues on the current route; checkpoint progress and "ahead of leader" pause. If the leader returns within 5 min, nothing else changes.
-- Nobody picks a new leader on the road: the driver must not be distracted. The trip goes on without a leader, on the current route.
-- Offline 5 min with only one member left → that member becomes leader automatically; everyone sees "Budi is now the leader".
-- An old leader who returns after someone took over becomes a member.
-- Why: the group keeps moving on the last known state, and a choice like this does not belong on the road.
+- Offline 2 min → everyone sees a red banner "Agus is offline". It goes when the leader is back; a tap hides it until then.
+- Everyone keeps navigating on the same current route. Checkpoint progress and "ahead of leader" pause, because the leader's phone drives them.
+- The leader never changes on the road, however long the leader is offline: nobody picks a new one and nobody takes over. The lead is handed over only in the Trip Room (US-05).
+- Why: the driver must not be distracted, and the group already has the route it needs.
 
 ### Acceptance criteria
 
@@ -616,14 +615,9 @@ Feature: Drive together
 
   Scenario: Leader stays offline
     When "Agus" sends no location for 5 minutes
-    Then "Budi" and "Citra" still see "Agus is offline" and keep navigating
+    Then "Budi" and "Citra" still see "Agus is offline" and keep navigating on the same route
+    And "Agus" is still the leader
     And nobody is asked to pick a new leader
-
-  Scenario: Leader offline with one member left
-    Given only "Budi" is left with "Agus"
-    When "Agus" sends no location for 5 minutes
-    Then "Budi" becomes the leader without being asked
-    And when "Agus" comes back he is a member
 ```
 
 ### Data

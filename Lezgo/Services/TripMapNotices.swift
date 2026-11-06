@@ -10,12 +10,6 @@ import Foundation
 /// The notices as one phone sees them: what changed since the last trip state, and which notice to show
 /// (`specs/UserStories.md` → US-06, "Route changes" and "Leader offline").
 struct TripMapNotices {
-    /// How long the leader must be gone before the only member left takes over.
-    static let takeOverAfter: TimeInterval = 300
-
-    /// `true` once this phone tried to take over as the only member left, so it asks only once.
-    var hasTriedTakeOver = false
-
     private var seen: Seen?
     private var recent: Recent?
     /// The "offline" banner was closed. It stays hidden until the leader has been back.
@@ -29,14 +23,12 @@ struct TripMapNotices {
     private struct Seen {
         let routeVersion: Int
         let stops: [Stop]
-        let leaderID: UUID
         let leaderLastSeenAt: Date?
     }
 
-    /// What has just happened. Only the latest is kept, so several reroutes in a row show one notice.
+    /// The latest route change. Only the latest is kept, so several reroutes in a row show one notice.
     private enum Recent {
         case route(stopsChanged: Bool)
-        case newLeader(id: UUID)
     }
 
     /// Notes what changed since the last state.
@@ -44,17 +36,12 @@ struct TripMapNotices {
         let now = Seen(
             routeVersion: state.trip.routeVersion,
             stops: Stops(of: state),
-            leaderID: state.trip.leaderParticipantID,
             leaderLastSeenAt: state.leader?.lastSeenAt
         )
         defer { seen = now }
         guard let seen else { return }
         if now.routeVersion > seen.routeVersion, state.trip.status == .inTrip {
             recent = .route(stopsChanged: now.stops != seen.stops)
-        }
-        if now.leaderID != seen.leaderID {
-            recent = .newLeader(id: now.leaderID)
-            isOfflineBannerClosed = false
         }
         if let before = seen.leaderLastSeenAt, let after = now.leaderLastSeenAt, after > before {
             isOfflineBannerClosed = false
@@ -72,8 +59,6 @@ struct TripMapNotices {
         switch recent {
         case .route(stopsChanged: true): return .routeUpdated(leaderName: leaderName)
         case .route(stopsChanged: false): return .newRoute(leaderName: leaderName)
-        case let .newLeader(id):
-            return state.participants.first { $0.id == id }.map { .newLeader(name: state.DisplayName(of: $0)) }
         case nil: return nil
         }
     }
@@ -81,16 +66,10 @@ struct TripMapNotices {
     /// A tap on the banner, or the end of its time on screen. A failed reroute stays until a new route is found.
     mutating func Close(_ notice: TripMapNotice) {
         switch notice {
-        case .newRoute, .routeUpdated, .newLeader: recent = nil
+        case .newRoute, .routeUpdated: recent = nil
         case .leaderOffline: isOfflineBannerClosed = true
         case .rerouteFailed: break
         }
-    }
-
-    /// With the leader gone for 5 minutes and this phone the only member left, there is nobody else to choose.
-    static func ShouldTakeOver(_ state: TripState, me: UUID, at date: Date) -> Bool {
-        guard let leader = state.leader, leader.id != me, state.participants.count == 2 else { return false }
-        return date.timeIntervalSince(leader.lastSeenAt) >= takeOverAfter
     }
 
     /// The stops still ahead; the start point changes with every reroute, so it does not count.

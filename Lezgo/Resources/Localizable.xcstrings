@@ -966,18 +966,6 @@
         }
       }
     },
-    "tripMapNoticeNewLeader" : {
-      "comment" : "Banner after the leader changed (US-06). The placeholder is the new leader's name.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ is now the leader"
-          }
-        }
-      }
-    },
     "tripMapNoticeNewRoute" : {
       "comment" : "Banner on the leader's own phone after a reroute (US-06).",
       "extractionState" : "manual",

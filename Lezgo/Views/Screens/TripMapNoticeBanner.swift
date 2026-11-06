@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// A notice about the route or the leader, in the same pill as the alerts. What has just happened hides by itself
-/// after 5 seconds.
+/// A notice about the route or an offline leader, in the same pill as the alerts. What has just happened hides by
+/// itself after 5 seconds.
 struct TripMapNoticeBanner: View {
     let notice: TripMapNotice
     /// The new time on a new route ("52 min"); `nil` until guidance knows it.
@@ -31,7 +31,7 @@ struct TripMapNoticeBanner: View {
     private func IsUrgent() -> Bool {
         switch notice {
         case .rerouteFailed, .leaderOffline: true
-        case .newRoute, .routeUpdated, .newLeader: false
+        case .newRoute, .routeUpdated: false
         }
     }
 
@@ -43,7 +43,6 @@ struct TripMapNoticeBanner: View {
         case .routeUpdated(nil): WithTime(.tripMapNoticeRouteUpdated)
         case .rerouteFailed: Text(.tripMapNoticeRerouteFailed)
         case let .leaderOffline(name): Text(.tripMapNoticeLeaderOffline(name))
-        case let .newLeader(name): Text(.tripMapNoticeNewLeader(name))
         }
     }
 
@@ -61,8 +60,7 @@ struct TripMapNoticeBanner: View {
                 TripMapNotice.newRoute(leaderName: "Agus"),
                 .routeUpdated(leaderName: "Agus"),
                 .rerouteFailed,
-                .leaderOffline(name: "Agus"),
-                .newLeader(name: "Budi")
+                .leaderOffline(name: "Agus")
             ],
             id: \.self
         ) { notice in

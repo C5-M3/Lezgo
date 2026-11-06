@@ -57,8 +57,8 @@ final class TripMapViewModel {
 
     /// The participant who uses this phone.
     let myParticipantID: UUID
-    let tripID: UUID
-    let tripService: any TripService
+    private let tripID: UUID
+    private let tripService: any TripService
     private let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
@@ -357,7 +357,6 @@ extension TripMapViewModel {
             updatedAt = clock()
             NoteArrivals()
             notices.Update(newState)
-            await TakeOverIfOnlyMemberLeft()
             NoticeTripClosed(newState)
             CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }

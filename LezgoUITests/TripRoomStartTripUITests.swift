@@ -34,7 +34,8 @@ final class TripRoomStartTripUITests: XCTestCase {
         start.tap()
 
         let openCard = app.buttons["Show trip actions"]
-        XCTAssertTrue(openCard.waitForExistence(timeout: 10))
+        // The animation alone takes about 3 seconds; a simulator busy with a long test run can take several times that.
+        XCTAssertTrue(openCard.waitForExistence(timeout: 20))
         XCTAssertFalse(app.buttons["End Trip"].exists)
         // The card slides in, so it is only hittable once it has settled.
         let settled = expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: openCard)

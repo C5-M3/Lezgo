@@ -9,7 +9,7 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// The banners about the trip itself: a new route, a failed reroute, an offline leader and a new leader
+/// The banners about the trip itself: a new route, a failed reroute and an offline leader
 /// (`specs/UserStories.md` → US-06, "Route changes" and "Leader offline").
 struct TripMapNoticesTests {
     private typealias Fixtures = TripMapFixtures
@@ -18,7 +18,6 @@ struct TripMapNoticesTests {
         leaderSecondsAgo: Double = 1,
         routeVersion: Int = 1,
         waypoints: [Waypoint]? = nil,
-        leaderID: UUID = Fixtures.agusID,
         includesCitra: Bool = true
     ) -> TripState {
         var cars = [
@@ -28,7 +27,6 @@ struct TripMapNoticesTests {
         if includesCitra { cars.append(Fixtures.Car(id: Fixtures.citraID, name: "Citra")) }
         var state = Fixtures.State(cars: cars)
         state.trip.routeVersion = routeVersion
-        state.trip.leaderParticipantID = leaderID
         if let waypoints { state.waypoints = waypoints }
         return state
     }
@@ -161,38 +159,5 @@ struct TripMapNoticesTests {
         ])
 
         #expect(notice == .leaderOffline(name: "Agus"))
-    }
-
-    // MARK: New leader
-
-    @Test func EveryoneIsToldWhoTheNewLeaderIs() {
-        let notice = Notice(after: [State(), State(leaderID: Fixtures.citraID)])
-
-        #expect(notice == .newLeader(name: "Citra"))
-    }
-
-    @Test func TheNewLeaderIsToldToo() {
-        let notice = Notice(after: [State(), State(leaderID: Fixtures.budiID)], me: Fixtures.budiID)
-
-        #expect(notice == .newLeader(name: "Budi"))
-    }
-
-    // MARK: Taking over
-
-    @Test(arguments: [
-        (seconds: 299.0, includesCitra: false, expected: false),
-        (300, false, true),
-        (300, true, false)
-    ])
-    func TheOnlyMemberLeftBecomesLeaderAfterFiveMinutes(seconds: Double, includesCitra: Bool, expected: Bool) {
-        let state = State(leaderSecondsAgo: seconds, includesCitra: includesCitra)
-
-        #expect(TripMapNotices.ShouldTakeOver(state, me: Fixtures.budiID, at: Fixtures.now) == expected)
-    }
-
-    @Test func TheOfflineLeaderDoesNotTakeOverFromThemselves() {
-        let state = State(leaderSecondsAgo: 300, includesCitra: false)
-
-        #expect(TripMapNotices.ShouldTakeOver(state, me: Fixtures.agusID, at: Fixtures.now) == false)
     }
 }

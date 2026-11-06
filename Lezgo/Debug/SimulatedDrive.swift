@@ -30,12 +30,12 @@ struct SimulatedDrive {
     var budiStops = false
     /// Agus's phone last sent a position 6 minutes ago.
     var agusIsOffline = false
-    /// After 6 seconds Agus gets a new route, with the same stops or another destination, or Budi becomes the leader.
+    /// After 6 seconds Agus gets a new route, with the same stops or another destination.
     var agusChangesRoute: RouteChange?
 
     /// How the simulated leader changes the route.
     enum RouteChange {
-        case sameStops, newDestination, budiLeads
+        case sameStops, newDestination
     }
 
     /// Moves the cars until the task is cancelled.
@@ -70,10 +70,6 @@ struct SimulatedDrive {
 
     private func ChangeRoute() async {
         guard let agusChangesRoute else { return }
-        if agusChangesRoute == .budiLeads {
-            try? await tripService.SetLeader(SampleTrip.budiID, tripID: SampleTrip.tripID, replacing: SampleTrip.agusID)
-            return
-        }
         var waypoints = SampleTrip.plan.waypoints
         if agusChangesRoute == .newDestination, let last = waypoints.indices.last {
             waypoints[last].name = "Pakuwon city mall"

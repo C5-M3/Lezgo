@@ -16,16 +16,14 @@ enum TripMapNotice: Hashable {
     case routeUpdated(leaderName: String?)
     /// "Couldn't update the route. Trying again."
     case rerouteFailed
-    /// "Agus is offline"
+    /// "Agus is offline". Everyone stays on the current route; nobody takes over on the road.
     case leaderOffline(name: String)
-    /// "Budi is now the leader"
-    case newLeader(name: String)
 
     /// How long a notice about something that has just happened stays, in seconds; `nil` for one that lasts as long
     /// as the situation does.
     var secondsOnScreen: Int? {
         switch self {
-        case .newRoute, .routeUpdated, .newLeader: 5
+        case .newRoute, .routeUpdated: 5
         case .rerouteFailed, .leaderOffline: nil
         }
     }
