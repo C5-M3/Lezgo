@@ -15,6 +15,7 @@ struct SetRouteMapView: View {
     private let onBack: (() -> Void)?
     private let onNext: (() -> Void)?
     private let onDismiss: (() -> Void)?
+    private let onTripCreated: ((TripSession) -> Void)?
     private let isBackDisabled: Bool
     private let isNextDisabled: Bool
     private let isStartPointLocked: Bool
@@ -26,6 +27,7 @@ struct SetRouteMapView: View {
         onBack: (() -> Void)? = nil,
         onNext: (() -> Void)? = nil,
         onDismiss: (() -> Void)? = nil,
+        onTripCreated: ((TripSession) -> Void)? = nil,
         isBackDisabled: Bool = false,
         isNextDisabled: Bool = false,
         isStartPointLocked: Bool = false
@@ -36,6 +38,7 @@ struct SetRouteMapView: View {
         self.onBack = onBack
         self.onNext = onNext
         self.onDismiss = onDismiss
+        self.onTripCreated = onTripCreated
         self.isBackDisabled = isBackDisabled
         self.isNextDisabled = isNextDisabled
         self.isStartPointLocked = isStartPointLocked

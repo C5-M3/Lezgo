@@ -13,8 +13,13 @@ struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
     @State private var isJoinTripPresented: Bool = false
+    @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
     @State private var drawerHeight: CGFloat = 310
+
+    private let brandYellow = Color(red: 247/255, green: 255/255, blue: 0/255)
+    private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
+    private let screenBackground = Color(red: 18/255, green: 18/255, blue: 18/255)
 
     private var shouldHideHomeControls: Bool {
         viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
@@ -24,19 +29,27 @@ struct HomeView: View {
     var body: some View {
         @Bindable var boundHomeViewModel = viewModel
 
-        MapReader { proxy in
-            ZStack(alignment: .bottom) {
-                mapView(proxy: proxy)
+        ZStack {
+            screenBackground
+                .ignoresSafeArea()
 
-                if !isJoinTripPresented && !isSetRoutePresented && !shouldHideHomeControls {
-                    locationInfoCard
-                        .transition(.opacity.combined(with: .scale(scale: 0.95)))
-                }
+            VStack(spacing: 0) {
+                headerView
+                    .padding(.top, 120)
+                    .padding(.horizontal, 24)
+
+                cardsSection
+                    .padding(.top, 24)
+                    .padding(.horizontal, 24)
+
+                Spacer(minLength: 16)
+
+                MascotsView()
             }
         }
+        .preferredColorScheme(.dark)
         .overlay {
             transitionOverlay
-            joinTripOverlay
             draftTripOverlay
         }
         .fullScreenCover(
@@ -52,10 +65,45 @@ struct HomeView: View {
                     onTripCreated: { session in
                         isSetRoutePresented = false
                         viewModel.onTripJoined(session)
+        .sheet(
+            isPresented: $isJoinTripPresented,
+            onDismiss: {
+                if let session = pendingJoinedSession {
+                    pendingJoinedSession = nil
+                    viewModel.onTripJoined(session)
+                }
+            },
+            content: {
+                JoinTripView(
+                    isPresented: $isJoinTripPresented,
+                    viewModel: JoinTripViewModel(
+                        roomCode: viewModel.inviteRoomCode ?? "",
+                        tripService: tripService,
+                        storage: viewModel.activeTripStorage
+                    ),
+                    onNavigateToTripRoom: { session in
+                        pendingJoinedSession = session
                     }
                 )
             }
         )
+        .fullScreenCover(isPresented: $isSetRoutePresented) {
+            SetRouteMapView(
+                viewModel: mapViewModel,
+                onBack: {
+                    handleSetRouteDismissed()
+                    isSetRoutePresented = false
+                },
+                onDismiss: {
+                    handleSetRouteDismissed()
+                    isSetRoutePresented = false
+                },
+                onTripCreated: { session in
+                    isSetRoutePresented = false
+                    viewModel.onTripJoined(session)
+                }
+            )
+        }
         .fullScreenCover(
             item: $boundHomeViewModel.activeTripSession,
             onDismiss: {
@@ -102,12 +150,12 @@ struct HomeView: View {
         .onOpenURL { url in viewModel.OpenInviteLink(url) }
         .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
             guard roomCode != nil else { return }
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                isJoinTripPresented = true
-            }
+            isJoinTripPresented = true
         }
         .onChange(of: isJoinTripPresented) { _, isPresented in
-            if !isPresented { viewModel.inviteRoomCode = nil }
+            if !isPresented {
+                viewModel.inviteRoomCode = nil
+            }
         }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)
@@ -115,89 +163,157 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Subviews & Actions
+// MARK: - Header & Cards
 
 private extension HomeView {
     @ViewBuilder
-    func mapView(proxy: MapProxy) -> some View {
-        @Bindable var boundMapViewModel = mapViewModel
-        @Bindable var boundViewModel = viewModel
+    var headerView: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Image("LezgoIcon")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 42)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-        Map(
-            position: isSetRoutePresented ? $boundMapViewModel.cameraPosition : $boundViewModel.cameraPosition,
-            interactionModes: isJoinTripPresented ? [] : .all
-        ) {
-            UserAnnotation()
-            if isSetRoutePresented {
-                routeContent
-            } else {
-                searchContent
-            }
+            Text("Make and lead a trip or join one !")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .onTapGesture { screenPoint in
-            if isSetRoutePresented, let coord = proxy.convert(screenPoint, from: .local) {
-                mapViewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
-            }
-        }
-        .accessibilityAddTraits(.isButton)
-        .mapControls {
-            MapUserLocationButton()
-            MapCompass()
-            MapScaleView()
-            MapPitchToggle()
-        }
-        .mapControlVisibility((isJoinTripPresented || shouldHideHomeControls) ? .hidden : .visible)
-        .disabled(isJoinTripPresented || shouldHideHomeControls)
-        .allowsHitTesting(!isJoinTripPresented && !shouldHideHomeControls)
     }
 
-    @MapContentBuilder
-    var routeContent: some MapContent {
-        if let start = mapViewModel.startPoint, start.name != "Current Location" {
-            Marker(start.name, coordinate: start.coordinate)
-                .tint(.blue)
+    @ViewBuilder
+    var cardsSection: some View {
+        VStack(spacing: 16) {
+            leadTripCard
+            joinTripCard
         }
+    }
 
-        ForEach(Array(mapViewModel.destinations.enumerated()), id: \.element.id) { index, point in
-            if mapViewModel.destinations.count == 1 || index == mapViewModel.destinations.count - 1 {
-                Marker(point.name, coordinate: point.coordinate)
-                    .tint(.red)
-            } else {
-                Marker("\(index + 1). \(point.name)", systemImage: "\(index + 1).circle", coordinate: point.coordinate)
-                    .tint(.purple)
-            }
-        }
+    @ViewBuilder
+    var leadTripCard: some View {
+        Button {
+            navigateToSetRoute()
+        } label: {
+            ZStack(alignment: .trailing) {
+                // Mascot watermark on the right side
+                Image("LeadTripMascot")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 180)
+                    .offset(y: 15)
+                    .accessibilityHidden(true)
+
+                VStack(alignment: .leading, spacing: 54) {
+                    HStack(alignment: .top) {
+                        ZStack {
+                            Circle()
+                                .fill(.black)
+                                .frame(width: 50, height: 50)
 
         ForEach(mapViewModel.routeLegs) { leg in
             ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
                 if routeIndex != leg.selectedRouteIndex {
                     MapPolyline(route.polyline)
                         .stroke(Color.heroYellow.opacity(0.38), lineWidth: 5)
+                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(brandYellow)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundStyle(.black)
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Lead a trip")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.black)
+
+                        Text("Plan the trip and make a room for friends to join trip!")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.black)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(22)
             }
+            .frame(maxWidth: .infinity)
+            .background(brandYellow)
+            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
 
         ForEach(mapViewModel.selectedPolylines, id: \.self) { polyline in
             MapPolyline(polyline)
                 .stroke(Color.heroYellow, lineWidth: 6)
         }
+        .buttonStyle(.plain)
     }
 
-    @MapContentBuilder
-    var searchContent: some MapContent {
-        if let selectedMapItem = viewModel.selectedMapItem {
-            Marker(selectedMapItem.name ?? "Destinasi", coordinate: selectedMapItem.location.coordinate)
-                .tint(.blue)
-        }
+    @ViewBuilder
+    var joinTripCard: some View {
+        Button {
+            isJoinTripPresented = true
+        } label: {
+            ZStack(alignment: .trailing) {
+                // Mascot watermark on the right side
+                Image("JoinTripMascot")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 160)
+                    .offset(x: -10, y: -8)
+                    .accessibilityHidden(true)
 
-        ForEach(viewModel.searchResults, id: \.self) { item in
-            if item != viewModel.selectedMapItem {
-                Marker(item.name ?? "Lokasi", coordinate: item.location.coordinate)
-                    .tint(.red)
+                VStack(alignment: .leading, spacing: 54) {
+                    HStack(alignment: .top) {
+                        ZStack {
+                            Circle()
+                                .fill(brandYellow)
+                                .frame(width: 50, height: 50)
+
+                            Image(systemName: "door.left.hand.open")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(.black)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundStyle(Color(white: 0.6))
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Join a trip")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.white)
+
+                        Text("Got a room code from friend leader? Join the room now!")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Color(white: 0.6))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(22)
             }
+            .frame(maxWidth: .infinity)
+            .background(cardDarkBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
+        .buttonStyle(.plain)
     }
+}
 
+// MARK: - Overlays & Logic
+
+private extension HomeView {
     @ViewBuilder
     var transitionOverlay: some View {
         if viewModel.isTransitioningToTripMap {
@@ -209,28 +325,6 @@ private extension HomeView {
                 }
                 .transition(.opacity)
                 .zIndex(150)
-        }
-    }
-
-    @ViewBuilder
-    var joinTripOverlay: some View {
-        if isJoinTripPresented {
-            JoinTripView(
-                isPresented: $isJoinTripPresented,
-                viewModel: JoinTripViewModel(
-                    roomCode: viewModel.inviteRoomCode ?? "",
-                    tripService: tripService,
-                    storage: viewModel.activeTripStorage
-                ),
-                onNavigateToTripRoom: { session in
-                    viewModel.onTripJoined(session)
-                }
-            )
-            .transition(.asymmetric(
-                insertion: .opacity.combined(with: .scale(scale: 0.94)),
-                removal: .identity
-            ))
-            .zIndex(100)
         }
     }
 
@@ -302,57 +396,6 @@ private extension HomeView {
             .transition(.move(edge: .top).combined(with: .opacity))
             .accessibilityElement(children: .combine)
         }
-    }
-
-    @ViewBuilder
-    var locationInfoCard: some View {
-        VStack(spacing: 12) {
-            if viewModel.isLocationAccessDenied {
-                HStack(spacing: 12) {
-                    Image(systemName: "location.slash.fill")
-                        .font(.title2)
-                        .foregroundStyle(.red)
-                        .accessibilityHidden(true)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Akses Lokasi Ditolak")
-                            .font(.headline)
-                        Text("Aktifkan izin lokasi pada Pengaturan untuk melihat posisi saat ini.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-                }
-                .padding()
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-            } else if viewModel.isLoadingLocation {
-                HStack(spacing: 12) {
-                    ProgressView()
-                    Text("Mencari posisi perangkat...")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding()
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-            }
-
-            TravelMapControlsView(
-                onDoorTapped: {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        isJoinTripPresented = true
-                    }
-                },
-                onTap: {
-                    navigateToSetRoute()
-                }
-            )
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 24)
     }
 
     func navigateToSetRoute() {

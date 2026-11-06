@@ -19,7 +19,7 @@ final class TripRoomStartTripUITests: XCTestCase {
         app.launch()
     }
 
-    /// After the leader confirms the start, the lobby closes and the map opens with the leader's "End Trip".
+    /// After the leader confirms the start, the lobby closes and the map opens with the leader's map controls.
     @MainActor
     func testStartTripOpensTheMap() throws {
         let startTrip = app.buttons["Start Trip"]
@@ -32,7 +32,7 @@ final class TripRoomStartTripUITests: XCTestCase {
         Attach(named: "Start trip confirmation")
         start.tap()
 
-        XCTAssertTrue(app.buttons["End Trip"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Show whole route"].waitForExistence(timeout: 5))
         // The map covers the lobby, which stays in the tree below it, so its button can no longer be tapped.
         XCTAssertFalse(startTrip.isHittable)
         Attach(named: "Map after the start")
@@ -49,7 +49,7 @@ final class TripRoomStartTripUITests: XCTestCase {
         XCTAssertTrue(cancel.waitForExistence(timeout: 3))
         cancel.tap()
 
-        XCTAssertFalse(app.buttons["End Trip"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Show whole route"].waitForExistence(timeout: 2))
         XCTAssertTrue(startTrip.exists)
     }
 
