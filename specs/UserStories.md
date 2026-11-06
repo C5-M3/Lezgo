@@ -497,6 +497,7 @@ Feature: Manage the group and start
 
 **Car status**
 - Tap a car → card with name, status and street ("Driving at Ahmad Yani Street"), and ETA to the destination ("50 min").
+- The camera moves to the tapped car and follows it while its card is open. Closing the card takes the camera back to where it was (following this car or showing the whole route); a map moved by hand meanwhile stays where it is.
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
 - Tap elsewhere or swipe down to close.
@@ -569,6 +570,12 @@ Feature: Drive together
     Given "Budi" is driving on "Ahmad Yani Street", 50 minutes from the destination
     When "Agus" taps the car of "Budi"
     Then "Agus" sees "Budi", "Driving at Ahmad Yani Street" and "50 min"
+    And the map moves to the car of "Budi" and follows it
+
+  Scenario: Close a car's card
+    Given "Agus" is following his own car and has tapped the car of "Budi"
+    When "Agus" closes the card
+    Then the map follows the car of "Agus" again
 
   Scenario: A car stops
     Given "Budi" has had speed 0 for 30 seconds
