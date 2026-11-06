@@ -27,10 +27,10 @@ final class InviteLinkUITests: XCTestCase {
         app.open(url)
         ConfirmOpenInLezgo()
 
-        // The dialog card has the button trait, so its texts are not found as static texts or text fields.
         let elements = app.descendants(matching: .any)
         XCTAssertTrue(elements["Enter room code"].waitForExistence(timeout: 5))
-        let codeField = elements.matching(NSPredicate(format: "placeholderValue == %@", "6 digit code")).firstMatch
+        let codeField = elements["Room code"]
+        XCTAssertTrue(codeField.waitForExistence(timeout: 3))
         XCTAssertEqual(codeField.value as? String, "394856")
     }
 
