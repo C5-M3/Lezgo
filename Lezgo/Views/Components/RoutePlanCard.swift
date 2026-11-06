@@ -23,33 +23,28 @@ struct RoutePlanCard: View {
     @FocusState var isFieldFocused: Bool
 
     var body: some View {
-        List {
+        VStack(alignment: .leading, spacing: 0) {
             startPointRow
-                .listRowInsets(EdgeInsets(top: 16, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .padding(.top, 16)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
 
             if !intermediateStops.isEmpty {
                 intermediateStopsSection
             }
 
             destinationRow
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: canAddDestination ? 4 : 16, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .padding(.top, 4)
+                .padding(.horizontal, 16)
+                .padding(.bottom, canAddDestination ? 4 : 16)
 
             if canAddDestination {
                 RouteAddDestinationRow(onAddDestination: onAddDestination)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 16, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+                    .padding(.top, 4)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .environment(\.defaultMinListRowHeight, 0)
-        .scrollDisabled(isScrollDisabled)
-        .frame(height: calculatedHeight)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
@@ -110,41 +105,6 @@ extension RoutePlanCard {
         !destinations.isEmpty || isSearchingDestination
     }
 
-    var isScrollDisabled: Bool {
-        !isStopsExpanded || intermediateStops.count <= 3
-    }
-
-    var calculatedHeight: CGFloat {
-        var height: CGFloat = 16 // Top padding
-
-        // Start point row
-        height += (activeSelection == .start) ? 52 : 44
-
-        // Intermediate stops
-        if intermediateStops.count == 1 {
-            height += 44
-        } else if intermediateStops.count > 1 {
-            height += 44 // Toggle row
-            if isStopsExpanded {
-                let count = CGFloat(intermediateStops.count)
-                let expandedHeight = count * 44
-                height += min(expandedHeight, 220)
-            }
-        }
-
-        // Destination row
-        height += isSearchingDestination ? 54 : 44
-
-        // Add destination row
-        if canAddDestination {
-            height += 56
-        }
-
-        height += 16 // Bottom padding
-        height += 12 // Headroom to prevent clipping
-        return height
-    }
-
     func MoveDestinationItem(from fromIndex: Int, to toIndex: Int) {
         guard destinations.indices.contains(fromIndex),
               toIndex >= 0, toIndex <= destinations.count else { return }
@@ -199,28 +159,33 @@ private extension RoutePlanCard {
 
         if count == 1, let singleStop = intermediateStops.first {
             stopRow(index: 0, stop: singleStop)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 16)
         } else if count > 1 {
             stopsToggleRow
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 16)
 
             if isStopsExpanded {
-                ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
-                    stopRow(index: index, stop: stop)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
-                .onDelete { indexSet in
-                    for index in indexSet.sorted().reversed() {
-                        onRemoveDestination(index)
+                if count > 4 {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            stopsListContent
+                        }
                     }
+                    .frame(maxHeight: 200)
+                } else {
+                    stopsListContent
                 }
             }
+        }
+    }
+
+    var stopsListContent: some View {
+        ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
+            stopRow(index: index, stop: stop)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 16)
         }
     }
 
@@ -295,12 +260,9 @@ private extension RoutePlanCard {
                 )
             }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                onRemoveDestination(index)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+        .contentShape(Rectangle())
+        .routeSwipeToDelete {
+            onRemoveDestination(index)
         }
         .dropDestination(for: String.self) { items, _ in
             handleDrop(items: items, targetIndex: index)
@@ -352,13 +314,10 @@ private extension RoutePlanCard {
                 }
             }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+        .contentShape(Rectangle())
+        .routeSwipeToDelete {
             if !destinations.isEmpty && lastIndex < destinations.count {
-                Button(role: .destructive) {
-                    onRemoveDestination(lastIndex)
-                } label: {
-                    Label("Delete", systemImage: "trash")
-                }
+                onRemoveDestination(lastIndex)
             }
         }
         .dropDestination(for: String.self) { items, _ in
