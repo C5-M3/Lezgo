@@ -121,7 +121,8 @@ final class TripRoomHoldMenuUITests: XCTestCase {
         XCTAssertEqual(chosen.firstMatch.label, "Purple avatar")
 
         for _ in 0..<8 {
-            app.buttons["Green avatar"].firstMatch.swipeLeft()
+            // The chosen avatar always stays in the middle, so it is always on screen to swipe.
+            chosen.firstMatch.swipeLeft()
         }
 
         XCTAssertEqual(chosen.count, 1)

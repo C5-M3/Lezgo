@@ -66,11 +66,6 @@ struct EditProfileSheetView: View {
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Back", systemImage: "chevron.left") { dismiss() }
-                }
-            }
             .onChange(of: isNameFocused) { _, isFocused in
                 // Leaving the field checks the name; tapping it again starts over.
                 isNameTaken = !isFocused && viewModel.IsNameTaken(trimmedName, for: participant.id)
