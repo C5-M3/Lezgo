@@ -101,7 +101,8 @@ private struct ParticipantCell: View {
     private var card: some View {
         VStack(spacing: 4) {
             AvatarImage(avatar: participant.avatar, isSelected: isReady)
-                .frame(width: 160, height: 160).padding(.bottom, -20)
+                .frame(width: AvatarImage.roomSize, height: AvatarImage.roomSize)
+                .padding(.bottom, -20)
             HStack(spacing: 4) {
                 Text(displayName)
                     .font(.headline)

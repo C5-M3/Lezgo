@@ -7,8 +7,8 @@
 
 import XCTest
 
-/// "Set Lead" in Edit Profile (US-05, "Hand over the lead"). These run as UI tests because the sheet closing and an
-/// error alert inside it are SwiftUI behavior that a view model test cannot see.
+/// "Set as Trip Leader" in the menu of a held avatar (US-05, "Hand over the lead"). These run as UI tests because
+/// the menu, the dialog and the error dialog are SwiftUI behavior that a view model test cannot see.
 final class TripRoomSetLeaderUITests: XCTestCase {
     private var app = XCUIApplication()
 
@@ -19,16 +19,16 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         app.launch()
     }
 
-    /// "Agus taps Budi, taps Set Lead and confirms": Agus becomes a member who waits for the others.
+    /// "Agus holds Budi, taps Set as Trip Leader and confirms": Agus becomes a member who waits for the others.
     @MainActor
     func testSetLeadHandsOverTheLeadAfterConfirming() throws {
-        Avatar(named: "Budi").tap()
-        let setLead = app.buttons["Set Lead"]
+        app.HoldAvatar(named: "Budi")
+        let setLead = app.buttons["Set as Trip Leader"]
         XCTAssertTrue(setLead.waitForExistence(timeout: 3))
 
         setLead.tap()
         XCTAssertTrue(app.alerts["Set Budi as Trip Leader?"].waitForExistence(timeout: 3))
-        Attach(named: "Set Lead alert on Budi")
+        Attach(named: "Set as Trip Leader dialog on Budi")
         app.alerts.buttons["Confirm"].tap()
 
         XCTAssertTrue(app.staticTexts["Waiting for others ..."].waitForExistence(timeout: 3))
@@ -36,29 +36,24 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         Attach(named: "Agus after handing over")
     }
 
-    /// "Cancel" on the confirmation changes nothing and keeps Edit Profile open.
+    /// "Cancel" on the confirmation changes nothing.
     @MainActor
     func testCancelKeepsTheLeader() throws {
-        Avatar(named: "Budi").tap()
-        let setLead = app.buttons["Set Lead"]
-        XCTAssertTrue(setLead.waitForExistence(timeout: 3))
-
-        setLead.tap()
+        app.HoldAvatar(named: "Budi")
+        app.buttons["Set as Trip Leader"].tap()
         app.alerts["Set Budi as Trip Leader?"].buttons["Cancel"].tap()
 
-        XCTAssertTrue(setLead.waitForExistence(timeout: 2))
-        app.buttons["Back"].tap()
         XCTAssertTrue(app.buttons["Start Trip"].waitForExistence(timeout: 2))
     }
 
-    /// A failed handover keeps Edit Profile open and says why, so the leader does not think it worked.
+    /// A failed handover says why, so the leader does not think it worked.
     @MainActor
     func testFailedHandOverShowsTheError() throws {
         app.terminate()
         app.launchArguments = ["-DebugScreen", "tripRoomLeaderOffline"]
         app.launch()
-        Avatar(named: "Budi").tap()
-        let setLead = app.buttons["Set Lead"]
+        app.HoldAvatar(named: "Budi")
+        let setLead = app.buttons["Set as Trip Leader"]
         XCTAssertTrue(setLead.waitForExistence(timeout: 3))
 
         setLead.tap()
@@ -75,15 +70,5 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
-    }
-
-    /// A participant's avatar button, whose label starts with their name; scrolls until it shows at large text sizes.
-    private func Avatar(named name: String) -> XCUIElement {
-        let avatar = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
-        _ = avatar.waitForExistence(timeout: 5)
-        for _ in 0..<6 where avatar.exists && !avatar.isHittable {
-            app.swipeUp()
-        }
-        return avatar
     }
 }

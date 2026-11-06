@@ -12,6 +12,11 @@ import SwiftUI
 /// The selected image has a burst behind the mascot, so selected and unselected differ in shape, not only in colour.
 /// It is decorative: the view that shows it says in words what it means.
 struct AvatarImage: View {
+    /// The size of an avatar in the Trip Room, and of the chosen one in Edit Profile.
+    static let roomSize: CGFloat = 160
+    /// The size of the avatars that are not chosen in Edit Profile.
+    static let pickerSize: CGFloat = 100
+
     let avatar: Avatar
     /// The burst: ready at the start point in the participant list, or the chosen avatar in Edit Profile.
     let isSelected: Bool

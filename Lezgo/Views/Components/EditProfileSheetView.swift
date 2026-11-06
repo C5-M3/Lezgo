@@ -8,19 +8,25 @@
 import SwiftUI
 
 /// Edits one participant's avatar, name and car: my own, or anyone's when I lead the trip (US-04, "Edit Profile").
-/// When the leader edits a member, "Kick" and "Set Lead" sit between the form and "Save" (US-05).
+/// It opens from "Edit Details" in the menu of a held avatar.
 struct EditProfileSheetView: View {
     let viewModel: TripRoomViewModel
     let participant: Participant
     @Environment(\.dismiss) private var dismiss
-    @State private var avatar: Avatar = .yellow
-    @State private var name = ""
-    @State private var carDetails = ""
-    @State private var isConfirmingKick = false
-    @State private var isConfirmingSetLead = false
-    /// Why Kick or Set Lead failed; the sheet stays open so the leader can try again.
-    @State private var groupActionError: String?
-    @State private var isRunningGroupAction = false
+    @State private var avatar: Avatar
+    @State private var name: String
+    @State private var carDetails: String
+    /// The name is already used by another car: set when the field is left, and when a save was refused.
+    @State private var isNameTaken = false
+    @FocusState private var isNameFocused: Bool
+
+    init(viewModel: TripRoomViewModel, participant: Participant) {
+        self.viewModel = viewModel
+        self.participant = participant
+        _avatar = State(initialValue: participant.avatar)
+        _name = State(initialValue: participant.displayName)
+        _carDetails = State(initialValue: participant.carDescription)
+    }
 
     private var trimmedName: String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -30,12 +36,8 @@ struct EditProfileSheetView: View {
         carDetails.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var displayName: String {
-        viewModel.DisplayName(of: participant)
-    }
-
-    private var isBusy: Bool {
-        viewModel.isSavingProfile || isRunningGroupAction
+    private var canSave: Bool {
+        !trimmedName.isEmpty && !isNameTaken && !viewModel.isSavingProfile
     }
 
     var body: some View {
@@ -43,20 +45,23 @@ struct EditProfileSheetView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     AvatarPicker(selection: $avatar)
-                    ProfileField(title: "Name", prompt: "Maximum 30 symbols", text: $name, limit: 30)
+                    ProfileField(
+                        title: "Name",
+                        prompt: "Maximum 30 symbols",
+                        text: $name,
+                        limit: 30,
+                        isFocused: $isNameFocused,
+                        error: isNameTaken ? .tripServiceErrorNameAlreadyUsed : nil
+                    )
                     ProfileField(title: "Car Details", prompt: "Maximum 40 symbols", text: $carDetails, limit: 40)
-                    if viewModel.CanKick(participant: participant) {
-                        GroupActionButtons(
-                            isDisabled: isBusy,
-                            onSetLead: { isConfirmingSetLead = true },
-                            onKick: { isConfirmingKick = true }
-                        )
-                    }
                 }
                 .padding()
             }
+            .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
-                SaveButton(isDisabled: trimmedName.isEmpty || isBusy, action: Save)
+                Button("Save", action: Save)
+                    .buttonStyle(.yellowCapsule(disabledBackground: Color(uiColor: .systemGray3)))
+                    .disabled(!canSave)
                     .padding()
             }
             .navigationTitle("Edit Profile")
@@ -66,26 +71,18 @@ struct EditProfileSheetView: View {
                     Button("Back", systemImage: "chevron.left") { dismiss() }
                 }
             }
-            .alert(viewModel.RemoveParticipantConfirmationTitle(for: participant), isPresented: $isConfirmingKick) {
-                Button("Cancel", role: .cancel) { }
-                Button("Remove", role: .destructive, action: Kick)
+            .onChange(of: isNameFocused) { _, isFocused in
+                // Leaving the field checks the name; tapping it again starts over.
+                isNameTaken = !isFocused && viewModel.IsNameTaken(trimmedName, for: participant.id)
             }
-            .alert(viewModel.SetLeaderConfirmationTitle(for: participant), isPresented: $isConfirmingSetLead) {
-                Button("Cancel", role: .cancel) { }
-                Button("Confirm", action: SetLead)
-            }
-            .alert("Error", isPresented: errorIsShown) {
-                Button("OK") { ClearErrors() }
-            } message: {
-                if let message = viewModel.profileErrorMessage ?? groupActionError {
-                    Text(message)
-                }
-            }
-            .onAppear {
-                avatar = participant.avatar
-                name = participant.displayName
-                carDetails = participant.carDescription
-            }
+            .confirmDialog(
+                isPresented: errorIsShown,
+                title: Text(verbatim: viewModel.isProfileNameTaken ? (viewModel.profileErrorMessage ?? "") : "Error"),
+                message: viewModel.isProfileNameTaken ? nil : viewModel.profileErrorMessage.map { Text(verbatim: $0) },
+                cancelTitle: nil,
+                confirmTitle: .tripRoomOK,
+                onConfirm: { }
+            )
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
@@ -94,14 +91,9 @@ struct EditProfileSheetView: View {
 
     private var errorIsShown: Binding<Bool> {
         Binding(
-            get: { viewModel.profileErrorMessage != nil || groupActionError != nil },
-            set: { if !$0 { ClearErrors() } }
+            get: { viewModel.profileErrorMessage != nil },
+            set: { if !$0 { viewModel.profileErrorMessage = nil } }
         )
-    }
-
-    private func ClearErrors() {
-        viewModel.profileErrorMessage = nil
-        groupActionError = nil
     }
 
     private func Save() {
@@ -112,61 +104,62 @@ struct EditProfileSheetView: View {
                 avatar: avatar,
                 of: participant.id
             )
-            if didSave { dismiss() }
-        }
-    }
-
-    private func Kick() {
-        RunGroupAction { try await viewModel.RemoveParticipant(id: participant.id) }
-    }
-
-    private func SetLead() {
-        RunGroupAction { try await viewModel.SetLeader(to: participant) }
-    }
-
-    /// Closes the sheet once the change is saved; a failure keeps it open with the service's sentence.
-    private func RunGroupAction(_ action: @escaping () async throws -> Void) {
-        guard !isRunningGroupAction else { return }
-        isRunningGroupAction = true
-        Task {
-            defer { isRunningGroupAction = false }
-            do {
-                try await action()
+            if didSave {
                 dismiss()
-            } catch {
-                groupActionError = String(localized: TripServiceError(cloudKitError: error).message)
+            } else {
+                // Checked again on the service: another car may have taken the name since the field was left.
+                isNameTaken = viewModel.isProfileNameTaken
             }
         }
     }
 }
 
-/// "Select Avatar": the five mascots in a row; the chosen one is larger and has the burst.
+/// "Select Avatar": the avatars scroll sideways without an end, and the one in the middle is the chosen one. It is as
+/// big as in the Trip Room; the others are smaller. There is no select button: scrolling chooses.
 private struct AvatarPicker: View {
     @Binding var selection: Avatar
+    /// The index of the avatar in the middle, in a list that repeats the five avatars so the end is never reached.
+    @State private var position: Int?
+    @State private var width: CGFloat = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let copies = 400
+    private static let slotWidth: CGFloat = 110
+    private let avatars = Avatar.allCases
+
+    init(selection: Binding<Avatar>) {
+        _selection = selection
+        let middle = Self.copies / 2 * Avatar.allCases.count
+        _position = State(initialValue: middle + (Avatar.allCases.firstIndex(of: selection.wrappedValue) ?? 0))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select Avatar")
                 .font(.headline)
-            // The chosen avatar is scrolled to the middle, so a member whose avatar is at the end still sees it.
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal) {
-                    HStack(spacing: -50) {
-                        ForEach(Avatar.allCases, id: \.self) { avatar in
-                            AvatarChoice(avatar: avatar, isChosen: avatar == selection) {
-                                withAnimation(reduceMotion ? nil : .snappy) { selection = avatar }
-                            }
-                            .id(avatar)
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 0) {
+                    ForEach(0..<(Self.copies * avatars.count), id: \.self) { index in
+                        AvatarChoice(avatar: avatars[index % avatars.count], isChosen: index == position) {
+                            withAnimation(reduceMotion ? nil : .snappy) { position = index }
                         }
+                        .frame(width: Self.slotWidth)
+                        .id(index)
                     }
-                    .frame(minHeight: 160)
                 }
-                .scrollIndicators(.hidden)
-                .onChange(of: selection, initial: true) { _, chosen in
-                    withAnimation(reduceMotion ? nil : .snappy) { proxy.scrollTo(chosen, anchor: .center) }
-                }
+                .scrollTargetLayout()
             }
+            .scrollPosition(id: $position, anchor: .center)
+            .scrollTargetBehavior(.viewAligned)
+            .contentMargins(.horizontal, max(0, (width - Self.slotWidth) / 2), for: .scrollContent)
+            .scrollIndicators(.hidden)
+            .frame(height: AvatarImage.roomSize + 20)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+            .animation(reduceMotion ? nil : .snappy, value: position)
+        }
+        .onChange(of: position) { _, newPosition in
+            guard let newPosition else { return }
+            selection = avatars[newPosition % avatars.count]
         }
     }
 }
@@ -177,9 +170,10 @@ private struct AvatarChoice: View {
     let action: () -> Void
 
     var body: some View {
+        let size = isChosen ? AvatarImage.roomSize : AvatarImage.pickerSize
         Button(action: action) {
             AvatarImage(avatar: avatar, isSelected: isChosen)
-                .frame(width: isChosen ? 160 : 140, height: isChosen ? 160 : 140)
+                .frame(width: size, height: size)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(avatar.accessibilityName)
@@ -187,69 +181,50 @@ private struct AvatarChoice: View {
     }
 }
 
+/// A capsule text field with a title. A name that is already used turns the border red and says why underneath.
 private struct ProfileField: View {
     let title: LocalizedStringKey
     let prompt: LocalizedStringKey
     @Binding var text: String
     let limit: Int
+    var isFocused: FocusState<Bool>.Binding?
+    var error: LocalizedStringResource?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-            TextField(title, text: $text, prompt: Text(prompt))
+            field
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
                 .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
+                .overlay {
+                    if error != nil {
+                        Capsule().stroke(.red, lineWidth: 2)
+                    }
+                }
                 .onChange(of: text) { _, newValue in
                     if newValue.count > limit {
                         text = String(newValue.prefix(limit))
                     }
                 }
+            if let error {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 20)
+            }
         }
     }
-}
 
-/// "Set Lead" and "Kick": plain buttons, so they never compete with "Save" (US-05).
-private struct GroupActionButtons: View {
-    let isDisabled: Bool
-    let onSetLead: () -> Void
-    let onKick: () -> Void
-
-    var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { buttons }
-            VStack(spacing: 12) { buttons }
+    @ViewBuilder private var field: some View {
+        if let isFocused {
+            TextField(title, text: $text, prompt: Text(prompt))
+                .focused(isFocused)
+                .accessibilityValue(error.map { Text($0) } ?? Text(verbatim: ""))
+        } else {
+            TextField(title, text: $text, prompt: Text(prompt))
         }
-        .disabled(isDisabled)
-    }
-
-    @ViewBuilder private var buttons: some View {
-        Button(action: onSetLead) {
-            Text("Set Lead")
-                .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.bordered)
-        .tint(.secondary)
-        .foregroundStyle(.primary)
-        Button(role: .destructive, action: onKick) {
-            Text("Kick")
-                .frame(maxWidth: .infinity, minHeight: 44)
-        }
-        .buttonStyle(.bordered)
-        .tint(.secondary)
-        .foregroundStyle(.red)
-    }
-}
-
-private struct SaveButton: View {
-    let isDisabled: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button("Save", action: action)
-            .buttonStyle(.yellowCapsule)
-            .disabled(isDisabled)
     }
 }
 
@@ -275,8 +250,8 @@ private func MakeSheet(me: UUID, editing participantID: UUID) -> some View {
     MakeSheet(me: SampleTrip.agusID, editing: SampleTrip.budiID)
 }
 
-#Preview("Leader edits themselves") {
-    MakeSheet(me: SampleTrip.agusID, editing: SampleTrip.agusID)
+#Preview("Member edits themselves") {
+    MakeSheet(me: SampleTrip.budiID, editing: SampleTrip.budiID)
 }
 
 #Preview("Member, Accessibility XXXL") {
