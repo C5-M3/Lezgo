@@ -9,7 +9,7 @@ import SwiftUI
 
 extension RoutePlanCard {
     var stopsToggleRow: some View {
-        let count = intermediateStops.count
+        let count = max(0, destinations.count - 1)
 
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
