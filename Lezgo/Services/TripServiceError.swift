@@ -21,6 +21,8 @@ enum TripServiceError: Error, Hashable {
     case conflict
     /// The action is not allowed for this person or in this trip status, for example a member removing someone.
     case notAllowed
+    /// Another car in the trip already has this name (ignoring upper/lower case and spaces at the ends).
+    case nameAlreadyUsed
 
     var message: LocalizedStringResource {
         switch self {
@@ -30,6 +32,7 @@ enum TripServiceError: Error, Hashable {
         case .tripEnded: .tripServiceErrorTripEnded
         case .conflict: .tripServiceErrorConflict
         case .notAllowed: .tripServiceErrorNotAllowed
+        case .nameAlreadyUsed: .tripServiceErrorNameAlreadyUsed
         }
     }
 }

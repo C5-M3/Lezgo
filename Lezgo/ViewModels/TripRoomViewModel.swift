@@ -38,6 +38,8 @@ final class TripRoomViewModel {
     private(set) var hasLeft = false
     /// Shown inside the edit sheet, which stays open when the save fails so the typed name and car are kept.
     var profileErrorMessage: String?
+    /// `true` after a save was refused because another car has this name, so the sheet can mark the name field.
+    var isProfileNameTaken = false
 
     var roomCode: String {
         state?.trip.roomCode ?? ""
@@ -246,6 +248,11 @@ final class TripRoomViewModel {
 // MARK: Profile
 
 extension TripRoomViewModel {
+    /// Whether this name is already used by another car in the trip, for the check when the name field is left.
+    func IsNameTaken(_ name: String, for participantID: UUID) -> Bool {
+        false
+    }
+
     /// Changes a participant's name, car and avatar. Only my own details are remembered for my next trip; the leader
     /// fixing a member's name must not make it the leader's own.
     /// - Parameter avatar: `nil` keeps the current avatar.

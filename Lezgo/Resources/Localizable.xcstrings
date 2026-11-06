@@ -1230,6 +1230,18 @@
         }
       }
     },
+    "tripServiceErrorNameAlreadyUsed" : {
+      "comment" : "Error when a name is already used by another car in the trip (US-04, US-02).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name already used in this trip"
+          }
+        }
+      }
+    },
     "tripServiceErrorNoNetwork" : {
       "comment" : "Error when iCloud cannot be reached. Copy not in the user stories yet; needs a copy check.",
       "extractionState" : "manual",

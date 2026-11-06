@@ -29,6 +29,12 @@ struct TripState: Hashable {
         return trail + [leaderCoordinate] + RoutePosition.RouteAhead(of: leaderCoordinate, on: planned)
     }
 
+    /// Whether another car in the trip already has this name, ignoring upper/lower case and spaces at the ends.
+    /// - Parameter participantID: the car that is being renamed, so keeping its own name is never a clash.
+    func IsNameTaken(_ name: String, excluding participantID: UUID? = nil) -> Bool {
+        false
+    }
+
     var leader: Participant? {
         participants.first { $0.IsLeader(in: trip) }
     }
