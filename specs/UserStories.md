@@ -69,7 +69,7 @@ LOBBY ──leader leaves──► CANCELLED
 | --- | --- | --- |
 | `Trip` | `id`, `roomCode`, `status`, `leaderParticipantID`, `currentWaypointIndex`, `routeVersion`, `createdAt`, `startedAt`, `endedAt` | The leader is stored **only** here, so there can never be two leaders. |
 | `Waypoint` | `id`, `tripID`, `orderIndex`, `kind` (`start`, `checkpoint`, `destination`), `name`, `latitude`, `longitude` | Order: start point `0`, checkpoints `1…n`, destination `n + 1`. Visited when `orderIndex < Trip.currentWaypointIndex`. |
-| `Participant` | `id`, `tripID`, `userRecordID`, `displayName`, `carDescription`, `avatar` (`Yellow`, `Blue`, `Green`, `Pink`, `Purple`), `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt`, `course` (degrees clockwise from north, empty when unknown) | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
+| `Participant` | `id`, `tripID`, `userRecordID`, `displayName` (unique in the trip, ignoring upper/lower case and spaces at the ends), `carDescription`, `avatar` (`Yellow`, `Blue`, `Green`, `Pink`, `Purple`), `latitude`, `longitude`, `speedKmh`, `motionState` (`driving`, `stopped`), `alert` (`none`, `offRoute`, `passedCheckpoint`, `aheadOfLeader`), `lastSeenAt`, `course` (degrees clockwise from north, empty when unknown) | One record per person (= per car). `id` is the CloudKit record name; `userRecordID` is the iCloud user, unique per trip. Leader when `id == Trip.leaderParticipantID`, otherwise member. |
 | `Route` | `id`, `tripID`, `version`, `polyline` | The road path. A new version replaces the old one. |
 
 ### Sync and timing
@@ -163,6 +163,7 @@ Feature: Plan a route
 - `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
 - `ENDED` or `CANCELLED` → join is rejected.
 - Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car.
+- If my saved name is already used by another car in the trip, join is rejected with "Name already used in this trip" and I stay on Home. I change my name and try again (US-04).
 
 ### Acceptance criteria
 
@@ -195,6 +196,13 @@ Feature: Join a trip
   Scenario: Code not complete
     When I have entered "8976"
     Then "Enter" is disabled
+
+  Scenario: Name already used
+    Given trip "897654" has a member called "Budi"
+    And my saved name is "budi "
+    When I enter "897654" and tap "Enter"
+    Then I see "Name already used in this trip"
+    And I am not added to the trip
 
   Scenario: Join twice
     Given I already joined trip "897654"
@@ -281,7 +289,7 @@ Feature: Resume an unfinished trip
 
 **Lo-fi:** `TRIP ROOM (LEADER)`, `TRIP ROOM (JOINER)`, `TRIP ROOM (INVITE FRIENDS)`, `TRIP ROOM (INVITE FRIENDS) (JOINER)`
 
-**Hi-fi:** Trip Room, Add Participants, Edit Profile, Start Trip confirmation (#166). The hi-fi wins where it differs from the lo-fi.
+**Hi-fi:** Trip Room, Add Participants, Edit Profile, Start Trip confirmation, hold menu on an avatar (#166). The hi-fi wins where it differs from the lo-fi.
 
 ### Rules
 
@@ -290,7 +298,7 @@ Feature: Resume an unfinished trip
 - At the top, a map preview shows the start point, the destination and the road route only: no checkpoints, no other routes, no cars.
 - The title is "Lez Get Ready !".
 - "Overview" shows STARTING POINT, DESTINATION and "# OF STOPS" (the number of checkpoints, without the start point and the destination).
-- "Participants" shows everyone's avatar, name and car description; the leader has a crown.
+- "Participants" shows everyone's avatar, name and car description; the leader has a crown. Under the list a hint says "Hold to manage participants" to the leader and "Hold to edit your profile" to a member.
 - The list updates within 2 seconds when someone joins, leaves, is removed, edits their profile, or the leader changes.
 - The leader sees "Start Trip". Members see "Waiting for others ...".
 - Under the participants: the leader has "End Trip", a member has "Exit Trip" (US-07). Text buttons, no icon. When the trip starts, every phone moves to the map.
@@ -301,10 +309,21 @@ Feature: Resume an unfinished trip
 - "Share Link" sends "Join my Lezgo trip with code 897654" together with the invite link.
 - Copying and "Share Link" stay disabled until the room code has loaded.
 
-**Edit Profile** (tap an avatar)
-- A member can only edit their own profile; the leader can edit everyone's. Avatar: one of the five. Name: 1–30 characters, required. Car details: optional, up to 40 characters ("White Avanza"). Spaces are trimmed.
+**Manage participants** (hold an avatar)
+- Tapping an avatar does nothing. Holding it lifts the avatar to the centre of the screen with its name and car; the background turns dark and blurred, and a menu appears under it.
+- The leader holding a member: "Set as Trip Leader", "Edit Details", "Remove from Trip" (US-05).
+- The leader or a member holding their own avatar: "Edit Details" only.
+- A member holding someone else's avatar: nothing opens.
+- "Edit Details" opens Edit Profile. Not available during the trip (safety).
+
+**Edit Profile**
+- A member can only edit their own profile; the leader can edit everyone's. Avatar: one of the five. Name: 1–30 characters, required. Car details: optional, up to 40 characters ("White Avanza"). Spaces at the start and the end are removed.
+- Avatars scroll sideways; the one in the middle is chosen at once and grows to the size of the avatars in the Trip Room, the others are smaller. There is no select button. Tapping an avatar scrolls it to the middle.
+- Names are unique in the trip, ignoring upper/lower case and spaces at the ends. The name is checked twice: when I leave the field, and when I tap "Save". A name already used by another car turns the field's border red with "Name already used in this trip" under it, and "Save" is disabled and grey. Tapping the field again clears the red. If "Save" is tapped before the first check ran, the second check shows the same red field and an alert with "Name already used in this trip". Keeping my own name is never a clash.
 - My own details are saved on my device and reused next time I create or join a trip; details the leader changes for a member are not saved on either device. Not editable during the trip (safety).
-- When the leader edits a member, "Kick" and "Set Lead" sit between the form and "Save" (US-05).
+
+**Confirmations**
+- Every confirmation in the Trip Room is the same dialog: a title (and optional message), "Cancel" in red text and one main button in yellow (the LEZGO logo for "Start Trip?"). It is one shared component, so its text colours, background and button content can be set per use, and other screens use it too. A message with only "OK" uses the same dialog with one button.
 
 **Avatar**
 - Five avatars: Yellow, Blue, Green, Pink, Purple. Each is a set of finished mascot images told apart by asset name (`MainSelectedBlue`, `MainUnselectedBlue`, …); the trip stores only the key (`Blue`).
@@ -353,7 +372,8 @@ Feature: Trip Room
     And "Budi" sees "Copied"
 
   Scenario: Edit my profile
-    When "Budi" taps his own avatar, picks Pink and sets "Budi" and "White Avanza"
+    When "Budi" holds his own avatar and taps "Edit Details"
+    And scrolls to the Pink avatar and sets "Budi" and "White Avanza"
     Then everyone sees the Pink avatar and "White Avanza" for "Budi" within 2 seconds
     And next time "Budi" joins a trip he joins as "Budi" with "White Avanza" and the Pink avatar
 
@@ -362,12 +382,47 @@ Feature: Trip Room
     When "Citra" joins
     Then "Citra" has an avatar that is not Yellow
 
+  Scenario: Tapping an avatar does nothing
+    When "Agus" taps the avatar of "Budi"
+    Then nothing opens
+
+  Scenario: Hold menu of a member for the leader
+    When "Agus" holds the avatar of "Budi"
+    Then the avatar of "Budi" moves to the centre and the background turns dark and blurred
+    And "Agus" sees "Set as Trip Leader", "Edit Details" and "Remove from Trip"
+
+  Scenario: Hold menu of my own avatar
+    When "Budi" holds his own avatar
+    Then "Budi" sees only "Edit Details"
+
   Scenario: A member cannot edit someone else
-    When "Budi" taps the avatar of "Agus"
-    Then no edit sheet opens
+    When "Budi" holds the avatar of "Agus"
+    Then no menu opens
+
+  Scenario: Choose an avatar by scrolling
+    Given "Budi" is in Edit Profile
+    When "Budi" scrolls the Green avatar to the middle
+    Then Green is chosen and bigger than the others
+
+  Scenario: Name already used, checked when leaving the field
+    Given "Agus" is in the trip
+    When "Budi" types "agus " and leaves the name field
+    Then the field has a red border with "Name already used in this trip"
+    And "Save" is disabled
+    When "Budi" taps the name field
+    Then the red border and the text are gone
+
+  Scenario: Name already used, checked on Save
+    When "Budi" types "Agus" and taps "Save" at once
+    Then "Budi" sees an alert "Name already used in this trip"
+    And the name field has a red border with the same text
+
+  Scenario: Keep my own name
+    When "Budi" changes only his car details and taps "Save"
+    Then it is saved
 
   Scenario: The leader edits a member
-    When "Agus" taps the avatar of "Budi" and sets "Budi Santoso"
+    When "Agus" holds the avatar of "Budi", taps "Edit Details" and sets "Budi Santoso"
     Then everyone sees "Budi Santoso" within 2 seconds
     And next time "Agus" joins a trip he still joins as "Agus"
 
@@ -401,22 +456,22 @@ Feature: Trip Room
 <a id="us-05"></a>
 ## US-05 — As a leader, I want to manage the group and start the trip for everyone so that the right cars leave together.
 
-**Hi-fi:** Edit Profile, Start Trip confirmation (#166). It replaces the swipe, Select and picker lo-fi below.
+**Hi-fi:** the hold menu on an avatar, Start Trip confirmation (#166). It replaces the swipe, Select and picker lo-fi below.
 
 **Lo-fi:** `TRIP ROOM (EDIT)`, `SLIDE DELETE IF NOT LEADER`, `SLIDE DELETE IF LEADER`, `REMOVE PERSON POP UP ALERT CONFIRM VIA SLIDER`, `SELECT MEMBERS`, `MORE THAN 3 REMOVAL POP UP ALERT CONFIRM`, `SET LEAD IF NOT LEADER VIA SLIDER`, `SET LEAD IF LEADERS IS SELECTED VIA SLIDER`, `POP UP ALERT CONFIRM SET LEADER`, `PICK LEADER`, `LEADER POP UP ALERT CONFIRM`, `LEADER BECOMES JOINER`, `CONFIRM START TRIP`, `CONFIRM START TRIP WHEN NOT ALL MEMBER READY`
 
 ### Rules
 
-Only the leader sees these actions, and only in the Trip Room. The hi-fi has no swipe actions, `...` menu or Select mode: removing and handing over happen one car at a time in Edit Profile (US-04).
+Only the leader sees these actions, and only in the Trip Room. The hi-fi has no swipe actions, `...` menu or Select mode: removing and handing over happen one car at a time from the menu that opens when the leader holds an avatar (US-04).
 
 **Remove members**
-- Tap a member's avatar → "Kick" in Edit Profile.
-- "Kick" and "Set Lead" are plain buttons, never as prominent as "Save"; "Kick" has red text. Both are hidden when the leader edits their own profile, so the leader cannot remove or hand over to themselves.
-- Confirm: "Remove XX from the trip?" → "Cancel" / "Remove". "Remove" closes the sheet; "Cancel" keeps it open.
+- Hold a member's avatar → "Remove from Trip" (red).
+- The leader's own avatar has no "Remove from Trip" and no "Set as Trip Leader", so the leader cannot remove or hand over to themselves.
+- Confirm: "Remove XX from the trip?" → "Cancel" / "Remove".
 - A removed member sees "You were removed from the trip." and returns to Home. They can join again with the code.
 
 **Hand over the lead**
-- Tap a member's avatar → "Set Lead" in Edit Profile.
+- Hold a member's avatar → "Set as Trip Leader".
 - Confirm: "Set XX as Trip Leader?" → "Cancel" / "Confirm".
 - The crown moves; the new leader gets "Start Trip" and "End Trip"; the old leader becomes a member ("Waiting for others ..." and "Exit Trip"). Saved with a conditional write so two leaders can never exist.
 - Handing over is how a leader leaves without ending the trip: hand over, then "Exit Trip" as a member.
@@ -435,24 +490,24 @@ Feature: Manage the group and start
     Given trip "897654" is in LOBBY with leader "Agus" and members "Budi", "Citra", "Doni", "Eka", "Fajar"
 
   Scenario: Remove a member
-    When "Agus" taps the avatar of "Doni", taps "Kick" and confirms "Remove Doni from the trip?"
+    When "Agus" holds the avatar of "Doni", taps "Remove from Trip" and confirms "Remove Doni from the trip?"
     Then "Doni" is no longer in Participants
     And "Doni" sees "You were removed from the trip." and returns to Home
 
   Scenario: Cancel a removal
-    When "Agus" taps the avatar of "Doni", taps "Kick" and then "Cancel"
+    When "Agus" holds the avatar of "Doni", taps "Remove from Trip" and then "Cancel"
     Then "Doni" stays
 
   Scenario: Leader cannot remove or hand over to himself
-    When "Agus" taps his own avatar
-    Then Edit Profile shows no "Kick" and no "Set Lead"
+    When "Agus" holds his own avatar
+    Then the menu shows only "Edit Details"
 
   Scenario: Members cannot manage the group
-    When "Budi" taps his own avatar
-    Then Edit Profile shows no "Kick" and no "Set Lead"
+    When "Budi" holds his own avatar
+    Then the menu shows only "Edit Details"
 
   Scenario: Hand over the lead
-    When "Agus" taps the avatar of "Budi", taps "Set Lead" and confirms "Set Budi as Trip Leader?"
+    When "Agus" holds the avatar of "Budi", taps "Set as Trip Leader" and confirms "Set Budi as Trip Leader?"
     Then "Budi" has the crown and sees "Start Trip"
     And "Agus" sees "Waiting for others ..."
 
@@ -674,7 +729,7 @@ Feature: Drive together
 | Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip? Not everyone has arrived yet." | Trip `ENDED` for everyone |
 | Leader | Draft card | "New Trip" (US-03) | "Create a new trip? Your current trip will end for everyone." | Old trip ends for everyone |
 
-- Every confirmation has "Cancel" and "Confirm"; the leader's warnings use the destructive style.
+- Every confirmation is the shared dialog (US-04, "Confirmations") with "Cancel" and "Confirm".
 - When the trip ends, every member sees "The leader ended the trip." and returns to Home within 2 seconds. Members who are offline get it when they reconnect.
 - Leaving or ending stops location sharing and removes the trip from the device.
 - If the last member leaves, the leader stays in the trip and can still exit or end it.
