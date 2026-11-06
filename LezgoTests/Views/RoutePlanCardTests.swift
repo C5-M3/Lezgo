@@ -148,7 +148,7 @@ struct RoutePlanCardTests {
         #expect(card.isSearchingDestination)
     }
 
-    @Test func IntermediateStopsIncludesAllDestinationsWhenMultipleDestinations() {
+    @Test func IntermediateStopsExcludesLastDestinationWhenCollapsed() {
         let card = RoutePlanCard(
             startPoint: sampleStart,
             destinations: [dest1, dest2, dest3],
@@ -164,12 +164,12 @@ struct RoutePlanCardTests {
         )
 
         #expect(!card.isAddingNewDestination)
-        #expect(card.intermediateStops.count == 3)
-        #expect(card.intermediateStops.map(\.name) == ["Dest 1", "Dest 2", "Dest 3"])
+        #expect(card.intermediateStops.count == 2)
+        #expect(card.intermediateStops.map(\.name) == ["Dest 1", "Dest 2"])
         #expect(!card.isSearchingDestination)
     }
 
-    @Test func AllDestinationsIncludedInIntermediateStopsWhenMultipleDestinations() {
+    @Test func AllDestinationsIncludedInIntermediateStopsWhenExpanded() {
         let card = RoutePlanCard(
             startPoint: sampleStart,
             destinations: [dest1, dest2],

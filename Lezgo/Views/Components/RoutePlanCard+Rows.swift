@@ -48,42 +48,15 @@ extension RoutePlanCard {
     }
 
     func stopRow(index: Int, stop: RoutePoint) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(spacing: 0) {
-                Image(systemName: "mappin.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(Color.heroYellow)
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
+        let isFinalDestination = isStopsExpanded && index == destinations.count - 1
 
-                Rectangle()
-                    .fill(Color.heroYellow.opacity(0.85))
-                    .frame(width: 1.5, height: 16)
-            }
-            .frame(width: 24)
+        return HStack(alignment: .top, spacing: 12) {
+            stopRowLeadingIndicator(isFinalDestination: isFinalDestination)
 
             if activeSelection == .destination(index: index) {
-                searchTextField(placeholder: "Search stop")
+                searchTextField(placeholder: isFinalDestination ? "Where to?" : "Search stop")
             } else {
-                Button {
-                    onSelectPointForEditing(.destination(index: index))
-                } label: {
-                    Text(stop.name)
-                        .font(.system(size: 15))
-                        .foregroundStyle(.white)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(minHeight: 28)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color(white: 0.35))
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
-                    .accessibilityLabel("Reorder")
+                stopRowContent(index: index, stop: stop)
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -101,6 +74,47 @@ extension RoutePlanCard {
                 onMoveDestination: onMoveDestination
             )
         )
+    }
+
+    private func stopRowLeadingIndicator(isFinalDestination: Bool) -> some View {
+        VStack(spacing: 0) {
+            Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
+                .font(.system(size: 16))
+                .foregroundStyle(Color.heroYellow)
+                .frame(width: 24, height: 24)
+                .accessibilityHidden(true)
+
+            if !isFinalDestination {
+                Rectangle()
+                    .fill(Color.heroYellow.opacity(0.85))
+                    .frame(width: 1.5, height: 16)
+            }
+        }
+        .frame(width: 24)
+    }
+
+    private func stopRowContent(index: Int, stop: RoutePoint) -> some View {
+        HStack {
+            Button {
+                onSelectPointForEditing(.destination(index: index))
+            } label: {
+                Text(stop.name)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(minHeight: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 14))
+                .foregroundStyle(Color(white: 0.35))
+                .frame(width: 28, height: 28)
+                .contentShape(Rectangle())
+                .accessibilityLabel("Reorder")
+        }
     }
 
     var addDestinationRow: some View {
