@@ -114,8 +114,8 @@ struct EditProfileSheetView: View {
     }
 }
 
-/// "Select Avatar": the avatars scroll sideways without an end, and the one in the middle is the chosen one. It is as
-/// big as in the Trip Room; the others are smaller. There is no select button: scrolling chooses.
+/// "Select Avatar": the avatars scroll sideways without an end, and the one in the middle is the chosen one. It is the
+/// biggest; the others are smaller. There is no select button: scrolling chooses.
 private struct AvatarPicker: View {
     @Binding var selection: Avatar
     /// The index of the avatar in the middle, in a list that repeats the five avatars so the end is never reached.
@@ -124,7 +124,7 @@ private struct AvatarPicker: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let copies = 400
-    private static let slotWidth: CGFloat = 110
+    private static let slotWidth: CGFloat = 115
     private let avatars = Avatar.allCases
 
     init(selection: Binding<Avatar>) {
@@ -137,6 +137,21 @@ private struct AvatarPicker: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select Avatar")
                 .font(.headline)
+            // The list is built only once the width is known: the margins that centre it must exist before the
+            // first scroll to the avatar of the participant, or that scroll ends up off to the side.
+            Color.clear
+                .frame(height: AvatarImage.chosenSize + 20)
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+                .overlay { if width > 0 { avatarList } }
+        }
+        .onChange(of: position) { _, newPosition in
+            guard let newPosition else { return }
+            selection = avatars[newPosition % avatars.count]
+        }
+    }
+
+    private var avatarList: some View {
+        ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
                     ForEach(0..<(Self.copies * avatars.count), id: \.self) { index in
@@ -153,13 +168,13 @@ private struct AvatarPicker: View {
             .scrollTargetBehavior(.viewAligned)
             .contentMargins(.horizontal, max(0, (width - Self.slotWidth) / 2), for: .scrollContent)
             .scrollIndicators(.hidden)
-            .frame(height: AvatarImage.roomSize + 20)
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             .animation(reduceMotion ? nil : .snappy, value: position)
-        }
-        .onChange(of: position) { _, newPosition in
-            guard let newPosition else { return }
-            selection = avatars[newPosition % avatars.count]
+            // Setting the position alone does not centre the first avatar reliably, so scroll to it once shown.
+            .task {
+                guard let position else { return }
+                await Task.yield()
+                proxy.scrollTo(position, anchor: .center)
+            }
         }
     }
 }
@@ -170,7 +185,7 @@ private struct AvatarChoice: View {
     let action: () -> Void
 
     var body: some View {
-        let size = isChosen ? AvatarImage.roomSize : AvatarImage.pickerSize
+        let size = isChosen ? AvatarImage.chosenSize : AvatarImage.pickerSize
         Button(action: action) {
             AvatarImage(avatar: avatar, isSelected: isChosen)
                 .frame(width: size, height: size)
