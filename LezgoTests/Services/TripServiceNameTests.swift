@@ -12,22 +12,50 @@ import Testing
 /// Names are unique in a trip, ignoring upper/lower case and spaces at the ends (US-04, "Edit Profile"; US-02), for
 /// both implementations (ADR 0017).
 struct TripServiceNameTests {
+    /// The only place to rename is Edit Profile inside the room, so a clash on join must not keep the person out:
+    /// they join with the name left empty (shown as "Car 2") and keep their car and avatar.
     @Test(arguments: TripPhones.Kind.allCases)
-    func JoiningWithANameAnotherCarHasIsRejected(kind: TripPhones.Kind) async throws {
+    func JoiningWithANameAnotherCarHasStillReachesTheRoomWithoutThatName(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let created = try await phones.agus.CreateTrip(
             plan: TripPlanFixtures.tunjunganToPakuwon,
             profile: TripPlanFixtures.agusProfile
         )
 
-        await #expect(throws: TripServiceError.nameAlreadyUsed) {
-            try await phones.budi.JoinTrip(
-                roomCode: created.state.trip.roomCode,
-                profile: ParticipantProfile(displayName: "  agus ", carDescription: "White Brio")
-            )
-        }
+        let session = try await phones.budi.JoinTrip(
+            roomCode: created.state.trip.roomCode,
+            profile: ParticipantProfile(displayName: "  agus ", carDescription: "White Brio", avatar: .pink)
+        )
+
         let state = try await phones.agus.FetchTrip(tripID: created.state.trip.id)
-        #expect(state.participants.count == 1)
+        #expect(state.participants.count == 2)
+        let budi = try #require(state.participants.first { $0.id == session.myParticipantID })
+        #expect(budi.displayName.isEmpty)
+        #expect(budi.carDescription == "White Brio")
+        #expect(budi.avatar == .pink)
+        #expect(state.DisplayName(of: budi) == String(localized: .participantCarName(2)))
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func ALateJoinerWithTheTakenNameCanRenameAfterwards(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let created = try await phones.agus.CreateTrip(
+            plan: TripPlanFixtures.tunjunganToPakuwon,
+            profile: TripPlanFixtures.agusProfile
+        )
+        let session = try await phones.budi.JoinTrip(
+            roomCode: created.state.trip.roomCode,
+            profile: ParticipantProfile(displayName: "Agus", carDescription: "White Brio")
+        )
+
+        try await phones.budi.UpdateProfile(
+            ParticipantProfile(displayName: "Budi", carDescription: "White Brio"),
+            participantID: session.myParticipantID,
+            tripID: created.state.trip.id
+        )
+
+        let state = try await phones.agus.FetchTrip(tripID: created.state.trip.id)
+        #expect(state.participants.first { $0.id == session.myParticipantID }?.displayName == "Budi")
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
