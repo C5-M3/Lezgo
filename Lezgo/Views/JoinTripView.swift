@@ -157,29 +157,14 @@ struct JoinTripView: View {
     // MARK: - Header Section
 
     private var headerSection: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(brandYellow)
-                    .frame(width: 48, height: 48)
+        VStack(alignment: .center, spacing: 4) {
+            Text("Enter room code")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(.white)
 
-                Image(systemName: "door.left.hand.open")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.black)
-            }
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Enter room code")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundStyle(.white)
-
-                Text("Ask the leader for the 6 digits")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Color(white: 0.6))
-            }
-
-            Spacer()
+            Text("Ask the leader for the 6 digits")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Color(white: 0.6))
         }
     }
 
