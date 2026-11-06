@@ -32,7 +32,13 @@ struct TripState: Hashable {
     /// Whether another car in the trip already has this name, ignoring upper/lower case and spaces at the ends.
     /// - Parameter participantID: the car that is being renamed, so keeping its own name is never a clash.
     func IsNameTaken(_ name: String, excluding participantID: UUID? = nil) -> Bool {
-        false
+        let wanted = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard wanted.isEmpty == false else { return false }
+        return participants.contains { participant in
+            participant.id != participantID
+                && participant.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .localizedCaseInsensitiveCompare(wanted) == .orderedSame
+        }
     }
 
     var leader: Participant? {

@@ -250,7 +250,7 @@ final class TripRoomViewModel {
 extension TripRoomViewModel {
     /// Whether this name is already used by another car in the trip, for the check when the name field is left.
     func IsNameTaken(_ name: String, for participantID: UUID) -> Bool {
-        false
+        state?.IsNameTaken(name, excluding: participantID) ?? false
     }
 
     /// Changes a participant's name, car and avatar. Only my own details are remembered for my next trip; the leader
@@ -277,6 +277,7 @@ extension TripRoomViewModel {
     ) async -> Bool {
         guard !isSavingProfile else { return false }
         isSavingProfile = true
+        isProfileNameTaken = false
         defer { isSavingProfile = false }
         do {
             try await UpdateProfile(
@@ -284,10 +285,10 @@ extension TripRoomViewModel {
             )
             profileErrorMessage = nil
             return true
-        } catch let error as TripServiceError {
-            profileErrorMessage = String(localized: error.message)
         } catch {
-            profileErrorMessage = String(localized: TripServiceError(cloudKitError: error).message)
+            let serviceError = TripServiceError(cloudKitError: error)
+            isProfileNameTaken = serviceError == .nameAlreadyUsed
+            profileErrorMessage = String(localized: serviceError.message)
         }
         return false
     }

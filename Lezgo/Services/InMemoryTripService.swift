@@ -84,6 +84,7 @@ final class InMemoryTripService: TripService {
         if let existing = state.participants.first(where: { $0.userRecordID == userRecordID }) {
             return TripSession(myParticipantID: existing.id, state: state)
         }
+        if let profile, state.IsNameTaken(profile.displayName) { throw TripServiceError.nameAlreadyUsed }
         let member = Participant.Joining(
             tripID: state.trip.id,
             userRecordID: userRecordID,
@@ -220,6 +221,11 @@ final class InMemoryTripService: TripService {
     // MARK: Profile
 
     func UpdateProfile(_ profile: ParticipantProfile, participantID: UUID, tripID: UUID) async throws {
+        try Change(tripID: tripID) { state in
+            if state.IsNameTaken(profile.displayName, excluding: participantID) {
+                throw TripServiceError.nameAlreadyUsed
+            }
+        }
         try ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.displayName = profile.displayName
             participant.carDescription = profile.carDescription
