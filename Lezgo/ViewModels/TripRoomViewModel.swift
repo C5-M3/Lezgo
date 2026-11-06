@@ -161,7 +161,16 @@ final class TripRoomViewModel {
         "Remove \(DisplayName(of: participant)) from the trip?"
     }
 
-    /// "Kick" in Edit Profile: only the leader, and never on their own profile (US-05).
+    /// What the menu of a held avatar offers me for this car, in the order it is shown (US-04, "Manage participants").
+    func ManagementActions(for participant: Participant) -> [ParticipantAction] {
+        []
+    }
+
+    /// Removes a car after the leader confirmed, and shows the service's sentence when it fails.
+    func RemoveFromTrip(_ participant: Participant) async {
+    }
+
+    /// "Remove from Trip" and "Set as Trip Leader": only the leader, and never on their own car (US-05).
     func CanKick(participant: Participant) -> Bool {
         guard let state, isCurrentUserLeader else { return false }
         return !participant.IsLeader(in: state.trip)
@@ -234,6 +243,13 @@ final class TripRoomViewModel {
         let startLocation = CLLocation(latitude: startCoord.latitude, longitude: startCoord.longitude)
         let participantLocation = CLLocation(latitude: participantCoord.latitude, longitude: participantCoord.longitude)
         return startLocation.distance(from: participantLocation) <= 100
+    }
+
+    /// One entry of the menu that opens when an avatar is held.
+    enum ParticipantAction: Hashable {
+        case setLeader
+        case editDetails
+        case remove
     }
 
     /// The confirmation Exit shows.
