@@ -12,10 +12,15 @@ import SwiftUI
 struct TripRoomAlertsModifier: ViewModifier {
     let viewModel: TripRoomViewModel
     @Binding var showingLeave: Bool
+    /// The car the leader chose in the menu of a held avatar; the dialog is open while it is set.
+    @Binding var participantToRemove: Participant?
+    @Binding var participantToMakeLeader: Participant?
     let dismissAction: () -> Void
 
     func body(content: Content) -> some View {
         content
+            .removeAlert(viewModel: viewModel, participant: $participantToRemove)
+            .setLeaderAlert(viewModel: viewModel, participant: $participantToMakeLeader)
             .leaveAlert(viewModel: viewModel, isPresented: $showingLeave, dismissAction: dismissAction)
             .removedAlert(viewModel: viewModel, dismissAction: dismissAction)
             .endedByLeaderAlert(viewModel: viewModel, dismissAction: dismissAction)
@@ -25,7 +30,39 @@ struct TripRoomAlertsModifier: ViewModifier {
 
 // MARK: - Dialog View Extensions
 
+private extension Binding where Value == Participant? {
+    /// `true` while a car is chosen; closing the dialog clears it.
+    var isSet: Binding<Bool> {
+        Binding<Bool>(get: { wrappedValue != nil }, set: { if !$0 { wrappedValue = nil } })
+    }
+}
+
 private extension View {
+    /// "Remove XX from the trip?" (US-05).
+    func removeAlert(viewModel: TripRoomViewModel, participant: Binding<Participant?>) -> some View {
+        confirmDialog(
+            isPresented: participant.isSet,
+            title: Text(verbatim: participant.wrappedValue.map(viewModel.RemoveParticipantConfirmationTitle) ?? ""),
+            confirmTitle: LocalizedStringResource("Remove"),
+            onConfirm: {
+                guard let removed = participant.wrappedValue else { return }
+                Task { await viewModel.RemoveFromTrip(removed) }
+            }
+        )
+    }
+
+    /// "Set XX as Trip Leader?" (US-05).
+    func setLeaderAlert(viewModel: TripRoomViewModel, participant: Binding<Participant?>) -> some View {
+        confirmDialog(
+            isPresented: participant.isSet,
+            title: Text(verbatim: participant.wrappedValue.map(viewModel.SetLeaderConfirmationTitle) ?? ""),
+            onConfirm: {
+                guard let newLeader = participant.wrappedValue else { return }
+                Task { await viewModel.HandOverLead(to: newLeader) }
+            }
+        )
+    }
+
     /// Exit asks first; the room closes only once leaving succeeded (`specs/UserStories.md` → US-07).
     func leaveAlert(
         viewModel: TripRoomViewModel,

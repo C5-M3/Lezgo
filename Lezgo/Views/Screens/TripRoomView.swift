@@ -22,6 +22,8 @@ struct TripRoomView: View {
     @State private var showingLeaveConfirmation = false
     @State private var showingStartTripConfirmation = false
     @State private var participantToEdit: Participant?
+    @State private var participantToRemove: Participant?
+    @State private var participantToMakeLeader: Participant?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -93,6 +95,8 @@ struct TripRoomView: View {
             viewModel: viewModel,
             isTransitioning: isTransitioning,
             onEdit: { participantToEdit = $0 },
+            onSetLeader: { participantToMakeLeader = $0 },
+            onRemove: { participantToRemove = $0 },
             onInvite: { showingInviteSheet = true },
             onLeave: { showingLeaveConfirmation = true }
         )
@@ -123,6 +127,8 @@ struct TripRoomView: View {
         .modifier(TripRoomAlertsModifier(
             viewModel: viewModel,
             showingLeave: $showingLeaveConfirmation,
+            participantToRemove: $participantToRemove,
+            participantToMakeLeader: $participantToMakeLeader,
             dismissAction: { dismiss() }
         ))
         .sheet(isPresented: $showingInviteSheet) {
@@ -153,6 +159,8 @@ private struct TripRoomContent: View {
     let viewModel: TripRoomViewModel
     let isTransitioning: Bool
     let onEdit: (Participant) -> Void
+    let onSetLeader: (Participant) -> Void
+    let onRemove: (Participant) -> Void
     let onInvite: () -> Void
     let onLeave: () -> Void
 
@@ -171,6 +179,8 @@ private struct TripRoomContent: View {
                         viewModel: viewModel,
                         isTransitioning: isTransitioning,
                         onEdit: onEdit,
+                        onSetLeader: onSetLeader,
+                        onRemove: onRemove,
                         onInvite: onInvite
                     )
                     if !isTransitioning {

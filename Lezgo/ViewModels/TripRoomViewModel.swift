@@ -163,11 +163,20 @@ final class TripRoomViewModel {
 
     /// What the menu of a held avatar offers me for this car, in the order it is shown (US-04, "Manage participants").
     func ManagementActions(for participant: Participant) -> [ParticipantAction] {
-        []
+        var actions: [ParticipantAction] = []
+        if CanSetLeader(participant: participant) { actions.append(.setLeader) }
+        if CanEdit(participant: participant) { actions.append(.editDetails) }
+        if CanKick(participant: participant) { actions.append(.remove) }
+        return actions
     }
 
     /// Removes a car after the leader confirmed, and shows the service's sentence when it fails.
     func RemoveFromTrip(_ participant: Participant) async {
+        do {
+            try await RemoveParticipant(id: participant.id)
+        } catch {
+            ShowError(error)
+        }
     }
 
     /// "Remove from Trip" and "Set as Trip Leader": only the leader, and never on their own car (US-05).
