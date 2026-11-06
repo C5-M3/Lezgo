@@ -187,4 +187,23 @@ struct RoutePlanCardTests {
         #expect(card.intermediateStops.count == 2)
         #expect(card.intermediateStops.map(\.name) == ["Dest 1", "Dest 2"])
     }
+
+    @Test func CalculatedHeightIsCompactWhenCollapsed() {
+        let card = RoutePlanCard(
+            startPoint: sampleStart,
+            destinations: [dest1, dest2],
+            activeSelection: nil,
+            searchQuery: .constant(""),
+            isStartPointLocked: false,
+            isStopsExpanded: .constant(false),
+            onSelectPointForEditing: { _ in },
+            onClearSearch: {},
+            onAddDestination: {},
+            onRemoveDestination: { _ in },
+            onMoveDestination: nil
+        )
+
+        // start point (56) + toggle (44) + destination (44) + add destination (54) + 6 = 204
+        #expect(card.calculatedHeight <= 210)
+    }
 }
