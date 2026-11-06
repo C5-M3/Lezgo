@@ -41,7 +41,7 @@ struct InviteSheetView: View {
                 .foregroundStyle(Color(.brandYellow))
             }
             .disabled(!viewModel.canShareInvite)
-            .padding(.top, 30)
+            .padding(.vertical, 30)
             .padding(.horizontal, 16)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }

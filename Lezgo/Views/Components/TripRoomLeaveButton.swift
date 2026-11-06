@@ -17,9 +17,10 @@ struct TripRoomLeaveButton: View {
             Text(viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip")
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 44)
+                .foregroundStyle(.red)
         }
         .buttonStyle(.bordered)
-        .tint(.red)
+        .tint(.gray)
         .disabled(viewModel.isLeaving)
     }
 }

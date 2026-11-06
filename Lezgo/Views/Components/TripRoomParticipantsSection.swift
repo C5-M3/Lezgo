@@ -20,7 +20,7 @@ struct TripRoomParticipantsSection: View {
     @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 96
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Participants")
                     .font(.title3.bold())
@@ -34,6 +34,7 @@ struct TripRoomParticipantsSection: View {
                         .accessibilityLabel("Add participants")
                 }
             }
+            .padding(.bottom, -10)
             if viewModel.participants.isEmpty {
                 Text("No participants yet")
                     .font(.subheadline)
@@ -41,8 +42,10 @@ struct TripRoomParticipantsSection: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: columnWidth), spacing: 16, alignment: .top)],
-                          spacing: 20) {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: columnWidth), spacing: 16, alignment: .top)],
+                    spacing: 0
+                ) {
                     ForEach(viewModel.participants) { participant in
                         ParticipantCell(
                             participant: participant,
@@ -102,6 +105,7 @@ private struct ParticipantCell: View {
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(canEdit ? .isButton : [])
         .accessibilityHint(canEdit ? Text("Opens Edit Profile") : Text(verbatim: ""))
+        .padding(.top, -15)
     }
 
     private var accessibilityLabel: String {
