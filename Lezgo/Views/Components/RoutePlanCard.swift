@@ -35,14 +35,19 @@ struct RoutePlanCard: View {
 
             if !isStopsExpanded {
                 destinationRow
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowInsets(EdgeInsets(
+                        top: 6,
+                        leading: 16,
+                        bottom: canAddDestination ? 6 : 14,
+                        trailing: 16
+                    ))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
 
             if canAddDestination {
                 addDestinationRow
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 14, trailing: 16))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
@@ -124,12 +129,12 @@ extension RoutePlanCard {
             }
         }
         if !isStopsExpanded {
-            height += 44
+            height += isSearchingDestination ? 52 : 44
         }
         if canAddDestination {
             height += 50
         }
-        return height + 8
+        return height + 16
     }
 }
 
@@ -192,8 +197,10 @@ extension RoutePlanCard {
 
             if isStopsExpanded {
                 ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
+                    let isLast = index == intermediateStops.count - 1
+                    let bottomInset: CGFloat = (isLast && !canAddDestination) ? 14 : 6
                     stopRow(index: index, stop: stop)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                 }
