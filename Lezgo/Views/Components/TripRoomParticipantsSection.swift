@@ -10,14 +10,13 @@ import SwiftUI
 /// "Participants": every car's avatar, name and car, with "Add" to invite (US-04, "Room").
 ///
 /// The avatar shows who is ready at the start point: the selected image when ready, the unselected one when not.
-/// Holding an avatar lifts it to the middle of the screen with a menu (US-04, "Manage participants"): the leader can
-/// hand over the lead, edit or remove a member, anyone can edit their own details. Tapping does nothing.
+/// Holding an avatar reports it through `onHold`, and the screen lifts it to the middle with a menu (US-04, "Manage
+/// participants"): the leader can hand over the lead, edit or remove a member, anyone can edit their own details.
+/// Tapping does nothing.
 struct TripRoomParticipantsSection: View {
     let viewModel: TripRoomViewModel
     var isTransitioning: Bool = false
-    let onEdit: (Participant) -> Void
-    let onSetLeader: (Participant) -> Void
-    let onRemove: (Participant) -> Void
+    let onHold: (Participant) -> Void
     let onInvite: () -> Void
     /// Grows with Dynamic Type, so large text gets fewer, wider columns instead of cut-off names.
     @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 96
@@ -53,9 +52,7 @@ struct TripRoomParticipantsSection: View {
                         ParticipantCell(
                             participant: participant,
                             viewModel: viewModel,
-                            onEdit: { onEdit(participant) },
-                            onSetLeader: { onSetLeader(participant) },
-                            onRemove: { onRemove(participant) }
+                            onHold: { onHold(participant) }
                         )
                         .disabled(isTransitioning)
                     }
@@ -75,9 +72,7 @@ struct TripRoomParticipantsSection: View {
 private struct ParticipantCell: View {
     let participant: Participant
     let viewModel: TripRoomViewModel
-    let onEdit: () -> Void
-    let onSetLeader: () -> Void
-    let onRemove: () -> Void
+    let onHold: () -> Void
 
     private var isLeader: Bool { viewModel.IsLeader(participant: participant) }
     private var isReady: Bool { viewModel.IsParticipantReady(participant) }
@@ -88,13 +83,9 @@ private struct ParticipantCell: View {
         if actions.isEmpty {
             card
         } else {
-            card.contextMenu {
-                ForEach(actions, id: \.self) { action in
-                    MenuButton(action: action, onEdit: onEdit, onSetLeader: onSetLeader, onRemove: onRemove)
-                }
-            } preview: {
-                HeldAvatar(participant: participant, displayName: displayName, isReady: isReady)
-            }
+            card
+                .onLongPressGesture(minimumDuration: 0.4, perform: onHold)
+                .accessibilityAction(named: Text("Show actions"), onHold)
         }
     }
 
@@ -143,43 +134,6 @@ private struct ParticipantCell: View {
     }
 }
 
-/// One entry of the menu of a held avatar.
-private struct MenuButton: View {
-    let action: TripRoomViewModel.ParticipantAction
-    let onEdit: () -> Void
-    let onSetLeader: () -> Void
-    let onRemove: () -> Void
-
-    var body: some View {
-        switch action {
-        case .setLeader:
-            Button("Set as Trip Leader", systemImage: "crown", action: onSetLeader)
-        case .editDetails:
-            Button("Edit Details", systemImage: "pencil", action: onEdit)
-        case .remove:
-            Button("Remove from Trip", systemImage: "person.badge.minus", role: .destructive, action: onRemove)
-        }
-    }
-}
-
-/// What floats to the middle of the screen while the menu is open: the avatar with its name and car.
-private struct HeldAvatar: View {
-    let participant: Participant
-    let displayName: String
-    let isReady: Bool
-
-    var body: some View {
-        VStack(spacing: 8) {
-            AvatarImage(avatar: participant.avatar, isSelected: true)
-                .frame(width: 200, height: 200)
-            Text(participant.carDescription.isEmpty ? displayName : "\(displayName) · \(participant.carDescription)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-        }
-        .padding()
-    }
-}
-
 #if DEBUG
 #Preview("Leader") {
     ScrollView {
@@ -190,9 +144,7 @@ private struct HeldAvatar: View {
                 myParticipantID: SampleTrip.agusID,
                 initialState: SampleTrip.State(status: .lobby)
             ),
-            onEdit: { _ in },
-            onSetLeader: { _ in },
-            onRemove: { _ in },
+            onHold: { _ in },
             onInvite: {}
         )
         .padding()
@@ -207,9 +159,7 @@ private struct HeldAvatar: View {
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.agusID
         ),
-        onEdit: { _ in },
-        onSetLeader: { _ in },
-        onRemove: { _ in },
+        onHold: { _ in },
         onInvite: {}
     )
     .padding()

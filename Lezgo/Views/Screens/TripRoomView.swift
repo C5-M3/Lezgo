@@ -21,6 +21,7 @@ struct TripRoomView: View {
     @State private var showingInviteSheet = false
     @State private var showingLeaveConfirmation = false
     @State private var showingStartTripConfirmation = false
+    @State private var heldParticipant: Participant?
     @State private var participantToEdit: Participant?
     @State private var participantToRemove: Participant?
     @State private var participantToMakeLeader: Participant?
@@ -94,9 +95,7 @@ struct TripRoomView: View {
         TripRoomContent(
             viewModel: viewModel,
             isTransitioning: isTransitioning,
-            onEdit: { participantToEdit = $0 },
-            onSetLeader: { participantToMakeLeader = $0 },
-            onRemove: { participantToRemove = $0 },
+            onHold: { heldParticipant = $0 },
             onInvite: { showingInviteSheet = true },
             onLeave: { showingLeaveConfirmation = true }
         )
@@ -108,6 +107,9 @@ struct TripRoomView: View {
             .padding(.vertical, 8)
             .background(.black)
         }
+        .overlay { heldAvatarOverlay(viewModel: viewModel) }
+        .sensoryFeedback(.impact, trigger: heldParticipant?.id)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: heldParticipant?.id)
         .confirmDialog(
             isPresented: $showingStartTripConfirmation,
             title: Text(verbatim: viewModel.startTripConfirmationTitle),
@@ -141,6 +143,27 @@ struct TripRoomView: View {
         .preferredColorScheme(.dark)
     }
 
+    @ViewBuilder
+    private func heldAvatarOverlay(viewModel: TripRoomViewModel) -> some View {
+        if let participant = heldParticipant {
+            HeldAvatarOverlay(
+                participant: participant,
+                displayName: viewModel.DisplayName(of: participant),
+                actions: viewModel.ManagementActions(for: participant),
+                onSelect: { action in
+                    heldParticipant = nil
+                    switch action {
+                    case .setLeader: participantToMakeLeader = participant
+                    case .editDetails: participantToEdit = participant
+                    case .remove: participantToRemove = participant
+                    }
+                },
+                onDismiss: { heldParticipant = nil }
+            )
+            .transition(.opacity)
+        }
+    }
+
     private func StartTrip(_ viewModel: TripRoomViewModel) {
         Task {
             do {
@@ -158,9 +181,7 @@ struct TripRoomView: View {
 private struct TripRoomContent: View {
     let viewModel: TripRoomViewModel
     let isTransitioning: Bool
-    let onEdit: (Participant) -> Void
-    let onSetLeader: (Participant) -> Void
-    let onRemove: (Participant) -> Void
+    let onHold: (Participant) -> Void
     let onInvite: () -> Void
     let onLeave: () -> Void
 
@@ -178,9 +199,7 @@ private struct TripRoomContent: View {
                     TripRoomParticipantsSection(
                         viewModel: viewModel,
                         isTransitioning: isTransitioning,
-                        onEdit: onEdit,
-                        onSetLeader: onSetLeader,
-                        onRemove: onRemove,
+                        onHold: onHold,
                         onInvite: onInvite
                     )
                     if !isTransitioning {
