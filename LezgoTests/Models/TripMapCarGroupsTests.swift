@@ -37,7 +37,6 @@ struct TripMapCarGroupsTests {
     @Test func CarsFarApartStayAlone() {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 500)],
-            selectedID: nil,
             within: 100
         )
 
@@ -47,7 +46,6 @@ struct TripMapCarGroupsTests {
     @Test func CarsCloseTogetherAreOneGroup() {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 50)],
-            selectedID: nil,
             within: 100
         )
 
@@ -57,7 +55,6 @@ struct TripMapCarGroupsTests {
     @Test func AChainOfCloseCarsIsOneGroup() {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 90), Pin("Citra", metres: 180)],
-            selectedID: nil,
             within: 100
         )
 
@@ -67,25 +64,21 @@ struct TripMapCarGroupsTests {
     @Test func ACarWithAnAlertStaysAloneSoItsWarningShows() {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 50, isAlerting: true)],
-            selectedID: nil,
             within: 100
         )
 
         #expect(Names(groups) == [["Agus"], ["Budi"]])
     }
 
-    @Test func TheTappedCarStaysAloneSoItsGlowShows() {
-        let budi = Pin("Budi", metres: 50)
+    @Test func TheTappedCarStaysOnItsCardSoTheCardDoesNotJump() {
+        let groups = TripMapCarGroup.Make(pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 50)], within: 100)
 
-        let groups = TripMapCarGroup.Make(pins: [Pin("Agus", metres: 0), budi], selectedID: budi.id, within: 100)
-
-        #expect(Names(groups) == [["Agus"], ["Budi"]])
+        #expect(Names(groups) == [["Agus", "Budi"]])
     }
 
     @Test func AGroupSitsBetweenItsCars() throws {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 50)],
-            selectedID: nil,
             within: 100
         )
 
@@ -99,13 +92,13 @@ struct TripMapCarGroupsTests {
         var movedBudi = budi
         movedBudi.coordinate.latitude += 0.000_1
 
-        let before = try #require(TripMapCarGroup.Make(pins: [agus, budi], selectedID: nil, within: 100).first)
-        let after = try #require(TripMapCarGroup.Make(pins: [agus, movedBudi], selectedID: nil, within: 100).first)
+        let before = try #require(TripMapCarGroup.Make(pins: [agus, budi], within: 100).first)
+        let after = try #require(TripMapCarGroup.Make(pins: [agus, movedBudi], within: 100).first)
 
         #expect(before.id == after.id)
     }
 
     @Test func NoCarsNoGroups() {
-        #expect(TripMapCarGroup.Make(pins: [], selectedID: nil, within: 100).isEmpty)
+        #expect(TripMapCarGroup.Make(pins: [], within: 100).isEmpty)
     }
 }

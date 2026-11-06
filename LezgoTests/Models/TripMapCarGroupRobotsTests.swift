@@ -61,6 +61,15 @@ struct TripMapCarGroupRobotsTests {
         #expect(group.HiddenCount(isOpen: true) == 0)
     }
 
+    @Test func TheTappedCarIsShownOnAClosedCardRightAfterTheLeader() {
+        let group = Cars(10, leaderAt: 0)
+        let tapped = group.pins[8]
+
+        let names = group.ShownPins(isOpen: false, selectedID: tapped.id).map(\.displayName)
+
+        #expect(names == ["Car 0", "Car 8", "Car 1", "Car 2"])
+    }
+
     @Test func OnlyAGroupWithHiddenCarsCanOpen() {
         #expect(Cars(TripMapCarGroup.maxRobots).canOpen == false)
         #expect(Cars(TripMapCarGroup.maxRobots + 1).canOpen)
