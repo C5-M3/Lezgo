@@ -25,7 +25,7 @@ struct RoutePlanCard: View {
     var body: some View {
         List {
             startPointRow
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
@@ -113,24 +113,23 @@ extension RoutePlanCard {
     }
 
     var calculatedHeight: CGFloat {
-        var height: CGFloat = showsStartConnectingLine ? 48 : 44
-        if intermediateStops.count == 1 && !isStopsExpanded {
-            height += 48
-        } else if intermediateStops.count > 1 || (intermediateStops.count == 1 && isStopsExpanded) {
-            height += 48
+        var height: CGFloat = showsStartConnectingLine ? 56 : 52
+        if !intermediateStops.isEmpty {
             if isStopsExpanded {
-                let stopsHeight = CGFloat(intermediateStops.count) * 48
+                height += 48
+                let stopsHeight = CGFloat(intermediateStops.count) * 44
                 height += min(stopsHeight, 192)
+            } else {
+                height += 44
             }
         }
         if !isStopsExpanded {
             height += 44
         }
         if canAddDestination {
-            height += 56
+            height += 50
         }
-        height += 16
-        return height
+        return height + 8
     }
 }
 
