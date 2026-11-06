@@ -7,8 +7,8 @@
 
 import SwiftUI
 
-/// The Trip Room's alerts: leaving, being removed, the leader ending the trip, and errors. "Start Trip?" is
-/// `StartTripDialog`, and Kick and Set Lead ask inside Edit Profile.
+/// The Trip Room's confirmations and messages: leaving, being removed, the leader ending the trip, and errors. They
+/// all use the shared `ConfirmDialog`. "Start Trip?" and the questions for a held avatar are in `TripRoomView`.
 struct TripRoomAlertsModifier: ViewModifier {
     let viewModel: TripRoomViewModel
     @Binding var showingLeave: Bool
@@ -23,7 +23,7 @@ struct TripRoomAlertsModifier: ViewModifier {
     }
 }
 
-// MARK: - Alert View Extensions
+// MARK: - Dialog View Extensions
 
 private extension View {
     /// Exit asks first; the room closes only once leaving succeeded (`specs/UserStories.md` → US-07).
@@ -33,12 +33,10 @@ private extension View {
         dismissAction: @escaping () -> Void
     ) -> some View {
         let isEndingForEveryone = viewModel.leaveConfirmation == .endTripForEveryone
-        return alert(
-            Text(isEndingForEveryone ? .tripRoomExitAndEndTripQuestion : .tripRoomExitRoomQuestion),
-            isPresented: isPresented
-        ) {
-            Button(role: .cancel) { } label: { Text(.tripRoomCancel) }
-            Button(role: isEndingForEveryone ? .destructive : nil) {
+        return confirmDialog(
+            isPresented: isPresented,
+            title: Text(isEndingForEveryone ? .tripRoomExitAndEndTripQuestion : .tripRoomExitRoomQuestion),
+            onConfirm: {
                 Task {
                     do {
                         try await viewModel.LeaveTrip()
@@ -47,50 +45,48 @@ private extension View {
                         viewModel.ShowError(error)
                     }
                 }
-            } label: {
-                Text(.tripRoomConfirm)
             }
-        }
+        )
     }
 
     func removedAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
-        alert(
-            "You were removed from the trip.",
+        confirmDialog(
             isPresented: Binding(
                 get: { viewModel.wasRemovedFromTrip },
                 set: { viewModel.wasRemovedFromTrip = $0 }
-            )
-        ) {
-            Button("OK") { dismissAction() }
-        }
+            ),
+            title: Text("You were removed from the trip."),
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: dismissAction
+        )
     }
 
     /// A member whose leader left the room returns to Home; the trip is already cleared from the phone (US-07).
     func endedByLeaderAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
-        alert(
-            Text(.tripRoomLeaderEndedTrip),
+        confirmDialog(
             isPresented: Binding(
                 get: { viewModel.wasEndedByLeader },
                 set: { viewModel.wasEndedByLeader = $0 }
-            )
-        ) {
-            Button { dismissAction() } label: { Text(.tripRoomOK) }
-        }
+            ),
+            title: Text(.tripRoomLeaderEndedTrip),
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: dismissAction
+        )
     }
 
     func errorAlert(viewModel: TripRoomViewModel) -> some View {
-        alert(
-            "Error",
+        confirmDialog(
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
-            )
-        ) {
-            Button("OK") { viewModel.errorMessage = nil }
-        } message: {
-            if let msg = viewModel.errorMessage {
-                Text(msg)
-            }
-        }
+            ),
+            title: Text("Error"),
+            message: viewModel.errorMessage.map { Text(verbatim: $0) },
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: { viewModel.errorMessage = nil }
+        )
     }
 }

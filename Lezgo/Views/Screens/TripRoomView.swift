@@ -104,16 +104,20 @@ struct TripRoomView: View {
             .padding(.vertical, 8)
             .background(.black)
         }
-        .overlay {
-            if showingStartTripConfirmation {
-                StartTripDialog(
-                    title: viewModel.startTripConfirmationTitle,
-                    onCancel: { showingStartTripConfirmation = false },
-                    onStart: { StartTrip(viewModel) }
-                )
+        .confirmDialog(
+            isPresented: $showingStartTripConfirmation,
+            title: Text(verbatim: viewModel.startTripConfirmationTitle),
+            onConfirm: { StartTrip(viewModel) },
+            confirm: {
+                Image(.lezgoBlack)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 22)
+                    .accessibilityLabel("Start")
             }
-        }
+        )
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: isTransitioning)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: showingStartTripConfirmation)
         .navigationBarBackButtonHidden(true)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .modifier(TripRoomAlertsModifier(
@@ -132,7 +136,6 @@ struct TripRoomView: View {
     }
 
     private func StartTrip(_ viewModel: TripRoomViewModel) {
-        showingStartTripConfirmation = false
         Task {
             do {
                 try await viewModel.StartTrip()
