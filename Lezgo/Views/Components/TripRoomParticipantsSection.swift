@@ -37,6 +37,8 @@ struct TripRoomParticipantsSection: View {
                 }
             }
             .padding(.bottom, -10)
+            // The avatars are pulled up with negative padding, so their touch area reaches this row. Keep Add on top.
+            .zIndex(1)
             if viewModel.participants.isEmpty {
                 Text("No participants yet")
                     .font(.subheadline)

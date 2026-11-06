@@ -24,7 +24,7 @@ struct HeldAvatarOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.5)
+            Color.black.opacity(0.7)
                 .background(.ultraThinMaterial.opacity(0.35))
                 .ignoresSafeArea()
                 .onTapGesture(perform: onDismiss)
