@@ -178,7 +178,7 @@ struct JoinTripView: View {
                 }
             }
 
-            TextField("", text: $enteredCode)
+            TextField("Room code", text: $enteredCode)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
                 .focused($isFieldFocused)
