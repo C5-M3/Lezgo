@@ -52,6 +52,7 @@ import SwiftUI
 /// | `tripMapMemberNewRoute` | Trip Started map on Budi's phone when Agus gets a new route with the same stops | N |
 /// | `tripMapMemberRouteUpdated` | Trip Started map on Budi's phone when Agus changes the destination | N |
 /// | `tripMapArrivals` | The arrival robots and count with cars arriving one by one | N |
+/// | `tripMapStartPoint` | Trip Started map on Budi's phone with ten cars still together at the start point | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
 ///
@@ -83,6 +84,7 @@ enum DebugScreen: String, CaseIterable {
     case tripMapMemberLeaderOffline
     case tripMapMemberNewRoute
     case tripMapMemberRouteUpdated
+    case tripMapStartPoint
     case syncCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
@@ -108,8 +110,11 @@ enum DebugScreen: String, CaseIterable {
             DraftTripView.Simulated(isLeader: true)
         case .tripRoomLeader, .tripRoomMember, .tripRoomMemberLeaderEndsTrip, .tripRoomLeaderOffline:
             MakeTripRoomScreen()
-        case .tripMapLeader:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
+        case .tripMapLeader, .tripMapArrivedLeader:
+            SimulatedTripMapScreen(
+                myParticipantID: SampleTrip.agusID,
+                startSecond: self == .tripMapArrivedLeader ? 2_000 : 0
+            )
         case .tripMapMember, .tripMapMemberLeaderOffline, .tripMapMemberNewRoute, .tripMapMemberRouteUpdated:
             SimulatedTripMapScreen(
                 myParticipantID: SampleTrip.budiID,
@@ -125,8 +130,8 @@ enum DebugScreen: String, CaseIterable {
             )
         case .tripMapArrivals:
             SimulatedArrivalsScreen(totalCount: 7)
-        case .tripMapArrivedLeader:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, startSecond: 2_000)
+        case .tripMapStartPoint:
+            SimulatedStartPointScreen()
         case .syncCheck:
             SyncCheckView()
         }
