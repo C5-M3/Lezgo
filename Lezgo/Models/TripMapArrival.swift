@@ -10,8 +10,8 @@ import Foundation
 /// Who has arrived at the destination (`specs/UserStories.md` → US-07, "Arrive").
 ///
 /// A car has arrived within 20 m of the destination, or once its driver said so with "I've Arrived". Offline
-/// members count as not arrived, members without a position yet count as not arrived, and members who left are no
-/// longer in the trip, so they are not counted.
+/// members count as not arrived, except this phone's own car: its driver can see where they are. Members without a
+/// position yet count as not arrived, and members who left are no longer in the trip, so they are not counted.
 struct TripMapArrival: Hashable {
     /// The arrival radius around the destination, in metres.
     static let radius: Double = 20
@@ -25,8 +25,9 @@ struct TripMapArrival: Hashable {
         }
         let isThere = { (participant: Participant) in IsThere(participant, at: destination) }
         let hasArrived = state.participants.first { $0.id == myParticipantID }.map(isThere) ?? false
+        // The same rule as `ArrivedIDs`, so the top card's count and the bottom card always agree.
         let everyoneHasArrived = state.participants.isEmpty == false && state.participants.allSatisfy { participant in
-            participant.IsOnline(at: date) && isThere(participant)
+            (participant.id == myParticipantID || participant.IsOnline(at: date)) && isThere(participant)
         }
         return TripMapArrival(hasArrived: hasArrived, everyoneHasArrived: everyoneHasArrived)
     }
