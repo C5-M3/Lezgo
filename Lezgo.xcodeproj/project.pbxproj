@@ -402,7 +402,7 @@
 				INFOPLIST_FILE = Lezgo/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Lezgo keeps sharing your position with your group while the trip is open, even when your screen is off or you use another app, so the other cars can see where you are.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Lezgo shares your position with the other cars in your trip, so everyone can see where you are on the route.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -437,7 +437,7 @@
 				INFOPLIST_FILE = Lezgo/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Lezgo keeps sharing your position with your group while the trip is open, even when your screen is off or you use another app, so the other cars can see where you are.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Lezgo shares your position with the other cars in your trip, so everyone can see where you are on the route.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

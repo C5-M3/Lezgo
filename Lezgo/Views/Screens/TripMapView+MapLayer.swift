@@ -15,6 +15,8 @@ extension TripMapView {
         let viewModel: TripMapViewModel
         /// `false` hides the cars until the "Lez Go!" animation has opened the map.
         let showsCars: Bool
+        /// `false` on CarPlay, where the map may show nothing but the map (ADR 0023).
+        let showsCompass: Bool
         @State private var cameraPosition: MapCameraPosition = .automatic
         /// The cars as drawn: they follow `viewModel.carPins` with an animation, so a car glides to its new
         /// position instead of jumping there every second.
@@ -31,9 +33,10 @@ extension TripMapView {
         /// How far above the car the camera floats while following it, in metres.
         private static let followDistance: CLLocationDistance = 1_500
 
-        init(viewModel: TripMapViewModel, showsCars: Bool = true) {
+        init(viewModel: TripMapViewModel, showsCars: Bool = true, showsCompass: Bool = true) {
             self.viewModel = viewModel
             self.showsCars = showsCars
+            self.showsCompass = showsCompass
         }
 
         var body: some View {
@@ -82,7 +85,9 @@ extension TripMapView {
             }
             .mapStyle(.standard(emphasis: .muted, pointsOfInterest: .excludingAll))
             .mapControls {
-                MapCompass()
+                if showsCompass {
+                    MapCompass()
+                }
             }
             .onMapCameraChange(frequency: .continuous) { context in
                 mapHeading = context.camera.heading
