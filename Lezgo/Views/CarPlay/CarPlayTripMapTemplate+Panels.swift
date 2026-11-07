@@ -52,10 +52,21 @@ extension CarPlayTripMapTemplate {
         let panel = CPMapPanel(title: Title(of: content), sections: Sections(of: content), buttonConfiguration: nil)
         panel.showsCloseButton = content != .noTrip
         panel.delegate = self
+        let hadPanel = shownPanel != nil
         // Set before showing: the panel it replaces reports that it hid, and must not be taken as closed by hand.
         shownPanelContent = content
         shownPanel = panel
-        mapTemplate.showPanel(panel, completion: nil)
+        guard hadPanel else {
+            mapTemplate.showPanel(panel, completion: nil)
+            return
+        }
+        // CarPlay refuses a panel while another is visible, although the guide says it replaces it.
+        mapTemplate.hidePanel { [weak self] _, _ in
+            Task { @MainActor [weak self] in
+                guard let self, shownPanel === panel else { return }
+                mapTemplate.showPanel(panel, completion: nil)
+            }
+        }
     }
 
     /// A car picked on CarPlay or tapped on the phone comes first, then the Cars list, then the arrival.

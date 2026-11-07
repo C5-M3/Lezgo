@@ -27,6 +27,9 @@ final class CarPlayTripMapTemplate: NSObject {
     /// and stays off until the next trip.
     private var isGuidanceCancelledByCarPlay = false
 
+    /// The leave button's title on the navigation bar. The bar is only rebuilt when it changes: a button replaced
+    /// while the driver taps it drops the tap.
+    private var shownLeaveTitle: String?
     private var shownAlert: CarPlayTripViewModel.Alert?
     private var shownConfirmation: CarPlayTripViewModel.Confirmation?
     private var shownLeaveError: String?
@@ -42,6 +45,9 @@ final class CarPlayTripMapTemplate: NSObject {
         self.interfaceController = interfaceController
         super.init()
         mapTemplate.mapDelegate = self
+        // The dark turn card of the Sketch design, with the yellow arrow.
+        mapTemplate.guidanceBackgroundColor = UIColor(resource: .tripCard)
+        mapTemplate.tripEstimateStyle = .dark
         mapTemplate.mapButtons = [
             MapButton(
                 symbolName: "point.topleft.down.to.point.bottomright.curvepath",
@@ -80,12 +86,16 @@ final class CarPlayTripMapTemplate: NSObject {
 
 extension CarPlayTripMapTemplate {
     private func UpdateNavigationBar() {
-        guard let leaveTitle = viewModel.leaveButtonTitle else {
+        // Compared as text: two equal `LocalizedStringResource` values do not always compare equal.
+        let leaveTitle = viewModel.leaveButtonTitle.map { String(localized: $0) }
+        guard leaveTitle != shownLeaveTitle else { return }
+        shownLeaveTitle = leaveTitle
+        guard let leaveTitle else {
             mapTemplate.leadingNavigationBarButtons = []
             mapTemplate.trailingNavigationBarButtons = []
             return
         }
-        let leave = CPBarButton(title: String(localized: leaveTitle)) { [weak self] _ in
+        let leave = CPBarButton(title: leaveTitle) { [weak self] _ in
             self?.viewModel.RequestLeave()
         }
         mapTemplate.trailingNavigationBarButtons = [leave]
@@ -141,7 +151,7 @@ extension CarPlayTripMapTemplate {
     }
 
     private func ShowManeuver(_ maneuver: CarPlayTripViewModel.Maneuver, in session: CPNavigationSession) {
-        let estimates = CPTravelEstimates(distanceRemaining: maneuver.distance, timeRemaining: 0)
+        let estimates = CPTravelEstimates(distanceRemaining: RoadDistance(maneuver.distance), timeRemaining: 0)
         // Only the distance changed: CarPlay moves the number without redrawing the turn.
         if let shownManeuver, shownManeuver.maneuver.instructionVariants == maneuver.instructionVariants,
            shownManeuver.maneuver.symbolName == maneuver.symbolName {
@@ -161,7 +171,7 @@ extension CarPlayTripMapTemplate {
         guard let navigationTrip, let estimate = viewModel.tripEstimate else { return }
         let distance = estimate.distanceLeft ?? Measurement(value: 0, unit: UnitLength.kilometers)
         let seconds = TimeInterval(estimate.timeLeft.components.seconds)
-        let estimates = CPTravelEstimates(distanceRemaining: distance, timeRemaining: seconds)
+        let estimates = CPTravelEstimates(distanceRemaining: RoadDistance(distance), timeRemaining: seconds)
         mapTemplate.updateEstimates(estimates, for: navigationTrip)
     }
 
@@ -178,16 +188,25 @@ extension CarPlayTripMapTemplate {
         shownManeuver = nil
     }
 
-    /// The arrow with light and dark variants: dark on a light panel, Lezgo yellow on a dark one.
+    /// "3,4 km" or "200 m", as a road sign says it. CarPlay prints the number in the unit it is given, so 3 401 m
+    /// would read "3.401 m".
+    private func RoadDistance(_ distance: Measurement<UnitLength>) -> Measurement<UnitLength> {
+        let metres = distance.converted(to: .meters).value
+        guard metres >= 1_000 else { return Measurement(value: (metres / 10).rounded() * 10, unit: .meters) }
+        return Measurement(value: (metres / 100).rounded() / 10, unit: .kilometers)
+    }
+
+    /// The yellow arrow for the dark turn card. Drawn into a bitmap: CarPlay sends the image on to the car's
+    /// screen, and a symbol image does not always arrive there.
     private func ManeuverSymbol(_ symbolName: String) -> UIImage? {
         let configuration = UIImage.SymbolConfiguration(pointSize: 40, weight: .bold)
-        guard let symbol = UIImage(systemName: symbolName, withConfiguration: configuration) else { return nil }
-        let light = symbol.withTintColor(.black, renderingMode: .alwaysOriginal)
-        let dark = symbol.withTintColor(UIColor(resource: .brandYellow), renderingMode: .alwaysOriginal)
-        let asset = UIImageAsset()
-        asset.register(light, with: UITraitCollection(userInterfaceStyle: .light))
-        asset.register(dark, with: UITraitCollection(userInterfaceStyle: .dark))
-        return asset.image(with: .current)
+        guard let symbol = UIImage(systemName: symbolName, withConfiguration: configuration)?
+            .withTintColor(UIColor(resource: .brandYellow), renderingMode: .alwaysOriginal) else { return nil }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        return UIGraphicsImageRenderer(size: symbol.size, format: format).image { _ in
+            symbol.draw(at: .zero)
+        }
     }
 }
 
