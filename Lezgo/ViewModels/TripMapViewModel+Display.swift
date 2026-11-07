@@ -80,6 +80,16 @@ extension TripMapViewModel {
     }
 
     /// Only the leader can change the route, while the trip is open and once their position is known.
+    /// "I've Arrived" shows in the pulled-up card within 1 km of the destination, until the car has arrived.
+    var canMarkArrived: Bool {
+        closeReason == nil && manualArrival.CanMark(in: state, from: myCoordinate)
+    }
+
+    /// "I've Arrived": asks first, saying how far the destination's point is.
+    func RequestMarkArrived() {
+        manualArrival.Request(in: state, from: myCoordinate)
+    }
+
     var canEditRoute: Bool {
         isLeader && closeReason == nil && myCoordinate != nil
     }

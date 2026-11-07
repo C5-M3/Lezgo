@@ -50,6 +50,8 @@ final class TripMapViewModel {
     private var checkpointProgress = TripMapCheckpointProgress()
     /// The leader's footprint: recorded on the leader's phone, followed on a member's.
     let following: TripMapFootprint
+    /// "I've Arrived", for a destination whose point is a little off, and its question.
+    let manualArrival: TripMapManualArrival
     /// `true` while a guidance request is on its way, so GPS readings and trip updates do not ask twice at once.
     private var isRefreshingGuidance = false
 
@@ -65,8 +67,7 @@ final class TripMapViewModel {
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     let locationSharer: LocationSharer?
     private let activeTripStorage: (any ActiveTripStorage)?
-    /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
-    /// and the simulated drive, where the leader never leaves the route).
+    /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews).
     let reroute: TripMapReroute?
     private let clock: () -> Date
     /// Whether the map opens with the "Lez Go!" animation, because the trip has only just started.
@@ -100,13 +101,13 @@ final class TripMapViewModel {
         reroute = directionsService.map {
             TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
         }
+        manualArrival = TripMapManualArrival(tripID: tripID, myParticipantID: myParticipantID, tripService: tripService)
         self.showsStartIntro = showsStartIntro
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
 
-    /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
-    /// task is cancelled.
+    /// Follows the trip, and shares this phone's position with a sharer, until the stream ends or is cancelled.
     func Start() async {
         let (readings, echo) = AsyncStream.makeStream(of: LocationReading.self, bufferingPolicy: .bufferingNewest(1))
         await withTaskGroup(of: Void.self) { group in
@@ -124,9 +125,8 @@ final class TripMapViewModel {
     }
 
     /// The leader ended the trip, removed this member or planned a New Destination, from another phone or this one.
-    ///
-    /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
-    /// the reason then, so the person is not told they were removed or that the leader ended the trip.
+    /// While this phone's own exit or end is on its way, its own update can arrive first: `ConfirmLeave` sets the
+    /// reason then, so the person is not told they were removed or that the leader ended the trip.
     private func NoticeTripClosed(_ newState: TripState) {
         guard closeReason == nil, isLeaving == false else { return }
         if newState.trip.status.isOpen == false {
