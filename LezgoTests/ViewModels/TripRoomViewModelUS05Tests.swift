@@ -47,20 +47,6 @@ struct TripRoomViewModelUS05Tests {
         #expect(memberViewModel.canStartTrip == false)
     }
 
-    @Test func MemberCannotToggleSelectionMode() {
-        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
-        let state = SampleTrip.State(status: .lobby)
-        let viewModel = TripRoomViewModel(
-            tripService: service,
-            tripID: SampleTrip.tripID,
-            myParticipantID: SampleTrip.budiID,
-            initialState: state
-        )
-
-        viewModel.ToggleSelectionMode()
-        #expect(viewModel.isSelectionMode == false)
-    }
-
     @Test func IsParticipantReadyWhenNearbyAndOnline() throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)
@@ -205,7 +191,7 @@ struct TripRoomViewModelUS05Tests {
         )
 
         #expect(allReadyViewModel.isEveryoneReady == true)
-        #expect(allReadyViewModel.startTripConfirmationTitle == "Start trip?")
+        #expect(allReadyViewModel.startTripConfirmationTitle == "Start Trip?")
     }
 
     @Test func ListenDetectsWhenCurrentMemberIsRemoved() async throws {

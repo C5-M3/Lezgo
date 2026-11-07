@@ -29,6 +29,27 @@ struct TripState: Hashable {
         return trail + [leaderCoordinate] + RoutePosition.RouteAhead(of: leaderCoordinate, on: planned)
     }
 
+    /// Whether another car in the trip already has this name, ignoring upper/lower case and spaces at the ends.
+    /// - Parameter participantID: the car that is being renamed, so keeping its own name is never a clash.
+    func IsNameTaken(_ name: String, excluding participantID: UUID? = nil) -> Bool {
+        let wanted = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard wanted.isEmpty == false else { return false }
+        return participants.contains { participant in
+            participant.id != participantID
+                && participant.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .localizedCaseInsensitiveCompare(wanted) == .orderedSame
+        }
+    }
+
+    /// The profile of a car that joins: a name another car already has is dropped, so the car shows as "Car 2" and can
+    /// rename itself in Edit Profile. Rejecting the join would keep the person out of the only place to rename.
+    func WithoutTakenName(_ profile: ParticipantProfile) -> ParticipantProfile {
+        guard IsNameTaken(profile.displayName) else { return profile }
+        var joining = profile
+        joining.displayName = ""
+        return joining
+    }
+
     var leader: Participant? {
         participants.first { $0.IsLeader(in: trip) }
     }

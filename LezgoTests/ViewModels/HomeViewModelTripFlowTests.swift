@@ -17,10 +17,12 @@ struct HomeViewModelTripFlowTests {
     func joinTripInProgressOpensMap() async {
         let fakeStorage = FakeActiveTripStorage()
         let service = SampleTrip.Service(status: .inTrip, me: UUID())
+        // A fake profile, so a name this phone saved in an earlier run cannot clash with the sample group.
         let viewModel = HomeViewModel(
             mapService: MockMapService(),
             searchService: MockLocationSearchService(),
-            activeTripStorage: fakeStorage
+            activeTripStorage: fakeStorage,
+            profileStorage: FakeProfileStorage()
         )
 
         let success = await viewModel.JoinTrip(roomCode: SampleTrip.roomCode, tripService: service)

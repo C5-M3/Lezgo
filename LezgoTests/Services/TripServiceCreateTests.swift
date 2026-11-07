@@ -29,6 +29,28 @@ struct TripServiceCreateTests {
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderWithoutAChosenAvatarIsYellow(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let session = try await phones.agus.CreateTrip(
+            plan: TripPlanFixtures.tunjunganToPakuwon,
+            profile: TripPlanFixtures.agusProfile
+        )
+
+        #expect(session.state.leader?.avatar == .yellow)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func LeaderKeepsTheAvatarTheyChose(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        var profile = TripPlanFixtures.agusProfile
+        profile.avatar = .pink
+
+        let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: profile)
+
+        #expect(session.state.leader?.avatar == .pink)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
     func NewTripHasASixDigitRoomCode(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)

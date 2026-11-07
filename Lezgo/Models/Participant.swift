@@ -32,6 +32,7 @@ struct Participant: Identifiable, Hashable, Codable {
     /// The road this member's phone is sending them on to get back to the group's road, so the leader can see it;
     /// empty while they are on the road (`specs/UserStories.md` → US-06, "Footprint").
     var wayBack: [Coordinate] = []
+    var avatar: Avatar = .yellow
     /// The destination this driver said they reached with "I've Arrived", because its point was a little off (the
     /// far side of a big mall, say); `nil` otherwise. Kept per waypoint, so a New Destination starts afresh
     /// (`specs/UserStories.md` → US-07, "Arrive").
@@ -47,11 +48,14 @@ struct Participant: Identifiable, Hashable, Codable {
     }
 
     /// Someone who just created or joined a trip: no location yet, stopped, no alert.
-    /// - Parameter profile: `nil` uses "Member" plus the end of the iCloud user ID.
+    /// - Parameters:
+    ///   - profile: `nil` uses "Member" plus the end of the iCloud user ID.
+    ///   - isLeader: `true` for the creator; picks the default avatar when the profile has none.
     static func Joining(
         tripID: UUID,
         userRecordID: String,
         profile: ParticipantProfile?,
+        isLeader: Bool,
         at date: Date
     ) -> Participant {
         let profile = profile ?? ParticipantProfile.unnamed
@@ -65,7 +69,8 @@ struct Participant: Identifiable, Hashable, Codable {
             speedKmh: 0,
             motionState: .stopped,
             alert: .none,
-            lastSeenAt: date
+            lastSeenAt: date,
+            avatar: profile.avatar ?? Avatar.Default(isLeader: isLeader)
         )
     }
 }
