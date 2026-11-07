@@ -335,4 +335,8 @@ extension LiveTripService {
             participant.wayBack = wayBack
         }
     }
+
+    func MarkArrived(at destinationID: UUID, participantID: UUID, tripID: UUID) async throws {
+        throw TripServiceError.notAllowed
+    }
 }

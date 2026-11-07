@@ -32,6 +32,10 @@ struct Participant: Identifiable, Hashable, Codable {
     /// The road this member's phone is sending them on to get back to the group's road, so the leader can see it;
     /// empty while they are on the road (`specs/UserStories.md` → US-06, "Footprint").
     var wayBack: [Coordinate] = []
+    /// The destination this driver said they reached with "I've Arrived", because its point was a little off (the
+    /// far side of a big mall, say); `nil` otherwise. Kept per waypoint, so a New Destination starts afresh
+    /// (`specs/UserStories.md` → US-07, "Arrive").
+    var arrivedAtWaypointID: UUID?
 
     func IsLeader(in trip: Trip) -> Bool {
         id == trip.leaderParticipantID

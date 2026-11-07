@@ -79,4 +79,43 @@ struct TripMapArrivalTests {
         #expect(arrival.hasArrived == false)
         #expect(arrival.everyoneHasArrived == false)
     }
+
+    // MARK: "I've Arrived"
+
+    @Test func ACarConfirmedArrivedCountsAsArrivedFarFromThePoint() {
+        var budi = Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 200)
+        budi.arrivedAtWaypointID = Fixtures.destination.id
+
+        let arrival = Check([budi])
+        let arrivedIDs = TripMapArrival.ArrivedIDs(
+            Fixtures.State(cars: [budi]),
+            myParticipantID: Fixtures.budiID,
+            at: Fixtures.now
+        )
+
+        #expect(arrival.hasArrived)
+        #expect(arrival.everyoneHasArrived)
+        #expect(arrivedIDs == [Fixtures.budiID])
+    }
+
+    @Test func AnArrivalConfirmedAtAnotherStopDoesNotCount() {
+        var budi = Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 200)
+        budi.arrivedAtWaypointID = Fixtures.checkpoint.id
+
+        #expect(Check([budi]).hasArrived == false)
+    }
+
+    @Test func AnOfflineCarConfirmedArrivedStillCountsAsNotArrivedForEveryone() {
+        var citra = Fixtures.CarNearDestination(
+            id: Fixtures.citraID,
+            name: "Citra",
+            metres: 200,
+            lastSeenSecondsAgo: 180
+        )
+        citra.arrivedAtWaypointID = Fixtures.destination.id
+
+        let arrival = Check([Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10), citra])
+
+        #expect(arrival.everyoneHasArrived == false)
+    }
 }
