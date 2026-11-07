@@ -238,7 +238,7 @@ extension TripMapView {
         }
     }
 
-    /// The questions and messages about leaving the trip.
+    /// The questions and messages about leaving the trip and "I've Arrived".
     struct DialogLayer: View {
         let viewModel: TripMapViewModel
         /// Goes back to Home once someone else ended the trip or removed this member.
@@ -254,6 +254,14 @@ extension TripMapView {
                     isDestructive: IsEndTrip(confirmation),
                     isConfirmDisabled: viewModel.isLeaving,
                     confirm: { Task { await viewModel.ConfirmLeave(confirmation) } }
+                )
+            } else if let confirmation = viewModel.manualArrival.confirmation {
+                ArrivalQuestion(manualArrival: viewModel.manualArrival, confirmation: confirmation)
+            } else if let error = viewModel.manualArrival.errorMessage {
+                TripMapDialog(
+                    title: Text(verbatim: error),
+                    confirmTitle: Text(.tripMapOK),
+                    confirm: viewModel.manualArrival.DismissError
                 )
             } else if let error = viewModel.leaveErrorMessage {
                 TripMapDialog(
@@ -280,6 +288,29 @@ extension TripMapView {
             case .endTrip(everyoneHasArrived: false): Text(.tripMapEndTripNotEveryoneMessage)
             case .endTrip: nil
             }
+        }
+    }
+}
+
+extension TripMapView {
+    /// "Arrived at Tunjungan Plaza?" · "You are 200 m from the destination point. Are you sure you have arrived?"
+    struct ArrivalQuestion: View {
+        let manualArrival: TripMapManualArrival
+        let confirmation: TripMapManualArrival.Confirmation
+
+        var body: some View {
+            // Always in metres, as the destination's point is at most 1 km away. A no-break space keeps "200 m" on
+            // one line at large text sizes.
+            let distance = confirmation.distance.formatted(.measurement(width: .abbreviated, usage: .asProvided))
+                .replacing(" ", with: "\u{00A0}")
+            TripMapDialog(
+                title: Text(.tripMapArrivedQuestion(confirmation.destinationName)),
+                message: Text(.tripMapArrivedMessage(distance)),
+                cancel: manualArrival.Cancel,
+                confirmTitle: Text(.tripMapIveArrived),
+                isConfirmDisabled: manualArrival.isSaving,
+                confirm: { Task { await manualArrival.Confirm(confirmation) } }
+            )
         }
     }
 }

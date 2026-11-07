@@ -123,6 +123,16 @@ extension TripMapDialog {
     )
 }
 
+#Preview("I've Arrived") {
+    TripMapDialog(
+        title: Text(.tripMapArrivedQuestion("Tunjungan Plaza")),
+        message: Text(.tripMapArrivedMessage("200 m")),
+        cancel: {},
+        confirmTitle: Text(.tripMapIveArrived),
+        confirm: {}
+    )
+}
+
 #Preview("A message, largest text") {
     TripMapDialog(title: Text(.tripMapLeaderEndedTrip), confirmTitle: Text(.tripMapOK), confirm: {})
         .dynamicTypeSize(.accessibility5)

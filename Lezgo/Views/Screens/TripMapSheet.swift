@@ -10,8 +10,9 @@ import SwiftUI
 /// The card at the bottom of the trip map, drawn by hand so it can look like the hi-fi design.
 ///
 /// Collapsed it shows only its top: the destination and time left, a tapped car, or the arrival message. Pulled up
-/// it adds only what the driver may need to do: Edit Route for the leader, and End Trip or Exit Trip, so the red
-/// button is never one stray tap away while driving. The cars are on the map, so the card does not list them.
+/// it adds only what the driver may need to do: Edit Route for the leader, I've Arrived near the destination, and
+/// End Trip or Exit Trip, so the red button is never one stray tap away while driving. The cars are on the map, so
+/// the card does not list them.
 struct TripMapSheet: View {
     let viewModel: TripMapViewModel
     /// Opens the planner for a New Destination after arriving; `nil` hides the button.
@@ -98,6 +99,14 @@ extension TripMapSheet {
                                 Label(.tripMapEditRoute, systemImage: "pencil")
                             }
                             .buttonStyle(TripMapCardButtonStyle())
+                        }
+                        // Near a destination whose point is a little off, such as the far side of a big mall.
+                        if viewModel.canMarkArrived {
+                            Button(action: viewModel.RequestMarkArrived) {
+                                Label(.tripMapIveArrived, systemImage: "flag.checkered")
+                            }
+                            .buttonStyle(TripMapCardButtonStyle())
+                            .disabled(viewModel.manualArrival.isSaving)
                         }
                         TripMapLeaveButton(isLeader: viewModel.isLeader, action: viewModel.RequestLeave)
                             .disabled(viewModel.isLeaving)

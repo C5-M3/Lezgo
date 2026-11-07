@@ -522,6 +522,30 @@
         }
       }
     },
+    "tripMapArrivedMessage" : {
+      "comment" : "Message under \"Arrived at …?\" after tapping I've Arrived on the trip map. The argument is the distance from this car to the destination's point, for example \"200 m\" (US-07, Arrive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are %@ from the destination point. Are you sure you have arrived?"
+          }
+        }
+      }
+    },
+    "tripMapArrivedQuestion" : {
+      "comment" : "Question after tapping I've Arrived on the trip map. The argument is the destination's name, for example \"Tunjungan Plaza\" (US-07, Arrive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrived at %@?"
+          }
+        }
+      }
+    },
     "tripMapCancel" : {
       "comment" : "Button on a confirmation that changes nothing (US-07).",
       "extractionState" : "manual",
@@ -938,6 +962,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show %lld more cars"
+          }
+        }
+      }
+    },
+    "tripMapIveArrived" : {
+      "comment" : "Button in the pulled-up trip map card near the destination, and the confirm button of its question: the driver says they have arrived although the app has not seen it, for example in a big mall (US-07, Arrive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I've Arrived"
           }
         }
       }
