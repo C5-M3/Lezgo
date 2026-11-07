@@ -56,6 +56,21 @@ extension TripMapViewModel {
         case waitingForEveryone
         /// "Everyone has arrived!" (and, for the leader, "Continue your trip?")
         case everyoneArrived
+
+        var title: LocalizedStringResource {
+            switch self {
+            case .waitingForEveryone: .tripMapYouHaveArrived
+            case .everyoneArrived: .tripMapEveryoneHasArrived
+            }
+        }
+
+        /// "Waiting for everyone to arrive", or "Continue your trip?" for the leader once everyone is there.
+        func Subtitle(isLeader: Bool) -> LocalizedStringResource? {
+            switch self {
+            case .waitingForEveryone: .tripMapWaitingForEveryone
+            case .everyoneArrived: isLeader ? .tripMapContinueYourTrip : nil
+            }
+        }
     }
 
     /// What was last looked up about a tapped car, and when.

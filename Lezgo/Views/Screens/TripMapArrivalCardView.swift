@@ -19,11 +19,11 @@ struct TripMapArrivalCardView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(Title())
+                Text(card.title)
                     .font(.title.bold())
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
-                if let subtitle = Subtitle() {
+                if let subtitle = card.Subtitle(isLeader: isLeader) {
                     Text(subtitle)
                         .font(.callout)
                         .foregroundStyle(Color(.tripCardSubtext))
@@ -41,20 +41,6 @@ struct TripMapArrivalCardView: View {
                 // late cars (US-07), but it is not what the leader is expected to do yet.
                 .buttonStyle(TripMapCardButtonStyle(isProminent: card == .everyoneArrived))
             }
-        }
-    }
-
-    private func Title() -> LocalizedStringResource {
-        switch card {
-        case .waitingForEveryone: .tripMapYouHaveArrived
-        case .everyoneArrived: .tripMapEveryoneHasArrived
-        }
-    }
-
-    private func Subtitle() -> LocalizedStringResource? {
-        switch card {
-        case .waitingForEveryone: .tripMapWaitingForEveryone
-        case .everyoneArrived: isLeader ? .tripMapContinueYourTrip : nil
         }
     }
 }
