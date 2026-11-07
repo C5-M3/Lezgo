@@ -109,6 +109,14 @@ struct CarPlayTripViewModelTests {
         #expect(viewModel.destinationName == "Pakuwon mall")
     }
 
+    /// The simulated drive, and some routes, give no distance left; CarPlay must not say "0 km" then.
+    @Test func DistanceLeftFallsBackToTheRouteAhead() async throws {
+        let viewModel = await MakeViewModel(mirroring: MakeTripMap(states: [Fixtures.State()]))
+
+        let distanceLeft = try #require(viewModel.tripEstimate?.distanceLeft)
+        #expect(distanceLeft.converted(to: .kilometers).value > 1)
+    }
+
     // MARK: Leave and end
 
     @Test func MemberSeesExitTrip() async {
