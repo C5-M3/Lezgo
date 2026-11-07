@@ -36,14 +36,10 @@ struct TripMapViewModelRerouteFailureTests {
             clock: { Fixtures.now }
         )
 
+        // `Start()` returns once the reroute has handled every state, so its result is known here.
         await viewModel.Start()
 
         let reroute = try #require(viewModel.reroute)
-        var waited = 0
-        while reroute.hasFailed == false, waited < 200 {
-            try await Task.sleep(for: .milliseconds(10))
-            waited += 1
-        }
         #expect(reroute.hasFailed)
         #expect(viewModel.noticeBanner == .rerouteFailed)
     }
