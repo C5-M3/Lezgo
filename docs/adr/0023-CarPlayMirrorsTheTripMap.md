@@ -49,6 +49,8 @@ CarPlay code goes in two places beside the existing layers: the scene delegate i
 - The CarPlay look follows the system (light and dark), not the Sketch cards; only the map keeps the Lezgo style. Designers should design CarPlay with Apple's templates from now on.
 - The trip map view model is shared by two scenes, so its camera mode is shared too: "Whole route" on CarPlay also changes the phone's camera.
 - CarPlay shows a trip only while the trip map is open on the phone.
+- Map panels start in iOS 27. On iOS 26 CarPlay shows the map, guidance, alerts and End Trip, without the Cars list or the arrival panel.
+- Xcode 27's CarPlay Simulator (in Device Hub) needs a real iPhone on a USB cable; the iOS simulator alone cannot show CarPlay.
 - Voice prompts are not added: the spec keeps alerts on the road visual only.
 - Each developer's provisioning profile must include the CarPlay entitlement, as [Signing on your own account](../../AGENTS.md#signing-on-your-own-account) describes for the other capabilities.
 - `Views/CarPlay/` extends the layout of [Architecture: MVVM, layer first](../../AGENTS.md#architecture-mvvm-layer-first).

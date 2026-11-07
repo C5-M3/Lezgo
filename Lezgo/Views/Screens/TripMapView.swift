@@ -14,6 +14,8 @@ struct TripMapView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Environment(\.dismiss) private var dismiss
+    /// Where CarPlay finds this map, to mirror it while it is on screen (ADR 0023).
+    @Environment(\.activeTripMap) private var activeTripMap
     /// Whether the bottom card is pulled up. It starts collapsed, so End Trip and Exit Trip are out of reach while
     /// driving.
     @State private var isSheetExpanded = false
@@ -98,6 +100,8 @@ struct TripMapView: View {
             presentedEditRoute = viewModel.editRoute
         }
         .task { await viewModel.Start() }
+        .onAppear { activeTripMap.Show(viewModel) }
+        .onDisappear { activeTripMap.Hide(viewModel) }
         .task { await PlayStartIntro() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
         .onChange(of: viewModel.selectedCarID) {

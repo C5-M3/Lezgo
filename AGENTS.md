@@ -197,7 +197,8 @@ Lezgo/
 ├── ViewModels/       One @Observable view model per screen
 ├── Views/
 │   ├── Screens/      Full screens (LoginView.swift, ProfileView.swift)
-│   └── Components/   Reusable views used in 2+ places
+│   ├── Components/   Reusable views used in 2+ places
+│   └── CarPlay/      CarPlay base view and templates (ADR 0023)
 ├── Services/         Networking, persistence and system access behind protocols
 ├── Extensions/       Small extensions on Apple types
 ├── Debug/            Developer tools for debug builds only: DebugScreen, sample data, Sync Check
