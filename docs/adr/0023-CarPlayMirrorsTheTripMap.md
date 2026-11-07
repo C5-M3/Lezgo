@@ -52,5 +52,6 @@ CarPlay code goes in two places beside the existing layers: the scene delegate i
 - Map panels start in iOS 27. On iOS 26 CarPlay shows the map, guidance, alerts and End Trip, without the Cars list or the arrival panel.
 - Xcode 27's CarPlay Simulator (in Device Hub) needs a real iPhone on a USB cable; the iOS simulator alone cannot show CarPlay.
 - Voice prompts are not added: the spec keeps alerts on the road visual only.
-- Each developer's provisioning profile must include the CarPlay entitlement, as [Signing on your own account](../../AGENTS.md#signing-on-your-own-account) describes for the other capabilities.
+- Only accounts Apple gave the CarPlay navigation entitlement can sign it. The app signs with `Lezgo/LezgoCarPlay.entitlements` (chosen by `LEZGO_ENTITLEMENTS` in `Config/Base.xcconfig`); a developer without the entitlement sets `LEZGO_ENTITLEMENTS = Lezgo/Lezgo.entitlements` in their `Config/Local.xcconfig`, as [Signing on your own account](../../AGENTS.md#signing-on-your-own-account) describes. Capabilities added later go into both files.
+- CarPlay must be switched on for the App ID on developer.apple.com before a device build can be signed.
 - `Views/CarPlay/` extends the layout of [Architecture: MVVM, layer first](../../AGENTS.md#architecture-mvvm-layer-first).

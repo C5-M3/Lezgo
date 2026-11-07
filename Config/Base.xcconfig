@@ -5,5 +5,9 @@
 DEVELOPMENT_TEAM = K64G2J8QL7
 BUNDLE_IDENTIFIER_PREFIX = com.nathansudiara
 
+// The app's entitlements. Nathan's account has the CarPlay navigation entitlement (ADR 0023); an account without it
+// cannot sign this file and uses Lezgo/Lezgo.entitlements in its Local.xcconfig instead.
+LEZGO_ENTITLEMENTS = Lezgo/LezgoCarPlay.entitlements
+
 // Optional: the build still works when Local.xcconfig does not exist.
 #include? "Local.xcconfig"
