@@ -17,8 +17,8 @@ struct TripMapNoticeBanner: View {
 
     var body: some View {
         TripMapPill(
-            message: Message(),
-            isUrgent: IsUrgent(),
+            message: Text(verbatim: notice.Message(timeLeft: timeLeft)),
+            isUrgent: notice.isUrgent,
             onTap: notice == .rerouteFailed ? nil : onClose
         )
         .task(id: notice) {
@@ -26,30 +26,6 @@ struct TripMapNoticeBanner: View {
             guard (try? await Task.sleep(for: .seconds(seconds))) != nil else { return }
             onClose()
         }
-    }
-
-    private func IsUrgent() -> Bool {
-        switch notice {
-        case .rerouteFailed, .leaderOffline: true
-        case .newRoute, .routeUpdated: false
-        }
-    }
-
-    private func Message() -> Text {
-        switch notice {
-        case let .newRoute(leaderName?): WithTime(.tripMapNoticeNewRouteFollowing(leaderName))
-        case .newRoute(nil): WithTime(.tripMapNoticeNewRoute)
-        case let .routeUpdated(leaderName?): WithTime(.tripMapNoticeRouteUpdatedBy(leaderName))
-        case .routeUpdated(nil): WithTime(.tripMapNoticeRouteUpdated)
-        case .rerouteFailed: Text(.tripMapNoticeRerouteFailed)
-        case let .leaderOffline(name): Text(.tripMapNoticeLeaderOffline(name))
-        }
-    }
-
-    /// "New route · Following Agus · 52 min"
-    private func WithTime(_ message: LocalizedStringResource) -> Text {
-        guard let timeLeft else { return Text(message) }
-        return Text(verbatim: "\(String(localized: message)) · \(timeLeft.formatted(TripMapCarStatus.durationStyle))")
     }
 }
 

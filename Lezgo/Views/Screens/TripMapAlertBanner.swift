@@ -14,24 +14,7 @@ struct TripMapAlertBanner: View {
     let onClose: () -> Void
 
     var body: some View {
-        TripMapPill(message: Text(Message()), isUrgent: IsStopped(), onTap: onClose)
-    }
-
-    private func IsStopped() -> Bool {
-        if case .carStopped = banner { return true }
-        return false
-    }
-
-    private func Message() -> LocalizedStringResource {
-        switch banner {
-        case .mine(.offRoute): .tripMapAlertOffRoute
-        case .mine(.passedCheckpoint): .tripMapAlertPassedCheckpoint
-        case .mine(.passedDestination): .tripMapAlertPassedDestination
-        case .mine: .tripMapAlertAheadOfLeader
-        case let .otherCar(_, name, .offRoute): .tripMapAlertCarOffRoute(name)
-        case let .otherCar(_, name, _): .tripMapAlertCarAheadOfLeader(name)
-        case let .carStopped(_, name): .tripMapAlertCarStopped(name)
-        }
+        TripMapPill(message: Text(banner.message), isUrgent: banner.isUrgent, onTap: onClose)
     }
 }
 
