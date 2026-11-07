@@ -59,8 +59,17 @@ final class CarPlayTripViewModel {
 
     /// The time and distance left to the destination ("50 min · To Tunjungan Plaza" on the phone).
     var tripEstimate: TripEstimate? {
-        guard screen == .onTheWay, let guidance = tripMap?.guidance else { return nil }
-        return TripEstimate(timeLeft: guidance.timeLeft, distanceLeft: guidance.distanceLeft)
+        guard screen == .onTheWay, let tripMap, let guidance = tripMap.guidance else { return nil }
+        let distanceLeft = guidance.distanceLeft ?? RouteAheadLength(tripMap)
+        return TripEstimate(timeLeft: guidance.timeLeft, distanceLeft: distanceLeft)
+    }
+
+    /// How long the road still ahead is, for when the navigator cannot tell how far is left.
+    private func RouteAheadLength(_ tripMap: TripMapViewModel) -> Measurement<UnitLength>? {
+        let path = tripMap.routeAhead
+        guard path.count > 1 else { return nil }
+        let metres = zip(path, path.dropFirst()).reduce(0) { $0 + $1.0.Distance(to: $1.1) }
+        return Measurement(value: metres, unit: .meters)
     }
 
     var destinationName: String? {
