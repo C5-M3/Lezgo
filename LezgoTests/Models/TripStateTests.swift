@@ -27,6 +27,38 @@ struct TripStateTests {
         #expect(state.leader == nil)
     }
 
+    // MARK: Unique names
+
+    private func StateWithAgusAndBudi() -> TripState {
+        let participants = [
+            TripFixtures.Participant(id: TripFixtures.agusID, displayName: "Agus"),
+            TripFixtures.Participant(id: TripFixtures.budiID, displayName: "Budi")
+        ]
+        return TripState(trip: TripFixtures.Trip(), waypoints: [], participants: participants, route: nil)
+    }
+
+    @Test(arguments: ["Agus", "agus", "AGUS", "  Agus  ", "\nagus "])
+    func NameIsTakenIgnoringCaseAndSpacesAtTheEnds(name: String) {
+        #expect(StateWithAgusAndBudi().IsNameTaken(name) == true)
+    }
+
+    @Test func NewNameIsNotTaken() {
+        #expect(StateWithAgusAndBudi().IsNameTaken("Citra") == false)
+    }
+
+    @Test func SpacesInsideANameMatter() {
+        #expect(StateWithAgusAndBudi().IsNameTaken("Ag us") == false)
+    }
+
+    @Test func OwnNameIsNotAClash() {
+        #expect(StateWithAgusAndBudi().IsNameTaken("budi", excluding: TripFixtures.budiID) == false)
+        #expect(StateWithAgusAndBudi().IsNameTaken("agus", excluding: TripFixtures.budiID) == true)
+    }
+
+    @Test func EmptyNameIsNeverTaken() {
+        #expect(StateWithAgusAndBudi().IsNameTaken("   ") == false)
+    }
+
     // MARK: Names
 
     /// A car whose driver typed no name: iOS does not tell apps the iCloud account's name.

@@ -45,12 +45,16 @@ enum TripFixtures {
         )
     }
 
-    static func Participant(id: UUID = budiID, lastSeenSecondsAgo: TimeInterval = 1) -> Lezgo.Participant {
+    static func Participant(
+        id: UUID = budiID,
+        displayName: String = "Budi",
+        lastSeenSecondsAgo: TimeInterval = 1
+    ) -> Lezgo.Participant {
         Lezgo.Participant(
             id: id,
             tripID: tripID,
             userRecordID: "_user-\(id.uuidString)",
-            displayName: "Budi",
+            displayName: displayName,
             carDescription: "White Brio",
             coordinate: tunjunganPlaza,
             speedKmh: 40,
