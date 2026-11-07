@@ -9,8 +9,9 @@ import Foundation
 
 /// Who has arrived at the destination (`specs/UserStories.md` → US-07, "Arrive").
 ///
-/// A car has arrived within 20 m of the destination. Offline members count as not arrived, members without a
-/// position yet count as not arrived, and members who left are no longer in the trip, so they are not counted.
+/// A car has arrived within 20 m of the destination, or once its driver said so with "I've Arrived". Offline
+/// members count as not arrived, members without a position yet count as not arrived, and members who left are no
+/// longer in the trip, so they are not counted.
 struct TripMapArrival: Hashable {
     /// The arrival radius around the destination, in metres.
     static let radius: Double = 20
@@ -22,10 +23,7 @@ struct TripMapArrival: Hashable {
         guard let destination = state.destination else {
             return TripMapArrival(hasArrived: false, everyoneHasArrived: false)
         }
-        let isThere = { (participant: Participant) in
-            guard let coordinate = participant.coordinate else { return false }
-            return coordinate.Distance(to: destination.coordinate) <= radius
-        }
+        let isThere = { (participant: Participant) in IsThere(participant, at: destination) }
         let hasArrived = state.participants.first { $0.id == myParticipantID }.map(isThere) ?? false
         let everyoneHasArrived = state.participants.isEmpty == false && state.participants.allSatisfy { participant in
             participant.IsOnline(at: date) && isThere(participant)
@@ -38,10 +36,16 @@ struct TripMapArrival: Hashable {
     static func ArrivedIDs(_ state: TripState, myParticipantID: UUID, at date: Date) -> [UUID] {
         guard let destination = state.destination else { return [] }
         return state.participants.filter { participant in
-            guard let coordinate = participant.coordinate else { return false }
-            guard coordinate.Distance(to: destination.coordinate) <= radius else { return false }
+            guard IsThere(participant, at: destination) else { return false }
             return participant.id == myParticipantID || participant.IsOnline(at: date)
         }
         .map(\.id)
+    }
+
+    /// Within 20 m of the destination, or the driver said they arrived there.
+    private static func IsThere(_ participant: Participant, at destination: Waypoint) -> Bool {
+        if participant.arrivedAtWaypointID == destination.id { return true }
+        guard let coordinate = participant.coordinate else { return false }
+        return coordinate.Distance(to: destination.coordinate) <= radius
     }
 }

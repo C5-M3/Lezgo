@@ -178,7 +178,12 @@ final class InMemoryTripService: TripService {
     }
 
     func MarkArrived(at destinationID: UUID, participantID: UUID, tripID: UUID) async throws {
-        throw TripServiceError.notAllowed
+        if let state = store.trips[tripID], state.trip.status != .inTrip || state.destination?.id != destinationID {
+            throw TripServiceError.notAllowed
+        }
+        try ChangeParticipant(participantID, tripID: tripID) { participant in
+            participant.arrivedAtWaypointID = destinationID
+        }
     }
 
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws {
