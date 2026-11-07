@@ -54,6 +54,22 @@ struct TripMapArrivalTests {
         #expect(arrival.everyoneHasArrived == false)
     }
 
+    @Test func MyOwnCarCountsEvenWhenItsLastUpdateIsOld() {
+        // Parked indoors, this phone's GPS stops; the driver still knows they are there, as the top card shows.
+        let budi = Fixtures.CarNearDestination(id: Fixtures.budiID, name: "Budi", metres: 10, lastSeenSecondsAgo: 180)
+        let agus = Fixtures.CarNearDestination(id: Fixtures.agusID, name: "Agus", metres: 5)
+
+        let arrival = Check([agus, budi])
+        let arrivedIDs = TripMapArrival.ArrivedIDs(
+            Fixtures.State(cars: [agus, budi]),
+            myParticipantID: Fixtures.budiID,
+            at: Fixtures.now
+        )
+
+        #expect(arrival.everyoneHasArrived)
+        #expect(arrivedIDs.count == 2)
+    }
+
     @Test func MemberWithoutAPositionCountsAsNotArrived() {
         var citra = Fixtures.CarNearDestination(id: Fixtures.citraID, name: "Citra", metres: 5)
         citra.coordinate = nil
