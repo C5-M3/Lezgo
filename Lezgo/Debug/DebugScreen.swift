@@ -48,6 +48,7 @@ import SwiftUI
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapLeaderSeesStoppedCar` | Trip Started map on the leader's phone after Budi stops on the road | N |
+/// | `tripMapMemberParkedNearDestination` | Trip Started map on Budi's phone, parked 200 m from the destination | N |
 /// | `tripMapMemberLeaderOffline` | Trip Started map on Budi's phone with Agus offline for 6 minutes | N |
 /// | `tripMapMemberNewRoute` | Trip Started map on Budi's phone when Agus gets a new route with the same stops | N |
 /// | `tripMapMemberRouteUpdated` | Trip Started map on Budi's phone when Agus changes the destination | N |
@@ -81,6 +82,7 @@ enum DebugScreen: String, CaseIterable {
     case tripMapArrivedLeader
     case tripMapArrivals
     case tripMapLeaderSeesStoppedCar
+    case tripMapMemberParkedNearDestination
     case tripMapMemberLeaderOffline
     case tripMapMemberNewRoute
     case tripMapMemberRouteUpdated
@@ -122,12 +124,9 @@ enum DebugScreen: String, CaseIterable {
                 agusChangesRoute: self == .tripMapMemberNewRoute ? .sameStops
                     : self == .tripMapMemberRouteUpdated ? .newDestination : nil
             )
-        case .tripMapMemberOffRoute, .tripMapLeaderSeesMemberOffRoute, .tripMapLeaderSeesStoppedCar:
-            SimulatedTripMapScreen(
-                myParticipantID: self == .tripMapMemberOffRoute ? SampleTrip.budiID : SampleTrip.agusID,
-                budiLeavesRoute: self != .tripMapLeaderSeesStoppedCar,
-                budiStops: self == .tripMapLeaderSeesStoppedCar
-            )
+        case .tripMapMemberOffRoute, .tripMapLeaderSeesMemberOffRoute, .tripMapLeaderSeesStoppedCar,
+             .tripMapMemberParkedNearDestination:
+            MakeBudiScreen()
         case .tripMapArrivals:
             SimulatedArrivalsScreen(totalCount: 7)
         case .tripMapStartPoint:
@@ -135,6 +134,22 @@ enum DebugScreen: String, CaseIterable {
         case .syncCheck:
             SyncCheckView()
         }
+    }
+
+    /// The trip maps where Budi leaves the route or stops: on the road, or parked 200 m from the destination's point.
+    private func MakeBudiScreen() -> SimulatedTripMapScreen {
+        if self == .tripMapMemberParkedNearDestination {
+            return SimulatedTripMapScreen(
+                myParticipantID: SampleTrip.budiID,
+                startSecond: SimulatedDrive.StartSecond(budiParksMetresBeforeTheEnd: 200),
+                budiStops: true
+            )
+        }
+        return SimulatedTripMapScreen(
+            myParticipantID: self == .tripMapMemberOffRoute ? SampleTrip.budiID : SampleTrip.agusID,
+            budiLeavesRoute: self != .tripMapLeaderSeesStoppedCar,
+            budiStops: self == .tripMapLeaderSeesStoppedCar
+        )
     }
 
     private func MakeTripRoomScreen() -> SimulatedTripRoomScreen {

@@ -98,6 +98,13 @@ struct SimulatedDrive {
         try? await tripService.UpdateLocation(update, participantID: participantID, tripID: SampleTrip.tripID)
     }
 
+    /// The start second at which Budi, with `budiStops`, parks `metres` before the destination's point, as if in the
+    /// far corner of a big mall's car park. Agus, ahead of him, has arrived by then.
+    static func StartSecond(budiParksMetresBeforeTheEnd metres: Double) -> Int {
+        let end = DistanceAlongRoute(toPointAt: SampleTrip.plan.polyline.count - 1)
+        return Int(((end - metres - 150) / metresPerSecond).rounded()) - budiStopSecond
+    }
+
     /// Metres along the sample route from the start point to its point at `index`.
     static func DistanceAlongRoute(toPointAt index: Int) -> Double {
         let route = Array(SampleTrip.plan.polyline.prefix(index + 1))
