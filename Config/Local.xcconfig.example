@@ -7,3 +7,6 @@ DEVELOPMENT_TEAM = YOUR_TEAM_ID
 // A reverse-DNS prefix you own, for example com.yourname.
 // The app becomes <prefix>.Lezgo and its iCloud container iCloud.<prefix>.Lezgo.
 BUNDLE_IDENTIFIER_PREFIX = com.yourname
+
+// Only if Apple has NOT given your account the CarPlay navigation entitlement (ADR 0023): sign without CarPlay.
+// LEZGO_ENTITLEMENTS = Lezgo/Lezgo.entitlements
