@@ -649,7 +649,11 @@ Feature: Drive together
 ### Rules
 
 **Arrive**
-- Arrived = within 20 m of the destination. Offline members count as not arrived; members who exited are not counted.
+- Arrived = within 20 m of the destination, or "I've Arrived" (below). Offline members count as not arrived; members who exited are not counted.
+- **I've Arrived:** a destination's point is not always where the group parks; in a big mall a car can stop 200 m away and never come within 20 m. Within 1 km of the point, the pulled-up card shows "I've Arrived" (leader and members), between Edit Route and End Trip or Exit Trip. It hides once the car has arrived.
+  - Tapping it asks first: "Arrived at Tunjungan Plaza?" · "You are 200 m from the destination point. Are you sure you have arrived?" with "Cancel" and "I've Arrived". The distance is rounded to 10 m.
+  - Confirming counts the car as arrived on every phone, as if it were within 20 m. It counts for that destination only: a New Destination starts afresh.
+  - If saving fails (no network), a message says why and the button stays, so the driver can try again.
 
 | Who | Not everyone arrived | Everyone arrived |
 | --- | --- | --- |
@@ -696,6 +700,18 @@ Feature: Arrive, continue, leave and end
   Scenario: Member arrives first
     When "Budi" comes within 20 m of the destination
     Then "Budi" sees "You have arrived" and "Waiting for everyone to arrive"
+
+  Scenario: Member says they arrived in a big mall
+    Given "Budi" is parked 200 m from the destination's point
+    When "Budi" taps "I've Arrived"
+    Then "Budi" sees "Arrived at Ciputra World Surabaya?" and "You are 200 m from the destination point. Are you sure you have arrived?"
+    When "Budi" taps "I've Arrived" again
+    Then every phone counts "Budi" as arrived
+    And "Budi" sees "You have arrived" and "Waiting for everyone to arrive"
+
+  Scenario: Far from the destination
+    Given "Budi" is 5 km from the destination
+    Then the card has no "I've Arrived"
 
   Scenario: Leader arrives before everyone
     Given "Citra" is 500 m behind
@@ -759,7 +775,8 @@ Feature: Arrive, continue, leave and end
 
 | Action | Entity | Effect |
 | --- | --- | --- |
-| Arrived | Derived | distance to destination ≤ 20 m |
+| Arrived | Derived | distance to destination ≤ 20 m, or `arrivedAtWaypointID` = the destination |
+| I've Arrived | `Participant` | `arrivedAtWaypointID: destination.id` |
 | New Destination | `Waypoint`, `Route`, `Trip` | replace waypoints (new start = old destination); new route version; `status: LOBBY`, `currentWaypointIndex: 0` |
 | Member exits | `Participant` | delete own record |
 | Leader exits or ends | `Trip` | `status: CANCELLED` (LOBBY) or `ENDED` (IN_TRIP), `endedAt: now` |

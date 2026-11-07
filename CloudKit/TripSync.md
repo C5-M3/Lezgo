@@ -93,6 +93,7 @@ Files: `Lezgo/Models/`. All models are plain `Hashable`, `Codable` structs. They
 | `alert` | `FormationAlert`: `.none`, `.offRoute`, `.passedCheckpoint`, `.aheadOfLeader` |
 | `lastSeenAt` | When this phone last sent a position |
 | `course?` | The way the car was heading, in degrees clockwise from north; `nil` when the phone does not know |
+| `arrivedAtWaypointID?` | The destination this driver said they reached with "I've Arrived"; `nil` otherwise. A New Destination has new waypoints, so it starts afresh |
 
 Rules: `IsLeader(in:)`; `IsOnline(at:)`, where a phone is offline when `lastSeenAt` is **more than** 120 seconds old (exactly 120 seconds is still online); and `Participant.Joining(…)`, a new participant with no position, stopped, and no alert.
 
@@ -136,6 +137,7 @@ File: `Lezgo/Services/TripService.swift`. Every operation is `async`. All but `T
 | `AdvanceCheckpoint(to:tripID:by:)` | Leader | Moves forward only | `notAllowed` |
 | `SaveRoute(_:tripID:by:)` | Leader | New route on the road (reroute or Edit Route): `routeVersion + 1`, index back to 1 | `notAllowed` |
 | `SetWayBack(_:participantID:tripID:)` | Member | Saves or, when empty, clears the way back of a member who left the group's road, for the leader's map | `notAllowed` for the leader |
+| `MarkArrived(at:participantID:tripID:)` | Anyone | "I've Arrived": saves the trip's current destination in `arrivedAtWaypointID`, so every phone counts this car as arrived | `notAllowed` before Start Trip or for another waypoint |
 | `SaveTrail(_:tripID:by:)` | Leader | Replaces the footprint; the leader's phone saves it every 5 seconds while driving | `notAllowed` |
 | `StartNewDestination(_:tripID:by:)` | Leader | New Destination after arriving: new route, back to `LOBBY` with index 0; room code and members stay | `notAllowed` |
 | `UpdateProfile(_:participantID:tripID:)` | Anyone | Name and car | `notFound` |
@@ -274,7 +276,7 @@ File: `LiveTripService.swift`. Every operation runs inside `Run { … }`, which 
 | `SetLeader` | Fetch the `Trip` → check the current leader equals `replacing` → check the new leader is a member → save with **`.ifServerRecordUnchanged`**. If someone saved the trip in between, CloudKit answers `serverRecordChanged`, returned as `.conflict` |
 | `RemoveParticipants`, `ExitTrip` | Check trip and role → delete `Participant` records |
 | `UpdateLocation` | **One request:** a record with the participant's ID holding only the location fields, saved with `.changedKeys` |
-| `SetAlert`, `SetWayBack`, `UpdateProfile` | Fetch the participant → change → save |
+| `SetAlert`, `SetWayBack`, `MarkArrived`, `UpdateProfile` | Fetch the participant → change → save |
 | `SaveTrail` | Check the caller leads → save the trip's `Trail` record (named `<tripID>-trail`) with `.allKeys`: only the leader writes it |
 | `SaveRoute`, `StartNewDestination` | Save the new waypoints and route **first**, then raise the version on `Trip`, then delete the old ones, so no phone sees a route version without its route |
 
@@ -337,6 +339,7 @@ erDiagram
         Timestamp lastSeenAt
         Double course
         Bytes wayBack "optional"
+        String arrivedAtWaypointID "optional"
     }
     Route {
         UUID id PK
