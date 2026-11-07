@@ -565,9 +565,13 @@ Feature: Manage the group and start
 
 **Car status**
 - Tap a car → card with name, status and street ("Driving at Ahmad Yani Street"), and ETA to the destination ("50 min").
+- The camera moves to the tapped car and follows it while its card is open. Closing the card takes the camera back to where it was (following this car or showing the whole route); a map moved by hand meanwhile stays where it is.
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
 - Tap elsewhere or swipe down to close.
+- Cars so close that their robots would overlap on screen are drawn side by side on one dark card, each with the driver's name under the robot. A car with an alert stays on its own.
+- The leader's car has a crown beside it, on its own or on a card, where the leader always comes first.
+- A card shows at most 4 cars and counts the rest ("+6"), for example 10 cars at the start point. Tapping the count opens the card to show every car; tapping a car on the card opens its status, and the car glows in its place.
 - An offline car's card shows no ETA, because its last position is out of date.
 - Until the street and ETA are known (or without network), the card shows the status alone ("Driving").
 
@@ -581,7 +585,9 @@ Feature: Manage the group and start
 | Ahead of leader | More than 100 m ahead of the leader for 5 s | "You Precede The Leader" | Nothing; slow down or wait |
 
 - Visual only, under the turn card. One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
-- Everyone else sees "[name] - Out of The Way" / "[name] - Precede The Leader" ("Car 3 - Out of The Way", "Budi - Out of The Way") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
+- Everyone else sees "[name] has gone out of route" / "[name] - Precede The Leader" ("Car 3 has gone out of route", "Budi has gone out of route") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
+- **Stopped car:** another online car that was driving and has been at speed 0 for 30 seconds, short of the destination, shows "[name] has stopped" on a red banner, after every formation alert. It hides until that car has driven again. A car still waiting at the start does not count.
+- A tap on the banner hides it (the hi-fi has no ⓧ). Banners are yellow, and red for a stopped car.
 - The time and distance limits stop flicker from GPS noise. They were 100 m and 15 s at first; on the road a wrong turn then showed far too late, so they match the leader's reroute now (50 m, 5 s).
 
 **Route changes (leader only)**
@@ -590,21 +596,20 @@ Feature: Manage the group and start
 - Each new route has `routeVersion + 1`; members switch within 2 seconds and never go back to an older version.
 - **Rerouting notice** (like Apple Maps and Google Maps), visual only. Lo-fi: `B6 Rerouting (leader)`.
   - From 2 seconds off the road until the new route arrives, the turn card shows "Rerouting…" in its place: "Finding a new route for everyone" on the leader's phone, "Finding the way back to your group" on a member's phone looking for a way back. It replaces the turn card, so nothing is added on top of the map.
-  - Not built yet, to keep the map clear: when the new route arrives, every phone shows a banner under the turn card for 5 seconds, then it hides on its own:
-    - Leader left the route: "New route · Following Agus" with the new time ("52 min").
-    - Leader edited the route: "Route updated by Agus" with the new destination or checkpoint and the new time.
+  - When the new route arrives, every phone shows a yellow banner under the turn card for 5 seconds, then it hides on its own:
+    - The same stops: "New route · Following Agus · 52 min" ("New route · 52 min" on the leader's phone).
+    - Changed stops: "Route updated by Agus · 58 min" ("Route updated · 58 min" on the leader's phone). The bottom card shows the new destination.
   - The map animates to the new route line and the old line disappears; guidance continues without any tap.
   - A formation alert (off route, passed checkpoint, ahead of leader) has priority and stays on top; the rerouting notice waits until it is gone.
   - Several reroutes in a row show only the latest one.
-- No network → the old route stays, the leader sees "Couldn't update the route. Trying again." and the app retries every 30 s.
+- No network → the old route stays, the leader sees a red banner "Couldn't update the route. Trying again." and the app retries. It hides once a new route is saved or the leader is back on the route.
 
-**Leader offline** — banner **needs lo-fi**
+**Leader offline**
 - Covers a leader who disappears without leaving (dead phone, no signal, app deleted). A leader who leaves on purpose ends the trip (US-07).
-- Offline 2 min → everyone sees "Agus is offline"; navigation continues on the current route; checkpoint progress and "ahead of leader" pause. If the leader returns within 5 min, nothing else changes.
-- Offline 5 min → every member can open "Pick Your New Leader" (same picker as US-05). It never blocks the map. The first confirmed choice wins (conditional save); everyone sees "Budi is now the leader".
-- Only one member left → that member becomes leader automatically.
-- An old leader who returns after a new leader was picked becomes a member.
-- Why: the group keeps moving on the last known state, waits briefly in case the leader returns, then chooses a successor itself; the server decides when two people pick at once.
+- Offline 2 min → everyone sees a red banner "Agus is offline". It goes when the leader is back; a tap hides it until then.
+- Everyone keeps navigating on the same current route. Checkpoint progress and "ahead of leader" pause, because the leader's phone drives them.
+- The leader never changes on the road, however long the leader is offline: nobody picks a new one and nobody takes over. The lead is handed over only in the Trip Room (US-05).
+- Why: the driver must not be distracted, and the group already has the route it needs.
 
 ### Acceptance criteria
 
@@ -633,6 +638,12 @@ Feature: Drive together
     Given "Budi" is driving on "Ahmad Yani Street", 50 minutes from the destination
     When "Agus" taps the car of "Budi"
     Then "Agus" sees "Budi", "Driving at Ahmad Yani Street" and "50 min"
+    And the map moves to the car of "Budi" and follows it
+
+  Scenario: Close a car's card
+    Given "Agus" is following his own car and has tapped the car of "Budi"
+    When "Agus" closes the card
+    Then the map follows the car of "Agus" again
 
   Scenario: A car stops
     Given "Budi" has had speed 0 for 30 seconds
@@ -641,7 +652,7 @@ Feature: Drive together
   Scenario: Member leaves the route
     When "Budi" is more than 50 m off the route for 5 seconds
     Then "Budi" sees "You're out of the way" and the way back
-    And "Agus" sees "Budi - Out of The Way"
+    And "Agus" sees "Budi has gone out of route"
     When "Budi" is back on the route
     Then the banner disappears
 
@@ -681,9 +692,9 @@ Feature: Drive together
 
   Scenario: Leader stays offline
     When "Agus" sends no location for 5 minutes
-    And "Budi" picks "Citra" in "Pick Your New Leader" and confirms
-    Then "Citra" is the leader on every phone within 2 seconds
-    And when "Agus" comes back he is a member
+    Then "Budi" and "Citra" still see "Agus is offline" and keep navigating on the same route
+    And "Agus" is still the leader
+    And nobody is asked to pick a new leader
 ```
 
 ### Data
@@ -706,7 +717,11 @@ Feature: Drive together
 ### Rules
 
 **Arrive**
-- Arrived = within 20 m of the destination. Offline members count as not arrived; members who exited are not counted.
+- Arrived = within 20 m of the destination, or "I've Arrived" (below). Offline members count as not arrived; members who exited are not counted.
+- **I've Arrived:** a destination's point is not always where the group parks; in a big mall a car can stop 200 m away and never come within 20 m. Within 1 km of the point, the pulled-up card shows "I've Arrived" (leader and members), between Edit Route and End Trip or Exit Trip. It hides once the car has arrived.
+  - Tapping it asks first: "Arrived at Tunjungan Plaza?" · "You are 200 m from the destination point. Are you sure you have arrived?" with "Cancel" and "I've Arrived". The distance is rounded to 10 m.
+  - Confirming counts the car as arrived on every phone, as if it were within 20 m. It counts for that destination only: a New Destination starts afresh.
+  - If saving fails (no network), a message says why and the button stays, so the driver can try again.
 
 | Who | Not everyone arrived | Everyone arrived |
 | --- | --- | --- |
@@ -725,9 +740,9 @@ Feature: Drive together
 | Who | Where | Button | Confirmation | Result |
 | --- | --- | --- | --- | --- |
 | Member | Trip Room | "Exit Trip" (under the participants) | "Exit the room?" | I leave; Home opens |
-| Member | On the road | "Exit Trip" | "Exit trip?" | I leave; my car disappears from every map |
+| Member | On the road | "Exit Trip" | "Exit trip?" · "Your car disappears from every map." | I leave; my car disappears from every map |
 | Leader | Trip Room | "End Trip" (under the participants) | "Exit and end the trip for everyone? All members will leave this trip." | Trip `CANCELLED` for everyone |
-| Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip? Not everyone has arrived yet." | Trip `ENDED` for everyone |
+| Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip?" · "Not everyone has arrived yet." | Trip `ENDED` for everyone |
 | Leader | Draft card | "New Trip" (US-03) | "Create a new trip? Your current trip will end for everyone." | Old trip ends for everyone |
 
 - Every confirmation is the shared dialog (US-04, "Confirmations") with "Cancel" and "Confirm".
@@ -738,7 +753,7 @@ Feature: Drive together
 
 **Needs lo-fi**
 - `LEADER EXIT POP UP ALERT CONFIRM` ("Exit the room and set a new leader?") must change to the end-for-everyone warning above.
-- Copy check for "End trip? Not everyone has arrived yet."
+- Copy check for "End trip?" · "Not everyone has arrived yet."
 - Lo-fi grammar is corrected: "Everyone has arrived!", "Waiting for everyone to arrive".
 
 ### Acceptance criteria
@@ -753,6 +768,18 @@ Feature: Arrive, continue, leave and end
   Scenario: Member arrives first
     When "Budi" comes within 20 m of the destination
     Then "Budi" sees "You have arrived" and "Waiting for everyone to arrive"
+
+  Scenario: Member says they arrived in a big mall
+    Given "Budi" is parked 200 m from the destination's point
+    When "Budi" taps "I've Arrived"
+    Then "Budi" sees "Arrived at Ciputra World Surabaya?" and "You are 200 m from the destination point. Are you sure you have arrived?"
+    When "Budi" taps "I've Arrived" again
+    Then every phone counts "Budi" as arrived
+    And "Budi" sees "You have arrived" and "Waiting for everyone to arrive"
+
+  Scenario: Far from the destination
+    Given "Budi" is 5 km from the destination
+    Then the card has no "I've Arrived"
 
   Scenario: Leader arrives before everyone
     Given "Citra" is 500 m behind
@@ -780,7 +807,7 @@ Feature: Arrive, continue, leave and end
   Scenario: End before everyone arrived
     Given "Citra" has not arrived
     When "Agus" taps "End Trip"
-    Then "Agus" sees "End trip? Not everyone has arrived yet."
+    Then "Agus" sees "End trip?" and "Not everyone has arrived yet."
     When "Agus" taps "Confirm"
     Then the trip is ENDED
 
@@ -816,7 +843,8 @@ Feature: Arrive, continue, leave and end
 
 | Action | Entity | Effect |
 | --- | --- | --- |
-| Arrived | Derived | distance to destination ≤ 20 m |
+| Arrived | Derived | distance to destination ≤ 20 m, or `arrivedAtWaypointID` = the destination |
+| I've Arrived | `Participant` | `arrivedAtWaypointID: destination.id` |
 | New Destination | `Waypoint`, `Route`, `Trip` | replace waypoints (new start = old destination); new route version; `status: LOBBY`, `currentWaypointIndex: 0` |
 | Member exits | `Participant` | delete own record |
 | Leader exits or ends | `Trip` | `status: CANCELLED` (LOBBY) or `ENDED` (IN_TRIP), `endedAt: now` |

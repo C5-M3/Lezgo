@@ -17,7 +17,8 @@ import Observation
 final class TripMapViewModel {
     private(set) var state: TripState?
     private(set) var guidance: TripMapGuidance?
-    private(set) var cameraMode: CameraMode = .followMyCar
+    private var camera = TripMapCamera()
+    var cameraMode: CameraMode { camera.mode }
     /// The confirmation to show before leaving, or `nil`.
     private(set) var leaveConfirmation: LeaveConfirmation?
     /// Set once the map should close and the phone return to Home; sharing stops at the same time.
@@ -39,12 +40,18 @@ final class TripMapViewModel {
     private(set) var updatedAt: Date?
     /// The last street and time left of every car tapped so far.
     private(set) var carLookups: [UUID: CarLookup] = [:]
-    /// This phone's formation alert and the banners closed with ⓧ.
+    /// This phone's formation alert and the banners closed with a tap.
     private(set) var alerts: TripMapAlerts
+    /// The banners about the route and the leader.
+    var notices = TripMapNotices()
+    /// The cars at the destination, in the order this phone saw them arrive.
+    private(set) var arrivalOrder = TripMapArrivalOrder()
     /// When this phone, as leader, moves the trip past a checkpoint.
     private var checkpointProgress = TripMapCheckpointProgress()
     /// The leader's footprint: recorded on the leader's phone, followed on a member's.
     let following: TripMapFootprint
+    /// "I've Arrived", for a destination whose point is a little off, and its question.
+    let manualArrival: TripMapManualArrival
     /// `true` while a guidance request is on its way, so GPS readings and trip updates do not ask twice at once.
     private var isRefreshingGuidance = false
 
@@ -58,12 +65,13 @@ final class TripMapViewModel {
     private let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
-    private let locationSharer: LocationSharer?
+    let locationSharer: LocationSharer?
     private let activeTripStorage: (any ActiveTripStorage)?
-    /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews
-    /// and the simulated drive, where the leader never leaves the route).
+    /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews).
     let reroute: TripMapReroute?
     private let clock: () -> Date
+    /// Whether the map opens with the "Lez Go!" animation, because the trip has only just started.
+    let showsStartIntro: Bool
 
     init(
         tripID: UUID,
@@ -74,6 +82,7 @@ final class TripMapViewModel {
         locationSharer: LocationSharer? = nil,
         directionsService: (any DirectionsService)? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
+        showsStartIntro: Bool = false,
         clock: @escaping () -> Date = { .now }
     ) {
         self.tripID = tripID
@@ -92,29 +101,13 @@ final class TripMapViewModel {
         reroute = directionsService.map {
             TripMapReroute(tripID: tripID, tripService: tripService, directionsService: $0)
         }
+        manualArrival = TripMapManualArrival(tripID: tripID, myParticipantID: myParticipantID, tripService: tripService)
+        self.showsStartIntro = showsStartIntro
         self.clock = clock
         alerts = TripMapAlerts(myParticipantID: myParticipantID)
     }
 
-    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
-    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
-    var showsMyLocationDot: Bool {
-        locationSharer != nil
-    }
-
-    /// `true` while this phone cannot send its position, so the other phones see it standing still and its own
-    /// view of the other cars is probably out of date too. Hides as soon as a send works again.
-    var isConnectionLost: Bool {
-        locationSharer?.lastError != nil
-    }
-
-    /// `true` while Precise Location is off: this phone's car is not shared, and the map asks to turn it on.
-    var isLocationImprecise: Bool {
-        locationSharer?.isLocationImprecise ?? false
-    }
-
-    /// Follows the trip, and shares this phone's position when a sharer is given, until the stream finishes or the
-    /// task is cancelled.
+    /// Follows the trip, and shares this phone's position with a sharer, until the stream ends or is cancelled.
     func Start() async {
         let (readings, echo) = AsyncStream.makeStream(of: LocationReading.self, bufferingPolicy: .bufferingNewest(1))
         await withTaskGroup(of: Void.self) { group in
@@ -132,9 +125,8 @@ final class TripMapViewModel {
     }
 
     /// The leader ended the trip, removed this member or planned a New Destination, from another phone or this one.
-    ///
-    /// While this phone's own exit or end is on its way, the update it causes can arrive first; `ConfirmLeave` sets
-    /// the reason then, so the person is not told they were removed or that the leader ended the trip.
+    /// While this phone's own exit or end is on its way, its own update can arrive first: `ConfirmLeave` sets the
+    /// reason then, so the person is not told they were removed or that the leader ended the trip.
     private func NoticeTripClosed(_ newState: TripState) {
         guard closeReason == nil, isLeaving == false else { return }
         if newState.trip.status.isOpen == false {
@@ -156,11 +148,11 @@ final class TripMapViewModel {
     }
 
     func ShowWholeRoute() {
-        cameraMode = .wholeRoute
+        camera.ShowWholeRoute()
     }
 
     func FollowMyCar() {
-        cameraMode = .followMyCar
+        camera.FollowMyCar()
     }
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
@@ -211,7 +203,7 @@ final class TripMapViewModel {
         leaveErrorMessage = nil
     }
 
-    /// ⓧ on the alert banner: hides it until that alert happens again.
+    /// A tap on the alert banner: hides it until that alert happens again.
     func DismissAlertBanner() {
         guard let alertBanner else { return }
         alerts.Close(alertBanner)
@@ -219,14 +211,14 @@ final class TripMapViewModel {
 
     /// Called when the person pans or zooms the map by hand.
     func StopFollowing() {
-        cameraMode = .free
+        camera.StopFollowing()
     }
 
-    /// Opens the status card of a tapped car, or closes it with `nil` (tap elsewhere or swipe down). The camera stays
-    /// as it is.
+    /// Opens a tapped car's status card and focuses the camera on it; `nil` closes it (`TripMapCamera`).
     func SelectCar(_ carID: UUID?) {
         guard carID != selectedCarID else { return }
         selectedCarID = carID
+        camera.Focus(on: carID, myCarID: myParticipantID)
     }
 
     /// Keeps the tapped car's street and time left up to date while its card is open. The view runs this in a task
@@ -364,6 +356,8 @@ extension TripMapViewModel {
             if let state, newState.trip.routeVersion < state.trip.routeVersion { continue }
             state = WithMyGPS(newState)
             updatedAt = clock()
+            NoteArrivals()
+            notices.Update(newState)
             NoticeTripClosed(newState)
             CloseEditRouteIfNotAllowed()
             if closeReason != nil { return }
@@ -382,9 +376,15 @@ extension TripMapViewModel {
         for await reading in readings {
             myReading = reading
             state = state.map(WithMyGPS)
+            NoteArrivals()
             if let state { await following.Record(reading, in: state) }
             await RefreshGuidance()
         }
+    }
+
+    private func NoteArrivals() {
+        guard let state else { return }
+        arrivalOrder.Update(state, myParticipantID: myParticipantID, at: updatedAt ?? clock())
     }
 
     /// The trip with this phone's car at its own latest GPS reading, so checkpoints, alerts and the reroute use it

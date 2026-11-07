@@ -29,7 +29,8 @@ extension TripMapViewModel {
                 keepsRunningInBackground: true
             ),
             directionsService: LiveDirectionsService(),
-            activeTripStorage: activeTripStorage
+            activeTripStorage: activeTripStorage,
+            showsStartIntro: TripStartIntro.ShouldPlay(for: session.state.trip, at: .now)
         )
     }
 }

@@ -80,6 +80,16 @@ extension TripMapViewModel {
     }
 
     /// Only the leader can change the route, while the trip is open and once their position is known.
+    /// "I've Arrived" shows in the pulled-up card within 1 km of the destination, until the car has arrived.
+    var canMarkArrived: Bool {
+        closeReason == nil && manualArrival.CanMark(in: state, from: myCoordinate)
+    }
+
+    /// "I've Arrived": asks first, saying how far the destination's point is.
+    func RequestMarkArrived() {
+        manualArrival.Request(in: state, from: myCoordinate)
+    }
+
     var canEditRoute: Bool {
         isLeader && closeReason == nil && myCoordinate != nil
     }
@@ -88,6 +98,23 @@ extension TripMapViewModel {
     var tripRoomSession: TripSession? {
         guard closeReason == .backToTripRoom, let state else { return nil }
         return TripSession(myParticipantID: myParticipantID, state: state)
+    }
+
+    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
+    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
+    var showsMyLocationDot: Bool {
+        locationSharer != nil
+    }
+
+    /// `true` while this phone cannot send its position, so the other phones see it standing still and its own
+    /// view of the other cars is probably out of date too. Hides as soon as a send works again.
+    var isConnectionLost: Bool {
+        locationSharer?.lastError != nil
+    }
+
+    /// `true` while Precise Location is off: this phone's car is not shared, and the map asks to turn it on.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
     }
 
     /// A pin for every car that has sent a position; members without one yet have no pin.
@@ -106,9 +133,32 @@ extension TripMapViewModel {
                 isLeader: participant.IsLeader(in: state.trip),
                 isMe: participant.id == myParticipantID,
                 isOffline: participant.IsOnline(at: updatedAt) == false,
-                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt)
+                isAlerting: alerts.IsShared(participant, in: state, at: updatedAt),
+                carColor: CarColor(of: participant, in: state)
             )
         }
+    }
+
+    /// Worked out from the whole group, so a member keeps their color before everyone has sent a position.
+    private func CarColor(of participant: Participant, in state: TripState) -> TripMapCarPin.CarColor {
+        let members = state.participants.filter { $0.IsLeader(in: state.trip) == false }
+        guard let index = members.firstIndex(where: { $0.id == participant.id }) else { return .yellow }
+        return .ForMember(atIndex: index)
+    }
+
+    /// The robots and the count on the top card, or `nil` until this phone's car has arrived.
+    var arrivalProgress: TripMapArrivalProgress? {
+        guard let state, arrivalCard != nil else { return nil }
+        let robots = arrivalOrder.ids.prefix(TripMapArrivalProgress.maxRobots).compactMap { id in
+            state.participants.first { $0.id == id }.map {
+                TripMapArrivalProgress.Robot(id: id, carColor: CarColor(of: $0, in: state))
+            }
+        }
+        return TripMapArrivalProgress(
+            robots: robots,
+            arrivedCount: arrivalOrder.ids.count,
+            totalCount: state.participants.count
+        )
     }
 
     /// The status card of the tapped car, or `nil` while no car is tapped.
@@ -127,7 +177,9 @@ extension TripMapViewModel {
             return TripMapCarStatus(
                 id: car.id,
                 displayName: displayName,
-                activity: .offline(lastSeen: lastSeen)
+                activity: .offline(lastSeen: lastSeen),
+                carDescription: car.carDescription,
+                carColor: CarColor(of: car, in: state)
             )
         }
         let lookup = carLookups[car.id]
@@ -138,7 +190,9 @@ extension TripMapViewModel {
             id: car.id,
             displayName: displayName,
             activity: activity,
-            timeLeft: lookup?.timeLeft
+            timeLeft: lookup?.timeLeft,
+            carDescription: car.carDescription,
+            carColor: CarColor(of: car, in: state)
         )
     }
 
@@ -146,6 +200,21 @@ extension TripMapViewModel {
     var alertBanner: TripMapAlerts.Banner? {
         guard let state, let updatedAt else { return nil }
         return alerts.Banner(in: state, at: updatedAt)
+    }
+
+    /// The notice under the turn card. A formation alert stays on top, so the notice waits until it has gone; a car
+    /// that has stopped matters less than a notice.
+    var noticeBanner: TripMapNotice? {
+        guard let state, let updatedAt else { return nil }
+        if let alertBanner {
+            guard case .carStopped = alertBanner else { return nil }
+        }
+        return notices.Notice(
+            in: state,
+            me: myParticipantID,
+            rerouteFailed: reroute?.hasFailed ?? false,
+            at: updatedAt
+        )
     }
 
     /// What the bottom card shows once this phone's car has arrived, or `nil` while it is on the way.

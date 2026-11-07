@@ -113,6 +113,17 @@ struct TripRecordMapperTests {
         #expect(try TripRecordMapper.MakeParticipant(from: TripRecordMapper.MakeRecord(participant)) == participant)
     }
 
+    @Test func ParticipantKeepsTheDestinationTheyConfirmedArriving() throws {
+        var participant = TripFixtures.Participant()
+        let destinationID = UUID()
+        participant.arrivedAtWaypointID = destinationID
+
+        let record = TripRecordMapper.MakeRecord(participant)
+
+        #expect(record["arrivedAtWaypointID"] as? String == destinationID.uuidString)
+        #expect(try TripRecordMapper.MakeParticipant(from: record) == participant)
+    }
+
     @Test(arguments: Avatar.allCases)
     func ParticipantKeepsTheirAvatar(avatar: Avatar) throws {
         var participant = TripFixtures.Participant()

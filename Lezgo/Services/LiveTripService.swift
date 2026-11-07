@@ -342,6 +342,16 @@ extension LiveTripService {
             participant.wayBack = wayBack
         }
     }
+
+    func MarkArrived(at destinationID: UUID, participantID: UUID, tripID: UUID) async throws {
+        let state = try await FetchTrip(tripID: tripID)
+        guard state.trip.status == .inTrip, state.destination?.id == destinationID else {
+            throw TripServiceError.notAllowed
+        }
+        try await ChangeParticipant(participantID, tripID: tripID) { participant in
+            participant.arrivedAtWaypointID = destinationID
+        }
+    }
 }
 
 // MARK: Names

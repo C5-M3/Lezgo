@@ -14,13 +14,11 @@ struct TripMapLeaveButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(role: .destructive, action: action) {
+        Button(action: action) {
             Text(isLeader ? .tripMapEndTrip : .tripMapExitTrip)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
+                .foregroundStyle(.red)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(TripMapCardButtonStyle())
     }
 }
 
@@ -30,6 +28,8 @@ struct TripMapLeaveButton: View {
         TripMapLeaveButton(isLeader: false, action: {})
     }
     .padding()
+    .background(Color(.tripCard))
+    .environment(\.colorScheme, .dark)
 }
 
 #Preview("Largest text") {

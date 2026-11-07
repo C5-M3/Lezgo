@@ -18,6 +18,9 @@ struct TripMapCarStatus: Identifiable, Hashable {
     var activity: Activity
     /// `nil` until the travel time is known, and for an offline car, whose last position is out of date.
     var timeLeft: Duration?
+    /// "Black Brio"; empty when the driver has not typed one.
+    var carDescription = ""
+    var carColor = TripMapCarPin.CarColor.yellow
 
     /// "Driving at Ahmad Yani Street", "Stopped at Ahmad Yani Street" or "Last seen 3 min ago".
     var statusLine: String {

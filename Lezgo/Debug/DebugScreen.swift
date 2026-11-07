@@ -47,6 +47,13 @@ import SwiftUI
 /// | `tripRoomLeaderOffline` | Trip Room lobby on the leader's phone where every save fails with no network | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
+/// | `tripMapLeaderSeesStoppedCar` | Trip Started map on the leader's phone after Budi stops on the road | N |
+/// | `tripMapMemberParkedNearDestination` | Trip Started map on Budi's phone, parked 200 m from the destination | N |
+/// | `tripMapMemberLeaderOffline` | Trip Started map on Budi's phone with Agus offline for 6 minutes | N |
+/// | `tripMapMemberNewRoute` | Trip Started map on Budi's phone when Agus gets a new route with the same stops | N |
+/// | `tripMapMemberRouteUpdated` | Trip Started map on Budi's phone when Agus changes the destination | N |
+/// | `tripMapArrivals` | The arrival robots and count with cars arriving one by one | N |
+/// | `tripMapStartPoint` | Trip Started map on Budi's phone with ten cars still together at the start point | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
 ///
@@ -73,6 +80,13 @@ enum DebugScreen: String, CaseIterable {
     case tripMapMemberOffRoute
     case tripMapLeaderSeesMemberOffRoute
     case tripMapArrivedLeader
+    case tripMapArrivals
+    case tripMapLeaderSeesStoppedCar
+    case tripMapMemberParkedNearDestination
+    case tripMapMemberLeaderOffline
+    case tripMapMemberNewRoute
+    case tripMapMemberRouteUpdated
+    case tripMapStartPoint
     case syncCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
@@ -98,19 +112,44 @@ enum DebugScreen: String, CaseIterable {
             DraftTripView.Simulated(isLeader: true)
         case .tripRoomLeader, .tripRoomMember, .tripRoomMemberLeaderEndsTrip, .tripRoomLeaderOffline:
             MakeTripRoomScreen()
-        case .tripMapLeader:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
-        case .tripMapMember:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
-        case .tripMapMemberOffRoute:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID, budiLeavesRoute: true)
-        case .tripMapLeaderSeesMemberOffRoute:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, budiLeavesRoute: true)
-        case .tripMapArrivedLeader:
-            SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID, startSecond: 2_000)
+        case .tripMapLeader, .tripMapArrivedLeader:
+            SimulatedTripMapScreen(
+                myParticipantID: SampleTrip.agusID,
+                startSecond: self == .tripMapArrivedLeader ? 2_000 : 0
+            )
+        case .tripMapMember, .tripMapMemberLeaderOffline, .tripMapMemberNewRoute, .tripMapMemberRouteUpdated:
+            SimulatedTripMapScreen(
+                myParticipantID: SampleTrip.budiID,
+                agusIsOffline: self == .tripMapMemberLeaderOffline,
+                agusChangesRoute: self == .tripMapMemberNewRoute ? .sameStops
+                    : self == .tripMapMemberRouteUpdated ? .newDestination : nil
+            )
+        case .tripMapMemberOffRoute, .tripMapLeaderSeesMemberOffRoute, .tripMapLeaderSeesStoppedCar,
+             .tripMapMemberParkedNearDestination:
+            MakeBudiScreen()
+        case .tripMapArrivals:
+            SimulatedArrivalsScreen(totalCount: 7)
+        case .tripMapStartPoint:
+            SimulatedStartPointScreen()
         case .syncCheck:
             SyncCheckView()
         }
+    }
+
+    /// The trip maps where Budi leaves the route or stops: on the road, or parked 200 m from the destination's point.
+    private func MakeBudiScreen() -> SimulatedTripMapScreen {
+        if self == .tripMapMemberParkedNearDestination {
+            return SimulatedTripMapScreen(
+                myParticipantID: SampleTrip.budiID,
+                startSecond: SimulatedDrive.StartSecond(budiParksMetresBeforeTheEnd: 200),
+                budiStops: true
+            )
+        }
+        return SimulatedTripMapScreen(
+            myParticipantID: self == .tripMapMemberOffRoute ? SampleTrip.budiID : SampleTrip.agusID,
+            budiLeavesRoute: self != .tripMapLeaderSeesStoppedCar,
+            budiStops: self == .tripMapLeaderSeesStoppedCar
+        )
     }
 
     private func MakeTripRoomScreen() -> SimulatedTripRoomScreen {
