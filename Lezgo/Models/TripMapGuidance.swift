@@ -28,5 +28,17 @@ extension TripMapGuidance {
         case roundabout
         /// Turn back the way the car came.
         case uTurn
+
+        /// The SF Symbol of the arrow, on the phone's turn card and CarPlay's guidance panel.
+        var symbolName: String {
+            switch self {
+            case .left: "arrow.turn.up.left"
+            case .right: "arrow.turn.up.right"
+            case .straight: "arrow.up"
+            // Indonesia drives on the left, so roundabouts go clockwise.
+            case .roundabout: "arrow.clockwise.circle"
+            case .uTurn: "arrow.uturn.down"
+            }
+        }
     }
 }
