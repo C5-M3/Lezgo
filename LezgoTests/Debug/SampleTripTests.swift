@@ -14,7 +14,7 @@ struct SampleTripTests {
     @Test func SampleTripHasTheUserStoryGroup() {
         let state = SampleTrip.State(status: .lobby, now: TripFixtures.now)
 
-        #expect(state.participants.map(\.displayName) == ["Agus", "Budi", "Citra"])
+        #expect(state.participants.map(\.displayName) == ["Agus", "Budi", "Citra", "Dewi", "Eko"])
         #expect(state.leader?.id == SampleTrip.agusID)
         #expect(state.waypoints.map(\.name) == ["Tunjungan Plaza", "Ciputra World", "Pakuwon mall"])
         #expect(state.route?.polyline.isEmpty == false)
@@ -41,7 +41,7 @@ struct SampleTripTests {
         let session = try await service.JoinTrip(roomCode: SampleTrip.roomCode, profile: nil)
 
         #expect(session.myParticipantID == SampleTrip.budiID)
-        #expect(session.state.participants.count == 3)
+        #expect(session.state.participants.count == 5)
     }
 
     @Test func LeaderPhoneCanStartTheSampleTrip() async throws {

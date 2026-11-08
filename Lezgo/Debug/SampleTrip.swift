@@ -11,7 +11,8 @@ import Foundation
 /// A ready-made trip for previews and `DebugScreen`, built without waiting on any async call.
 ///
 /// It is the US-06 trip from `specs/UserStories.md`: leader Agus, members Budi and Citra, from Tunjungan Plaza
-/// through checkpoint Ciputra World to Pakuwon mall. Citra is offline. Debug builds only.
+/// through checkpoint Ciputra World to Pakuwon mall. Citra is offline. Dewi and Eko fill the Trip Room up to five
+/// cars, one per avatar. Debug builds only.
 ///
 /// ```swift
 /// #Preview("Member") {
@@ -29,6 +30,8 @@ enum SampleTrip {
     static let agusID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000A1") ?? UUID()
     static let budiID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000B1") ?? UUID()
     static let citraID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000C1") ?? UUID()
+    static let dewiID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000D1") ?? UUID()
+    static let ekoID = UUID(uuidString: "5A3B1E00-0000-0000-0000-0000000000E1") ?? UUID()
     static let roomCode = "897654"
     /// Index of the checkpoint, Ciputra World, in `plan.polyline`.
     static let checkpointRouteIndex = 4
@@ -68,6 +71,7 @@ enum SampleTrip {
     /// The sample trip in the given status, as the store keeps it.
     static func State(status: TripStatus = .lobby, now: Date = .now) -> TripState {
         let isOnTheRoad = status == .inTrip
+        let behindTheLeader = isOnTheRoad ? polyline[1] : tunjunganPlaza
         return TripState(
             trip: Trip(
                 id: tripID,
@@ -87,8 +91,12 @@ enum SampleTrip {
             ],
             participants: [
                 Member(agusID, "Agus", car: "Black Avanza", at: isOnTheRoad ? polyline[3] : tunjunganPlaza, now: now),
-                Member(budiID, "Budi", car: "White Brio", at: isOnTheRoad ? polyline[2] : tunjunganPlaza, now: now),
-                Member(citraID, "Citra", car: "Red Jazz", at: tunjunganPlaza, now: now.addingTimeInterval(-180))
+                Member(
+                    budiID, "Budi", car: "White Brio", .purple, at: isOnTheRoad ? polyline[2] : tunjunganPlaza, now: now
+                ),
+                Member(citraID, "Citra", car: "Red Jazz", .pink, at: tunjunganPlaza, now: now.addingTimeInterval(-180)),
+                Member(dewiID, "Dewi", car: "Silver Xenia", .blue, at: behindTheLeader, now: now),
+                Member(ekoID, "Eko", car: "Grey Innova", .green, at: tunjunganPlaza, now: now)
             ],
             route: Route(id: UUID(), tripID: tripID, version: 1, polyline: polyline)
         )
@@ -107,6 +115,7 @@ enum SampleTrip {
         _ id: UUID,
         _ name: String,
         car: String,
+        _ avatar: Avatar = .yellow,
         at coordinate: Coordinate,
         now: Date
     ) -> Participant {
@@ -120,7 +129,8 @@ enum SampleTrip {
             speedKmh: 0,
             motionState: .stopped,
             alert: .none,
-            lastSeenAt: now
+            lastSeenAt: now,
+            avatar: avatar
         )
     }
 
