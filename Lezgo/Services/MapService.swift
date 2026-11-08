@@ -19,6 +19,7 @@ final class MapService: NSObject, CLLocationManagerDelegate {
     var errorMessage: String?
     /// Set while Home wants the location; until then the GPS stays off.
     private var isWanted = false
+    private var hasReceivedInitialAuthCallback = false
 
     var isAuthorized: Bool {
         authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
@@ -28,7 +29,6 @@ final class MapService: NSObject, CLLocationManagerDelegate {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        authorizationStatus = locationManager.authorizationStatus
     }
 
     /// Asks only while the person has not answered yet. After "Allow Once", iOS sets the answer back to "not
@@ -36,7 +36,8 @@ final class MapService: NSObject, CLLocationManagerDelegate {
     func requestLocationPermission() {
         // Home asks because it wants the location: once the person allows it, the GPS starts.
         isWanted = true
-        guard locationManager.authorizationStatus == .notDetermined else { return }
+        guard hasReceivedInitialAuthCallback else { return }
+        guard authorizationStatus == .notDetermined else { return }
         locationManager.requestWhenInUseAuthorization()
     }
 
@@ -53,11 +54,16 @@ final class MapService: NSObject, CLLocationManagerDelegate {
     // MARK: - CLLocationManagerDelegate
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        hasReceivedInitialAuthCallback = true
         authorizationStatus = manager.authorizationStatus
         // iOS reports the permission as soon as the manager exists, also when it starts the app in the background;
         // the GPS starts only while Home asked for it.
-        if isAuthorized, isWanted {
-            locationManager.startUpdatingLocation()
+        if isWanted {
+            if authorizationStatus == .notDetermined {
+                locationManager.requestWhenInUseAuthorization()
+            } else if isAuthorized {
+                locationManager.startUpdatingLocation()
+            }
         }
     }
 

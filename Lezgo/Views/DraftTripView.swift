@@ -5,302 +5,293 @@
 //  Created by Rizal Pratama on 27/10/26.
 //
 
+import MapKit
 import SwiftUI
+import UIKit
 
-/// Screen displayed when user has an unfinished or draft trip (US-03).
-///
-/// Presents the "You have a trip in progress" screen with trip route details,
-/// and provides options to continue the active trip or confirm creating a new trip.
+/// Full-screen prompt presented on launch when an active trip is found on device (US-03).
+/// Allows the user to continue the existing trip or start a new one.
 struct DraftTripView: View {
-    // MARK: - Properties
+    @State private var viewModel: DraftTripViewModel
+    let onContinueTrip: () -> Void
+    let onNewTrip: () -> Void
+    let onTripEnded: () -> Void
 
-    @State var viewModel: DraftTripViewModel
-    var onContinueTrip: (() -> Void)?
-    var onNewTrip: (() -> Void)?
-    var onTripEnded: (() -> Void)?
+    @State private var cameraPosition: MapCameraPosition = .automatic
+    @State private var bottomContentHeight: CGFloat = 390
+    @State private var primaryCoordinates: [CLLocationCoordinate2D] = []
+    @State private var primaryDurationText: String = "37 min"
 
-    // MARK: - Initializer
+    private var primaryBadgeCoordinate: CLLocationCoordinate2D? {
+        guard !primaryCoordinates.isEmpty else { return nil }
+        let midIndex = primaryCoordinates.count / 2
+        return primaryCoordinates[midIndex]
+    }
 
     init(
         viewModel: DraftTripViewModel,
-        onContinueTrip: (() -> Void)? = nil,
-        onNewTrip: (() -> Void)? = nil,
-        onTripEnded: (() -> Void)? = nil
+        onContinueTrip: @escaping () -> Void = {},
+        onNewTrip: @escaping () -> Void = {},
+        onTripEnded: @escaping () -> Void = {}
     ) {
-        self._viewModel = State(initialValue: viewModel)
+        _viewModel = State(initialValue: viewModel)
         self.onContinueTrip = onContinueTrip
         self.onNewTrip = onNewTrip
         self.onTripEnded = onTripEnded
+        let coords = viewModel.routeCoordinates.map(\.locationCoordinate)
+        _primaryCoordinates = State(initialValue: coords)
+        if let duration = viewModel.durationText {
+            _primaryDurationText = State(initialValue: duration)
+        }
     }
-
-    // MARK: - Body
 
     var body: some View {
-        ZStack {
-            // Main Draft Trip Screen
-            mainContent
-                .disabled(viewModel.isConfirmingNewTrip)
-                .accessibilityHidden(viewModel.isConfirmingNewTrip)
+        @Bindable var bindableViewModel = viewModel
 
-            // Confirmation Modal ("Confirm New Trip")
-            if viewModel.isConfirmingNewTrip {
-                confirmNewTripOverlay
-            }
-        }
-        .animation(.easeInOut(duration: 0.25), value: viewModel.isConfirmingNewTrip)
-        .task {
-            let isOpen = await viewModel.CheckServerStatus()
-            if !isOpen {
-                onTripEnded?()
-            }
-        }
-    }
+        GeometryReader { geometry in
+            let topInset = Self.EffectiveTopInset(from: geometry)
+            let bottomInset = Self.EffectiveBottomInset(from: geometry)
 
-    // MARK: - Main Content
+            ZStack {
+                // Background Map showing the saved trip route (strictly visual, interaction disabled)
+                MapView(
+                    cameraPosition: $cameraPosition,
+                    primaryCoordinates: primaryCoordinates,
+                    primaryBadgeCoordinate: primaryBadgeCoordinate,
+                    primaryDurationText: primaryDurationText,
+                    startCoordinate: viewModel.startCoordinate,
+                    destinationCoordinate: viewModel.destinationCoordinate,
+                    destinationName: viewModel.destinationName
+                )
+                .allowsHitTesting(false)
 
-    private var mainContent: some View {
-        ZStack {
-            Color(red: 0.49, green: 0.49, blue: 0.49)
-                .ignoresSafeArea()
+                // Dark gradient fading from transparent over the map to black at the bottom
+                GradientOverlay()
+                    .allowsHitTesting(false)
 
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Illustration Circle & Headline
-                VStack(spacing: 24) {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 190, height: 190)
-                        .accessibilityHidden(true)
-
-                    Text("You have a trip\nin progress")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(Color.white)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(4)
-                }
-
-                Spacer()
-
-                // Bottom Summary Card
-                bottomCard
-            }
-        }
-    }
-
-    // MARK: - Bottom Summary Card
-
-    private var bottomCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Start Point
-            HStack(spacing: 12) {
-                Image(systemName: "house.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Color.black)
-                    .frame(width: 24)
-                    .accessibilityHidden(true)
-
-                Text(viewModel.startPointName)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color.black)
-                    .lineLimit(1)
-            }
-
-            // Route Distance Indicator with 3 vertical dots
-            HStack(spacing: 12) {
-                VStack(spacing: 3) {
-                    Circle().fill(Color.gray).frame(width: 3, height: 3)
-                    Circle().fill(Color.gray).frame(width: 3, height: 3)
-                    Circle().fill(Color.gray).frame(width: 3, height: 3)
-                }
-                .frame(width: 24)
-                .accessibilityHidden(true)
-
-                if !viewModel.distanceText.isEmpty {
-                    Text(viewModel.distanceText)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color.secondary)
-                }
-            }
-
-            // Destination
-            HStack(spacing: 12) {
-                Image(systemName: "location.north.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(Color.black)
-                    .frame(width: 24)
-                    .accessibilityHidden(true)
-
-                Text(viewModel.destinationName)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(Color.black)
-                    .lineLimit(1)
-            }
-
-            // Participants
-            if !viewModel.membersText.isEmpty {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.2")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.secondary)
-                        .frame(width: 24)
-                        .accessibilityHidden(true)
-
-                    Text(viewModel.membersText)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(Color.secondary)
-                        .lineLimit(1)
-                }
-                .padding(.top, 2)
-            }
-
-            // Action Buttons: New Trip & Continue Trip
-            HStack(spacing: 12) {
-                // New Trip Button
-                Button {
-                    viewModel.TapNewTrip()
-                } label: {
-                    Text("New Trip")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(red: 0.50, green: 0.50, blue: 0.50))
-                        )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("New Trip")
-
-                // Continue Trip Button
-                Button {
-                    onContinueTrip?()
-                } label: {
-                    Text("Continue Trip")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(Color.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Color(red: 0.50, green: 0.50, blue: 0.50))
-                        )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Continue Trip")
-            }
-            .padding(.top, 8)
-        }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 4)
-        )
-        .padding(.horizontal, 16)
-        .padding(.bottom, 16)
-    }
-
-    // MARK: - Confirm New Trip Overlay
-
-    private var confirmNewTripOverlay: some View {
-        ZStack {
-            Color.black.opacity(0.35)
-                .ignoresSafeArea()
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    // Menahan interaksi agar fokus tetap pada tombol aksi modal
-                    // dan latar belakang tidak dapat menutup modal
-                }
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 50) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(viewModel.confirmTitle)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(Color.primary)
-
-                    if let message = viewModel.confirmMessage {
-                        Text(message)
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundStyle(Color.secondary)
+                // Touch blocker: absorbs any tap/touch on the background/map area so it never leaks to HomeView
+                Color.black.opacity(0.001)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        // Absorbs tap to prevent interactions with HomeView or background map
                     }
-                }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHidden(true)
 
-                HStack(spacing: 12) {
-                    // Cancel Button
-                    Button {
-                        viewModel.DismissConfirmation()
-                    } label: {
-                        Text("Cancel")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(Color.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color(red: 0.65, green: 0.65, blue: 0.65))
+                // Foreground Content
+                VStack(spacing: 0) {
+                    Spacer()
+                    BottomCard(
+                        viewModel: viewModel,
+                        bottomInset: bottomInset,
+                        onContinueTrip: onContinueTrip
+                    )
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { newHeight in
+                        if newHeight > 0, abs(bottomContentHeight - newHeight) > 1 {
+                            bottomContentHeight = newHeight
+                            updateCamera(
+                                size: geometry.size,
+                                topInset: topInset,
+                                animated: false
                             )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Cancel new trip creation")
-
-                    // Create Button
-                    Button {
-                        Task {
-                            let success = await viewModel.ConfirmNewTrip()
-                            if success {
-                                onNewTrip?()
-                            }
                         }
-                    } label: {
-                        Text("Create")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(Color.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color(white: 0.95))
-                            )
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Confirm create new trip")
                 }
             }
-            .padding(20)
-            .frame(maxWidth: 320)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color(white: 0.88))
-                    .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 8)
-            )
-            .padding(.horizontal, 24)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                // Menahan ketukan di dalam kartu agar tidak memicu interaksi lain
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .task {
+                setupRoutes()
+                updateCamera(
+                    size: geometry.size,
+                    topInset: topInset,
+                    animated: false
+                )
+                if viewModel.routeCoordinates.isEmpty {
+                    await fetchLiveRoutes()
+                    updateCamera(
+                        size: geometry.size,
+                        topInset: topInset,
+                        animated: true
+                    )
+                } else if viewModel.durationText == nil {
+                    await fetchLiveDurationOnly()
+                }
+                let isOpen = await viewModel.CheckServerStatus()
+                if !isOpen, !viewModel.wasCancelledByLeader {
+                    onTripEnded()
+                }
             }
-            .accessibilityAddTraits(.isButton)
+            .onChange(of: viewModel.routeCoordinates) { _, newCoords in
+                guard !newCoords.isEmpty else { return }
+                primaryCoordinates = newCoords.map(\.locationCoordinate)
+                updateCamera(
+                    size: geometry.size,
+                    topInset: topInset,
+                    animated: true
+                )
+            }
+            .onChange(of: viewModel.durationText) { _, newDuration in
+                if let newDuration {
+                    primaryDurationText = newDuration
+                }
+            }
+            .onChange(of: geometry.size) { _, newSize in
+                updateCamera(
+                    size: newSize,
+                    topInset: topInset,
+                    animated: false
+                )
+            }
         }
-        .zIndex(100)
+        .ignoresSafeArea()
+        .preferredColorScheme(.dark)
+        .task {
+            await viewModel.Listen()
+        }
+        .alert(
+            viewModel.confirmTitle,
+            isPresented: $bindableViewModel.isConfirmingNewTrip
+        ) {
+            Button("Cancel", role: .cancel, action: viewModel.DismissConfirmation)
+            Button("Create", role: .destructive) {
+                Task {
+                    if await viewModel.ConfirmNewTrip() {
+                        onNewTrip()
+                    }
+                }
+            }
+        } message: {
+            if let message = viewModel.confirmMessage {
+                Text(message)
+                    .lineLimit(1)
+                    .multilineTextAlignment(.leading)
+            }
+        }
+        .alert(
+            viewModel.cancelledTitle,
+            isPresented: Binding(
+                get: { viewModel.wasCancelledByLeader },
+                set: { isPresented in
+                    viewModel.wasCancelledByLeader = isPresented
+                    if !isPresented {
+                        onTripEnded()
+                    }
+                }
+            )
+        ) {
+            Button("OK") {
+                viewModel.DismissCancelledNotice()
+                onTripEnded()
+            }
+        } message: {
+            Text(viewModel.cancelledMessage)
+                .lineLimit(1)
+                .multilineTextAlignment(.leading)
+        }
+    }
+
+    // MARK: - Route & Camera Helpers
+
+    private func setupRoutes() {
+        if !viewModel.routeCoordinates.isEmpty {
+            primaryCoordinates = viewModel.routeCoordinates.map(\.locationCoordinate)
+        } else if let start = viewModel.startCoordinate?.locationCoordinate,
+                  let dest = viewModel.destinationCoordinate?.locationCoordinate {
+            primaryCoordinates = [start, dest]
+        }
+
+        if let duration = viewModel.durationText {
+            primaryDurationText = duration
+        }
+    }
+
+    private func fetchLiveRoutes() async {
+        guard let start = viewModel.startCoordinate?.locationCoordinate,
+              let dest = viewModel.destinationCoordinate?.locationCoordinate else { return }
+
+        let request = MKDirections.Request()
+        let sourceLocation = CLLocation(latitude: start.latitude, longitude: start.longitude)
+        request.source = MKMapItem(location: sourceLocation, address: nil)
+        let destLocation = CLLocation(latitude: dest.latitude, longitude: dest.longitude)
+        request.destination = MKMapItem(location: destLocation, address: nil)
+        request.transportType = .automobile
+
+        do {
+            let directions = MKDirections(request: request)
+            let response = try await directions.calculate()
+            guard let fastest = response.routes.min(by: {
+                $0.expectedTravelTime < $1.expectedTravelTime
+            }) else { return }
+
+            let pointCount = fastest.polyline.pointCount
+            var primaryCoords = [CLLocationCoordinate2D](repeating: CLLocationCoordinate2D(), count: pointCount)
+            fastest.polyline.getCoordinates(&primaryCoords, range: NSRange(location: 0, length: pointCount))
+
+            let primaryMin = max(1, Int(round(fastest.expectedTravelTime / 60)))
+            self.primaryCoordinates = primaryCoords
+            self.primaryDurationText = "\(primaryMin) min"
+        } catch {
+            // Keep default routes if directions query fails
+        }
+    }
+
+    private func fetchLiveDurationOnly() async {
+        guard let start = viewModel.startCoordinate?.locationCoordinate,
+              let dest = viewModel.destinationCoordinate?.locationCoordinate else { return }
+
+        let request = MKDirections.Request()
+        let sourceLocation = CLLocation(latitude: start.latitude, longitude: start.longitude)
+        request.source = MKMapItem(location: sourceLocation, address: nil)
+        let destLocation = CLLocation(latitude: dest.latitude, longitude: dest.longitude)
+        request.destination = MKMapItem(location: destLocation, address: nil)
+        request.transportType = .automobile
+
+        do {
+            let directions = MKDirections(request: request)
+            let response = try await directions.calculate()
+            guard let fastest = response.routes.min(by: {
+                $0.expectedTravelTime < $1.expectedTravelTime
+            }) else { return }
+            let primaryMin = max(1, Int(round(fastest.expectedTravelTime / 60)))
+            self.primaryDurationText = "\(primaryMin) min"
+        } catch {
+            // Keep existing duration text
+        }
+    }
+
+    private func updateCamera(size: CGSize, topInset: CGFloat, animated: Bool = false) {
+        var allCoords: [CLLocationCoordinate2D] = []
+        if let start = viewModel.startCoordinate {
+            allCoords.append(start.locationCoordinate)
+        }
+        allCoords.append(contentsOf: primaryCoordinates)
+        if let dest = viewModel.destinationCoordinate {
+            allCoords.append(dest.locationCoordinate)
+        }
+
+        let rect = Self.ComputeTargetMapRect(
+            coordinates: allCoords,
+            bottomContentHeight: bottomContentHeight,
+            size: size,
+            topInset: topInset
+        )
+        let position = MapCameraPosition.rect(rect)
+        if animated {
+            withAnimation(.easeInOut(duration: 0.6)) {
+                cameraPosition = position
+            }
+        } else {
+            cameraPosition = position
+        }
     }
 }
 
-// MARK: - Previews & Simulated
-
-#if DEBUG
-extension DraftTripView {
-    static func Simulated(isLeader: Bool = false) -> DraftTripView {
-        DraftTripView(viewModel: isLeader ? .sampleLeader : .sample)
-    }
+#Preview {
+    DraftTripView(
+        viewModel: .sample,
+        onContinueTrip: {},
+        onNewTrip: {},
+        onTripEnded: {}
+    )
 }
-
-#Preview("Draft Road Trip - Member") {
-    DraftTripView(viewModel: .sample)
-}
-
-#Preview("Draft Road Trip - Leader") {
-    DraftTripView(viewModel: .sampleLeader)
-}
-#endif

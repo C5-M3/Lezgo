@@ -29,7 +29,7 @@ final class InviteLinkUITests: XCTestCase {
 
         let elements = app.descendants(matching: .any)
         XCTAssertTrue(elements["Enter room code"].waitForExistence(timeout: 5))
-        let codeField = elements["Room code"]
+        let codeField = elements["Room code"].firstMatch
         XCTAssertTrue(codeField.waitForExistence(timeout: 3))
         XCTAssertEqual(codeField.value as? String, "394856")
     }

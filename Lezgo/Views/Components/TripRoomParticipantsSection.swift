@@ -197,9 +197,7 @@ private struct ParticipantRowView: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(
-            (viewModel.isSelectionMode && !isLeader) || viewModel.CanEdit(participant: participant) ? .isButton : []
-        )
+        .accessibilityAddTraits(.isButton)
     }
 
     private var accessibilityLabel: String {

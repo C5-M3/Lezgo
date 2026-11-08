@@ -298,14 +298,13 @@ struct TripMapViewModelLeaveTests {
             streetNameService: MockStreetNameService()
         )
         let open = Task { await viewModel.Start() }
-        try await Task.sleep(for: .milliseconds(20))
+        while viewModel.isLoading { await Task.yield() }
 
         try await agus.EndTrip(tripID: SampleTrip.tripID, by: SampleTrip.agusID)
-        try await Task.sleep(for: .milliseconds(20))
-
-        #expect(viewModel.closeReason == .endedByLeader)
         // Start returns by itself once the map closes, which also stops sharing the position.
         await open.value
+
+        #expect(viewModel.closeReason == .endedByLeader)
     }
 }
 

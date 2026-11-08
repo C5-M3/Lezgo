@@ -261,7 +261,7 @@ struct JoinTripView: View {
             Group {
                 if viewModel.isSubmitting {
                     ProgressView()
-                        .tint(.black)
+                        .tint(Color.brandYellow)
                 } else {
                     Text("Enter")
                         .font(.system(size: 16, weight: .semibold))

@@ -57,7 +57,7 @@ struct TripRoomView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let viewModel {
+                if let viewModel, viewModel.state != nil {
                     lobbyView(viewModel: viewModel)
                 } else {
                     ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)

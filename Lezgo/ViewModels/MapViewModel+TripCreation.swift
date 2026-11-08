@@ -33,7 +33,11 @@ extension MapViewModel {
                 profile: profile ?? profileStorage.LoadProfile()
             )
             let distanceStr = totalDistance > 0 ? String(format: "%.1f km", totalDistance / 1000) : nil
-            let summary = ActiveTripSummary.From(session: session, distanceText: distanceStr)
+            let summary = ActiveTripSummary.From(
+                session: session,
+                distanceText: distanceStr,
+                estimatedDuration: totalDuration > 0 ? totalDuration : nil
+            )
             activeTripStorage.SaveActiveTrip(summary)
             createdSession = session
             errorMessage = nil
