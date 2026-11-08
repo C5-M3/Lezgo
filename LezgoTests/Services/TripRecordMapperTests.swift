@@ -113,6 +113,28 @@ struct TripRecordMapperTests {
         #expect(try TripRecordMapper.MakeParticipant(from: TripRecordMapper.MakeRecord(participant)) == participant)
     }
 
+    @Test(arguments: Avatar.allCases)
+    func ParticipantKeepsTheirAvatar(avatar: Avatar) throws {
+        var participant = TripFixtures.Participant()
+        participant.avatar = avatar
+
+        let record = TripRecordMapper.MakeRecord(participant)
+
+        #expect(record["avatar"] as? String == avatar.rawValue)
+        #expect(try TripRecordMapper.MakeParticipant(from: record) == participant)
+    }
+
+    @Test(arguments: [nil, "Orange"])
+    func ParticipantWithoutAKnownAvatarIsYellow(storedAvatar: String?) throws {
+        // Records saved before avatars existed have none; a newer build may add avatars this one does not know.
+        var participant = TripFixtures.Participant()
+        participant.avatar = .pink
+        let record = TripRecordMapper.MakeRecord(participant)
+        record["avatar"] = storedAvatar
+
+        #expect(try TripRecordMapper.MakeParticipant(from: record).avatar == .yellow)
+    }
+
     @Test func ParticipantIsDeletedWithItsTrip() throws {
         let record = TripRecordMapper.MakeRecord(TripFixtures.Participant())
 

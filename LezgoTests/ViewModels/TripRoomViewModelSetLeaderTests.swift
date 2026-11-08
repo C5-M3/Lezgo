@@ -12,32 +12,23 @@ import Testing
 /// Handing over the lead in the Trip Room (US-05, "Hand over the lead").
 @MainActor
 struct TripRoomViewModelSetLeaderTests {
-    /// The leader can swipe every row, their own too: there "Set Lead" shows but is disabled (lo-fi
-    /// "SET LEAD IF LEADERS IS SELECTED VIA SLIDER"), so the leader sees why they cannot pick themselves.
-    @Test func LeaderSwipesEveryRowButCannotSetLeadOnThemselves() throws {
+    /// Edit Profile shows "Set Lead" only when the leader edits a member, never on the leader's own profile.
+    @Test func LeaderCanSetLeadOnMembersButNotThemselves() throws {
         let state = SampleTrip.State(status: .lobby)
         let viewModel = MakeViewModel(me: SampleTrip.agusID, state: state)
         let agus = try #require(state.participants.first(where: { $0.id == SampleTrip.agusID }))
         let budi = try #require(state.participants.first(where: { $0.id == SampleTrip.budiID }))
 
-        #expect(viewModel.showsSetLeaderSwipe == true)
         #expect(viewModel.CanSetLeader(participant: agus) == false)
         #expect(viewModel.CanSetLeader(participant: budi) == true)
     }
 
-    @Test func MemberHasNoSetLeadSwipe() {
-        let viewModel = MakeViewModel(me: SampleTrip.budiID, state: SampleTrip.State(status: .lobby))
+    @Test func MemberCannotSetLeadOnAnyone() throws {
+        let state = SampleTrip.State(status: .lobby)
+        let viewModel = MakeViewModel(me: SampleTrip.budiID, state: state)
+        let citra = try #require(state.participants.first(where: { $0.id == SampleTrip.citraID }))
 
-        #expect(viewModel.showsSetLeaderSwipe == false)
-    }
-
-    /// In Select mode the rows are ticked, not swiped.
-    @Test func SelectModeHidesTheSetLeadSwipe() {
-        let viewModel = MakeViewModel(me: SampleTrip.agusID, state: SampleTrip.State(status: .lobby))
-
-        viewModel.ToggleSelectionMode()
-
-        #expect(viewModel.showsSetLeaderSwipe == false)
+        #expect(viewModel.CanSetLeader(participant: citra) == false)
     }
 
     /// Only the leader may hand over the lead. A member's phone must not even ask the service.
@@ -72,12 +63,13 @@ struct TripRoomViewModelSetLeaderTests {
         await agusPhone.HandOverLead(to: budi)
         try await WaitUntil { budiPhone.isCurrentUserLeader && !agusPhone.isCurrentUserLeader }
 
+        let citra = try #require(budiPhone.participants.first(where: { $0.id == SampleTrip.citraID }))
         #expect(agusPhone.canStartTrip == false)
-        #expect(agusPhone.showsKickSwipe == false)
-        #expect(agusPhone.showsSetLeaderSwipe == false)
+        #expect(agusPhone.CanKick(participant: citra) == false)
+        #expect(agusPhone.CanSetLeader(participant: citra) == false)
         #expect(budiPhone.canStartTrip == true)
-        #expect(budiPhone.showsKickSwipe == true)
-        #expect(budiPhone.showsSetLeaderSwipe == true)
+        #expect(budiPhone.CanKick(participant: citra) == true)
+        #expect(budiPhone.CanSetLeader(participant: citra) == true)
         #expect(budiPhone.IsLeader(participant: budi) == true)
     }
 

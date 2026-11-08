@@ -49,6 +49,7 @@ DEFINE SCHEMA
         userRecordID   STRING QUERYABLE,
         displayName    STRING,
         carDescription STRING,
+        avatar         STRING,
         latitude       DOUBLE,
         longitude      DOUBLE,
         speedKmh       DOUBLE,

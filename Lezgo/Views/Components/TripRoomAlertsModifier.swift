@@ -7,65 +7,62 @@
 
 import SwiftUI
 
+/// The Trip Room's confirmations and messages: leaving, being removed, the leader ending the trip, and errors. They
+/// all use the shared `ConfirmDialog`. "Start Trip?" and the questions for a held avatar are in `TripRoomView`.
 struct TripRoomAlertsModifier: ViewModifier {
     let viewModel: TripRoomViewModel
     @Binding var showingLeave: Bool
-    @Binding var showingStart: Bool
-    @Binding var showingRemove: Bool
-    @Binding var participantToKick: Participant?
-    @Binding var participantToSetLeader: Participant?
+    /// The car the leader chose in the menu of a held avatar; the dialog is open while it is set.
+    @Binding var participantToRemove: Participant?
+    @Binding var participantToMakeLeader: Participant?
     let dismissAction: () -> Void
 
     func body(content: Content) -> some View {
         content
-            .modifier(TripLifecycleAlertsModifier(
-                viewModel: viewModel,
-                showingLeave: $showingLeave,
-                showingStart: $showingStart,
-                dismissAction: dismissAction
-            ))
-            .modifier(ParticipantManagementAlertsModifier(
-                viewModel: viewModel,
-                showingRemove: $showingRemove,
-                participantToKick: $participantToKick,
-                participantToSetLeader: $participantToSetLeader
-            ))
-    }
-}
-
-private struct TripLifecycleAlertsModifier: ViewModifier {
-    let viewModel: TripRoomViewModel
-    @Binding var showingLeave: Bool
-    @Binding var showingStart: Bool
-    let dismissAction: () -> Void
-
-    func body(content: Content) -> some View {
-        content
+            .removeAlert(viewModel: viewModel, participant: $participantToRemove)
+            .setLeaderAlert(viewModel: viewModel, participant: $participantToMakeLeader)
             .leaveAlert(viewModel: viewModel, isPresented: $showingLeave, dismissAction: dismissAction)
-            .startAlert(viewModel: viewModel, isPresented: $showingStart)
             .removedAlert(viewModel: viewModel, dismissAction: dismissAction)
             .endedByLeaderAlert(viewModel: viewModel, dismissAction: dismissAction)
             .errorAlert(viewModel: viewModel)
     }
 }
 
-private struct ParticipantManagementAlertsModifier: ViewModifier {
-    let viewModel: TripRoomViewModel
-    @Binding var showingRemove: Bool
-    @Binding var participantToKick: Participant?
-    @Binding var participantToSetLeader: Participant?
+// MARK: - Dialog View Extensions
 
-    func body(content: Content) -> some View {
-        content
-            .removeMultipleAlert(viewModel: viewModel, isPresented: $showingRemove)
-            .kickAlert(viewModel: viewModel, target: $participantToKick)
-            .setLeaderAlert(viewModel: viewModel, target: $participantToSetLeader)
+private extension Binding where Value == Participant? {
+    /// `true` while a car is chosen; closing the dialog clears it.
+    var isSet: Binding<Bool> {
+        Binding<Bool>(get: { wrappedValue != nil }, set: { if !$0 { wrappedValue = nil } })
     }
 }
 
-// MARK: - Alert View Extensions
-
 private extension View {
+    /// "Remove XX from the trip?" (US-05).
+    func removeAlert(viewModel: TripRoomViewModel, participant: Binding<Participant?>) -> some View {
+        confirmDialog(
+            isPresented: participant.isSet,
+            title: Text(verbatim: participant.wrappedValue.map(viewModel.RemoveParticipantConfirmationTitle) ?? ""),
+            confirmTitle: LocalizedStringResource("Remove"),
+            onConfirm: {
+                guard let removed = participant.wrappedValue else { return }
+                Task { await viewModel.RemoveFromTrip(removed) }
+            }
+        )
+    }
+
+    /// "Set XX as Trip Leader?" (US-05).
+    func setLeaderAlert(viewModel: TripRoomViewModel, participant: Binding<Participant?>) -> some View {
+        confirmDialog(
+            isPresented: participant.isSet,
+            title: Text(verbatim: participant.wrappedValue.map(viewModel.SetLeaderConfirmationTitle) ?? ""),
+            onConfirm: {
+                guard let newLeader = participant.wrappedValue else { return }
+                Task { await viewModel.HandOverLead(to: newLeader) }
+            }
+        )
+    }
+
     /// Exit asks first; the room closes only once leaving succeeded (`specs/UserStories.md` → US-07).
     func leaveAlert(
         viewModel: TripRoomViewModel,
@@ -73,12 +70,10 @@ private extension View {
         dismissAction: @escaping () -> Void
     ) -> some View {
         let isEndingForEveryone = viewModel.leaveConfirmation == .endTripForEveryone
-        return alert(
-            Text(isEndingForEveryone ? .tripRoomExitAndEndTripQuestion : .tripRoomExitRoomQuestion),
-            isPresented: isPresented
-        ) {
-            Button(role: .cancel) { } label: { Text(.tripRoomCancel) }
-            Button(role: isEndingForEveryone ? .destructive : nil) {
+        return confirmDialog(
+            isPresented: isPresented,
+            title: Text(isEndingForEveryone ? .tripRoomExitAndEndTripQuestion : .tripRoomExitRoomQuestion),
+            onConfirm: {
                 Task {
                     do {
                         try await viewModel.LeaveTrip()
@@ -87,122 +82,48 @@ private extension View {
                         viewModel.ShowError(error)
                     }
                 }
-            } label: {
-                Text(.tripRoomConfirm)
             }
-        }
-    }
-
-    func startAlert(viewModel: TripRoomViewModel, isPresented: Binding<Bool>) -> some View {
-        alert(viewModel.startTripConfirmationTitle, isPresented: isPresented) {
-            Button("Cancel", role: .cancel) { }
-            Button("Start") {
-                Task {
-                    do {
-                        try await viewModel.StartTrip()
-                    } catch {
-                        viewModel.ShowError(error)
-                    }
-                }
-            }
-        }
+        )
     }
 
     func removedAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
-        alert(
-            "You were removed from the trip.",
+        confirmDialog(
             isPresented: Binding(
                 get: { viewModel.wasRemovedFromTrip },
                 set: { viewModel.wasRemovedFromTrip = $0 }
-            )
-        ) {
-            Button("OK") { dismissAction() }
-        }
+            ),
+            title: Text("You were removed from the trip."),
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: dismissAction
+        )
     }
 
     /// A member whose leader left the room returns to Home; the trip is already cleared from the phone (US-07).
     func endedByLeaderAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
-        alert(
-            Text(.tripRoomLeaderEndedTrip),
+        confirmDialog(
             isPresented: Binding(
                 get: { viewModel.wasEndedByLeader },
                 set: { viewModel.wasEndedByLeader = $0 }
-            )
-        ) {
-            Button { dismissAction() } label: { Text(.tripRoomOK) }
-        }
+            ),
+            title: Text(.tripRoomLeaderEndedTrip),
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: dismissAction
+        )
     }
 
     func errorAlert(viewModel: TripRoomViewModel) -> some View {
-        alert(
-            "Error",
+        confirmDialog(
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
-            )
-        ) {
-            Button("OK") { viewModel.errorMessage = nil }
-        } message: {
-            if let msg = viewModel.errorMessage {
-                Text(msg)
-            }
-        }
-    }
-
-    func removeMultipleAlert(viewModel: TripRoomViewModel, isPresented: Binding<Bool>) -> some View {
-        alert(viewModel.removeConfirmationTitle, isPresented: isPresented) {
-            Button("Cancel", role: .cancel) { }
-            Button("Remove", role: .destructive) {
-                Task {
-                    do {
-                        try await viewModel.RemoveSelectedParticipants()
-                    } catch {
-                        viewModel.ShowError(error)
-                    }
-                }
-            }
-        }
-    }
-
-    func kickAlert(viewModel: TripRoomViewModel, target: Binding<Participant?>) -> some View {
-        alert(
-            target.wrappedValue.map(viewModel.RemoveParticipantConfirmationTitle) ?? "",
-            isPresented: Binding(
-                get: { target.wrappedValue != nil },
-                set: { if !$0 { target.wrappedValue = nil } }
-            )
-        ) {
-            Button("Cancel", role: .cancel) { target.wrappedValue = nil }
-            Button("Remove", role: .destructive) {
-                if let participant = target.wrappedValue {
-                    Task {
-                        do {
-                            try await viewModel.RemoveParticipant(id: participant.id)
-                        } catch {
-                            viewModel.ShowError(error)
-                        }
-                    }
-                }
-                target.wrappedValue = nil
-            }
-        }
-    }
-
-    func setLeaderAlert(viewModel: TripRoomViewModel, target: Binding<Participant?>) -> some View {
-        alert(
-            target.wrappedValue.map(viewModel.SetLeaderConfirmationTitle) ?? "",
-            isPresented: Binding(
-                get: { target.wrappedValue != nil },
-                set: { if !$0 { target.wrappedValue = nil } }
-            )
-        ) {
-            Button("Cancel", role: .cancel) { target.wrappedValue = nil }
-            Button("Confirm") {
-                if let participant = target.wrappedValue {
-                    Task { await viewModel.HandOverLead(to: participant) }
-                }
-                target.wrappedValue = nil
-            }
-        }
+            ),
+            title: Text("Error"),
+            message: viewModel.errorMessage.map { Text(verbatim: $0) },
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: { viewModel.errorMessage = nil }
+        )
     }
 }

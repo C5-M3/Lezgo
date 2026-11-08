@@ -33,9 +33,8 @@ struct TripRoomViewModelRemoveTests {
         #expect(updated.participants.contains(where: { $0.id == SampleTrip.citraID }))
     }
 
-    /// The leader can swipe every row, their own too: there "Kick" shows but is disabled (lo-fi
-    /// "SLIDE DELETE IF LEADER"), so the leader sees why they cannot remove themselves.
-    @Test func LeaderSwipesEveryRowButCannotKickThemselves() throws {
+    /// Edit Profile shows "Kick" only when the leader edits a member, never on the leader's own profile.
+    @Test func LeaderCanKickMembersButNotThemselves() throws {
         let state = SampleTrip.State(status: .lobby)
         let viewModel = TripRoomViewModel(
             tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
@@ -45,32 +44,21 @@ struct TripRoomViewModelRemoveTests {
         )
         let agus = try #require(state.participants.first(where: { $0.id == SampleTrip.agusID }))
 
-        #expect(viewModel.showsKickSwipe == true)
+        let budi = try #require(state.participants.first(where: { $0.id == SampleTrip.budiID }))
         #expect(viewModel.CanKick(participant: agus) == false)
+        #expect(viewModel.CanKick(participant: budi) == true)
     }
 
-    @Test func MemberHasNoKickSwipe() {
+    @Test func MemberCannotKickAnyone() throws {
+        let state = SampleTrip.State(status: .lobby)
         let viewModel = TripRoomViewModel(
             tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.budiID),
             tripID: SampleTrip.tripID,
             myParticipantID: SampleTrip.budiID,
-            initialState: SampleTrip.State(status: .lobby)
+            initialState: state
         )
+        let citra = try #require(state.participants.first(where: { $0.id == SampleTrip.citraID }))
 
-        #expect(viewModel.showsKickSwipe == false)
-    }
-
-    /// In Select mode the rows are ticked, not swiped.
-    @Test func SelectModeHidesTheKickSwipe() {
-        let viewModel = TripRoomViewModel(
-            tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
-            tripID: SampleTrip.tripID,
-            myParticipantID: SampleTrip.agusID,
-            initialState: SampleTrip.State(status: .lobby)
-        )
-
-        viewModel.ToggleSelectionMode()
-
-        #expect(viewModel.showsKickSwipe == false)
+        #expect(viewModel.CanKick(participant: citra) == false)
     }
 }

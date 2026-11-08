@@ -48,6 +48,7 @@ final class LiveTripService: TripService {
                 tripID: tripID,
                 userRecordID: try await UserRecordName(),
                 profile: profile,
+                isLeader: true,
                 at: clock()
             )
             let trip = Trip(
@@ -88,7 +89,11 @@ final class LiveTripService: TripService {
             if let record = existing.first, let participant = try? TripRecordMapper.MakeParticipant(from: record) {
                 return TripSession(myParticipantID: participant.id, state: try await reader.LoadState(tripID: trip.id))
             }
-            let member = Participant.Joining(tripID: trip.id, userRecordID: me, profile: profile, at: clock())
+            let taken = try await Run { try await reader.LoadState(tripID: trip.id) }
+            let member = Participant.Joining(
+                tripID: trip.id, userRecordID: me, profile: profile.map { taken.WithoutTakenName($0) },
+                isLeader: false, at: clock()
+            )
             try await database.Save([TripRecordMapper.MakeRecord(member)], savePolicy: .allKeys)
             return TripSession(myParticipantID: member.id, state: try await reader.LoadState(tripID: trip.id))
         }
@@ -222,9 +227,11 @@ final class LiveTripService: TripService {
     // MARK: Profile
 
     func UpdateProfile(_ profile: ParticipantProfile, participantID: UUID, tripID: UUID) async throws {
+        try await EnsureNameIsFree(profile.displayName, in: tripID, excluding: participantID)
         try await ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.displayName = profile.displayName
             participant.carDescription = profile.carDescription
+            participant.avatar = profile.avatar ?? participant.avatar
         }
     }
 
@@ -334,5 +341,20 @@ extension LiveTripService {
         try await ChangeParticipant(participantID, tripID: tripID) { participant in
             participant.wayBack = wayBack
         }
+    }
+}
+
+// MARK: Names
+
+extension LiveTripService {
+    /// Throws `.nameAlreadyUsed` when another car in the trip has this name, so two cars never share one (US-04).
+    /// CloudKit has no unique rule, so two phones saving the same name in the same second can still both pass.
+    fileprivate func EnsureNameIsFree(
+        _ name: String,
+        in tripID: UUID,
+        excluding participantID: UUID? = nil
+    ) async throws {
+        let state = try await Run { try await reader.LoadState(tripID: tripID) }
+        if state.IsNameTaken(name, excluding: participantID) { throw TripServiceError.nameAlreadyUsed }
     }
 }

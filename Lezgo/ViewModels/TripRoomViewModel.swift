@@ -25,8 +25,6 @@ final class TripRoomViewModel {
     let tripID: UUID
     let myParticipantID: UUID
 
-    var isSelectionMode: Bool
-    var selectedParticipantIds: Set<UUID>
     var errorMessage: String?
     var wasRemovedFromTrip: Bool = false
     /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
@@ -40,6 +38,8 @@ final class TripRoomViewModel {
     private(set) var hasLeft = false
     /// Shown inside the edit sheet, which stays open when the save fails so the typed name and car are kept.
     var profileErrorMessage: String?
+    /// `true` after a save was refused because another car has this name, so the sheet can mark the name field.
+    var isProfileNameTaken = false
 
     var roomCode: String {
         state?.trip.roomCode ?? ""
@@ -51,6 +51,20 @@ final class TripRoomViewModel {
 
     var startPoint: Waypoint? {
         waypoints.first(where: { $0.kind == .start })
+    }
+
+    var destination: Waypoint? {
+        waypoints.first(where: { $0.kind == .destination })
+    }
+
+    /// "# OF STOPS" in the overview: the checkpoints only, without the start point and the destination.
+    var numberOfStops: Int {
+        waypoints.count(where: { $0.kind == .checkpoint })
+    }
+
+    /// The road the map preview draws; empty until the trip has loaded.
+    var routePolyline: [Coordinate] {
+        state?.route?.polyline ?? []
     }
 
     var participants: [Participant] {
@@ -83,40 +97,8 @@ final class TripRoomViewModel {
 
     var startTripConfirmationTitle: String {
         isEveryoneReady
-            ? "Start trip?"
+            ? "Start Trip?"
             : "Some participants are not yet ready, are you sure you want to start the trip?"
-    }
-
-    var areAllMembersSelected: Bool {
-        guard let state else { return false }
-        let memberIds = state.participants.filter { !$0.IsLeader(in: state.trip) }.map(\.id)
-        return !memberIds.isEmpty && selectedParticipantIds.count == memberIds.count
-    }
-
-    var canRemove: Bool { !selectedParticipantIds.isEmpty }
-
-    /// The leader can swipe every row to "Kick", their own too, where `CanKick` keeps it disabled (US-05).
-    var showsKickSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
-
-    /// The leader can swipe every row to "Set Lead", their own too, where `CanSetLeader` keeps it disabled (US-05).
-    var showsSetLeaderSwipe: Bool { isCurrentUserLeader && !isSelectionMode }
-
-    var selectAllButtonTitle: String {
-        areAllMembersSelected ? "Deselect all" : "Select all"
-    }
-
-    var removeConfirmationTitle: String {
-        guard let state else { return "Remove participants from the trip?" }
-        let selected = state.participants.filter { selectedParticipantIds.contains($0.id) }
-        guard let first = selected.first else { return "Remove participants from the trip?" }
-        let remaining = selected.count - 1
-        if remaining == 0 {
-            return "Remove \(DisplayName(of: first)) from the trip?"
-        } else if remaining == 1 {
-            return "Remove \(DisplayName(of: first)) and 1 other from the trip?"
-        } else {
-            return "Remove \(DisplayName(of: first)) and \(remaining) others from the trip?"
-        }
     }
 
     var inviteURL: URL {
@@ -149,8 +131,6 @@ final class TripRoomViewModel {
         self.tripID = tripID
         self.myParticipantID = myParticipantID
         self.state = initialState
-        self.isSelectionMode = false
-        self.selectedParticipantIds = []
         if let initialState, initialState.trip.status == .inTrip {
             let isLeader = initialState.trip.leaderParticipantID == myParticipantID
             let isStillInTrip = initialState.participants.contains(where: { $0.id == myParticipantID })
@@ -169,52 +149,39 @@ final class TripRoomViewModel {
         hasTripStarted = true
     }
 
-    func ToggleSelectionMode() {
-        guard isCurrentUserLeader else { return }
-        isSelectionMode.toggle()
-        if !isSelectionMode { selectedParticipantIds.removeAll() }
-    }
-
-    func ToggleParticipantSelection(id: UUID) {
-        guard let state,
-              let participant = state.participants.first(where: { $0.id == id }),
-              !participant.IsLeader(in: state.trip) else { return }
-        if selectedParticipantIds.contains(id) {
-            selectedParticipantIds.remove(id)
-        } else {
-            selectedParticipantIds.insert(id)
-        }
-    }
-
-    func SelectAll() {
-        guard let state else { return }
-        let memberIds = state.participants.filter { !$0.IsLeader(in: state.trip) }.map(\.id)
-        selectedParticipantIds = (selectedParticipantIds.count == memberIds.count) ? [] : Set(memberIds)
-    }
-
-    func RemoveSelectedParticipants() async throws {
-        guard isCurrentUserLeader, canRemove else { return }
-        let ids = Array(selectedParticipantIds)
-        try await tripService.RemoveParticipants(ids, tripID: tripID, by: myParticipantID)
-        selectedParticipantIds.removeAll()
-        isSelectionMode = false
-    }
-
     func RemoveParticipant(id: UUID) async throws {
         guard isCurrentUserLeader,
               let state,
               let target = state.participants.first(where: { $0.id == id }),
               !target.IsLeader(in: state.trip) else { return }
         try await tripService.RemoveParticipants([id], tripID: tripID, by: myParticipantID)
-        selectedParticipantIds.remove(id)
     }
 
     func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
         "Remove \(DisplayName(of: participant)) from the trip?"
     }
 
+    /// What the menu of a held avatar offers me for this car, in the order it is shown (US-04, "Manage participants").
+    func ManagementActions(for participant: Participant) -> [ParticipantAction] {
+        var actions: [ParticipantAction] = []
+        if CanSetLeader(participant: participant) { actions.append(.setLeader) }
+        if CanEdit(participant: participant) { actions.append(.editDetails) }
+        if CanKick(participant: participant) { actions.append(.remove) }
+        return actions
+    }
+
+    /// Removes a car after the leader confirmed, and shows the service's sentence when it fails.
+    func RemoveFromTrip(_ participant: Participant) async {
+        do {
+            try await RemoveParticipant(id: participant.id)
+        } catch {
+            ShowError(error)
+        }
+    }
+
+    /// "Remove from Trip" and "Set as Trip Leader": only the leader, and never on their own car (US-05).
     func CanKick(participant: Participant) -> Bool {
-        guard let state, isCurrentUserLeader, !isSelectionMode else { return false }
+        guard let state, isCurrentUserLeader else { return false }
         return !participant.IsLeader(in: state.trip)
     }
 
@@ -255,43 +222,7 @@ final class TripRoomViewModel {
     }
 
     func CanEdit(participant: Participant) -> Bool {
-        !isSelectionMode && (participant.id == myParticipantID || isCurrentUserLeader)
-    }
-
-    /// Changes a participant's name and car. Only my own details are remembered for my next trip; the leader fixing a
-    /// member's name must not make it the leader's own.
-    func UpdateProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async throws {
-        let participantID = participantID ?? myParticipantID
-        guard participantID == myParticipantID || isCurrentUserLeader else { throw TripServiceError.notAllowed }
-        let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription)
-        try await tripService.UpdateProfile(profile, participantID: participantID, tripID: tripID)
-        if participantID == myParticipantID {
-            profileStorage.SaveProfile(profile)
-        }
-    }
-
-    /// Saves a profile for the edit sheet: my own, or anyone's when I lead; without `participantID`, my own. Returns
-    /// `true` only when the save succeeded, so the sheet closes then and stays open with `profileErrorMessage`
-    /// otherwise. A second tap while saving is ignored.
-    @discardableResult
-    func SaveProfile(displayName: String, carDescription: String, of participantID: UUID? = nil) async -> Bool {
-        guard !isSavingProfile else { return false }
-        isSavingProfile = true
-        defer { isSavingProfile = false }
-        do {
-            try await UpdateProfile(
-                displayName: displayName,
-                carDescription: carDescription,
-                of: participantID
-            )
-            profileErrorMessage = nil
-            return true
-        } catch let error as TripServiceError {
-            profileErrorMessage = String(localized: error.message)
-        } catch {
-            profileErrorMessage = String(localized: TripServiceError(cloudKitError: error).message)
-        }
-        return false
+        participant.id == myParticipantID || isCurrentUserLeader
     }
 
     /// A member leaves the trip; the leader cancels it for everyone. The trip is cleared from this phone only after
@@ -323,12 +254,68 @@ final class TripRoomViewModel {
         return startLocation.distance(from: participantLocation) <= 100
     }
 
+    /// One entry of the menu that opens when an avatar is held.
+    enum ParticipantAction: Hashable {
+        case setLeader
+        case editDetails
+        case remove
+    }
+
     /// The confirmation Exit shows.
     enum LeaveConfirmation: Hashable {
         /// A member, or a leader who handed over the lead: "Exit the room?"
         case exitRoom
         /// The leader: the trip is cancelled for everyone.
         case endTripForEveryone
+    }
+}
+
+// MARK: Profile
+
+extension TripRoomViewModel {
+    /// Whether this name is already used by another car in the trip, for the check when the name field is left.
+    func IsNameTaken(_ name: String, for participantID: UUID) -> Bool {
+        state?.IsNameTaken(name, excluding: participantID) ?? false
+    }
+
+    /// Changes a participant's name, car and avatar. Only my own details are remembered for my next trip; the leader
+    /// fixing a member's name must not make it the leader's own.
+    /// - Parameter avatar: `nil` keeps the current avatar.
+    func UpdateProfile(
+        displayName: String, carDescription: String, avatar: Avatar? = nil, of participantID: UUID? = nil
+    ) async throws {
+        let participantID = participantID ?? myParticipantID
+        guard participantID == myParticipantID || isCurrentUserLeader else { throw TripServiceError.notAllowed }
+        let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription, avatar: avatar)
+        try await tripService.UpdateProfile(profile, participantID: participantID, tripID: tripID)
+        if participantID == myParticipantID {
+            profileStorage.SaveProfile(profile)
+        }
+    }
+
+    /// Saves a profile for the edit sheet: my own, or anyone's when I lead; without `participantID`, my own. Returns
+    /// `true` only when the save succeeded, so the sheet closes then and stays open with `profileErrorMessage`
+    /// otherwise. A second tap while saving is ignored.
+    @discardableResult
+    func SaveProfile(
+        displayName: String, carDescription: String, avatar: Avatar? = nil, of participantID: UUID? = nil
+    ) async -> Bool {
+        guard !isSavingProfile else { return false }
+        isSavingProfile = true
+        isProfileNameTaken = false
+        defer { isSavingProfile = false }
+        do {
+            try await UpdateProfile(
+                displayName: displayName, carDescription: carDescription, avatar: avatar, of: participantID
+            )
+            profileErrorMessage = nil
+            return true
+        } catch {
+            let serviceError = TripServiceError(cloudKitError: error)
+            isProfileNameTaken = serviceError == .nameAlreadyUsed
+            profileErrorMessage = String(localized: serviceError.message)
+        }
+        return false
     }
 }
 
@@ -377,11 +364,6 @@ extension TripRoomViewModel {
                 && (isStillInTrip || isCurrentUserLeader)
                 && newState.trip.status == .inTrip {
                 hasTripStarted = true
-            }
-
-            if !isCurrentUserLeader && isSelectionMode {
-                isSelectionMode = false
-                selectedParticipantIds.removeAll()
             }
         }
     }
