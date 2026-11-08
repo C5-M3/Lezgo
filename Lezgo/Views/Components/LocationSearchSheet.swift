@@ -73,10 +73,6 @@ struct LocationSearchSheet: View {
                                 HStack(alignment: .center, spacing: 12) {
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(result.title)
-                                            .font(.body)
-                                            .foregroundStyle(.primary)
-                                            .lineLimit(1)
-
                                         if !result.subtitle.isEmpty {
                                             Text(result.subtitle)
                                                 .font(.caption)
@@ -143,6 +139,7 @@ struct LocationSearchSheet: View {
                     Button("Cancel") {
                         viewModel.searchQuery = ""
                         viewModel.searchService.updateQueryFragment("")
+                        viewModel.activeSelectionSheet = nil
                         dismiss()
                     }
                 }

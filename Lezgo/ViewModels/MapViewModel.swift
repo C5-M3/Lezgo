@@ -68,7 +68,10 @@ final class MapViewModel {
         !destinations.isEmpty || (startPoint != nil && startPoint?.name != "Current Location")
     }
 
-    var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
+    var cameraPosition: MapCameraPosition = .automatic
+    var isLocationAuthorized: Bool {
+        locationService.isAuthorized
+    }
     var isLoadingRoute: Bool = false
     var errorMessage: String?
 
@@ -104,6 +107,9 @@ final class MapViewModel {
                 if !self.destinations.isEmpty {
                     self.findRoute()
                 }
+            }
+            if self.routeLegs.isEmpty {
+                self.cameraPosition = .userLocation(fallback: .automatic)
             }
         }
     }

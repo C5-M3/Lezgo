@@ -77,8 +77,34 @@ struct DraftTripViewModelTests {
         #expect(viewModel.membersText == "Nathan, Mathew")
         #expect(viewModel.isLeader == false)
         #expect(viewModel.isConfirmingNewTrip == false)
+        #expect(viewModel.wasCancelledByLeader == false)
         #expect(viewModel.confirmTitle == "Create a new trip?")
         #expect(viewModel.confirmMessage == nil)
+        #expect(viewModel.cancelledTitle == "Trip Cancelled")
+        #expect(viewModel.cancelledMessage == "Your last trip was cancelled by leader")
+    }
+
+    @Test("Route coordinates and duration text are exposed accurately")
+    func routeCoordinatesAndDuration() {
+        let coords = [
+            Coordinate(latitude: -7.2858, longitude: 112.6318),
+            Coordinate(latitude: -7.2872, longitude: 112.6780),
+            Coordinate(latitude: -7.2923, longitude: 112.7190)
+        ]
+        var summary = makeMemberSummary()
+        summary.routeCoordinates = coords
+        summary.estimatedDuration = 75 * 60 // 1 hr 15 min
+
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
+
+        #expect(viewModel.routeCoordinates == coords)
+        #expect(viewModel.estimatedDuration == TimeInterval(75 * 60))
+        #expect(viewModel.durationText == "1 hr 15 min")
+
+        summary.estimatedDuration = 25 * 60 // 25 min
+        let shortViewModel = DraftTripViewModel(summary: summary, tripService: service)
+        #expect(shortViewModel.durationText == "25 min")
     }
 
     @Test("TapNewTrip presents confirmation dialog")
@@ -104,6 +130,19 @@ struct DraftTripViewModelTests {
         #expect(viewModel.isConfirmingNewTrip == false)
     }
 
+    @Test("DismissCancelledNotice resets cancelled flag")
+    func dismissCancelledNoticeResetsFlag() {
+        let summary = makeMemberSummary()
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
+        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
+
+        viewModel.wasCancelledByLeader = true
+        #expect(viewModel.wasCancelledByLeader == true)
+
+        viewModel.DismissCancelledNotice()
+        #expect(viewModel.wasCancelledByLeader == false)
+    }
+
     @Test("Leader confirmation message contains ending trip notice")
     func leaderConfirmationMessage() {
         let summary = makeLeaderSummary()
@@ -111,7 +150,7 @@ struct DraftTripViewModelTests {
         let viewModel = DraftTripViewModel(summary: summary, tripService: service)
 
         #expect(viewModel.isLeader == true)
-        #expect(viewModel.confirmMessage == "Your current trip will end for everyone.")
+        #expect(viewModel.confirmMessage == "Your current trip will end for everyone")
     }
 
     @Test("Member confirming new trip exits the trip and clears storage")
@@ -166,9 +205,10 @@ struct DraftTripViewModelTests {
 
         #expect(isOpen == true)
         #expect(storage.storedSummary != nil)
+        #expect(viewModel.wasCancelledByLeader == false)
     }
 
-    @Test("CheckServerStatus clears storage and returns false when trip is ended")
+    @Test("CheckServerStatus clears storage and presents cancelled notice for member when trip is ended or cancelled")
     func checkServerStatusEndedTrip() async {
         let summary = makeMemberSummary()
         let service = SampleTrip.Service(status: .ended, me: SampleTrip.budiID)
@@ -180,5 +220,72 @@ struct DraftTripViewModelTests {
         #expect(isOpen == false)
         #expect(storage.storedSummary == nil)
         #expect(storage.clearCount == 1)
+        #expect(viewModel.wasCancelledByLeader == true)
+    }
+
+    @Test("CheckServerStatus clears storage but does not present cancelled notice for leader")
+    func checkServerStatusCancelledTripForLeader() async {
+        let summary = makeLeaderSummary()
+        let service = SampleTrip.Service(status: .cancelled, me: SampleTrip.agusID)
+        let storage = FakeActiveTripStorage(initial: summary)
+        let viewModel = DraftTripViewModel(summary: summary, tripService: service, storage: storage)
+
+        let isOpen = await viewModel.CheckServerStatus()
+
+        #expect(isOpen == false)
+        #expect(storage.storedSummary == nil)
+        #expect(storage.clearCount == 1)
+        #expect(viewModel.wasCancelledByLeader == false)
+    }
+
+    @Test("Listening updates the trip info when another participant leaves")
+    func listeningUpdatesTripInfoWhenAnotherParticipantLeaves() async throws {
+        let initialState = SampleTrip.State()
+        let store = InMemoryTripStore(trips: [initialState])
+        let service = InMemoryTripService(store: store, userRecordID: "_budi")
+        let otherPhoneService = InMemoryTripService(store: store, userRecordID: "_citra")
+        let summary = ActiveTripSummary.From(
+            session: TripSession(myParticipantID: SampleTrip.budiID, state: initialState)
+        )
+        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
+
+        let listeningTask = Task { await viewModel.Listen() }
+        await Task.yield()
+        try await otherPhoneService.ExitTrip(tripID: SampleTrip.tripID, participantID: SampleTrip.citraID)
+
+        for _ in 0..<10 where viewModel.memberCount != 4 {
+            await Task.yield()
+        }
+
+        #expect(viewModel.tripInfoText == "4 people · Lobby")
+        listeningTask.cancel()
+    }
+
+    @Test("Listening presents cancelled notice and clears storage when leader ends or cancels the trip")
+    func listeningPresentsCancelledNoticeWhenLeaderCancelsTrip() async throws {
+        let initialState = SampleTrip.State()
+        let store = InMemoryTripStore(trips: [initialState])
+        let memberService = InMemoryTripService(store: store, userRecordID: "_budi")
+        let leaderService = InMemoryTripService(store: store, userRecordID: "_agus")
+        let summary = ActiveTripSummary.From(
+            session: TripSession(myParticipantID: SampleTrip.budiID, state: initialState)
+        )
+        let storage = FakeActiveTripStorage(initial: summary)
+        let viewModel = DraftTripViewModel(summary: summary, tripService: memberService, storage: storage)
+
+        let listeningTask = Task { await viewModel.Listen() }
+        await Task.yield()
+
+        // Leader creates a new trip, calling EndTrip on the existing trip
+        try await leaderService.EndTrip(tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+
+        for _ in 0..<10 where !viewModel.wasCancelledByLeader {
+            await Task.yield()
+        }
+
+        #expect(viewModel.wasCancelledByLeader == true)
+        #expect(storage.storedSummary == nil)
+        #expect(storage.clearCount == 1)
+        listeningTask.cancel()
     }
 }

@@ -16,7 +16,6 @@ struct HomeView: View {
     @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
 
-    private let brandYellow = Color(red: 247/255, green: 255/255, blue: 0/255)
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
     private let screenBackground = Color(red: 18/255, green: 18/255, blue: 18/255)
 
@@ -129,7 +128,6 @@ struct HomeView: View {
                 )
             }
         )
-        .safeAreaInset(edge: .top) { topNoticeInset }
         .modifier(Prompts(viewModel: viewModel))
         .onAppear { viewModel.onAppear() }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
@@ -199,7 +197,7 @@ private extension HomeView {
 
                             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
                                 .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(brandYellow)
+                                .foregroundStyle(Color.brandYellow)
                         }
 
                         Spacer()
@@ -225,7 +223,7 @@ private extension HomeView {
                 .padding(22)
             }
             .frame(maxWidth: .infinity)
-            .background(brandYellow)
+            .background(Color.brandYellow)
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -249,7 +247,7 @@ private extension HomeView {
                     HStack(alignment: .top) {
                         ZStack {
                             Circle()
-                                .fill(brandYellow)
+                                .fill(Color.brandYellow)
                                 .frame(width: 50, height: 50)
 
                             Image(systemName: "door.left.hand.open")
@@ -333,44 +331,6 @@ private extension HomeView {
             )
             .transition(.opacity)
             .zIndex(200)
-        }
-    }
-
-    @ViewBuilder
-    var topNoticeInset: some View {
-        if !shouldHideHomeControls, let notice = viewModel.lastTripEndedNotice {
-            HStack(spacing: 12) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .accessibilityHidden(true)
-
-                Text(notice)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        viewModel.lastTripEndedNotice = nil
-                    }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.headline)
-                        .foregroundStyle(.white.opacity(0.8))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Dismiss")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(Color(.formationAlertBackground), in: RoundedRectangle(cornerRadius: 16))
-            .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .transition(.move(edge: .top).combined(with: .opacity))
-            .accessibilityElement(children: .combine)
         }
     }
 

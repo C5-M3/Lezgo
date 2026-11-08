@@ -17,6 +17,10 @@ final class SetRouteFlowUITests: XCTestCase {
         app.launch()
     }
 
+    override func tearDownWithError() throws {
+        app.terminate()
+    }
+
     // MARK: - SetRouteMapView & LocationSearchSheet
 
     @MainActor
@@ -55,6 +59,9 @@ final class SetRouteFlowUITests: XCTestCase {
         XCTAssertTrue(cancelButton.waitForExistence(timeout: 5))
         cancelButton.tap()
 
+        let setRouteNavBar = app.navigationBars["Set Route"]
+        XCTAssertTrue(setRouteNavBar.waitForExistence(timeout: 3), "Expected Set Route sheet after dismissing search")
+
         // Verify Starting Point section element
         let startPointButton = app.buttons.matching(
             NSPredicate(format: "label == %@ OR label == %@", "Choose Starting Point...", "Current Location")
@@ -75,6 +82,9 @@ final class SetRouteFlowUITests: XCTestCase {
         let cancelButton = app.buttons["Cancel"]
         XCTAssertTrue(cancelButton.waitForExistence(timeout: 5))
         cancelButton.tap()
+
+        let setRouteNavBar = app.navigationBars["Set Route"]
+        XCTAssertTrue(setRouteNavBar.waitForExistence(timeout: 3), "Expected Set Route sheet after dismissing search")
 
         // Tap Starting Point
         let startPointButton = app.buttons.matching(

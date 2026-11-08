@@ -16,15 +16,19 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     var userLocation: CLLocationCoordinate2D?
     var authorizationStatus: CLAuthorizationStatus = .notDetermined
 
+    var isAuthorized: Bool {
+        authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways
+    }
+
     var onFirstLocationFound: ((CLLocationCoordinate2D) -> Void)?
     /// Set once the planner asks for the location; until then the GPS stays off.
     private var isWanted = false
+    private var hasReceivedInitialAuthCallback = false
 
     override init() {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyBest
-        self.authorizationStatus = locationManager.authorizationStatus
     }
 
     /// Whether a fix is good enough to be the trip's start point. The first fixes after the GPS starts can be
@@ -37,6 +41,7 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
 
     func requestPermission() {
         isWanted = true
+        guard hasReceivedInitialAuthCallback else { return }
         if authorizationStatus == .notDetermined {
             locationManager.requestWhenInUseAuthorization()
         } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
@@ -53,11 +58,16 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
 
     // MARK: - CLLocationManagerDelegate
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        hasReceivedInitialAuthCallback = true
         authorizationStatus = manager.authorizationStatus
         // iOS reports the permission as soon as the manager exists, also when it starts the app in the background;
         // the GPS starts only once the planner asked for it.
-        if isWanted, authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            StartUpdating()
+        if isWanted {
+            if authorizationStatus == .notDetermined {
+                manager.requestWhenInUseAuthorization()
+            } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+                StartUpdating()
+            }
         }
     }
 
