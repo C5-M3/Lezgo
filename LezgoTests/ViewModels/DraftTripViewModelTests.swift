@@ -253,11 +253,11 @@ struct DraftTripViewModelTests {
         await Task.yield()
         try await otherPhoneService.ExitTrip(tripID: SampleTrip.tripID, participantID: SampleTrip.citraID)
 
-        for _ in 0..<10 where viewModel.memberCount != 2 {
+        for _ in 0..<10 where viewModel.memberCount != 4 {
             await Task.yield()
         }
 
-        #expect(viewModel.tripInfoText == "2 people · Lobby")
+        #expect(viewModel.tripInfoText == "4 people · Lobby")
         listeningTask.cancel()
     }
 

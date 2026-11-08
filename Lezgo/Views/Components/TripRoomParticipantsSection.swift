@@ -146,39 +146,22 @@ private struct ParticipantCell: View {
     }
 }
 
-    var body: some View {
-        Button {
-            if viewModel.isSelectionMode {
-                viewModel.ToggleParticipantSelection(id: participant.id)
-            } else if viewModel.CanEdit(participant: participant) {
-                onEdit()
-            }
-        } label: {
-            HStack(spacing: 12) {
-                if viewModel.isSelectionMode && !isLeader {
-                    ZStack {
-                        Circle().fill(Color(uiColor: .systemGray4))
-                        if isSelected {
-                            Image(systemName: "checkmark").font(.system(size: 12, weight: .bold))
-                        }
-                    }
-                    .frame(width: 24, height: 24)
-                    .accessibilityHidden(true)
-                }
-                ParticipantRowContent(
-                    participant: participant,
-                    displayName: viewModel.DisplayName(of: participant),
-                    isLeader: isLeader,
-                    isReady: isReady
-                )
-            }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
-        .accessibilityAddTraits(.isButton)
+#if DEBUG
+#Preview("Leader") {
+    @Previewable @Namespace var avatarNamespace
+    ScrollView {
+        TripRoomParticipantsSection(
+            viewModel: TripRoomViewModel(
+                tripService: SampleTrip.Service(status: .lobby, me: SampleTrip.agusID),
+                tripID: SampleTrip.tripID,
+                myParticipantID: SampleTrip.agusID,
+                initialState: SampleTrip.State(status: .lobby)
+            ),
+            onHold: { _ in },
+            onInvite: {},
+            avatarNamespace: avatarNamespace
+        )
+        .padding()
     }
     .preferredColorScheme(.dark)
 }
