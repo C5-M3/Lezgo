@@ -262,37 +262,6 @@ final class LiveTripService: TripService {
         }
     }
 
-    /// Saves the new waypoints and route first and the trip last, so a phone never sees a route version without
-    /// its route. The old waypoints and routes are deleted afterwards.
-    private func ReplaceRoute(
-        _ tripID: UUID,
-        with plan: TripPlan,
-        by leaderID: UUID,
-        _ change: (inout Trip) -> Void
-    ) async throws {
-        try await Run {
-            guard plan.isValid else { throw TripServiceError.notAllowed }
-            let (trip, record) = try await reader.OpenTrip(tripID, by: leaderID)
-            guard trip.status == .inTrip else { throw TripServiceError.notAllowed }
-            let oldWaypoints = try await reader.Children(of: tripID, type: TripRecordMapper.waypointType)
-            let oldRoutes = try await reader.Children(of: tripID, type: TripRecordMapper.routeType)
-            let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID)
-
-            var changed = trip
-            changed.routeVersion += 1
-            change(&changed)
-            let waypoints = plan.MakeWaypoints(tripID: tripID)
-            let route = Route(id: UUID(), tripID: tripID, version: changed.routeVersion, polyline: plan.polyline)
-            try await database.Save(
-                waypoints.map { TripRecordMapper.MakeRecord($0) } + [TripRecordMapper.MakeRecord(route)],
-                savePolicy: .allKeys
-            )
-            TripRecordMapper.Write(changed, into: record)
-            try await database.Save([record], savePolicy: .changedKeys)
-            try await database.Delete(oldRecordIDs)
-        }
-    }
-
     // MARK: Helpers
 
     /// Runs one operation and turns any CloudKit or network error into a `TripServiceError`.
@@ -366,5 +335,40 @@ extension LiveTripService {
     ) async throws {
         let state = try await Run { try await reader.LoadState(tripID: tripID) }
         if state.IsNameTaken(name, excluding: participantID) { throw TripServiceError.nameAlreadyUsed }
+    }
+}
+
+// MARK: - Replacing the route
+
+extension LiveTripService {
+    /// Saves the new waypoints and route first and the trip last, so a phone never sees a route version without
+    /// its route. The old waypoints and routes are deleted afterwards.
+    private func ReplaceRoute(
+        _ tripID: UUID,
+        with plan: TripPlan,
+        by leaderID: UUID,
+        _ change: (inout Trip) -> Void
+    ) async throws {
+        try await Run {
+            guard plan.isValid else { throw TripServiceError.notAllowed }
+            let (trip, record) = try await reader.OpenTrip(tripID, by: leaderID)
+            guard trip.status == .inTrip else { throw TripServiceError.notAllowed }
+            let oldWaypoints = try await reader.Children(of: tripID, type: TripRecordMapper.waypointType)
+            let oldRoutes = try await reader.Children(of: tripID, type: TripRecordMapper.routeType)
+            let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID)
+
+            var changed = trip
+            changed.routeVersion += 1
+            change(&changed)
+            let waypoints = plan.MakeWaypoints(tripID: tripID)
+            let route = Route(id: UUID(), tripID: tripID, version: changed.routeVersion, polyline: plan.polyline)
+            try await database.Save(
+                waypoints.map { TripRecordMapper.MakeRecord($0) } + [TripRecordMapper.MakeRecord(route)],
+                savePolicy: .allKeys
+            )
+            TripRecordMapper.Write(changed, into: record)
+            try await database.Save([record], savePolicy: .changedKeys)
+            try await database.Delete(oldRecordIDs)
+        }
     }
 }
