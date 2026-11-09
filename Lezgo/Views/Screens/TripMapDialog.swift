@@ -20,6 +20,10 @@ struct TripMapDialog: View {
     var isConfirmDisabled = false
     let confirm: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// `false` for the moment the dialog arrives, so its card grows into place while the dark backdrop fades in.
+    @State private var hasArrived = false
+
     var body: some View {
         ZStack {
             // Taps outside the dialog do nothing: the answer must be a choice, not an accident.
@@ -34,6 +38,10 @@ struct TripMapDialog: View {
             .frame(maxWidth: 330)
             .padding(.horizontal, 24)
             .padding(.vertical)
+            .scaleEffect(hasArrived || reduceMotion ? 1 : 0.9)
+        }
+        .onAppear {
+            withAnimation(Animation.lezgoDialog.Respecting(reduceMotion: reduceMotion)) { hasArrived = true }
         }
         .contentShape(.rect)
         .accessibilityAddTraits(.isModal)
@@ -69,7 +77,7 @@ struct TripMapDialog: View {
                 Text(.tripMapCancel)
                     .modifier(ButtonLabel(foreground: .white, background: Color(.tripCardSubtext).opacity(0.25)))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
         }
         Button(action: confirm) {
             confirmTitle
@@ -78,9 +86,10 @@ struct TripMapDialog: View {
                     background: isDestructive ? Color(.tripAlertRed) : Color(.brandYellow)
                 ))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .disabled(isConfirmDisabled)
         .opacity(isConfirmDisabled ? 0.5 : 1)
+        .animation(.lezgoFade, value: isConfirmDisabled)
     }
 }
 

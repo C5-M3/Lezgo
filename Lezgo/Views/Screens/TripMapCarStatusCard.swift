@@ -14,6 +14,7 @@ struct TripMapCarStatusCard: View {
     let onClose: () -> Void
 
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 32
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The robot's body fills only part of its image; the rest is transparent margin.
     private static let robotImageSize = 56 / 0.426
@@ -47,6 +48,7 @@ struct TripMapCarStatusCard: View {
                         .foregroundStyle(Color(.brandYellow))
                         .multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
+                        .contentTransition(.numericText(countsDown: true))
                 }
             }
 
@@ -60,6 +62,7 @@ struct TripMapCarStatusCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: status)
         .accessibilityElement(children: .combine)
         .accessibilityAction(.escape, onClose)
         .accessibilityAction(named: Text(.tripMapCloseCarStatus), onClose)
@@ -87,6 +90,7 @@ extension TripMapCarStatusCard {
 
         var body: some View {
             Label(Title(), systemImage: Symbol())
+                .contentTransition(.symbolEffect(.replace))
                 .font(.subheadline.bold())
                 .foregroundStyle(IsDriving() ? Color(.tripCard) : Color(.tripCardText))
                 .padding(.horizontal, 12)

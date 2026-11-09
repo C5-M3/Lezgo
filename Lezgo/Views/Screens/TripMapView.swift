@@ -185,14 +185,17 @@ extension TripMapView {
                         .transition(.opacity)
                 } else if viewModel.isRerouting {
                     TripMapTurnCard.Rerouting(isLeader: viewModel.isLeader)
+                        .transition(.opacity)
                 } else if let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
                         .transition(.opacity)
                 }
                 if viewModel.isLocationImprecise {
                     PreciseLocationNotice()
+                        .transition(.opacity)
                 } else if viewModel.isConnectionLost {
                     ConnectionLostNotice()
+                        .transition(.opacity)
                 }
                 if let notice = viewModel.noticeBanner {
                     TripMapNoticeBanner(
@@ -212,9 +215,20 @@ extension TripMapView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.top, verticalSizeClass == .compact ? 8 : 0)
-            .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
-            .animation(reduceMotion ? nil : .default, value: viewModel.noticeBanner)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: viewModel.arrivalProgress == nil)
+            .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: Shown())
+            .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: viewModel.alertBanner)
+            .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: viewModel.noticeBanner)
+        }
+
+        /// Which cards are on screen, so one animation covers every card coming, going or swapping.
+        private func Shown() -> [Bool] {
+            [
+                viewModel.arrivalProgress == nil,
+                viewModel.isRerouting,
+                viewModel.guidance == nil,
+                viewModel.isLocationImprecise,
+                viewModel.isConnectionLost
+            ]
         }
     }
 
@@ -254,6 +268,27 @@ extension TripMapView {
         let close: () -> Void
 
         var body: some View {
+            // A fade only: the dialog's card brings its own small pop as it arrives.
+            ZStack {
+                Dialog()
+                    .transition(.opacity)
+            }
+            .animation(.lezgoFade, value: Shown())
+        }
+
+        /// Which dialogs could show, so changing from one dialog to the next fades between them.
+        private func Shown() -> [Bool] {
+            [
+                viewModel.leaveConfirmation != nil,
+                viewModel.manualArrival.confirmation != nil,
+                viewModel.manualArrival.errorMessage != nil,
+                viewModel.leaveErrorMessage != nil,
+                viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed
+            ]
+        }
+
+        @ViewBuilder
+        private func Dialog() -> some View {
             if let confirmation = viewModel.leaveConfirmation {
                 TripMapDialog(
                     title: Text(IsEndTrip(confirmation) ? .tripMapEndTripQuestion : .tripMapExitTripQuestion),

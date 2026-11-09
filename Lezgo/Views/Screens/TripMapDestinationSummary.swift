@@ -14,6 +14,7 @@ struct TripMapDestinationSummary: View {
     let timeLeft: Duration?
 
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 36
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -25,9 +26,11 @@ struct TripMapDestinationSummary: View {
                     .font(.system(size: timeSize, weight: .black))
                     .foregroundStyle(Color(.brandYellow))
                     .fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.numericText(countsDown: true))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: timeLeft)
         .accessibilityElement(children: .combine)
     }
 }

@@ -11,6 +11,7 @@ import SwiftUI
 struct TripMapTurnCard: View {
     let guidance: TripMapGuidance
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .largeTitle) private var distanceSize = 46
     @ScaledMetric(relativeTo: .largeTitle) private var arrowSize = 52
 
@@ -23,12 +24,16 @@ struct TripMapTurnCard: View {
             Image(systemName: guidance.direction.symbolName)
                 .font(.system(size: arrowSize, weight: .bold))
                 .foregroundStyle(Color(.brandYellow))
+                // The new arrow replaces the old one instead of blinking in.
+                .contentTransition(.symbolEffect(.replace))
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(guidance.distanceToTurn.formatted(.measurement(width: .abbreviated, usage: .road)))
                     .font(.system(size: distanceSize, weight: .heavy))
                     .foregroundStyle(Color(.tripCardText))
+                    // The distance counts down every second; rolling digits read calmer than jumping ones.
+                    .contentTransition(.numericText(countsDown: true))
                 Text(guidance.instruction)
                     .font(.callout)
                     .foregroundStyle(Color(.tripCardSubtext))
@@ -39,6 +44,7 @@ struct TripMapTurnCard: View {
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.tripCard), in: .rect(cornerRadius: 30))
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: guidance)
         .accessibilityElement(children: .combine)
     }
 }

@@ -48,6 +48,10 @@ struct TripMapSheet: View {
         .foregroundStyle(Color(.tripCardText))
         .background(Color(.tripCard), in: .rect(cornerRadius: 30))
         .contentShape(.rect(cornerRadius: 30))
+        // A tapped car, the arrival message and the destination swap in place, and the card grows or shrinks with
+        // them instead of jumping to its new height.
+        .animation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion), value: viewModel.selectedCarID)
+        .animation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion), value: viewModel.arrivalCard)
         .gesture(
             DragGesture(minimumDistance: 12).onEnded { drag in
                 if drag.translation.height < -Self.dragDistance { SetExpanded(true) }
@@ -76,7 +80,7 @@ struct TripMapSheet: View {
     }
 
     private func SetExpanded(_ expanded: Bool) {
-        withAnimation(reduceMotion ? nil : .spring(duration: 0.35, bounce: 0.15)) { isExpanded = expanded }
+        withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) { isExpanded = expanded }
     }
 }
 
@@ -131,6 +135,7 @@ extension TripMapSheet {
         var body: some View {
             if let carStatus = viewModel.selectedCarStatus {
                 TripMapCarStatusCard(status: carStatus, onClose: { viewModel.SelectCar(nil) })
+                    .transition(.opacity)
             } else if let arrivalCard = viewModel.arrivalCard {
                 TripMapArrivalCardView(
                     card: arrivalCard,
@@ -138,13 +143,16 @@ extension TripMapSheet {
                     onNewDestination: onNewDestination
                 )
                 .disabled(viewModel.isLeaving)
+                .transition(.opacity)
             } else if let destinationName = viewModel.destinationName {
                 TripMapDestinationSummary(
                     destinationName: destinationName,
                     timeLeft: viewModel.guidance?.timeLeft
                 )
+                .transition(.opacity)
             } else {
                 ProgressView(.tripMapLoading)
+                    .transition(.opacity)
             }
         }
     }

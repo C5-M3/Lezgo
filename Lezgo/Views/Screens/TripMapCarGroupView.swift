@@ -18,6 +18,7 @@ struct TripMapCarGroupView: View {
     let onSelect: (UUID) -> Void
     /// An opened card of a big group, such as ten cars at the start point, shows every car in rows.
     @State private var isOpen = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let columns = 5
     private static let spacing = 6.0
@@ -45,7 +46,7 @@ struct TripMapCarGroupView: View {
         // A map graphic of a fixed size; bigger text would cover the cars around it.
         // VoiceOver still reads every name, and tapping a car shows its full name.
         .dynamicTypeSize(...DynamicTypeSize.large)
-        .animation(.snappy, value: isOpen)
+        .animation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion), value: isOpen)
     }
 
     /// The robots in rows: one row while closed, and rows of `columns` once opened.
