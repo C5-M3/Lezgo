@@ -52,11 +52,10 @@ final class TripMapViewModel {
     let following: TripMapFootprint
     /// "I've Arrived", for a destination whose point is a little off, and its question.
     let manualArrival: TripMapManualArrival
+    /// What the map says out loud, and the mute button; silent until `init(session:…)` gives it a speaker.
+    var sound = TripMapSound()
     /// `true` while a guidance request is on its way, so GPS readings and trip updates do not ask twice at once.
     private var isRefreshingGuidance = false
-
-    /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
-    private static let carLookupInterval: TimeInterval = 30
 
     /// The participant who uses this phone.
     let myParticipantID: UUID
@@ -285,6 +284,7 @@ final class TripMapViewModel {
     /// Asks for new guidance from my car. When routing fails, the last guidance stays on screen: an old turn and
     /// time are more useful to a driver than an empty card, and the next update tries again a second later.
     private func RefreshGuidance() async {
+        defer { Announce() } // The new turn and banner are spoken even when routing fails.
         guard isRefreshingGuidance == false, let state, let myCoordinate else { return }
         isRefreshingGuidance = true
         defer { isRefreshingGuidance = false }

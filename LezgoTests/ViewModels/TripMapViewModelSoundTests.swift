@@ -21,16 +21,16 @@ struct TripMapViewModelSoundTests {
     }
 
     private func MakeViewModel(states: [TripState], speaker: MockNavigationSpeaker) -> TripMapViewModel {
-        TripMapViewModel(
+        let viewModel = TripMapViewModel(
             tripID: Fixtures.tripID,
             myParticipantID: Fixtures.budiID,
             tripService: MockTripService(states: states),
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
             streetNameService: MockStreetNameService(),
-            speaker: speaker,
-            preferences: preferences,
             clock: { Fixtures.now }
         )
+        viewModel.sound = TripMapSound(speaker: speaker, preferences: preferences)
+        return viewModel
     }
 
     /// The trip with Citra online and off the route, so Budi's phone shows "Citra has gone out of route".
@@ -76,23 +76,23 @@ struct TripMapViewModelSoundTests {
     @Test func SoundIsOnByDefault() {
         let viewModel = MakeViewModel(states: [], speaker: MockNavigationSpeaker())
 
-        #expect(viewModel.isSoundMuted == false)
+        #expect(viewModel.sound.isMuted == false)
     }
 
     @Test func MutingStopsTheVoiceAndIsRemembered() {
         let speaker = MockNavigationSpeaker()
         let viewModel = MakeViewModel(states: [], speaker: speaker)
 
-        viewModel.ToggleSound()
+        viewModel.sound.ToggleMute()
 
-        #expect(viewModel.isSoundMuted)
+        #expect(viewModel.sound.isMuted)
         #expect(speaker.stopCount == 1)
-        #expect(MakeViewModel(states: [], speaker: MockNavigationSpeaker()).isSoundMuted)
+        #expect(MakeViewModel(states: [], speaker: MockNavigationSpeaker()).sound.isMuted)
     }
 
     @Test func AMutedMapSaysNothing() async {
         let speaker = MockNavigationSpeaker()
-        MakeViewModel(states: [], speaker: MockNavigationSpeaker()).ToggleSound()
+        MakeViewModel(states: [], speaker: MockNavigationSpeaker()).sound.ToggleMute()
         let viewModel = MakeViewModel(states: [StateWithCitraOffRoute()], speaker: speaker)
 
         await viewModel.Start()
@@ -102,10 +102,10 @@ struct TripMapViewModelSoundTests {
 
     @Test func UnmutingTurnsTheSoundBackOn() {
         let viewModel = MakeViewModel(states: [], speaker: MockNavigationSpeaker())
-        viewModel.ToggleSound()
+        viewModel.sound.ToggleMute()
 
-        viewModel.ToggleSound()
+        viewModel.sound.ToggleMute()
 
-        #expect(viewModel.isSoundMuted == false)
+        #expect(viewModel.sound.isMuted == false)
     }
 }
