@@ -41,16 +41,7 @@ struct SimulatedTripMapScreen: View {
     }
 
     var body: some View {
-        TripMapView(
-            viewModel: TripMapViewModel(
-                tripID: SampleTrip.tripID,
-                myParticipantID: myParticipantID,
-                tripService: tripService,
-                navigator: SimulatedTripMapNavigator(),
-                streetNameService: LiveStreetNameService()
-            ),
-            onReturnToTripRoom: { _ in }
-        )
+        TripMapView(viewModel: MakeViewModel(), onReturnToTripRoom: { _ in })
         .task {
             await SimulatedDrive(
                 tripService: tripService,
@@ -61,6 +52,22 @@ struct SimulatedTripMapScreen: View {
                 agusChangesRoute: agusChangesRoute
             ).Run()
         }
+    }
+
+    /// The simulated drive speaks like a real trip, so voice guidance can be heard on a phone without other cars.
+    /// Xcode previews stay silent.
+    private func MakeViewModel() -> TripMapViewModel {
+        let viewModel = TripMapViewModel(
+            tripID: SampleTrip.tripID,
+            myParticipantID: myParticipantID,
+            tripService: tripService,
+            navigator: SimulatedTripMapNavigator(),
+            streetNameService: LiveStreetNameService()
+        )
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] != "1" {
+            viewModel.sound = TripMapSound(speaker: LiveNavigationSpeaker())
+        }
+        return viewModel
     }
 }
 
