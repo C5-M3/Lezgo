@@ -115,7 +115,12 @@ extension TripMapSheet {
                         TripMapLeaveButton(isLeader: viewModel.isLeader, action: viewModel.RequestLeave)
                             .disabled(viewModel.isLeaving)
                     }
-                    .transition(.opacity)
+                    // The buttons appear at their final place while the summary is still sliding up, so they wait
+                    // until the card has mostly grown; otherwise they would cross the summary on the way.
+                    .transition(.asymmetric(
+                        insertion: .opacity.animation(.lezgoFade.delay(0.15)),
+                        removal: .opacity.animation(.lezgoFade)
+                    ))
                 }
             }
             .padding(.horizontal, 20)
