@@ -21,7 +21,7 @@ struct TripRoomMapPreview: View {
     var body: some View {
         Map(initialPosition: .automatic, interactionModes: []) {
             if polyline.count > 1 {
-                MapPolyline(coordinates: polyline.map(\.locationCoordinate))
+                MapPolyline(coordinates: JoinedLine().map(\.locationCoordinate))
                     .stroke(Color(.brandBlue), style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
             }
             if let start {
@@ -35,18 +35,20 @@ struct TripRoomMapPreview: View {
                 .annotationTitles(showsNames ? .automatic : .hidden)
             }
             if let destination {
-                Marker(
-                    destination.name,
-                    systemImage: "flag.checkered",
-                    coordinate: destination.coordinate.locationCoordinate
-                )
-                .tint(Color(.brandYellow))
+                Annotation(destination.name, coordinate: destination.coordinate.locationCoordinate) {
+                    RouteStopPin(kind: .destination)
+                }
                 .annotationTitles(showsNames ? .automatic : .hidden)
             }
         }
         .mapStyle(.standard(pointsOfInterest: .excludingAll))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// The route reaches the robot and the flag, instead of stopping on the nearest road.
+    private func JoinedLine() -> [Coordinate] {
+        RouteLineEnds.Joined(polyline, from: start?.coordinate, to: destination?.coordinate)
     }
 
     private var accessibilityLabel: String {

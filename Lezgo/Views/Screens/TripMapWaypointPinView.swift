@@ -12,24 +12,12 @@ struct TripMapWaypointPinView: View {
     let waypoint: Waypoint
 
     var body: some View {
-        Image(systemName: Symbol())
-            .font(.title)
-            .symbolRenderingMode(.palette)
-            .foregroundStyle(.background, .tint)
+        // The same pins as on the planner's map, so a stop looks the same before and during the trip.
+        RouteStopPin(kind: waypoint.kind)
             .frame(minWidth: 44, minHeight: 44)
-            // A map graphic: keep it from covering the route at the largest text sizes.
-            .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: waypoint.name))
             .accessibilityValue(Text(Kind()))
-    }
-
-    private func Symbol() -> String {
-        switch waypoint.kind {
-        case .start: return "circle.circle.fill"
-        case .checkpoint: return "mappin.circle.fill"
-        case .destination: return "flag.circle.fill"
-        }
     }
 
     private func Kind() -> LocalizedStringResource {
