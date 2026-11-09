@@ -586,7 +586,7 @@ Feature: Manage the group and start
 
 - Visual only, under the turn card. One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
 - Everyone else sees "[name] has gone out of route" / "[name] - Precede The Leader" ("Car 3 has gone out of route", "Budi has gone out of route") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
-- **Stopped car:** another online car that was driving and has been at speed 0 for 30 seconds, short of the destination, shows "[name] has stopped" on a red banner, after every formation alert. It hides until that car has driven again. A car still waiting at the start does not count.
+- **Stopped car:** another online car that was driving and has been at speed 0 for 30 seconds, before it has arrived (US-07), shows "[name] has stopped" on a red banner, after every formation alert. It hides until that car has driven again. A car still waiting at the start does not count.
 - A tap on the banner hides it (the hi-fi has no ⓧ). Banners are yellow, and red for a stopped car.
 - The time and distance limits stop flicker from GPS noise. They were 100 m and 15 s at first; on the road a wrong turn then showed far too late, so they match the leader's reroute now (50 m, 5 s).
 
@@ -720,7 +720,8 @@ Feature: Drive together
 - Arrived = within 20 m of the destination, or "I've Arrived" (below). Offline members count as not arrived; members who exited are not counted.
 - **I've Arrived:** a destination's point is not always where the group parks; in a big mall a car can stop 200 m away and never come within 20 m. Within 1 km of the point, the pulled-up card shows "I've Arrived" (leader and members), between Edit Route and End Trip or Exit Trip. It hides once the car has arrived.
   - Tapping it asks first: "Arrived at Tunjungan Plaza?" · "You are 200 m from the destination point. Are you sure you have arrived?" with "Cancel" and "I've Arrived". The distance is rounded to 10 m.
-  - Confirming counts the car as arrived on every phone, as if it were within 20 m. It counts for that destination only: a New Destination starts afresh.
+  - Confirming counts the car as arrived on every phone, as if it were within 20 m. It counts for that destination only: a New Destination starts afresh. A reroute or Edit Route that keeps the destination in the same place keeps it.
+  - A car that has arrived this way is not "stopped": it gets no "[name] has stopped" banner.
   - If saving fails (no network), a message says why and the button stays, so the driver can try again.
 
 | Who | Not everyone arrived | Everyone arrived |
@@ -776,6 +777,12 @@ Feature: Arrive, continue, leave and end
     When "Budi" taps "I've Arrived" again
     Then every phone counts "Budi" as arrived
     And "Budi" sees "You have arrived" and "Waiting for everyone to arrive"
+
+  Scenario: Arrival survives a reroute
+    Given "Budi" said "I've Arrived" 200 m from the destination's point
+    When the route is recalculated with the same destination
+    Then every phone still counts "Budi" as arrived
+    And no phone shows "Budi has stopped"
 
   Scenario: Far from the destination
     Given "Budi" is 5 km from the destination

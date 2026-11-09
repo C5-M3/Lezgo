@@ -93,7 +93,7 @@ Files: `Lezgo/Models/`. All models are plain `Hashable`, `Codable` structs. They
 | `alert` | `FormationAlert`: `.none`, `.offRoute`, `.passedCheckpoint`, `.aheadOfLeader` |
 | `lastSeenAt` | When this phone last sent a position |
 | `course?` | The way the car was heading, in degrees clockwise from north; `nil` when the phone does not know |
-| `arrivedAtWaypointID?` | The destination this driver said they reached with "I've Arrived"; `nil` otherwise. A New Destination has new waypoints, so it starts afresh |
+| `arrivedAtWaypointID?` | The destination this driver said they reached with "I've Arrived"; `nil` otherwise. A New Destination has new waypoints, so it starts afresh; `SaveRoute` keeps the destination's ID while it stays in the same place, so a reroute keeps it |
 
 Rules: `IsLeader(in:)`; `IsOnline(at:)`, where a phone is offline when `lastSeenAt` is **more than** 120 seconds old (exactly 120 seconds is still online); and `Participant.Joining(…)`, a new participant with no position, stopped, and no alert.
 
