@@ -81,7 +81,7 @@ struct TripMapAlerts {
             && participant.IsOnline(at: date)
     }
 
-    /// Another online car that was driving and has stopped short of the destination. `motionState` turns to stopped
+    /// Another online car that was driving and has stopped before it arrived. `motionState` turns to stopped
     /// after 30 seconds without moving, so a short stop in traffic does not count.
     private func HasStopped(_ participant: Participant, in state: TripState, at date: Date) -> Bool {
         guard participant.id != myParticipantID,
@@ -89,8 +89,8 @@ struct TripMapAlerts {
             carsSeenDriving.contains(participant.id),
             participant.IsOnline(at: date)
         else { return false }
-        guard let destination = state.destination, let coordinate = participant.coordinate else { return true }
-        return coordinate.Distance(to: destination.coordinate) > TripMapArrival.radius
+        guard let destination = state.destination else { return true }
+        return TripMapArrival.IsThere(participant, at: destination) == false
     }
 
     /// A closed banner shows again once its alert has ended or changed and then happens again.

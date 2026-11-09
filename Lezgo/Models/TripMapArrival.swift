@@ -43,8 +43,9 @@ struct TripMapArrival: Hashable {
         .map(\.id)
     }
 
-    /// Within 20 m of the destination, or the driver said they arrived there.
-    private static func IsThere(_ participant: Participant, at destination: Waypoint) -> Bool {
+    /// Within 20 m of the destination, or the driver said they arrived there. The stopped banner uses it too, so a
+    /// car that has arrived is never also "stopped".
+    static func IsThere(_ participant: Participant, at destination: Waypoint) -> Bool {
         if participant.arrivedAtWaypointID == destination.id { return true }
         guard let coordinate = participant.coordinate else { return false }
         return coordinate.Distance(to: destination.coordinate) <= radius
