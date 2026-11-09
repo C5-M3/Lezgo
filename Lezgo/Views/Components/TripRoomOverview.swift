@@ -24,11 +24,17 @@ struct TripRoomOverview: View {
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if let onEdit {
-                    Button("Edit", action: onEdit)
-                        .font(.headline)
-                        .foregroundStyle(Color(.brandYellow))
-                        .frame(minWidth: 44, minHeight: 44)
-                        .accessibilityLabel("Edit route")
+                    Button(action: onEdit) {
+                        // The frame is inside the label so the whole 44 pt square can be tapped.
+                        Text("Edit")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .font(.headline)
+                    .foregroundStyle(Color(.brandYellow))
+                    .accessibilityLabel("Edit route")
+                    // Voice Control users say what they see on screen.
+                    .accessibilityInputLabels(["Edit", "Edit route"])
                 }
             }
             // Side by side like the hi-fi; stacked when large text no longer fits in three columns.
