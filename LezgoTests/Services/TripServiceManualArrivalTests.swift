@@ -57,6 +57,42 @@ struct TripServiceManualArrivalTests {
         #expect(try await phones.Budi(in: group)?.arrivedAtWaypointID == destinationID)
     }
 
+    /// A reroute or Edit Route saves new waypoints; an arrival at a destination that stays in place must survive it.
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewRouteToTheSameDestinationKeepsTheArrival(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroupOnTheRoad()
+        let destinationID = try await DestinationID(phones, group)
+        try await phones.budi.MarkArrived(at: destinationID, participantID: group.budiID, tripID: group.tripID)
+
+        try await phones.agus.SaveRoute(TripPlanFixtures.ciputraToPakuwonCity, tripID: group.tripID, by: group.agusID)
+
+        let state = try await phones.budi.FetchTrip(tripID: group.tripID)
+        #expect(state.destination?.id == destinationID)
+        #expect(state.destination?.name == "Pakuwon city mall")
+        #expect(state.participants.first { $0.id == group.budiID }?.arrivedAtWaypointID == state.destination?.id)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewRouteToAnotherPlaceEndsTheArrival(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroupOnTheRoad()
+        let destinationID = try await DestinationID(phones, group)
+        try await phones.budi.MarkArrived(at: destinationID, participantID: group.budiID, tripID: group.tripID)
+        let toCiputra = TripPlan(
+            waypoints: [
+                PlannedWaypoint(kind: .start, name: "Tunjungan Plaza", coordinate: TripFixtures.tunjunganPlaza),
+                PlannedWaypoint(kind: .destination, name: "Ciputra World", coordinate: TripFixtures.ciputraWorld)
+            ],
+            polyline: [TripFixtures.tunjunganPlaza, TripFixtures.ciputraWorld]
+        )
+
+        try await phones.agus.SaveRoute(toCiputra, tripID: group.tripID, by: group.agusID)
+
+        let destination = try #require(try await phones.budi.FetchTrip(tripID: group.tripID).destination)
+        #expect(destination.id != destinationID)
+    }
+
     @Test(arguments: TripPhones.Kind.allCases)
     func NobodyArrivesBeforeTheTripStarts(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
