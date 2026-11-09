@@ -99,6 +99,8 @@ struct TripMapViewModelFootprintTests {
 
         #expect(directions.requestedPoints.first?.first == lost)
         #expect(viewModel.routeAhead.first == lost)
+        // Drawn as this phone's own solid line, from the car to where it joins the road.
+        #expect(viewModel.myWayBack == wayBack)
         #expect(viewModel.routeAhead.contains(Self.agusAt))
         // The way back is found, so the turn card shows it instead of "Rerouting…".
         #expect(viewModel.isRerouting == false)
@@ -151,20 +153,16 @@ struct TripMapViewModelFootprintTests {
 
     // MARK: The leader sees the footprint
 
-    @Test func LeaderSeesTheFootprintBehindThem() async {
+    @Test func LeadersLineRunsBackAlongTheFootprintToTheLastCar() async {
         let viewModel = await OpenMap([Rerouted(budi: Self.corner)], me: Fixtures.agusID)
 
-        #expect(viewModel.footprint == [Self.corner, Self.north, Self.agusAt])
-    }
-
-    @Test func MembersDoNotDrawTheFootprintBehindThem() async {
-        let viewModel = await OpenMap([Rerouted(budi: Self.corner)])
-
-        #expect(viewModel.footprint.isEmpty)
+        #expect(viewModel.routeLine.first == Self.corner)
+        #expect(viewModel.routeLine.contains(Self.north))
+        #expect(viewModel.routeLine.contains(Self.agusAt))
     }
 }
 
-/// A member's way back reaches the leader's map, so the leader sees where a car that left the road is being sent.
+/// A member's way back reaches every other phone, so everyone sees where a car that left the road is being sent.
 struct TripMapViewModelMemberWayBackTests {
     private typealias Fixtures = TripMapFixtures
     private static let metre = 1 / 111_320.0
@@ -250,10 +248,10 @@ struct TripMapViewModelMemberWayBackTests {
 
         let viewModel = await OpenMap(service, me: Fixtures.agusID)
 
-        #expect(viewModel.memberWayBacks.map(\.id) == [Fixtures.budiID])
-        #expect(viewModel.memberWayBacks.first?.path.count == 2)
-        #expect(viewModel.memberWayBacks.first?.path.last == Self.corner)
-        #expect(viewModel.memberWayBacks.first?.path.contains(Self.lost) == false)
+        #expect(viewModel.wayBacks.map(\.id) == [Fixtures.budiID])
+        #expect(viewModel.wayBacks.first?.path.count == 2)
+        #expect(viewModel.wayBacks.first?.path.last == Self.corner)
+        #expect(viewModel.wayBacks.first?.path.contains(Self.lost) == false)
         #expect(service.savedWayBacks.isEmpty)
     }
 
@@ -263,10 +261,10 @@ struct TripMapViewModelMemberWayBackTests {
 
         let viewModel = await OpenMap(service, me: Fixtures.agusID)
 
-        #expect(viewModel.memberWayBacks.isEmpty)
+        #expect(viewModel.wayBacks.isEmpty)
     }
 
-    @Test func MembersDoNotSeeEachOthersWayBack() async {
+    @Test func MembersSeeEachOthersWayBack() async {
         var state = Trip(budi: Self.corner)
         var citra = Fixtures.Car(id: Fixtures.citraID, name: "Citra")
         citra.coordinate = Self.lost
@@ -275,7 +273,7 @@ struct TripMapViewModelMemberWayBackTests {
 
         let viewModel = await OpenMap(MockTripService(states: [state]), me: Fixtures.budiID)
 
-        #expect(viewModel.memberWayBacks.isEmpty)
+        #expect(viewModel.wayBacks.map(\.id) == [Fixtures.citraID])
     }
 }
 
