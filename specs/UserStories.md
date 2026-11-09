@@ -314,7 +314,7 @@ Feature: Resume an unfinished trip
 **Room**
 - Always dark: the Trip Room and its sheets never show in light mode.
 - At the top, a map preview shows the start point, the destination and the road route only: no checkpoints, no other routes, no cars.
-- The title is "Lez Get Ready !".
+- The title is "Lez Get Ready!".
 - "Overview" shows STARTING POINT, DESTINATION and "# OF STOPS" (the number of checkpoints, without the start point and the destination).
 - Only the leader sees "Edit" next to "Overview". It opens the same Edit Route planner as on the trip map (US-06), but starting from the trip's start point, the checkpoints and the destination, not from the leader's position. "Save" closes the planner and every phone in the room shows the new route within 2 seconds; "Back" without saving changes nothing. The trip stays in the Trip Room. If the leader hands over the lead while the planner is open, it closes. Once the trip has started, "Edit" is gone (the map has its own Edit Route).
 - "Participants" shows everyone's avatar, name and car description; the leader has a crown. Under the list a hint says "Hold to manage participants" to the leader and "Hold to edit your profile" to a member.
@@ -337,7 +337,7 @@ Feature: Resume an unfinished trip
 
 **Edit Profile**
 - A member can only edit their own profile; the leader can edit everyone's. Avatar: one of the five. Name: 1–30 characters, required. Car details: optional, up to 40 characters ("White Avanza"). Spaces at the start and the end are removed.
-- Avatars scroll sideways; the one in the middle is chosen at once and grows to the size of the avatars in the Trip Room, the others are smaller. There is no select button. Tapping an avatar scrolls it to the middle.
+- Avatars scroll sideways; the one in the middle is chosen at once and shows the whole mascot, the others show only their heads with the screen off, smaller towards the edges. There is no select button. Tapping an avatar scrolls it to the middle.
 - Names are unique in the trip, ignoring upper/lower case and spaces at the ends. The name is checked twice: when I leave the field, and when I tap "Save". A name already used by another car turns the field's border red with "Name already used in this trip" under it, and "Save" is disabled and grey. Tapping the field again clears the red. If "Save" is tapped before the first check ran, the second check shows the same red field and an alert with "Name already used in this trip". Keeping my own name is never a clash.
 - My own details are saved on my device and reused next time I create or join a trip; details the leader changes for a member are not saved on either device. Not editable during the trip (safety).
 

@@ -32,8 +32,7 @@ struct HomeView: View {
             Color(.tripCard)
                 .ignoresSafeArea()
 
-            // At the largest text sizes the cards no longer fit on one screen, so they scroll, and the mascots,
-            // which are only decoration, make room for them.
+            // At the largest text sizes the cards no longer fit on one screen, so they scroll.
             if dynamicTypeSize.isAccessibilitySize {
                 ScrollView {
                     homeContent
@@ -42,11 +41,9 @@ struct HomeView: View {
             } else {
                 VStack(spacing: 0) {
                     homeContent
-                        .padding(.top, 120)
+                        .padding(.top, 72)
 
                     Spacer(minLength: 16)
-
-                    MascotsView()
                 }
             }
         }
@@ -166,16 +163,13 @@ private extension HomeView {
     @ViewBuilder
     var headerView: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Only the logo, as in the hi-fi ("N1 Home · No map"): the two cards say what the app does.
             Image("LezgoIcon")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 42)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text("Make and lead a trip or join one !")
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(Text(verbatim: "Lezgo"))
         }
     }
 
