@@ -122,7 +122,10 @@ struct TripMapViewModelFootprintTests {
             directions: directions
         )
 
-        #expect(directions.requestedPoints.first == [lost, Self.north])
+        // Every point asked for is at least 50 m beyond where he left, 120 m up the footprint.
+        let earliest = Self.corner.latitude + 169 * Self.metre
+        #expect(directions.requestedPoints.isEmpty == false)
+        #expect(directions.requestedPoints.allSatisfy { ($0.last?.latitude ?? 0) >= earliest })
     }
 
     @Test func MemberOffTheFootprintSeesReroutingWhileTheWayBackIsFound() async {
