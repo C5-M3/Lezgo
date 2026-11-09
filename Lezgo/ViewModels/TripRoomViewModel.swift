@@ -1,0 +1,374 @@
+//
+//  TripRoomViewModel.swift
+//  Lezgo
+//
+//  Created by Oky Faishal on 26/10/26.
+//
+
+import CoreLocation
+import Foundation
+import Observation
+
+/// View model managing state and actions for the Trip Room screen.
+@Observable
+@MainActor
+final class TripRoomViewModel {
+    private(set) var state: TripState?
+    let tripService: any TripService
+    /// Sends this phone's position while the room is open, so the group sees who is at the start point; `nil` in
+    /// previews and tests that do not need it.
+    private let locationSharer: LocationSharer?
+    /// The trip saved on this phone, cleared once this person has left so Home no longer offers it.
+    private let activeTripStorage: any ActiveTripStorage
+    /// Remembers my edited name and car for the next trip.
+    private let profileStorage: any ProfileStorage
+    let tripID: UUID
+    let myParticipantID: UUID
+
+    var errorMessage: String?
+    var wasRemovedFromTrip: Bool = false
+    /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
+    var wasEndedByLeader = false
+    private(set) var hasTripStarted = false
+    private(set) var isStartingTrip = false
+    private(set) var isSavingProfile = false
+    /// `true` while an exit request is on its way; Exit is disabled meanwhile.
+    private(set) var isLeaving = false
+    /// Set once leaving succeeded, so the room closes only for the request that actually left.
+    private(set) var hasLeft = false
+    /// Shown inside the edit sheet, which stays open when the save fails so the typed name and car are kept.
+    var profileErrorMessage: String?
+    /// `true` after a save was refused because another car has this name, so the sheet can mark the name field.
+    var isProfileNameTaken = false
+    /// The planner the leader opened with "Edit" next to "Overview"; `nil` while it is closed. Changed only by
+    /// `RequestEditRoute` and `CloseEditRoute` (`TripRoomViewModel+EditRoute.swift`).
+    var editRoute: EditRouteViewModel?
+
+    var roomCode: String {
+        state?.trip.roomCode ?? ""
+    }
+
+    var waypoints: [Waypoint] {
+        state?.waypoints ?? []
+    }
+
+    var startPoint: Waypoint? {
+        waypoints.first(where: { $0.kind == .start })
+    }
+
+    var destination: Waypoint? {
+        waypoints.first(where: { $0.kind == .destination })
+    }
+
+    /// "# OF STOPS" in the overview: the checkpoints only, without the start point and the destination.
+    var numberOfStops: Int {
+        waypoints.count(where: { $0.kind == .checkpoint })
+    }
+
+    /// The road the map preview draws; empty until the trip has loaded.
+    var routePolyline: [Coordinate] {
+        state?.route?.polyline ?? []
+    }
+
+    var participants: [Participant] {
+        state?.participants ?? []
+    }
+
+    var isCurrentUserLeader: Bool {
+        guard let state else { return false }
+        return state.trip.leaderParticipantID == myParticipantID
+    }
+
+    var tripStatus: TripStatus {
+        state?.trip.status ?? .lobby
+    }
+
+    var canStartTrip: Bool {
+        guard isCurrentUserLeader, !isStartingTrip, !hasTripStarted, let state else { return false }
+        return state.participants.count > 1
+    }
+
+    var isEveryoneReady: Bool {
+        guard !participants.isEmpty else { return false }
+        return participants.allSatisfy { IsParticipantReady($0) }
+    }
+
+    /// What Exit asks first (`specs/UserStories.md` → US-07, "Leave and end").
+    var leaveConfirmation: LeaveConfirmation {
+        isCurrentUserLeader ? .endTripForEveryone : .exitRoom
+    }
+
+    var startTripConfirmationTitle: String {
+        isEveryoneReady
+            ? "Start Trip?"
+            : "Some participants are not yet ready, are you sure you want to start the trip?"
+    }
+
+    var inviteURL: URL {
+        InviteLink.Make(roomCode: roomCode) ?? URL(fileURLWithPath: "/")
+    }
+
+    /// The room code is empty until the first snapshot arrives, and a link without six digits cannot be joined.
+    var canShareInvite: Bool {
+        Trip.IsValidRoomCode(roomCode)
+    }
+
+    /// The text sent with the invite link, so the code can also be typed in by hand.
+    var shareMessage: String {
+        String(localized: .tripRoomShareMessage(roomCode))
+    }
+
+    init(
+        tripService: any TripService,
+        tripID: UUID,
+        myParticipantID: UUID,
+        initialState: TripState? = nil,
+        activeTripStorage: (any ActiveTripStorage)? = nil,
+        locationSharer: LocationSharer? = nil,
+        profileStorage: (any ProfileStorage)? = nil
+    ) {
+        self.tripService = tripService
+        self.locationSharer = locationSharer
+        self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
+        self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
+        self.tripID = tripID
+        self.myParticipantID = myParticipantID
+        self.state = initialState
+        if let initialState, initialState.trip.status == .inTrip {
+            let isLeader = initialState.trip.leaderParticipantID == myParticipantID
+            let isStillInTrip = initialState.participants.contains(where: { $0.id == myParticipantID })
+            if isLeader || isStillInTrip {
+                self.hasTripStarted = true
+            }
+        }
+    }
+
+    func StartTrip() async throws {
+        // `canStartTrip` is false while a start is saving or after it, so a second tap does nothing.
+        guard canStartTrip else { return }
+        isStartingTrip = true
+        defer { isStartingTrip = false }
+        try await tripService.StartTrip(tripID: tripID, by: myParticipantID)
+        hasTripStarted = true
+    }
+
+    func RemoveParticipant(id: UUID) async throws {
+        guard isCurrentUserLeader,
+              let state,
+              let target = state.participants.first(where: { $0.id == id }),
+              !target.IsLeader(in: state.trip) else { return }
+        try await tripService.RemoveParticipants([id], tripID: tripID, by: myParticipantID)
+    }
+
+    func RemoveParticipantConfirmationTitle(for participant: Participant) -> String {
+        "Remove \(DisplayName(of: participant)) from the trip?"
+    }
+
+    /// What the menu of a held avatar offers me for this car, in the order it is shown (US-04, "Manage participants").
+    func ManagementActions(for participant: Participant) -> [ParticipantAction] {
+        var actions: [ParticipantAction] = []
+        if CanSetLeader(participant: participant) { actions.append(.setLeader) }
+        if CanEdit(participant: participant) { actions.append(.editDetails) }
+        if CanKick(participant: participant) { actions.append(.remove) }
+        return actions
+    }
+
+    /// Removes a car after the leader confirmed, and shows the service's sentence when it fails.
+    func RemoveFromTrip(_ participant: Participant) async {
+        do {
+            try await RemoveParticipant(id: participant.id)
+        } catch {
+            ShowError(error)
+        }
+    }
+
+    /// "Remove from Trip" and "Set as Trip Leader": only the leader, and never on their own car (US-05).
+    func CanKick(participant: Participant) -> Bool {
+        guard let state, isCurrentUserLeader else { return false }
+        return !participant.IsLeader(in: state.trip)
+    }
+
+    func CanSetLeader(participant: Participant) -> Bool {
+        CanKick(participant: participant)
+    }
+
+    func SetLeader(to participant: Participant) async throws {
+        guard isCurrentUserLeader,
+              let currentLeaderID = state?.trip.leaderParticipantID,
+              participant.id != currentLeaderID else { return }
+        try await tripService.SetLeader(participant.id, tripID: tripID, replacing: currentLeaderID)
+    }
+
+    /// Hands the lead over after the leader confirmed, and shows the service's sentence when the save fails, for
+    /// example `.conflict` when someone else changed the leader first.
+    func HandOverLead(to participant: Participant) async {
+        do {
+            try await SetLeader(to: participant)
+        } catch {
+            ShowError(error)
+        }
+    }
+
+    func SetLeaderConfirmationTitle(for participant: Participant) -> String {
+        "Set \(DisplayName(of: participant)) as Trip Leader?"
+    }
+
+    /// Shows a failed call in the error alert. `TripServiceError` is not a `LocalizedError`, so
+    /// `localizedDescription` would only say "The operation couldn't be completed".
+    func ShowError(_ error: any Error) {
+        errorMessage = String(localized: TripServiceError(cloudKitError: error).message)
+    }
+
+    /// The name the group sees for a car: the typed name, or "Leader", "Car 2", … (see `TripState.DisplayName(of:)`).
+    func DisplayName(of participant: Participant) -> String {
+        state?.DisplayName(of: participant) ?? participant.displayName
+    }
+
+    func CanEdit(participant: Participant) -> Bool {
+        participant.id == myParticipantID || isCurrentUserLeader
+    }
+
+    /// A member leaves the trip; the leader cancels it for everyone. The trip is cleared from this phone only after
+    /// the request succeeded, so a failure leaves the person in the room with their trip still saved.
+    func LeaveTrip() async throws {
+        guard !isLeaving, !hasLeft else { return }
+        isLeaving = true
+        defer { isLeaving = false }
+        if isCurrentUserLeader {
+            try await tripService.EndTrip(tripID: tripID, by: myParticipantID)
+        } else {
+            try await tripService.ExitTrip(tripID: tripID, participantID: myParticipantID)
+        }
+        activeTripStorage.ClearActiveTrip()
+        hasLeft = true
+    }
+
+    func IsLeader(participant: Participant) -> Bool {
+        guard let state else { return false }
+        return participant.IsLeader(in: state.trip)
+    }
+
+    func IsParticipantReady(_ participant: Participant, at date: Date = .now) -> Bool {
+        guard participant.IsOnline(at: date),
+              let startCoord = startPoint?.coordinate,
+              let participantCoord = participant.coordinate else { return false }
+        let startLocation = CLLocation(latitude: startCoord.latitude, longitude: startCoord.longitude)
+        let participantLocation = CLLocation(latitude: participantCoord.latitude, longitude: participantCoord.longitude)
+        return startLocation.distance(from: participantLocation) <= 100
+    }
+
+    /// One entry of the menu that opens when an avatar is held.
+    enum ParticipantAction: Hashable {
+        case setLeader
+        case editDetails
+        case remove
+    }
+
+    /// The confirmation Exit shows.
+    enum LeaveConfirmation: Hashable {
+        /// A member, or a leader who handed over the lead: "Exit the room?"
+        case exitRoom
+        /// The leader: the trip is cancelled for everyone.
+        case endTripForEveryone
+    }
+}
+
+// MARK: Profile
+
+extension TripRoomViewModel {
+    /// Whether this name is already used by another car in the trip, for the check when the name field is left.
+    func IsNameTaken(_ name: String, for participantID: UUID) -> Bool {
+        state?.IsNameTaken(name, excluding: participantID) ?? false
+    }
+
+    /// Changes a participant's name, car and avatar. Only my own details are remembered for my next trip; the leader
+    /// fixing a member's name must not make it the leader's own.
+    /// - Parameter avatar: `nil` keeps the current avatar.
+    func UpdateProfile(
+        displayName: String, carDescription: String, avatar: Avatar? = nil, of participantID: UUID? = nil
+    ) async throws {
+        let participantID = participantID ?? myParticipantID
+        guard participantID == myParticipantID || isCurrentUserLeader else { throw TripServiceError.notAllowed }
+        let profile = ParticipantProfile(displayName: displayName, carDescription: carDescription, avatar: avatar)
+        try await tripService.UpdateProfile(profile, participantID: participantID, tripID: tripID)
+        if participantID == myParticipantID {
+            profileStorage.SaveProfile(profile)
+        }
+    }
+
+    /// Saves a profile for the edit sheet: my own, or anyone's when I lead; without `participantID`, my own. Returns
+    /// `true` only when the save succeeded, so the sheet closes then and stays open with `profileErrorMessage`
+    /// otherwise. A second tap while saving is ignored.
+    @discardableResult
+    func SaveProfile(
+        displayName: String, carDescription: String, avatar: Avatar? = nil, of participantID: UUID? = nil
+    ) async -> Bool {
+        guard !isSavingProfile else { return false }
+        isSavingProfile = true
+        isProfileNameTaken = false
+        defer { isSavingProfile = false }
+        do {
+            try await UpdateProfile(
+                displayName: displayName, carDescription: carDescription, avatar: avatar, of: participantID
+            )
+            profileErrorMessage = nil
+            return true
+        } catch {
+            let serviceError = TripServiceError(cloudKitError: error)
+            isProfileNameTaken = serviceError == .nameAlreadyUsed
+            profileErrorMessage = String(localized: serviceError.message)
+        }
+        return false
+    }
+}
+
+// MARK: Following the trip
+
+extension TripRoomViewModel {
+    /// `true` while Precise Location is off: nobody can tell whether this car is at the start point.
+    var isLocationImprecise: Bool {
+        locationSharer?.isLocationImprecise ?? false
+    }
+
+    /// Follows the trip until the room closes, and shares this phone's position meanwhile (US-04, "Ready").
+    func Listen() async {
+        await withTaskGroup(of: Void.self) { group in
+            if let locationSharer {
+                group.addTask { await locationSharer.Run() }
+            }
+            await FollowTrip()
+            group.cancelAll()
+        }
+    }
+
+    private func FollowTrip() async {
+        for await newState in tripService.TripUpdates(tripID: tripID) {
+            let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
+
+            state = newState
+            CloseEditRouteIfNotAllowed()
+
+            // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
+            // even the first one (for example when I was removed before the room finished opening). The update that
+            // follows my own exit can arrive before the request returns, so leaving on purpose is not a removal.
+            if !isStillInTrip && !isCurrentUserLeader && !isLeaving && !hasLeft {
+                wasRemovedFromTrip = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // The leader who ended the trip leaves through Exit, so only the members are told.
+            if !newState.trip.status.isOpen && !isCurrentUserLeader && !isLeaving && !hasLeft && !wasRemovedFromTrip {
+                wasEndedByLeader = true
+                activeTripStorage.ClearActiveTrip()
+            }
+
+            // Only someone still in the trip moves to the map: a member who is exiting or has exited is gone from
+            // the participants, but is not removed, so the check above does not catch them.
+            if !wasRemovedFromTrip && !isLeaving && !hasLeft
+                && (isStillInTrip || isCurrentUserLeader)
+                && newState.trip.status == .inTrip {
+                hasTripStarted = true
+            }
+        }
+    }
+}

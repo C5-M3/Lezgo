@@ -8,4 +8,4 @@
 - Track multi-step tasks with a task list so the user can follow progress.
 - Before claiming a task is done, show the test output and the simulator screenshots you checked.
 - Use the iOS Simulator tools to build, run and screenshot the app when checking UI.
-- Product context (challenge and app statement, roles, core flow) lives in "Project context" in `AGENTS.md`. Before building a screen, open its lo-fi in `context/` and the matching user story in `tasks/`.
+- Product context (challenge and app statement, roles, core flow) lives in "Project context" in `AGENTS.md`. Before building a screen, read its GitHub issue: it shows the lo-fi images and the acceptance criteria.

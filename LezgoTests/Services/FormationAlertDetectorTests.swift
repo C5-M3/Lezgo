@@ -1,0 +1,272 @@
+//
+//  FormationAlertDetectorTests.swift
+//  LezgoTests
+//
+//  Created by Nathan Sudiara on 28/10/26.
+//
+
+import Foundation
+import Testing
+@testable import Lezgo
+
+/// The US-06 formation alerts on a route near the equator: from the start east for about 1,113 m to the checkpoint,
+/// then north to the destination. Leader Agus drives 100 m along it; member Budi is the phone under test.
+struct FormationAlertDetectorTests {
+    private typealias Fixtures = TripMapFixtures
+    private static let metresPerDegree = 111_320.0
+    /// How far along the route the checkpoint is, in metres.
+    private static let checkpointAlongRoute = 0.01 * metresPerDegree
+
+    private let start = Fixtures.now
+
+    /// A point `metres` along the route and `sideways` metres to its left.
+    private static func Along(_ metres: Double, sideways: Double = 0) -> Coordinate {
+        if metres <= checkpointAlongRoute {
+            return Coordinate(latitude: sideways / metresPerDegree, longitude: metres / metresPerDegree)
+        }
+        return Coordinate(
+            latitude: (metres - checkpointAlongRoute) / metresPerDegree,
+            longitude: 0.01 - sideways / metresPerDegree
+        )
+    }
+
+    // MARK: Footprint
+
+    @Test func MemberBehindTheLeaderOnTheFootprintIsNotOffRoute() {
+        // Agus left the route and was rerouted: the route now starts at Agus, 600 m along. Budi, 200 m along,
+        // follows Agus's footprint, so he is on the group's road even though he is 400 m from the new route.
+        var detector = FormationAlertDetector()
+        let rerouted = { (seconds: TimeInterval) -> TripState in
+            var state = self.State(at: seconds, budi: Self.Along(200), agus: Self.Along(600))
+            state.route?.polyline = [Self.Along(600), Self.Along(2 * Self.checkpointAlongRoute)]
+            state.trail = [Self.Along(0), Self.Along(300)]
+            return state
+        }
+
+        _ = detector.Update(rerouted(0), for: Fixtures.budiID)
+
+        #expect(detector.Update(rerouted(20), for: Fixtures.budiID) == .none)
+    }
+
+    @Test func MemberOffTheFootprintToo() {
+        var detector = FormationAlertDetector()
+        let offEverything = { (seconds: TimeInterval) -> TripState in
+            var state = self.State(at: seconds, budi: Self.Along(200, sideways: 300), agus: Self.Along(600))
+            state.trail = [Self.Along(0), Self.Along(300)]
+            return state
+        }
+
+        _ = detector.Update(offEverything(0), for: Fixtures.budiID)
+
+        #expect(detector.Update(offEverything(20), for: Fixtures.budiID) == .offRoute)
+    }
+
+    /// The trip when Budi's phone reads its position `seconds` after `start`.
+    private func State(
+        at seconds: TimeInterval,
+        budi: Coordinate?,
+        agus: Coordinate? = Self.Along(100),
+        agusSeenSecondsEarlier: TimeInterval = 1,
+        currentWaypointIndex: Int = 1
+    ) -> TripState {
+        let seenAt = start.addingTimeInterval(seconds)
+        var budiCar = Fixtures.Car(id: Fixtures.budiID, name: "Budi")
+        budiCar.coordinate = budi
+        budiCar.lastSeenAt = seenAt
+        var agusCar = Fixtures.Car(id: Fixtures.agusID, name: "Agus")
+        agusCar.coordinate = agus
+        agusCar.lastSeenAt = seenAt.addingTimeInterval(-agusSeenSecondsEarlier)
+        let waypoints = [
+            Self.Stop(0, .start, "Tunjungan Plaza", at: 0),
+            Self.Stop(1, .checkpoint, "Ciputra World", at: Self.checkpointAlongRoute),
+            Self.Stop(2, .destination, "Pakuwon mall", at: 2 * Self.checkpointAlongRoute)
+        ]
+        var state = Fixtures.State(
+            cars: [agusCar, budiCar],
+            waypoints: waypoints,
+            currentWaypointIndex: currentWaypointIndex
+        )
+        state.route?.polyline = waypoints.map { $0.coordinate }
+        return state
+    }
+
+    private static func Stop(_ index: Int, _ kind: WaypointKind, _ name: String, at metres: Double) -> Waypoint {
+        Waypoint(
+            id: UUID(),
+            tripID: Fixtures.tripID,
+            orderIndex: index,
+            kind: kind,
+            name: name,
+            coordinate: Along(metres)
+        )
+    }
+
+    /// Feeds Budi's readings in order and returns the alert after the last one.
+    private func Alert(
+        after readings: [TripState],
+        for participantID: UUID = Fixtures.budiID
+    ) -> FormationAlert {
+        var detector = FormationAlertDetector()
+        var alert = FormationAlert.none
+        for state in readings {
+            alert = detector.Update(state, for: participantID)
+        }
+        return alert
+    }
+
+    // MARK: On the route
+
+    @Test func CarOnTheRouteHasNoAlert() {
+        #expect(Alert(after: [State(at: 0, budi: Self.Along(50))]) == .none)
+    }
+
+    @Test func CarWithoutAPositionHasNoAlert() {
+        #expect(Alert(after: [State(at: 0, budi: nil)]) == .none)
+    }
+
+    @Test func LeaderNeverHasAnAlert() {
+        let readings = [0.0, 20].map { State(at: $0, budi: Self.Along(50), agus: Self.Along(300, sideways: 150)) }
+
+        #expect(Alert(after: readings, for: Fixtures.agusID) == .none)
+    }
+
+    // MARK: Off route
+
+    @Test(arguments: [(seconds: 0.0, alert: FormationAlert.none), (4, .none), (5, .offRoute), (40, .offRoute)])
+    func CarOffTheRouteGetsTheAlertAfterFiveSeconds(seconds: TimeInterval, alert: FormationAlert) {
+        let readings = [0, seconds].map { State(at: $0, budi: Self.Along(50, sideways: 150)) }
+
+        #expect(Alert(after: readings) == alert)
+    }
+
+    @Test func CarWithinFiftyMetresOfTheRouteIsOnIt() {
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(50, sideways: 40)) }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func CarOneStreetOverIsOffRoute() {
+        // 60 m off: already on another street, so the driver should know at once.
+        let readings = [0.0, 6].map { State(at: $0, budi: Self.Along(50, sideways: 60)) }
+
+        #expect(Alert(after: readings) == .offRoute)
+    }
+
+    @Test func GpsJumpGivesNoAlert() {
+        let readings = [
+            State(at: 0, budi: Self.Along(50, sideways: 150)),
+            State(at: 3, budi: Self.Along(60, sideways: 150)),
+            State(at: 4, budi: Self.Along(70)),
+            State(at: 18, budi: Self.Along(80, sideways: 150))
+        ]
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func AlertEndsAsSoonAsTheCarIsBack() {
+        let readings = [
+            State(at: 0, budi: Self.Along(50, sideways: 150)),
+            State(at: 15, budi: Self.Along(60, sideways: 150)),
+            State(at: 16, budi: Self.Along(70))
+        ]
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    // MARK: Passed checkpoint
+
+    @Test(arguments: [(pastBy: 150.0, alert: FormationAlert.none), (250, .passedCheckpoint)])
+    func CarPastTheNextCheckpointGetsTheAlertAtOnce(pastBy: Double, alert: FormationAlert) {
+        let state = State(at: 0, budi: Self.Along(Self.checkpointAlongRoute + pastBy), agus: Self.Along(1_100))
+
+        #expect(Alert(after: [state]) == alert)
+    }
+
+    @Test func VisitedCheckpointGivesNoAlert() {
+        let state = State(
+            at: 0,
+            budi: Self.Along(Self.checkpointAlongRoute + 250),
+            agus: Self.Along(Self.checkpointAlongRoute + 100),
+            currentWaypointIndex: 2
+        )
+
+        #expect(Alert(after: [state]) == .none)
+    }
+
+    // MARK: Passed destination
+
+    /// Agus 50 m before the destination, so being ahead of him is not what these tests check.
+    private static let nearDestination = Along(2 * checkpointAlongRoute - 50)
+
+    @Test func CarPastTheDestinationGetsTheAlert() {
+        // Every checkpoint visited; Budi drove on 150 m past the destination, at the end of the route.
+        let past = Self.Along(2 * Self.checkpointAlongRoute + 150)
+        let readings = [0.0, 5].map { State(at: $0, budi: past, agus: Self.nearDestination, currentWaypointIndex: 2) }
+
+        #expect(Alert(after: readings) == .passedDestination)
+    }
+
+    @Test func CarParkedJustPastTheDestinationHasNoAlert() {
+        let parked = Self.Along(2 * Self.checkpointAlongRoute + 30)
+        let readings = [0.0, 30].map {
+            State(at: $0, budi: parked, agus: Self.nearDestination, currentWaypointIndex: 2)
+        }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    // MARK: Ahead of leader
+
+    @Test(arguments: [(seconds: 4.0, alert: FormationAlert.none), (5, .aheadOfLeader)])
+    func CarFarAheadOfTheLeaderGetsTheAlertAfterFiveSeconds(seconds: TimeInterval, alert: FormationAlert) {
+        let readings = [0, seconds].map { State(at: $0, budi: Self.Along(350)) }
+
+        #expect(Alert(after: readings) == alert)
+    }
+
+    @Test func CarALittleAheadOfTheLeaderHasNoAlert() {
+        // 80 m ahead of Agus: the gap between two cars at a light.
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(180)) }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func CarPassingTheLeaderGetsTheAlert() {
+        // 150 m ahead of Agus for 5 seconds.
+        let readings = [0.0, 5].map { State(at: $0, budi: Self.Along(250)) }
+
+        #expect(Alert(after: readings) == .aheadOfLeader)
+    }
+
+    @Test func CarBehindTheLeaderHasNoAlert() {
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(50), agus: Self.Along(600)) }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func OfflineLeaderPausesTheAheadAlert() {
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(350), agusSeenSecondsEarlier: 180) }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    @Test func LeaderWithoutAPositionGivesNoAheadAlert() {
+        let readings = [0.0, 30].map { State(at: $0, budi: Self.Along(350), agus: nil) }
+
+        #expect(Alert(after: readings) == .none)
+    }
+
+    // MARK: One alert at a time
+
+    @Test func OffRouteComesBeforeAheadOfLeader() {
+        let readings = [0.0, 20].map { State(at: $0, budi: Self.Along(600, sideways: 150)) }
+
+        #expect(Alert(after: readings) == .offRoute)
+    }
+
+    @Test func PassedCheckpointComesBeforeAheadOfLeader() {
+        let readings = [0.0, 20].map { State(at: $0, budi: Self.Along(Self.checkpointAlongRoute + 250)) }
+
+        #expect(Alert(after: readings) == .passedCheckpoint)
+    }
+}

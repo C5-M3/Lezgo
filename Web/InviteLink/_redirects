@@ -1,0 +1,3 @@
+# Netlify Drop skips folders whose name starts with a dot, so the AASA file lives at the root
+# and is served at the path iOS reads (ADR 0020).
+/.well-known/apple-app-site-association  /apple-app-site-association  200

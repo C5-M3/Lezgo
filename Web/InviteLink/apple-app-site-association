@@ -1,0 +1,19 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "K64G2J8QL7.com.nathansudiara.Lezgo",
+          "P72H6GZXKM.com.okyfaishal.Lezgo"
+        ],
+        "components": [
+          {
+            "/": "/join",
+            "?": { "code": "??????" },
+            "comment": "Invite link with a 6-character room code, for example /join?code=897654"
+          }
+        ]
+      }
+    ]
+  }
+}

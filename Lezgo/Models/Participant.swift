@@ -1,0 +1,76 @@
+//
+//  Participant.swift
+//  Lezgo
+//
+//  Created by Nathan Sudiara on 26/10/26.
+//
+
+import Foundation
+
+/// One person in a trip, which is also one car and one phone.
+///
+/// Whether they lead is not stored here: compare with `Trip.leaderParticipantID` through `IsLeader(in:)`.
+struct Participant: Identifiable, Hashable, Codable {
+    /// How long a phone may go without sending a location before it counts as offline.
+    static let offlineAfter: TimeInterval = 120
+
+    /// The CloudKit record name.
+    let id: UUID
+    var tripID: UUID
+    /// The iCloud user. Unique per trip: joining again with the same account returns this record.
+    var userRecordID: String
+    var displayName: String
+    var carDescription: String
+    /// `nil` until the phone sends its first location.
+    var coordinate: Coordinate?
+    var speedKmh: Double
+    var motionState: MotionState
+    var alert: FormationAlert
+    var lastSeenAt: Date
+    /// The way the car was heading at its last position, in degrees clockwise from north; `nil` when unknown.
+    var course: Double?
+    /// The road this member's phone is sending them on to get back to the group's road, so the leader can see it;
+    /// empty while they are on the road (`specs/UserStories.md` → US-06, "Footprint").
+    var wayBack: [Coordinate] = []
+    var avatar: Avatar = .yellow
+    /// The destination this driver said they reached with "I've Arrived", because its point was a little off (the
+    /// far side of a big mall, say); `nil` otherwise. Kept per waypoint, so a New Destination starts afresh
+    /// (`specs/UserStories.md` → US-07, "Arrive").
+    var arrivedAtWaypointID: UUID?
+
+    func IsLeader(in trip: Trip) -> Bool {
+        id == trip.leaderParticipantID
+    }
+
+    /// Online until the last location is older than 2 minutes; exactly 2 minutes is still online.
+    func IsOnline(at date: Date) -> Bool {
+        date.timeIntervalSince(lastSeenAt) <= Self.offlineAfter
+    }
+
+    /// Someone who just created or joined a trip: no location yet, stopped, no alert.
+    /// - Parameters:
+    ///   - profile: `nil` uses "Member" plus the end of the iCloud user ID.
+    ///   - isLeader: `true` for the creator; picks the default avatar when the profile has none.
+    static func Joining(
+        tripID: UUID,
+        userRecordID: String,
+        profile: ParticipantProfile?,
+        isLeader: Bool,
+        at date: Date
+    ) -> Participant {
+        let profile = profile ?? ParticipantProfile.unnamed
+        return Participant(
+            id: UUID(),
+            tripID: tripID,
+            userRecordID: userRecordID,
+            displayName: profile.displayName,
+            carDescription: profile.carDescription,
+            coordinate: nil,
+            speedKmh: 0,
+            motionState: .stopped,
+            alert: .none,
+            lastSeenAt: date,
+            avatar: profile.avatar ?? Avatar.Default(isLeader: isLeader)
+        )
+    }
+}
