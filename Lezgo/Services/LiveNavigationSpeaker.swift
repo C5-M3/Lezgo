@@ -15,11 +15,17 @@ final class LiveNavigationSpeaker: NSObject, NavigationSpeaker {
     private let synthesizer = AVSpeechSynthesizer()
     private let chime: AVAudioPlayer?
     private let session = AVAudioSession.sharedInstance()
+    /// The app's language with the phone's region, for the voice and the spoken distance.
+    private let locale = NavigationVoice.SpeechLocale()
+    /// The best installed voice in that language, picked once; `nil` uses the system's default voice for it.
+    private let voice: AVSpeechSynthesisVoice?
 
     /// How long the chime plays before the alert's text is spoken.
     private static let chimeSeconds = 0.5
 
     override init() {
+        voice = NavigationVoice.Best(among: NavigationVoice.Installed(), for: locale)
+            .flatMap { AVSpeechSynthesisVoice(identifier: $0.identifier) }
         chime = Bundle.main.url(forResource: "AlertChime", withExtension: "caf")
             .flatMap { try? AVAudioPlayer(contentsOf: $0) }
         super.init()
@@ -32,9 +38,9 @@ final class LiveNavigationSpeaker: NSObject, NavigationSpeaker {
         // Sound adds to what is on the screen; it never replaces it. Without an audio session (a phone call has
         // it), the banner and turn card still show everything, so this announcement is simply not heard.
         guard ActivateSession() else { return }
-        let utterance = AVSpeechUtterance(string: announcement.SpokenText())
-        utterance.voice = AVSpeechSynthesisVoice(language: AVSpeechSynthesisVoice.currentLanguageCode())
-        // Uses the person's own speech rate and voice from Settings > Accessibility > Spoken Content.
+        let utterance = AVSpeechUtterance(string: announcement.SpokenText(locale: locale))
+        utterance.voice = voice ?? AVSpeechSynthesisVoice(language: locale.identifier(.bcp47))
+        // A voice and rate the person chose in Settings > Accessibility > Spoken Content win over the pick above.
         utterance.prefersAssistiveTechnologySettings = true
         if announcement.playsChime, let chime {
             chime.currentTime = 0
