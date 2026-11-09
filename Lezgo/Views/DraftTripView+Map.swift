@@ -98,6 +98,8 @@ extension DraftTripView {
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            // The badges are map graphics of a fixed size, as on the trip map; bigger text would cover the route.
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .mapControlVisibility(.hidden)
             .disabled(true)
             .allowsHitTesting(false)

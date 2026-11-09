@@ -11,6 +11,7 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.tripService) private var tripService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
     @State private var isJoinTripPresented: Bool = false
@@ -31,18 +32,22 @@ struct HomeView: View {
             Color(.tripCard)
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                headerView
-                    .padding(.top, 120)
-                    .padding(.horizontal, 24)
+            // At the largest text sizes the cards no longer fit on one screen, so they scroll, and the mascots,
+            // which are only decoration, make room for them.
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    homeContent
+                        .padding(.vertical, 24)
+                }
+            } else {
+                VStack(spacing: 0) {
+                    homeContent
+                        .padding(.top, 120)
 
-                cardsSection
-                    .padding(.top, 24)
-                    .padding(.horizontal, 24)
+                    Spacer(minLength: 16)
 
-                Spacer(minLength: 16)
-
-                MascotsView()
+                    MascotsView()
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -150,6 +155,14 @@ struct HomeView: View {
 // MARK: - Header & Cards
 
 private extension HomeView {
+    var homeContent: some View {
+        VStack(spacing: 24) {
+            headerView
+            cardsSection
+        }
+        .padding(.horizontal, 24)
+    }
+
     @ViewBuilder
     var headerView: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -198,6 +211,8 @@ private extension HomeView {
                             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
                                 .font(.title3.weight(.semibold))
                                 .foregroundStyle(Color.brandYellow)
+                                // The icon must stay inside its 50-point circle.
+                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         }
 
                         Spacer()
@@ -215,7 +230,7 @@ private extension HomeView {
                         Text("Plan the trip and make a room for friends to join trip!")
                             .font(.subheadline)
                             .foregroundStyle(.black)
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .minimumScaleFactor(0.85)
                     }
                 }
@@ -226,7 +241,7 @@ private extension HomeView {
             .background(Color.brandYellow)
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     @ViewBuilder
@@ -253,6 +268,8 @@ private extension HomeView {
                             Image(systemName: "door.left.hand.open")
                                 .font(.title3.weight(.semibold))
                                 .foregroundStyle(.black)
+                                // The icon must stay inside its 50-point circle.
+                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         }
 
                         Spacer()
@@ -270,7 +287,7 @@ private extension HomeView {
                         Text("Got a room code from friend leader? Join the room now!")
                             .font(.subheadline)
                             .foregroundStyle(Color(white: 0.6))
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .minimumScaleFactor(0.8)
                     }
                 }
@@ -281,7 +298,7 @@ private extension HomeView {
             .background(cardDarkBackground)
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
