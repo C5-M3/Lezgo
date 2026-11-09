@@ -38,3 +38,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0021](0021-OneCarPerPhone.md) | One car per phone, not per iCloud account | Proposed | 2026-10-31 |
 | [0022](0022-CustomTripMapControls.md) | Custom trip map cards instead of Apple's sheet and glass | Proposed | 2026-11-05 |
 | [0023](0023-CarPlayMirrorsTheTripMap.md) | CarPlay mirrors the trip map with Apple's templates | Accepted | 2026-11-07 |
+| [0024](0024-VoiceGuidanceAndAlertSounds.md) | Voice guidance and alert sounds on the trip map | Proposed | 2026-11-09 |

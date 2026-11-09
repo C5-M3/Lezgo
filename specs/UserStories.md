@@ -16,7 +16,7 @@ Each story becomes one parent issue in the GitHub Project; its tasks become sub-
 | [US-03](#us-03) | As a leader or member, I want to see my unfinished trip when I open the app so that I can continue it or start a new one. |
 | [US-04](#us-04) | As a leader or member, I want a Trip Room that shows the route, who joined and who is ready so that the group can gather before leaving. |
 | [US-05](#us-05) | As a leader, I want to manage the group and start the trip for everyone so that the right cars leave together. |
-| [US-06](#us-06) | As a leader or member, I want to see the shared route, every car and silent alerts on one map so that we stay together on the road. |
+| [US-06](#us-06) | As a leader or member, I want to see the shared route, every car and alerts on one map so that we stay together on the road. |
 | [US-07](#us-07) | As a leader or member, I want to arrive, continue, leave or end the trip clearly so that nobody is ever stuck in a trip. |
 
 ---
@@ -78,7 +78,7 @@ LOBBY ──leader leaves──► CANCELLED
 - Every phone shows another car's new position and any status change (join, leave, remove, start, end, new route, new leader) **within 2 seconds**. Start Trip reaches every phone **within 1 second**. Phones listen to a CloudKit subscription and also fetch every 1 second while the app is open; silent pushes alone are not enough because iOS delays and drops them.
 - Arrival and checkpoints use a **20 m radius**, checked on every 1-second location update instead of an iOS region geofence (region geofences fire late or not at all for a radius this small). At highway speed a car moves about 28 m per second, so a car also counts as arriving when the line between two updates passes within 20 m of the point.
 - A person is **offline** when `lastSeenAt` is older than **2 minutes**.
-- Alerts on the road are visual only. No sound, no vibration.
+- Alerts on the road are visual and spoken, with no vibration ([ADR 0024](../docs/adr/0024-VoiceGuidanceAndAlertSounds.md)). The next turn is spoken, and a new alert plays a short chime and speaks its text once. One button on the trip map mutes both.
 - Every destructive action asks for confirmation, and every flow has a way out.
 
 ### CarPlay
@@ -88,7 +88,7 @@ While the trip map is open on the iPhone, CarPlay shows the same trip (#257, [AD
 | Phone | CarPlay |
 | --- | --- |
 | Turn card, time left | Guidance panel and trip estimates |
-| Alert and notice banners | Navigation alert, silent, with "OK" |
+| Alert and notice banners | Navigation alert with "OK"; the phone's chime and voice play through the car |
 | Car status card | "Cars" button, then a panel with the car's status |
 | "You have arrived!" card | Panel with the title, subtitle and "2/3 arrived" |
 | End Trip / Exit Trip | Navigation bar button, then the same question with "Cancel" and "Confirm" |
@@ -100,7 +100,7 @@ If the car's own navigation, or another app, takes over, Lezgo's turn-by-turn gu
 
 ### Not in scope (no lo-fi, not in the app statement)
 
-Trip recap, trip history, SOS button, prolonged-stop alerts, sound notifications, "Cancel Trip" menu item.
+Trip recap, trip history, SOS button, prolonged-stop alerts, vibration, "Cancel Trip" menu item.
 
 ---
 
@@ -579,7 +579,7 @@ Feature: Manage the group and start
 ---
 
 <a id="us-06"></a>
-## US-06 — As a leader or member, I want to see the shared route, every car and silent alerts on one map so that we stay together on the road.
+## US-06 — As a leader or member, I want to see the shared route, every car and alerts on one map so that we stay together on the road.
 
 **Lo-fi:** `TRIP COORDINATE`, `TRIP COORDINATE 2`, `MEMBER`, `MEMBER FOCUS`, `FOCUS ON ONE OF CAR`, `FOCUS ON ONE OF CAR 5`, `MEMBER WRONG ROUTE`, `MEMBER WRONG ROUTE FOCUS`, `MEBER PASS CHECKPOINT`, `MEBER PASS CHECKPOINT FOCUS`, `MEBER PRECEDE LEADER`, `MEBER PRECEDE LEADER FOCUS`, `EDGE CASE - OUT OF THE WAY`, `EDGE CASE - OUT OF THE WAY Copy`, `EDIT ROUTE`
 
@@ -623,17 +623,23 @@ Feature: Manage the group and start
 | Passed destination | More than 100 m past the end of the route, every checkpoint visited, for 5 s | "You passed the destination" | Nothing; only that car sees it |
 | Ahead of leader | More than 100 m ahead of the leader for 5 s | "You Precede The Leader" | Nothing; slow down or wait |
 
-- Visual only, under the turn card. One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
+- Under the turn card, with a chime and its text spoken once when it appears (muted with the mute button). One banner at a time (passed destination > off route > passed checkpoint > ahead of leader). It disappears when the condition ends; ⓧ hides it until it happens again.
 - Everyone else sees "[name] has gone out of route" / "[name] - Precede The Leader" ("Car 3 has gone out of route", "Budi has gone out of route") and the car highlighted. The lo-fi's "Car X" put "Car" before the name; with automatic names that read "Car Car 3".
 - **Stopped car:** another online car that was driving and has been at speed 0 for 30 seconds, before it has arrived (US-07), shows "[name] has stopped" on a red banner, after every formation alert. It hides until that car has driven again. A car still waiting at the start does not count.
 - A tap on the banner hides it (the hi-fi has no ⓧ). Banners are yellow, and red for a stopped car.
 - The time and distance limits stop flicker from GPS noise. They were 100 m and 15 s at first; on the road a wrong turn then showed far too late, so they match the leader's reroute now (50 m, 5 s).
 
+**Sound** ([ADR 0024](../docs/adr/0024-VoiceGuidanceAndAlertSounds.md))
+- Voice guidance speaks the turn card's instruction in the phone's language: "In 500 metres, turn right" (only when the turn was further than 500 m), "In 200 metres, turn right", and "Turn right" at 30 m. Each turn is spoken at most once per distance.
+- A formation alert, a "[name] has stopped" banner and the red notices ("Couldn't update the route. Trying again.", "Agus is offline") play a short chime and speak the banner text once when they appear. The same banner staying on screen, or coming back after a tap, is not spoken again until it ends and happens again. Car pins are silent.
+- Other audio (music, podcasts) is lowered while the app speaks, and comes back after. Sound plays with the screen locked and through CarPlay.
+- A "Mute" button on the trip map turns off voice and chime; "Unmute" turns them back on. The phone remembers it for the next trip, and CarPlay follows it.
+
 **Route changes (leader only)**
 - Automatic: the leader more than 50 m off the route for 5 s → new route from the leader through the unvisited checkpoints to the destination. These limits are tighter than a member's off-route alert so the group is rerouted within seconds, as in Apple Maps; 5 s still ignores short GPS jumps. A failed reroute is tried again after 10 s.
 - Manual: Edit Route opens the planner (US-01) with the leader's position as start point. The button that opens it on the map **needs lo-fi**.
 - Each new route has `routeVersion + 1`; members switch within 2 seconds and never go back to an older version.
-- **Rerouting notice** (like Apple Maps and Google Maps), visual only. Lo-fi: `B6 Rerouting (leader)`.
+- **Rerouting notice** (like Apple Maps and Google Maps), shown and spoken ("New route", "Route updated"); "Rerouting…" is not spoken. Lo-fi: `B6 Rerouting (leader)`.
   - From 2 seconds off the road until the new route arrives, the turn card shows "Rerouting…" in its place: "Finding a new route for everyone" on the leader's phone, "Finding the way back to your group" on a member's phone looking for a way back. It replaces the turn card, so nothing is added on top of the map.
   - When the new route arrives, every phone shows a yellow banner under the turn card for 5 seconds, then it hides on its own:
     - The same stops: "New route · Following Agus · 52 min" ("New route · 52 min" on the leader's phone).
@@ -686,7 +692,8 @@ Feature: Drive together
 
   Scenario: A car stops
     Given "Budi" has had speed 0 for 30 seconds
-    Then the pin of "Budi" shows the stopped style and no sound plays
+    Then the pin of "Budi" shows the stopped style
+    And "Agus" hears a chime and "Budi has stopped" once
 
   Scenario: Member leaves the route
     When "Budi" is more than 50 m off the route for 5 seconds
@@ -735,7 +742,17 @@ Feature: Drive together
     When the new route arrives
     Then "Budi" and "Citra" see "New route · Following Agus" with the new time for 5 seconds
     And the map shows the new route line without any tap
-    And no sound plays
+    And "Budi" and "Citra" hear "New route"
+
+  Scenario: Hear the next turn
+    Given "Budi" is 800 m from a right turn
+    When "Budi" drives to 500 m, 200 m and 30 m from the turn
+    Then "Budi" hears "In 500 metres, turn right", "In 200 metres, turn right" and "Turn right", each once
+
+  Scenario: Mute the trip map
+    Given "Budi" tapped "Mute"
+    When "Budi" is more than 50 m off the route for 5 seconds
+    Then "Budi" sees "You're out of the way" and hears nothing
 
   Scenario: Leader edits the route
     When "Agus" opens Edit Route, changes the destination to "Pakuwon city mall" and saves
