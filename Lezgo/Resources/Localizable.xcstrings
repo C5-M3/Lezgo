@@ -1343,6 +1343,18 @@
         }
       }
     },
+    "tripMapVoiceTurnIn" : {
+      "comment" : "Spoken by voice guidance before a turn (US-06, Sound). The first placeholder is the distance (\"200 meters\"), the second the turn instruction from Maps (\"turn right\").",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In %1$@, %2$@"
+          }
+        }
+      }
+    },
     "tripMapWaitingForEveryone" : {
       "comment" : "Arrival card line while other cars are still on the way (US-07).",
       "extractionState" : "manual",

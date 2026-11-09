@@ -184,7 +184,7 @@ struct TripMapAnnouncerTests {
     @Test func TheSpokenTextOfATurnStartsWithTheDistance() {
         let announcement = Announcement.turn(instruction: "Turn right", meters: 200)
 
-        let text = announcement.SpokenText(locale: Locale(identifier: "en_ID"))
+        let text = announcement.SpokenText(locale: Locale(identifier: "en_US"))
 
         #expect(text == "In 200 meters, turn right")
     }
