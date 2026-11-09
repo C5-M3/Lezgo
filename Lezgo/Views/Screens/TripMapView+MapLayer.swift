@@ -41,29 +41,23 @@ extension TripMapView {
 
         var body: some View {
             Map(position: $cameraPosition) {
-                // On the leader's map, the road the leader has driven: the members behind follow it, so the leader
-                // can see them on it. Dotted and faint, so it never reads as the way to go.
-                MapPolyline(coordinates: viewModel.footprint.map(\.locationCoordinate))
-                    .stroke(
-                        Color(.brandYellow).opacity(0.5),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round, dash: [0.5, 10])
-                    )
-
-                // On the leader's map, where a member who left the road is being sent. Dashed and in the colour of
-                // that car's alert, so it never reads as the leader's own route.
-                ForEach(viewModel.memberWayBacks) { wayBack in
+                // Where another member who left the road is being sent. Dashed and in the colour of that car's
+                // robot, so it never reads as this phone's own route.
+                ForEach(viewModel.wayBacks) { wayBack in
                     MapPolyline(coordinates: wayBack.path.map(\.locationCoordinate))
                         .stroke(
-                            Color(.formationAlertBackground),
+                            wayBack.carColor.color,
                             style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round, dash: [10, 10])
                         )
                 }
 
-                // Only what is still ahead, as in Apple Maps: the part already driven and the stops passed go away.
-                MapPolyline(coordinates: viewModel.routeAhead.map(\.locationCoordinate))
-                    .stroke(Color(.tripCard), style: StrokeStyle(lineWidth: 16, lineCap: .round, lineJoin: .round))
-                MapPolyline(coordinates: viewModel.routeAhead.map(\.locationCoordinate))
-                    .stroke(Color(.brandYellow), style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                // The group's route from the last car on, and this phone's own way back to it.
+                ForEach(RouteLines()) { line in
+                    MapPolyline(coordinates: line.coordinates)
+                        .stroke(Color(.tripCard), style: StrokeStyle(lineWidth: 16, lineCap: .round, lineJoin: .round))
+                    MapPolyline(coordinates: line.coordinates)
+                        .stroke(Color(.brandYellow), style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
+                }
 
                 ForEach(viewModel.upcomingWaypoints) { waypoint in
                     Annotation(waypoint.name, coordinate: waypoint.coordinate.locationCoordinate, anchor: .bottom) {
@@ -109,6 +103,12 @@ extension TripMapView {
                 // A tapped car is followed as it moves, gliding with its robot.
                 if case .followCar = viewModel.cameraMode { MoveCamera(animation: .linear(duration: 1)) }
             }
+        }
+
+        /// The yellow lines: the group's route, and this phone's own way back to it while there is one.
+        private func RouteLines() -> [RouteLine] {
+            [RouteLine(id: "route", path: viewModel.routeLine), RouteLine(id: "wayBack", path: viewModel.myWayBack)]
+                .filter { $0.coordinates.count > 1 }
         }
 
         private func CarGroups() -> [TripMapCarGroup] {
@@ -196,6 +196,19 @@ extension TripMapView.MapLayer {
             } else {
                 TripMapCarGroupView(group: group, selectedID: viewModel.selectedCarID, onSelect: viewModel.SelectCar)
             }
+        }
+    }
+}
+
+extension TripMapView.MapLayer {
+    /// One yellow line on the map, named so the map keeps drawing it as the same line while it changes.
+    struct RouteLine: Identifiable {
+        let id: String
+        let coordinates: [CLLocationCoordinate2D]
+
+        init(id: String, path: [Coordinate]) {
+            self.id = id
+            coordinates = path.map(\.locationCoordinate)
         }
     }
 }

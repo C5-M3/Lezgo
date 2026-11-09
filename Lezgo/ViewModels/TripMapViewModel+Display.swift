@@ -36,11 +36,36 @@ extension TripMapViewModel {
         return waypoints.filter { $0.kind != .start && $0.IsVisited(currentWaypointIndex: currentIndex) == false }
     }
 
-    /// On the leader's phone, the road the leader has driven up to their car: the road the members behind follow,
-    /// so the leader can see them on it. Empty on a member's phone, which draws only what is ahead.
-    var footprint: [Coordinate] {
-        guard isLeader, let state, state.trail.isEmpty == false, let myCoordinate else { return [] }
-        return state.trail + [myCoordinate]
+    /// The route line every phone draws, the same on each: the group's road from the last car on it to the
+    /// destination. A part goes away only once the last car has driven it, so a car in the middle never cuts the line
+    /// off for the cars behind it. A car off the road counts where its way back joins the road; offline cars are left
+    /// out, as their position is out of date.
+    var routeLine: [Coordinate] {
+        guard let state, let updatedAt else { return route }
+        let path = state.groupPath
+        let lastCar = state.participants
+            .compactMap { LinePoint(of: $0, in: state, at: updatedAt) }
+            .compactMap { point in RoutePosition.Locate(point, on: path).map { (point: point, position: $0) } }
+            .min { $0.position.distanceAlongRoute < $1.position.distanceAlongRoute }
+        guard let lastCar else { return path }
+        return RoutePosition.RouteAhead(of: lastCar.point, on: path)
+    }
+
+    /// This member's own way back, from their car to where it joins the group's road, drawn like the route line.
+    var myWayBack: [Coordinate] {
+        guard let wayBack = following.wayBack, let myCoordinate else { return [] }
+        return RoutePosition.RouteAhead(of: myCoordinate, on: wayBack)
+    }
+
+    /// Where a car holds the route line back: where it is, or where its way back joins the road. `nil` for a car
+    /// without a position, or another car that is offline.
+    private func LinePoint(of car: Participant, in state: TripState, at date: Date) -> Coordinate? {
+        if car.id == myParticipantID {
+            return following.wayBack?.last ?? myCoordinate
+        }
+        guard car.IsOnline(at: date) else { return nil }
+        if car.IsLeader(in: state.trip) == false, let rejoin = car.wayBack.last { return rejoin }
+        return car.coordinate
     }
 
     /// `true` while a new route is on its way: the leader's reroute, or a member's way back to the group's road. The
@@ -49,15 +74,16 @@ extension TripMapViewModel {
         following.isFindingWayBack || (isLeader && reroute?.isRerouting == true)
     }
 
-    /// On the leader's phone, where each member who left the group's road is being sent, so the leader sees how that
-    /// car will catch up. Offline cars are left out: their last position is out of date, and so is their way back.
-    var memberWayBacks: [MemberWayBack] {
-        guard isLeader, let state, let updatedAt else { return [] }
+    /// Where each other member who left the group's road is being sent, so everyone sees how that car will catch up.
+    /// This phone's own way back is `myWayBack`. Offline cars are left out: their last position is out of date, and so
+    /// is their way back.
+    var wayBacks: [CarWayBack] {
+        guard let state, let updatedAt else { return [] }
         return state.participants.compactMap { car in
-            guard car.wayBack.isEmpty == false, car.IsLeader(in: state.trip) == false,
+            guard car.id != myParticipantID, car.wayBack.isEmpty == false, car.IsLeader(in: state.trip) == false,
                   car.IsOnline(at: updatedAt) else { return nil }
             let left = car.coordinate.map { RoutePosition.RouteAhead(of: $0, on: car.wayBack) }
-            return MemberWayBack(id: car.id, path: left ?? car.wayBack)
+            return CarWayBack(id: car.id, path: left ?? car.wayBack, carColor: CarColor(of: car, in: state))
         }
     }
 
