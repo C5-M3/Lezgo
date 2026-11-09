@@ -73,6 +73,17 @@ struct TripMapAlertsStoppedTests {
         #expect(alerts.Banner(in: state, at: Fixtures.now) == nil)
     }
 
+    /// Parked 200 m from a point on the far side of a big mall, after "I've Arrived": the car has arrived, not stopped.
+    @Test func ACarThatSaidItArrivedGetsNoBanner() {
+        var alerts = TripMapAlerts(myParticipantID: Fixtures.budiID)
+        _ = alerts.Update(State(citra: .driving, citraMetres: 200))
+        var state = State(citra: .stopped, citraMetres: 200)
+        state.participants[2].arrivedAtWaypointID = Fixtures.destination.id
+        _ = alerts.Update(state)
+
+        #expect(alerts.Banner(in: state, at: Fixtures.now) == nil)
+    }
+
     @Test func AnOfflineCarGetsNoStoppedBanner() {
         var alerts = TripMapAlerts(myParticipantID: Fixtures.budiID)
         _ = alerts.Update(State(citra: .driving))
