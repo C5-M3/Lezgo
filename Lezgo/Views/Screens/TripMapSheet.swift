@@ -100,14 +100,14 @@ extension TripMapSheet {
                         // After arriving the choices are New Destination and leaving (US-07, "Arrive").
                         if viewModel.canEditRoute, viewModel.arrivalCard == nil {
                             Button(action: viewModel.RequestEditRoute) {
-                                Label(.tripMapEditRoute, systemImage: "pencil")
+                                Text(.tripMapEditRoute)
                             }
                             .buttonStyle(TripMapCardButtonStyle())
                         }
                         // Near a destination whose point is a little off, such as the far side of a big mall.
                         if viewModel.canMarkArrived {
                             Button(action: viewModel.RequestMarkArrived) {
-                                Label(.tripMapIveArrived, systemImage: "flag.checkered")
+                                Text(.tripMapIveArrived)
                             }
                             .buttonStyle(TripMapCardButtonStyle())
                             .disabled(viewModel.manualArrival.isSaving)
@@ -137,10 +137,16 @@ extension TripMapSheet {
         let viewModel: TripMapViewModel
         let onNewDestination: (() -> Void)?
 
+        /// The old content fades out quickly before the new one fades in, so the two never sit on top of each other.
+        private static let swap = AnyTransition.asymmetric(
+            insertion: .opacity.animation(.lezgoFade.delay(0.12)),
+            removal: .opacity.animation(.lezgoFade)
+        )
+
         var body: some View {
             if let carStatus = viewModel.selectedCarStatus {
                 TripMapCarStatusCard(status: carStatus, onClose: { viewModel.SelectCar(nil) })
-                    .transition(.opacity)
+                    .transition(Self.swap)
             } else if let arrivalCard = viewModel.arrivalCard {
                 TripMapArrivalCardView(
                     card: arrivalCard,
@@ -148,16 +154,16 @@ extension TripMapSheet {
                     onNewDestination: onNewDestination
                 )
                 .disabled(viewModel.isLeaving)
-                .transition(.opacity)
+                .transition(Self.swap)
             } else if let destinationName = viewModel.destinationName {
                 TripMapDestinationSummary(
                     destinationName: destinationName,
                     timeLeft: viewModel.guidance?.timeLeft
                 )
-                .transition(.opacity)
+                .transition(Self.swap)
             } else {
                 ProgressView(.tripMapLoading)
-                    .transition(.opacity)
+                    .transition(Self.swap)
             }
         }
     }

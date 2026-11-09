@@ -43,16 +43,17 @@ struct TripMapCarPinView: View {
                         .frame(width: 62, height: 62)
                 }
             }
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .topLeading) {
                 if let badge = Badge() {
                     BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
-                        .offset(x: 6, y: -6)
+                        .offset(x: -6, y: -6)
                 }
             }
-            .overlay(alignment: .topLeading) {
+            // The crown sits at the top right, as in the hi-fi; the status badge takes the other corner.
+            .overlay(alignment: .topTrailing) {
                 if pin.isLeader {
                     TripMapLeaderCrown()
-                        .offset(x: -6, y: -6)
+                        .offset(x: 6, y: -6)
                 }
             }
             .overlay(alignment: .bottom) {
@@ -78,7 +79,7 @@ struct TripMapCarPinView: View {
 
     private static let alertSymbol = "exclamationmark"
 
-    /// The status badge at the top right; the leader's crown sits at the top left.
+    /// The status badge at the top left; the leader's crown sits at the top right.
     private func Badge() -> String? {
         if pin.isAlerting { return Self.alertSymbol }
         return pin.motionState == .stopped ? "pause.fill" : nil

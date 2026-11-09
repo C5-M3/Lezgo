@@ -16,56 +16,58 @@ struct TripMapCarStatusCard: View {
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 32
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// The robot's body fills only part of its image; the rest is transparent margin.
-    private static let robotImageSize = 56 / 0.426
+    /// The mascot's body fills only part of its image; the rest is transparent margin.
+    private static let mascotImageSize = 130.0
 
+    /// As in the hi-fi ("04 Trip Started", a tapped car): the name with what the car is doing beside it, the car,
+    /// then where it is and how long it has left, and the whole mascot on the right.
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(status.carColor.frontImage)
-                    .resizable()
-                    .frame(width: Self.robotImageSize, height: Self.robotImageSize)
-                    .frame(width: 56, height: 56)
-                    .opacity(IsOffline() ? 0.4 : 1)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: status.displayName)
-                        .font(.title2.bold())
-                        .foregroundStyle(.white)
-                    if status.carDescription.isEmpty == false {
-                        Text(verbatim: status.carDescription)
-                            .font(.callout)
-                            .foregroundStyle(Color(.tripCardSubtext))
-                    }
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) { NameAndStatus() }
+                    VStack(alignment: .leading, spacing: 4) { NameAndStatus() }
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
+                if status.carDescription.isEmpty == false {
+                    Text(verbatim: status.carDescription)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(.tripCardText))
+                }
+                if HasDetail() {
+                    Text(verbatim: status.statusLine)
+                        .font(.callout)
+                        .foregroundStyle(Color(.tripCardSubtext))
+                }
                 if let timeLeft = status.timeLeft {
                     Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
                         .font(.system(size: timeSize, weight: .black))
                         .foregroundStyle(Color(.brandYellow))
-                        .multilineTextAlignment(.trailing)
-                        .fixedSize(horizontal: false, vertical: true)
                         .contentTransition(.numericText(countsDown: true))
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Chip(activity: status.activity)
-
-            if HasDetail() {
-                Text(verbatim: status.statusLine)
-                    .font(.callout)
-                    .foregroundStyle(Color(.tripCardText))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            Image(status.carColor.fullBodyImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: Self.mascotImageSize, height: Self.mascotImageSize)
+                .opacity(IsOffline() ? 0.4 : 1)
+                .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: status)
         .accessibilityElement(children: .combine)
         .accessibilityAction(.escape, onClose)
         .accessibilityAction(named: Text(.tripMapCloseCarStatus), onClose)
+    }
+
+    @ViewBuilder
+    private func NameAndStatus() -> some View {
+        Text(verbatim: status.displayName)
+            .font(.title2.bold())
+            .foregroundStyle(.white)
+        Chip(activity: status.activity)
     }
 
     private func IsOffline() -> Bool {
@@ -89,13 +91,11 @@ extension TripMapCarStatusCard {
         let activity: TripMapCarStatus.Activity
 
         var body: some View {
+            // Yellow while driving, as in the hi-fi; grey once stopped or offline. The icon carries the meaning too.
             Label(Title(), systemImage: Symbol())
                 .contentTransition(.symbolEffect(.replace))
                 .font(.subheadline.bold())
-                .foregroundStyle(IsDriving() ? Color(.tripCard) : Color(.tripCardText))
-                .padding(.horizontal, 12)
-                .frame(minHeight: 32)
-                .background(IsDriving() ? Color(.brandGreen) : Color(.tripCardButton), in: .capsule)
+                .foregroundStyle(IsDriving() ? Color(.brandYellow) : Color(.tripCardSubtext))
         }
 
         private func IsDriving() -> Bool {
