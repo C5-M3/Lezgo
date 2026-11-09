@@ -30,4 +30,26 @@ struct ProfileStorageTests {
 
         #expect(storage.LoadProfile() == ParticipantProfile(displayName: "Nathan", carDescription: "White Avanza"))
     }
+
+    @Test func SavedAvatarIsThereNextTime() {
+        let storage = MakeStorage()
+        let profile = ParticipantProfile(displayName: "Nathan", carDescription: "", avatar: .green)
+
+        storage.SaveProfile(profile)
+
+        #expect(storage.LoadProfile()?.avatar == .green)
+    }
+
+    @Test func ProfileSavedBeforeAvatarsStillLoads() throws {
+        let suiteName = "ProfileStorageTests-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let oldJSON = Data(#"{"displayName":"Nathan","carDescription":"White Avanza"}"#.utf8)
+        defaults.set(oldJSON, forKey: "participant_profile")
+
+        let profile = UserDefaultsProfileStorage(userDefaults: defaults).LoadProfile()
+
+        #expect(profile == ParticipantProfile(displayName: "Nathan", carDescription: "White Avanza"))
+        #expect(profile?.avatar == nil)
+    }
 }

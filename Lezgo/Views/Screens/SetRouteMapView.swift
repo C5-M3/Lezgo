@@ -12,7 +12,7 @@ struct SetRouteMapView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: MapViewModel
     @State private var drawerHeight: CGFloat = 310
-    @State private var selectedDetent: PresentationDetent = .height(280)
+    @State private var selectedDetent: PresentationDetent = .height(310)
 
     private let title: LocalizedStringResource
     private let nextTitle: LocalizedStringResource
@@ -54,7 +54,9 @@ struct SetRouteMapView: View {
 
         MapReader { proxy in
             Map(position: $boundViewModel.cameraPosition) {
-                UserAnnotation()
+                if viewModel.isLocationAuthorized {
+                    UserAnnotation()
+                }
 
                 if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
                     Marker(start.name, coordinate: start.coordinate)

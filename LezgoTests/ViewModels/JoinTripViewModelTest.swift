@@ -84,7 +84,13 @@ struct JoinTripViewModelTest {
     func submitCodeWhenTripAlreadyBegun() async throws {
         let service = SampleTrip.Service(status: .inTrip, me: UUID())
         let storage = FakeActiveTripStorage()
-        let viewModel = JoinTripViewModel(roomCode: SampleTrip.roomCode, tripService: service, storage: storage)
+        // A fake profile, so a name this phone saved in an earlier run cannot clash with the sample group.
+        let viewModel = JoinTripViewModel(
+            roomCode: SampleTrip.roomCode,
+            tripService: service,
+            storage: storage,
+            profileStorage: FakeProfileStorage()
+        )
 
         let success = await viewModel.submitCode()
 

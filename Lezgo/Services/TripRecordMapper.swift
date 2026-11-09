@@ -94,6 +94,7 @@ enum TripRecordMapper {
         record["userRecordID"] = participant.userRecordID
         record["displayName"] = participant.displayName
         record["carDescription"] = participant.carDescription
+        record["avatar"] = participant.avatar.rawValue
         record["latitude"] = participant.coordinate?.latitude
         record["longitude"] = participant.coordinate?.longitude
         record["speedKmh"] = participant.speedKmh
@@ -122,7 +123,9 @@ enum TripRecordMapper {
             alert: try reader.Enum("alert"),
             lastSeenAt: try reader.Value("lastSeenAt"),
             course: reader.OptionalValue("course"),
-            wayBack: (reader.OptionalValue("wayBack") as Data?).flatMap(Polyline(from:)) ?? []
+            wayBack: (reader.OptionalValue("wayBack") as Data?).flatMap(Polyline(from:)) ?? [],
+            // Records from before avatars, or with an avatar a newer build added, show the leader's yellow.
+            avatar: (reader.OptionalValue("avatar") as String?).flatMap(Avatar.init(rawValue:)) ?? .yellow
         )
     }
 

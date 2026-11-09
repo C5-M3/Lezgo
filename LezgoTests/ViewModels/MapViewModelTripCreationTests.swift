@@ -189,6 +189,8 @@ struct MapViewModelTripCreationTests {
         #expect(saved.roomCode == session.state.trip.roomCode)
         #expect(saved.isLeader == true)
         #expect(saved.status == .lobby)
+        #expect(saved.routeCoordinates == session.state.route?.polyline)
+        #expect(saved.routeCoordinates?.isEmpty == false)
     }
 
     @Test func CreateTripHandlesServiceError() async {
