@@ -92,8 +92,11 @@ While the trip map is open on the iPhone, CarPlay shows the same trip (#257, [AD
 | Car status card | "Cars" button, then a panel with the car's status |
 | "You have arrived!" card | Panel with the title, subtitle and "2/3 arrived" |
 | End Trip / Exit Trip | Navigation bar button, then the same question with "Cancel" and "Confirm" |
+| "The leader ended the trip." / "You were removed from the trip." | The same message as an alert with "OK" |
 
 Without a trip map on the phone, CarPlay shows the map and "No trip yet · Start or join a trip on your iPhone, and it shows here." New Destination and Edit Route stay on the phone.
+
+If the car's own navigation, or another app, takes over, Lezgo's turn-by-turn guidance stops at once. The map and the cars stay, and a "Resume" button in the navigation bar turns guidance back on.
 
 ### Not in scope (no lo-fi, not in the app statement)
 

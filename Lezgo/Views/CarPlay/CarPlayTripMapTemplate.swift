@@ -23,20 +23,18 @@ final class CarPlayTripMapTemplate: NSObject {
     private var navigationTrip: CPTrip?
     /// The maneuver on the guidance panel, to update its distance instead of replacing it.
     private var shownManeuver: (maneuver: CarPlayTripViewModel.Maneuver, template: CPManeuver)?
-    /// CarPlay cancelled guidance, for example because the car's own navigation started. Guidance must stop at once
-    /// and stays off until the next trip.
-    private var isGuidanceCancelledByCarPlay = false
+    /// Why guidance is paused, so CarPlay is told once and not on every GPS update.
+    private var pausedFor: CPNavigationSession.PauseReason?
+    /// Where the guided trip ends; a new destination starts a new trip.
+    private var guidedDestination: Coordinate?
 
-    /// The leave button's title on the navigation bar. The bar is only rebuilt when it changes: a button replaced
-    /// while the driver taps it drops the tap.
-    private var shownLeaveTitle: String?
+    /// The navigation bar's buttons. The bar is only rebuilt when they change: a button replaced while the driver
+    /// taps it drops the tap.
+    private var shownBar: NavigationBar?
     private var shownAlert: CarPlayTripViewModel.Alert?
-    private var shownConfirmation: CarPlayTripViewModel.Confirmation?
-    private var shownLeaveError: String?
+    private var shownModalAlert: ModalAlert?
 
-    /// `true` while the list opened with the Cars button is open.
-    var isShowingCars = false
-    var shownPanelContent: PanelContent?
+    var shownPanelContent: CarPlayTripViewModel.Panel?
     /// The `CPMapPanel` on screen. A stored property cannot be limited to iOS 27, where map panels start.
     var shownPanel: NSObject?
 
@@ -71,7 +69,7 @@ final class CarPlayTripMapTemplate: NSObject {
         UpdateNavigationBar()
         UpdateGuidance()
         UpdateAlert()
-        UpdateLeaveConfirmation()
+        UpdateModalAlert()
         if #available(iOS 27.0, *) { UpdatePanel() }
     }
 
@@ -85,12 +83,21 @@ final class CarPlayTripMapTemplate: NSObject {
 // MARK: Navigation bar
 
 extension CarPlayTripMapTemplate {
+    /// What the navigation bar holds, compared as text: two equal `LocalizedStringResource` values do not always
+    /// compare equal.
+    private struct NavigationBar: Equatable {
+        var leaveTitle: String?
+        var canResumeGuidance: Bool
+    }
+
     private func UpdateNavigationBar() {
-        // Compared as text: two equal `LocalizedStringResource` values do not always compare equal.
-        let leaveTitle = viewModel.leaveButtonTitle.map { String(localized: $0) }
-        guard leaveTitle != shownLeaveTitle else { return }
-        shownLeaveTitle = leaveTitle
-        guard let leaveTitle else {
+        let bar = NavigationBar(
+            leaveTitle: viewModel.leaveButtonTitle.map { String(localized: $0) },
+            canResumeGuidance: viewModel.canResumeGuidance
+        )
+        guard bar != shownBar else { return }
+        shownBar = bar
+        guard let leaveTitle = bar.leaveTitle else {
             mapTemplate.leadingNavigationBarButtons = []
             mapTemplate.trailingNavigationBarButtons = []
             return
@@ -99,16 +106,22 @@ extension CarPlayTripMapTemplate {
             self?.viewModel.RequestLeave()
         }
         mapTemplate.trailingNavigationBarButtons = [leave]
+        var leading: [CPBarButton] = []
         // The Cars list is a map panel, which starts in iOS 27.
-        guard #available(iOS 27.0, *) else { return }
-        let cars = CPBarButton(title: String(localized: .carPlayCars)) { [weak self] _ in self?.ShowCars() }
-        mapTemplate.leadingNavigationBarButtons = [cars]
+        if #available(iOS 27.0, *) {
+            leading.append(CPBarButton(title: String(localized: .carPlayCars)) { [weak self] _ in self?.ShowCars() })
+        }
+        if bar.canResumeGuidance {
+            leading.append(CPBarButton(title: String(localized: .carPlayResumeGuidance)) { [weak self] _ in
+                self?.viewModel.ResumeGuidance()
+            })
+        }
+        mapTemplate.leadingNavigationBarButtons = leading
     }
 
     @available(iOS 27.0, *)
     private func ShowCars() {
-        viewModel.SelectCar(nil)
-        isShowingCars = true
+        viewModel.ShowCars()
         UpdatePanel()
     }
 }
@@ -117,25 +130,43 @@ extension CarPlayTripMapTemplate {
 
 extension CarPlayTripMapTemplate {
     private func UpdateGuidance() {
-        guard viewModel.screen == .onTheWay, isGuidanceCancelledByCarPlay == false else {
+        let guidance = viewModel.guidance
+        guard guidance != .off, guidance != .cancelledByCarPlay else {
             EndGuidance()
-            if viewModel.screen == .noTrip { isGuidanceCancelledByCarPlay = false }
             return
         }
+        if navigationSession != nil, guidedDestination != viewModel.destinationCoordinate {
+            EndGuidance()
+        }
         let session = navigationSession ?? StartGuidance()
-        if viewModel.isRerouting {
-            session.pauseTrip(for: .rerouting, description: nil)
+        switch guidance {
+        case .rerouting:
+            Pause(session, for: .rerouting)
             shownManeuver = nil
-        } else if let maneuver = viewModel.maneuver {
+        case .turn(let maneuver):
+            pausedFor = nil
             ShowManeuver(maneuver, in: session)
-        } else if shownManeuver == nil {
-            session.pauseTrip(for: .loading, description: nil)
+        case .loading:
+            // A turn already on the panel stays until the next one is known.
+            if shownManeuver == nil { Pause(session, for: .loading) }
+        case .off, .cancelledByCarPlay:
+            break
         }
         UpdateTripEstimate()
     }
 
+    private func Pause(_ session: CPNavigationSession, for reason: CPNavigationSession.PauseReason) {
+        guard pausedFor != reason else { return }
+        pausedFor = reason
+        session.pauseTrip(for: reason, description: nil)
+    }
+
     private func StartGuidance() -> CPNavigationSession {
-        let destination = MKMapItem.forCurrentLocation()
+        let coordinate = viewModel.destinationCoordinate
+        // Without a destination stop yet, the trip still needs an end; CarPlay only shows its name then.
+        let destination = coordinate.map {
+            MKMapItem(location: CLLocation(latitude: $0.latitude, longitude: $0.longitude), address: nil)
+        } ?? MKMapItem.forCurrentLocation()
         destination.name = viewModel.destinationName
         let routeChoice = CPRouteChoice(
             summaryVariants: [viewModel.destinationName ?? ""],
@@ -144,9 +175,11 @@ extension CarPlayTripMapTemplate {
         )
         let trip = CPTrip(origin: MKMapItem.forCurrentLocation(), destination: destination, routeChoices: [routeChoice])
         let session = mapTemplate.startNavigationSession(for: trip)
-        session.pauseTrip(for: .loading, description: nil)
         navigationTrip = trip
         navigationSession = session
+        guidedDestination = coordinate
+        pausedFor = nil
+        Pause(session, for: .loading)
         return session
     }
 
@@ -183,9 +216,15 @@ extension CarPlayTripMapTemplate {
         } else {
             navigationSession.cancelTrip()
         }
-        self.navigationSession = nil
+        ForgetGuidance()
+    }
+
+    private func ForgetGuidance() {
+        navigationSession = nil
         navigationTrip = nil
         shownManeuver = nil
+        pausedFor = nil
+        guidedDestination = nil
     }
 
     /// "3,4 km" or "200 m", as a road sign says it. CarPlay prints the number in the unit it is given, so 3 401 m
@@ -250,25 +289,42 @@ extension CarPlayTripMapTemplate {
     }
 }
 
-// MARK: Leave and end
+// MARK: Leave, end and closed trips
 
 extension CarPlayTripMapTemplate {
-    /// "Exit trip?" or "End trip?" asked on CarPlay, as on the phone: leaving is destructive (AGENTS.md, "Safety").
-    private func UpdateLeaveConfirmation() {
-        let confirmation = viewModel.leaveConfirmation
-        let leaveError = viewModel.leaveErrorMessage
-        guard confirmation != shownConfirmation || leaveError != shownLeaveError else { return }
-        let hadAlert = shownConfirmation != nil || shownLeaveError != nil
-        shownConfirmation = confirmation
-        shownLeaveError = leaveError
-        let next = confirmation.map(ConfirmationAlert) ?? leaveError.map(LeaveErrorAlert)
+    /// The one full-screen alert CarPlay shows at a time.
+    private enum ModalAlert: Equatable {
+        /// "Exit trip?" or "End trip?", as on the phone: leaving is destructive (AGENTS.md, "Safety").
+        case confirmation(CarPlayTripViewModel.Confirmation)
+        /// Leaving failed, for example without a network.
+        case leaveError(String)
+        /// Another phone closed the trip: "The leader ended the trip."
+        case closed(String)
+    }
+
+    private func UpdateModalAlert() {
+        let next: ModalAlert? = viewModel.leaveConfirmation.map(ModalAlert.confirmation)
+            ?? viewModel.leaveErrorMessage.map(ModalAlert.leaveError)
+            ?? viewModel.closeMessage.map(ModalAlert.closed)
+        guard next != shownModalAlert else { return }
+        let hadAlert = shownModalAlert != nil
+        shownModalAlert = next
+        let template = next.map(Template)
         guard hadAlert else {
-            if let next { interfaceController?.presentTemplate(next, animated: true, completion: nil) }
+            if let template { interfaceController?.presentTemplate(template, animated: true, completion: nil) }
             return
         }
         interfaceController?.dismissTemplate(animated: true) { [weak self] _, _ in
-            guard let next else { return }
-            self?.interfaceController?.presentTemplate(next, animated: true, completion: nil)
+            guard let template else { return }
+            self?.interfaceController?.presentTemplate(template, animated: true, completion: nil)
+        }
+    }
+
+    private func Template(for alert: ModalAlert) -> CPAlertTemplate {
+        switch alert {
+        case .confirmation(let confirmation): ConfirmationAlert(confirmation)
+        case .leaveError(let message): MessageAlert(message) { [weak self] in self?.viewModel.DismissLeaveError() }
+        case .closed(let message): MessageAlert(message) { [weak self] in self?.viewModel.DismissCloseMessage() }
         }
     }
 
@@ -287,10 +343,8 @@ extension CarPlayTripMapTemplate {
         return CPAlertTemplate(titleVariants: titles ?? [confirmation.title], actions: [cancel, confirm])
     }
 
-    private func LeaveErrorAlert(_ message: String) -> CPAlertTemplate {
-        let close = CPAlertAction(title: String(localized: .tripMapOK), style: .cancel) { [weak self] _ in
-            self?.viewModel.DismissLeaveError()
-        }
+    private func MessageAlert(_ message: String, onClose: @escaping () -> Void) -> CPAlertTemplate {
+        let close = CPAlertAction(title: String(localized: .tripMapOK), style: .cancel) { _ in onClose() }
         return CPAlertTemplate(titleVariants: [message], actions: [close])
     }
 }
@@ -299,10 +353,9 @@ extension CarPlayTripMapTemplate {
 
 extension CarPlayTripMapTemplate: CPMapTemplateDelegate {
     /// The car's own navigation, or Siri with another app, took over: stop guidance at once (navigation rule 6).
+    /// The driver can turn guidance back on with "Resume".
     func mapTemplateDidCancelNavigation(_ mapTemplate: CPMapTemplate) {
-        isGuidanceCancelledByCarPlay = true
-        navigationSession = nil
-        navigationTrip = nil
-        shownManeuver = nil
+        ForgetGuidance()
+        viewModel.CancelGuidance()
     }
 }

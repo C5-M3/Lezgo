@@ -8,27 +8,9 @@
 import CarPlay
 
 // The map panels that replace the phone's cards on CarPlay: no trip yet, the Cars list, one car's status and the
-// arrival. Map panels are new in iOS 27; on iOS 26 CarPlay shows the map, guidance, alerts and End Trip without them.
-// In their own file so the template file stays short.
-extension CarPlayTripMapTemplate {
-    /// What a panel shows. A panel is only rebuilt when this changes, so it does not flicker every second.
-    enum PanelContent: Hashable {
-        case noTrip
-        case cars([CarPlayTripViewModel.Car])
-        case car(TripMapCarStatus)
-        case arrival(CarPlayTripViewModel.Arrival)
-
-        /// Panels of one kind are updated in place instead of replaced.
-        func IsSameKind(as other: PanelContent) -> Bool {
-            switch (self, other) {
-            case (.noTrip, .noTrip), (.cars, .cars), (.arrival, .arrival): true
-            case let (.car(this), .car(that)): this.id == that.id
-            default: false
-            }
-        }
-    }
-}
-
+// arrival. `CarPlayTripViewModel.panel` decides which; this file draws it. Map panels are new in iOS 27; on iOS 26
+// CarPlay shows the map, guidance, alerts and End Trip without them. In their own file so the template file stays
+// short.
 @available(iOS 27.0, *)
 extension CarPlayTripMapTemplate {
     private var shownMapPanel: CPMapPanel? {
@@ -36,7 +18,7 @@ extension CarPlayTripMapTemplate {
     }
 
     func UpdatePanel() {
-        let content = PanelContentToShow()
+        let content = viewModel.panel
         guard content != shownPanelContent else { return }
         guard let content else {
             shownPanelContent = nil
@@ -69,22 +51,7 @@ extension CarPlayTripMapTemplate {
         }
     }
 
-    /// A car picked on CarPlay or tapped on the phone comes first, then the Cars list, then the arrival.
-    private func PanelContentToShow() -> PanelContent? {
-        switch viewModel.screen {
-        case .noTrip:
-            isShowingCars = false
-            return .noTrip
-        case .loading:
-            return nil
-        case .onTheWay, .arrived:
-            if let car = viewModel.selectedCar { return .car(car) }
-            if isShowingCars { return .cars(viewModel.cars) }
-            return viewModel.arrival.map(PanelContent.arrival)
-        }
-    }
-
-    private func Title(of content: PanelContent) -> String {
+    private func Title(of content: CarPlayTripViewModel.Panel) -> String {
         switch content {
         case .noTrip: String(localized: .carPlayNoTripTitle)
         case .cars: String(localized: .carPlayCars)
@@ -93,7 +60,7 @@ extension CarPlayTripMapTemplate {
         }
     }
 
-    private func Sections(of content: PanelContent) -> [CPMapPanelSection] {
+    private func Sections(of content: CarPlayTripViewModel.Panel) -> [CPMapPanelSection] {
         let items: [CPMapPanelItem] = switch content {
         case .noTrip: [Row(String(localized: .carPlayNoTripMessage))]
         case .cars(let cars): cars.map(CarRow)
@@ -115,7 +82,6 @@ extension CarPlayTripMapTemplate {
         }
         let listItem = CPListItem(text: car.name, detailText: role, image: RobotImage(car.carColor))
         listItem.handler = { [weak self] _, completion in
-            self?.isShowingCars = false
             self?.viewModel.SelectCar(car.id)
             completion()
         }
@@ -151,10 +117,6 @@ extension CarPlayTripMapTemplate: CPMapPanel.Delegate {
         guard let shownPanelContent, shownMapPanel === panel else { return }
         self.shownPanelContent = nil
         shownPanel = nil
-        switch shownPanelContent {
-        case .cars: isShowingCars = false
-        case .car: viewModel.SelectCar(nil)
-        case .noTrip, .arrival: break
-        }
+        viewModel.ClosePanel(shownPanelContent)
     }
 }

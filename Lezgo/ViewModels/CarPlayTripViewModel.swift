@@ -19,6 +19,13 @@ final class CarPlayTripViewModel {
 
     private let activeTripMap: ActiveTripMap
 
+    /// The trip map whose guidance CarPlay cancelled. Kept per trip map, so the next trip starts with guidance.
+    private var guidanceCancelledFor: ObjectIdentifier?
+    /// The trip map whose Cars list is open, so the next trip starts with it closed.
+    private var carsShownFor: ObjectIdentifier?
+    /// The closed trip map whose message the driver closed on CarPlay.
+    private var closeMessageDismissedFor: ObjectIdentifier?
+
     init(activeTripMap: ActiveTripMap) {
         self.activeTripMap = activeTripMap
     }
@@ -52,6 +59,28 @@ final class CarPlayTripViewModel {
         )
     }
 
+    /// What the guidance panel shows now.
+    var guidance: Guidance {
+        guard screen == .onTheWay, let tripMap else { return .off }
+        if guidanceCancelledFor == ObjectIdentifier(tripMap) { return .cancelledByCarPlay }
+        if isRerouting { return .rerouting }
+        return maneuver.map(Guidance.turn) ?? .loading
+    }
+
+    /// After CarPlay cancelled guidance, the driver can turn it back on.
+    var canResumeGuidance: Bool {
+        guidance == .cancelledByCarPlay
+    }
+
+    /// CarPlay cancelled guidance, for example because the car's own navigation started (navigation rule 6).
+    func CancelGuidance() {
+        guidanceCancelledFor = tripMap.map(ObjectIdentifier.init)
+    }
+
+    func ResumeGuidance() {
+        guidanceCancelledFor = nil
+    }
+
     /// `true` while a new route is on its way; CarPlay then pauses guidance as "Rerouting".
     var isRerouting: Bool {
         screen == .onTheWay && tripMap?.isRerouting == true
@@ -74,6 +103,27 @@ final class CarPlayTripViewModel {
 
     var destinationName: String? {
         tripMap?.destinationName
+    }
+
+    /// Where the guided trip ends, for the car's dashboard and instrument cluster.
+    var destinationCoordinate: Coordinate? {
+        tripMap?.state?.destination?.coordinate
+    }
+
+    /// Why the trip closed when another phone closed it, as the phone says it: "The leader ended the trip."
+    var closeMessage: String? {
+        guard let closed = activeTripMap.tripMap, closeMessageDismissedFor != ObjectIdentifier(closed) else {
+            return nil
+        }
+        switch closed.closeReason {
+        case .endedByLeader: return String(localized: .tripMapLeaderEndedTrip)
+        case .removed: return String(localized: .tripMapRemovedFromTrip)
+        case .backToTripRoom, .exited, .ended, nil: return nil
+        }
+    }
+
+    func DismissCloseMessage() {
+        closeMessageDismissedFor = activeTripMap.tripMap.map(ObjectIdentifier.init)
     }
 
     /// "End Trip" for the leader, "Exit Trip" for a member; `nil` without a trip.
@@ -141,6 +191,22 @@ final class CarPlayTripViewModel {
         }
     }
 
+    /// `true` while the list opened with the Cars button is open.
+    var isShowingCars: Bool {
+        guard let tripMap else { return false }
+        return carsShownFor == ObjectIdentifier(tripMap)
+    }
+
+    /// The Cars button: closes a picked car and lists every car.
+    func ShowCars() {
+        SelectCar(nil)
+        carsShownFor = tripMap.map(ObjectIdentifier.init)
+    }
+
+    func HideCars() {
+        carsShownFor = nil
+    }
+
     /// The picked car's status, as on the phone's car card.
     var selectedCar: TripMapCarStatus? {
         tripMap?.selectedCarStatus
@@ -190,8 +256,9 @@ final class CarPlayTripViewModel {
         tripMap?.DismissLeaveError()
     }
 
-    /// Opens a car's status and focuses the camera on it; `nil` closes it.
+    /// Opens a car's status in place of the Cars list and focuses the camera on it; `nil` closes it.
     func SelectCar(_ carID: UUID?) {
+        if carID != nil { carsShownFor = nil }
         tripMap?.SelectCar(carID)
     }
 
@@ -215,6 +282,19 @@ extension CarPlayTripViewModel {
         case onTheWay
         /// This car has arrived at the destination.
         case arrived
+    }
+
+    /// What the guidance panel shows.
+    enum Guidance: Hashable {
+        /// No trip on the way: no trip, still loading, or arrived.
+        case off
+        /// Waiting for the first turn.
+        case loading
+        /// A new route is on its way.
+        case rerouting
+        case turn(Maneuver)
+        /// CarPlay cancelled guidance; it stays off until the driver resumes it.
+        case cancelledByCarPlay
     }
 
     /// The next turn, as CarPlay's `CPManeuver` needs it.
