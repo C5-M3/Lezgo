@@ -111,8 +111,9 @@ struct EditProfileSheetView: View {
     }
 }
 
-/// "Select Avatar": the avatars scroll sideways without an end, and the one in the middle is the chosen one. It is the
-/// biggest; the others are smaller. There is no select button: scrolling chooses.
+/// "Select Avatar": the avatars scroll sideways without an end, and the one in the middle is the chosen one. As in the
+/// hi-fi ("HOME - Draft", Edit Profile), the chosen one is the whole mascot and the others are only their heads, with
+/// the screen off, getting smaller towards the edges. There is no select button: scrolling chooses.
 private struct AvatarPicker: View {
     @Binding var selection: Avatar
     /// The index of the avatar in the middle, in a list that repeats the five avatars so the end is never reached.
@@ -121,7 +122,7 @@ private struct AvatarPicker: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let copies = 400
-    private static let slotWidth: CGFloat = 115
+    private static let slotWidth: CGFloat = 110
     private let avatars = Avatar.allCases
 
     init(selection: Binding<Avatar>) {
@@ -137,7 +138,8 @@ private struct AvatarPicker: View {
             // The list is built only once the width is known: the margins that centre it must exist before the
             // first scroll to the avatar of the participant, or that scroll ends up off to the side.
             Color.clear
-                .frame(height: AvatarImage.chosenSize + 20)
+                // The images have wide transparent margins, so the row is shorter than the chosen image.
+                .frame(height: AvatarImage.chosenSize * 0.7)
                 .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
                 .overlay { if width > 0 { avatarList } }
         }
@@ -152,9 +154,13 @@ private struct AvatarPicker: View {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
                     ForEach(0..<(Self.copies * avatars.count), id: \.self) { index in
-                        AvatarChoice(avatar: avatars[index % avatars.count], isChosen: index == position) {
+                        AvatarChoice(
+                            avatar: avatars[index % avatars.count],
+                            distance: abs(index - (position ?? index))
+                        ) {
                             withAnimation(reduceMotion ? nil : .snappy) { position = index }
                         }
+                        // The chosen mascot is wider than its slot and reaches over its neighbours' empty margins.
                         .frame(width: Self.slotWidth)
                         .id(index)
                     }
@@ -165,6 +171,8 @@ private struct AvatarPicker: View {
             .scrollTargetBehavior(.viewAligned)
             .contentMargins(.horizontal, max(0, (width - Self.slotWidth) / 2), for: .scrollContent)
             .scrollIndicators(.hidden)
+            // The images' transparent margins reach past the row; clipping them would cut the mascots.
+            .scrollClipDisabled()
             .animation(reduceMotion ? nil : .snappy, value: position)
             // Setting the position alone does not centre the first avatar reliably, so scroll to it once shown.
             .task {
@@ -178,18 +186,44 @@ private struct AvatarPicker: View {
 
 private struct AvatarChoice: View {
     let avatar: Avatar
-    let isChosen: Bool
+    /// How many places this avatar is from the chosen one in the middle; 0 is the chosen one.
+    let distance: Int
     let action: () -> Void
 
+    private var isChosen: Bool { distance == 0 }
+
     var body: some View {
-        let size = isChosen ? AvatarImage.chosenSize : AvatarImage.pickerSize
         Button(action: action) {
-            AvatarImage(avatar: avatar, isSelected: isChosen)
-                .frame(width: size, height: size)
+            if isChosen {
+                AvatarImage(avatar: avatar, isSelected: false)
+                    .frame(width: AvatarImage.chosenSize, height: AvatarImage.chosenSize)
+            } else {
+                Image(headImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: HeadSize(), height: HeadSize())
+                    .accessibilityHidden(true)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityLabel(avatar.accessibilityName)
         .accessibilityAddTraits(isChosen ? .isSelected : [])
+    }
+
+    /// The neighbours are a little bigger than the heads further out, as in the hi-fi. The head fills only about
+    /// 40% of its image, so the image is drawn much larger than the head it shows.
+    private func HeadSize() -> CGFloat {
+        distance == 1 ? 180 : 150
+    }
+
+    private var headImage: ImageResource {
+        switch avatar {
+        case .yellow: .frontballDisactiveYellow
+        case .blue: .frontballDisactiveBlue
+        case .green: .frontballDisactiveGreen
+        case .pink: .frontballDisactivePink
+        case .purple: .frontballDisactivePurple
+        }
     }
 }
 
