@@ -14,6 +14,7 @@ struct TripMapCameraControls: View {
     let toggleMute: () -> Void
     let showWholeRoute: () -> Void
     let followMyCar: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 14) {
@@ -41,6 +42,9 @@ struct TripMapCameraControls: View {
         }
         .labelStyle(.iconOnly)
         .buttonStyle(RoundStyle())
+        // The arrow fills in as the camera starts following, instead of blinking.
+        .contentTransition(.symbolEffect(.replace))
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: cameraMode)
     }
 }
 
@@ -55,7 +59,7 @@ extension TripMapCameraControls {
                 .frame(width: 61, height: 61)
                 .background(Color(.tripCard), in: .circle)
                 .contentShape(.circle)
-                .opacity(configuration.isPressed ? 0.7 : 1)
+                .pressFeedback(isPressed: configuration.isPressed)
         }
     }
 }
