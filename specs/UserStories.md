@@ -586,7 +586,8 @@ Feature: Manage the group and start
 ### Rules
 
 **Map**
-- Shows the route still ahead of my car, the checkpoints not visited yet, the destination and every car. As in Apple Maps, the part already driven, the start point and visited checkpoints are not drawn.
+- Shows the route still ahead of the group, the checkpoints not visited yet, the destination and every car. The line starts at the rearmost car on the group's road and is the same on every phone: a part goes away only once the last car has driven it, so a car in the middle never cuts it off for the cars behind. A car off the road counts at the point where its way back joins the road. The start point and visited checkpoints are not drawn. The turn card and the time left still count from my own car.
+- My own car is my robot like every other car, labelled "You", with a blue glow that shows which way it faces. It is never put on a card with other cars, so I can always find myself.
 - Top card: next turn ("200 m, Turn right"). Bottom card: "To [destination]" and time left ("50 min").
 - Members are measured against the group's road: the leader's footprint, then the leader, then the route ahead of the leader. A member behind the leader on the footprint is not off route, even after the leader was rerouted and the route now starts at the leader.
 - The bottom card is a sheet. Pulled up, it adds only End Trip (leader) or Exit Trip (member), and Edit Route for the leader. The cars are on the map, and the room code is in the Trip Room, so the sheet lists neither.
@@ -595,10 +596,10 @@ Feature: Manage the group and start
 
 **Footprint**
 - The leader's phone records the road the leader drives (a point every 20 m, the last 1,500 points, about 30 km) and saves it every 5 seconds; the other phones read it every 3 seconds.
-- A member's map draws the road ahead along the footprint to the leader, then the route ahead of the leader. Its turn card follows that line ("Turn right", "Follow the leader's route"); the time and distance left stay MapKit's.
-- A member more than 50 m off the group's road for 5 seconds gets a way back to it, drawn and guided like the rest of the line. It joins the road at its closest point at least 50 m beyond where the member left it, so it leads on towards the leader instead of back to the junction behind them. It is asked again after 10 seconds if they leave that way too, and it goes away once they are back on the road.
-- The leader's map shows the footprint behind the leader as a faint dotted line, so the leader sees the road the members follow and the cars on it.
-- A member's phone shares their way back (`Participant.wayBack`). The leader's map shows what is left of it as a dashed line in the alert colour, so the leader sees how a car that took another road will catch up. Offline cars' way backs are not shown, and members do not see each other's.
+- A member is guided along the footprint to the leader, then along the route ahead of the leader. The turn card follows that line ("Turn right", "Follow the leader's route"); the time and distance left stay MapKit's.
+- **Shortcut:** when the leader drove a loop, a member behind them is not sent round it. While the footprint ahead to the leader is more than 1.5 times the straight distance to the leader (and that distance is over 200 m), the member's phone checks every 15 seconds for a shorter road. It asks MapKit for a road to up to 4 points: the 3 points of the footprint ahead nearest the car (at least 150 m apart along it) and the leader. Each is scored by the road's length plus the footprint left from that point to the leader, plus 500 m if the road starts by turning back against the car's heading (MapKit does not know which way the car faces). The best one becomes the member's way back if it is at least 250 m shorter (about 30 seconds in town) than staying on the footprint. While the member drives it, they are not off route: no banner, no alert on the other phones.
+- A member more than 50 m off the group's road for 5 seconds gets a way back to it, drawn and guided like the rest of the line. It is chosen like a shortcut, from the points of the road at least 50 m beyond where the member left it, so it leads on towards the leader instead of back to the junction behind them. It is asked again after 10 seconds if they leave that way too, and it goes away once they reach the end of it, or are back on the road and off it.
+- A member's phone shares their way back (`Participant.wayBack`). Every other phone shows what is left of it as a dashed line in the colour of that car's robot, so everyone sees how a car that took another road will catch up. On the member's own phone it is the solid route line. Offline cars' way backs are not shown.
 - Location runs in the background (screen locked, another app in front) only on the trip map. Home, Set Route and the Trip Room stop using it when the app leaves the screen, and closing the app stops it.
 
 **Car status**
@@ -693,6 +694,24 @@ Feature: Drive together
     And "Agus" sees "Budi has gone out of route"
     When "Budi" is back on the route
     Then the banner disappears
+
+  Scenario: Every phone sees a member's way back
+    Given "Budi" (purple robot) is more than 50 m off the route with a way back
+    Then "Agus" and "Citra" see Budi's way back as a dashed purple line
+    And "Budi" sees it as the solid route line
+
+  Scenario: Member takes a shortcut past the leader's loop
+    Given "Agus" drove a loop and "Budi" is at its start on the footprint
+    And a side road reaches the footprint near "Agus" at least 250 m sooner
+    Then "Budi" is guided along the side road
+    And "Budi" sees no "You're out of the way" banner
+
+  Scenario: The route line starts at the last car
+    Given "Citra" is behind "Budi" on the route
+    Then "Budi" sees the route line from "Citra" to the destination
+
+  Scenario: My own car
+    Then "Budi" sees his own car as his robot labelled "You"
 
   Scenario: Member passes a checkpoint
     When "Budi" passes unvisited "Ciputra World" by more than 200 m
