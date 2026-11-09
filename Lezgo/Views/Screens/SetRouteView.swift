@@ -284,38 +284,7 @@ private extension SetRouteView {
             ) {
                 UserAnnotation()
 
-                if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
-                    Marker(start.name, coordinate: start.coordinate)
-                        .tint(.blue)
-                }
-
-                ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
-                    if viewModel.destinations.count == 1 || index == viewModel.destinations.count - 1 {
-                        Marker(point.name, coordinate: point.coordinate)
-                            .tint(.red)
-                    } else {
-                        Marker(
-                            "\(index + 1). \(point.name)",
-                            systemImage: "\(index + 1).circle",
-                            coordinate: point.coordinate
-                        )
-                        .tint(.purple)
-                    }
-                }
-
-                ForEach(viewModel.routeLegs) { leg in
-                    ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
-                        if routeIndex != leg.selectedRouteIndex {
-                            MapPolyline(route.polyline)
-                                .stroke(Color(.brandYellow).opacity(0.38), lineWidth: 5)
-                        }
-                    }
-                }
-
-                ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
-                    MapPolyline(polyline)
-                        .stroke(Color(.brandYellow), lineWidth: 6)
-                }
+                RoutePlanMapContent(viewModel: viewModel)
             }
             .onTapGesture { screenPoint in
                 if let coord = proxy.convert(screenPoint, from: .local) {
