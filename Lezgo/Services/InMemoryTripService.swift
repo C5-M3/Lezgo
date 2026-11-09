@@ -194,9 +194,10 @@ final class InMemoryTripService: TripService {
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
         try Validate(plan)
         try Change(tripID: tripID, by: leaderID) { state in
-            guard state.trip.status == .inTrip else { throw TripServiceError.notAllowed }
+            guard state.trip.status == .inTrip || state.trip.status == .lobby else { throw TripServiceError.notAllowed }
             ReplaceRoute(in: &state, with: plan)
-            state.trip.currentWaypointIndex = 1
+            // In the lobby nobody has left yet, so the first stop to reach stays the start.
+            if state.trip.status == .inTrip { state.trip.currentWaypointIndex = 1 }
         }
     }
 

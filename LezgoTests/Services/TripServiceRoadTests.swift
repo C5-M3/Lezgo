@@ -145,7 +145,7 @@ struct TripServiceRoadTests {
         #expect(state.route?.version == 2)
         #expect(state.trip.currentWaypointIndex == 0)
         #expect(state.destination?.name == "Pakuwon city mall")
-        #expect(state.participants.count == 2)
+        #expect(state.participants.count == 3)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)
