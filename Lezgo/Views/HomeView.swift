@@ -73,19 +73,19 @@ struct HomeView: View {
             }
         )
         .fullScreenCover(isPresented: $isSetRoutePresented) {
-            SetRouteMapView(
+            SetRouteView(
                 viewModel: mapViewModel,
                 onBack: {
-                    handleSetRouteDismissed()
-                    isSetRoutePresented = false
-                },
-                onDismiss: {
                     handleSetRouteDismissed()
                     isSetRoutePresented = false
                 },
                 onTripCreated: { session in
                     isSetRoutePresented = false
                     viewModel.onTripJoined(session)
+                },
+                onDismiss: {
+                    handleSetRouteDismissed()
+                    isSetRoutePresented = false
                 }
             )
         }
