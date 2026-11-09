@@ -76,14 +76,14 @@ struct TripMapViewModelMyGPSTests {
         #expect(me?.coordinate == TripFixtures.pakuwonMall)
     }
 
-    @Test func MyCarIsTheLocationDotNotAPin() async throws {
+    @Test func MyCarIsMyOwnRobotAtThePhonesGPSReading() async throws {
         let viewModel = MakeMap()
 
         try await Drive(viewModel, to: TripFixtures.pakuwonMall)
 
-        #expect(viewModel.showsMyLocationDot)
-        #expect(viewModel.carPins.contains { $0.isMe } == false)
-        #expect(viewModel.carPins.isEmpty == false)
+        let me = viewModel.carPins.first { $0.isMe }
+        #expect(me?.coordinate == TripFixtures.pakuwonMall)
+        #expect(me?.label == "You")
     }
 
     @Test func WithoutGPSMyCarIsAPinFromTheTrip() async throws {
@@ -111,7 +111,7 @@ struct TripMapViewModelMyGPSTests {
         open.cancel()
         await open.value
 
-        #expect(viewModel.showsMyLocationDot == false)
+        #expect(viewModel.followsPhoneLocation == false)
         #expect(viewModel.myCoordinate == TripFixtures.ciputraWorld)
         #expect(viewModel.carPins.contains { $0.isMe })
     }

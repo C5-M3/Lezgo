@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// A car on the trip map: its robot, turned the way it drives, with the driver's name under it.
+/// A car on the trip map: its robot, turned the way it drives, with the driver's name under it ("You" under this
+/// phone's own car, which also has a blue glow ahead of it, like the location dot in Apple Maps).
 ///
 /// The leader has a crown beside the robot. A stopped car has a pause badge, and an offline car is faded at its last
 /// position. The tapped car glows. A car off the route or ahead of the leader has a red ring, a warning badge and a red
@@ -28,6 +29,11 @@ struct TripMapCarPinView: View {
             .resizable()
             .accessibilityHidden(true)
             .frame(width: Self.imageSize, height: Self.imageSize)
+            .background {
+                if pin.isMe, pin.course != nil {
+                    HeadingGlow()
+                }
+            }
             .rotationEffect(.degrees((pin.course ?? mapHeading) - mapHeading))
             .frame(width: Self.bodySize.width, height: Self.bodySize.height)
             .background {
@@ -50,7 +56,7 @@ struct TripMapCarPinView: View {
                 }
             }
             .overlay(alignment: .bottom) {
-                Text(verbatim: pin.displayName)
+                Text(verbatim: pin.label)
                     .font(.footnote.weight(.semibold))
                     .lineLimit(1)
                     .foregroundStyle(pin.isAlerting ? Color.white : Color(.tripCardText))
@@ -93,6 +99,25 @@ struct TripMapCarPinView: View {
 }
 
 extension TripMapCarPinView {
+    /// The beam ahead of this phone's own robot, so the driver sees which way they face.
+    struct HeadingGlow: View {
+        var body: some View {
+            Path { path in
+                path.move(to: CGPoint(x: 57, y: 57))
+                path.addLine(to: CGPoint(x: 35, y: 0))
+                path.addQuadCurve(to: CGPoint(x: 79, y: 0), control: CGPoint(x: 57, y: -10))
+                path.closeSubpath()
+            }
+            .fill(LinearGradient(
+                colors: [Color(.brandBlue).opacity(0.8), Color(.brandBlue).opacity(0)],
+                startPoint: .bottom,
+                endPoint: .top
+            ))
+            .frame(width: 114, height: 114)
+            .accessibilityHidden(true)
+        }
+    }
+
     /// A small round badge on the robot's shoulder.
     struct BadgeView: View {
         let symbol: String

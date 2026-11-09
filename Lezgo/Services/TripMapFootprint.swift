@@ -13,7 +13,8 @@ import Observation
 /// - On the leader's phone it records where the leader drives and saves it every few seconds, so the members behind
 ///   can follow the road the leader really took, also after a reroute.
 /// - On a member's phone it guides along that road: the line ahead and the next turn follow the footprint to the
-///   leader, and after a wrong turn it finds a way back to the footprint.
+///   leader, and after a wrong turn it finds a way back to the footprint. When the leader drove a loop, it finds a
+///   shortcut past it, so the member is not sent round it too.
 @Observable
 final class TripMapFootprint {
     /// How often the leader's phone saves the footprint, in seconds of driving.
@@ -26,6 +27,15 @@ final class TripMapFootprint {
     static let noticeDelay: TimeInterval = 2
     /// The way back joins the road at least this far beyond where the member left it.
     static let rejoinAhead: CLLocationDistance = 50
+    /// A shortcut is looked for while the footprint ahead to the leader is this many times the straight distance.
+    static let loopRatio = 1.5
+    /// No shortcut is looked for while the leader is closer than this in a straight line.
+    static let shortcutMinimumDistance: CLLocationDistance = 200
+    /// How often a member behind a loop checks for a shortcut, in seconds of driving.
+    static let shortcutCheckInterval: TimeInterval = 15
+    /// A shortcut is taken only when it is at least this much shorter than the footprint: about 30 seconds in town,
+    /// so the line does not switch back and forth between two roads of about the same length.
+    static let shortcutSaving: CLLocationDistance = 250
     /// How long to wait before asking again after a way back failed or was left too.
     static let retryInterval: TimeInterval = 10
     /// A bend in the footprint sharper than this, in degrees, is a turn. Higher than for MapKit's roads, because GPS
@@ -49,6 +59,8 @@ final class TripMapFootprint {
     /// How far along the group's road this member last was while on it.
     private var leftAt: CLLocationDistance?
     private var isAsking = false
+    /// When this member last checked for a shortcut past a loop.
+    private var shortcutCheckedAt: Date?
     /// The way back the group last heard about; `nil` before this phone saved one.
     private var sharedWayBack: [Coordinate]?
     private var isSharingWayBack = false
@@ -107,11 +119,23 @@ final class TripMapFootprint {
     }
 
     /// Once this member has been off the group's road for 5 seconds, asks for a way back to it, and again when they
-    /// leave that way too. Clears it once they are back on the road. From 2 seconds off the road until a way back
-    /// arrives, `isFindingWayBack` is `true`, so the turn card says the app is working on it.
+    /// leave that way too. On the road, looks for a shortcut past a loop the leader drove. A way back is kept while
+    /// the member drives it, and goes once they reach its end, or keep to the road instead. From 2 seconds off the
+    /// road until a way back arrives, `isFindingWayBack` is `true`, so the turn card says the app is working on it.
     func FindWayBack(in state: TripState) async {
         await UpdateWayBack(in: state)
         await ShareWayBack(in: state)
+    }
+
+    /// The trip with this member's own way back on their car, which the trip only carries once it has been shared and
+    /// read back, so this phone's alert knows about a shortcut at once.
+    func WithMyWayBack(_ state: TripState) -> TripState {
+        guard let wayBack, let index = state.participants.firstIndex(where: { $0.id == myParticipantID }) else {
+            return state
+        }
+        var state = state
+        state.participants[index].wayBack = wayBack
+        return state
     }
 
     private func UpdateWayBack(in state: TripState) async {
@@ -124,28 +148,59 @@ final class TripMapFootprint {
             Reset()
             return
         }
+        if let wayBack, IsDriving(wayBack, at: coordinate) {
+            isFindingWayBack = false
+            return
+        }
+        let planner = TripMapWayBackPlanner(directionsService: directionsService)
         guard position.distanceFromRoute > Self.offPathDistance else {
             // On the road: remember how far along it this member got, so a way back never leads behind that.
             leftAt = position.distanceAlongRoute
             Reset()
+            await FindShortcut(from: coordinate, me: me, at: position, in: state, planner: planner)
             return
         }
         let since = offPathSince ?? me.lastSeenAt
         offPathSince = since
         let offFor = me.lastSeenAt.timeIntervalSince(since)
-        let isOffWayBack = IsOffWayBack(coordinate)
-        isFindingWayBack = offFor >= Self.noticeDelay && isOffWayBack
-        guard offFor >= Self.holdTime, isOffWayBack, isAsking == false,
-              askedAt.map({ me.lastSeenAt.timeIntervalSince($0) >= Self.retryInterval }) ?? true,
-              let rejoin = RejoinPoint(for: coordinate, on: state.groupPath) else { return }
+        isFindingWayBack = offFor >= Self.noticeDelay
+        guard offFor >= Self.holdTime, isAsking == false,
+              askedAt.map({ me.lastSeenAt.timeIntervalSince($0) >= Self.retryInterval }) ?? true else { return }
         isAsking = true
         defer { isAsking = false }
         askedAt = me.lastSeenAt
+        let earliest = (leftAt ?? 0) + Self.rejoinAhead
         // On failure the last way back, if any, stays: an old way is more use to a driver than none.
-        if let path = try? await directionsService.DrivingPath(through: [coordinate, rejoin]) {
-            wayBack = path
+        if let choice = await planner.Best(from: coordinate, course: me.course, joiningAfter: earliest, in: state) {
+            wayBack = choice.path
             isFindingWayBack = false
         }
+    }
+
+    /// While the footprint ahead to the leader is much longer than the straight distance to them, the leader drove a
+    /// loop: every 15 seconds, looks for a road past it that is at least 250 m shorter.
+    private func FindShortcut(
+        from coordinate: Coordinate,
+        me: Participant,
+        at position: RoutePosition,
+        in state: TripState,
+        planner: TripMapWayBackPlanner
+    ) async {
+        guard isAsking == false,
+              let leaderCoordinate = state.leader?.coordinate,
+              let leader = RoutePosition.Locate(leaderCoordinate, on: state.groupPath) else { return }
+        let footprintLeft = leader.distanceAlongRoute - position.distanceAlongRoute
+        let straight = coordinate.Distance(to: leaderCoordinate)
+        guard straight > Self.shortcutMinimumDistance, footprintLeft > straight * Self.loopRatio,
+              shortcutCheckedAt.map({ me.lastSeenAt.timeIntervalSince($0) >= Self.shortcutCheckInterval }) ?? true
+        else { return }
+        isAsking = true
+        defer { isAsking = false }
+        shortcutCheckedAt = me.lastSeenAt
+        let earliest = position.distanceAlongRoute + Self.rejoinAhead
+        guard let choice = await planner.Best(from: coordinate, course: me.course, joiningAfter: earliest, in: state),
+              choice.length + Self.shortcutSaving <= footprintLeft else { return }
+        wayBack = choice.path
     }
 
     /// Tells the group when this member's way back changed, so the leader's map can show it. A failed save is tried
@@ -205,18 +260,6 @@ final class TripMapFootprint {
         return me.distanceAlongRoute < leader.distanceAlongRoute
     }
 
-    /// Where the way back meets the group's road: its closest point that is at least 50 m beyond where this member
-    /// left it. The nearest point is usually the junction behind them, and going back there takes them further from
-    /// the leader; this one leads on towards the leader. Without a known place, the closest point past the start.
-    private func RejoinPoint(for coordinate: Coordinate, on path: [Coordinate]) -> Coordinate? {
-        let lengths = PathTurns.LengthsAlong(path)
-        let earliest = (leftAt ?? 0) + Self.rejoinAhead
-        let ahead = path.indices.filter { lengths[$0] >= earliest }
-        guard let closest = ahead.min(by: { path[$0].Distance(to: coordinate) < path[$1].Distance(to: coordinate) })
-        else { return path.last }
-        return path[closest]
-    }
-
     /// Back on the road, or no longer a member on the road: nothing to find.
     private func Reset() {
         offPathSince = nil
@@ -224,10 +267,11 @@ final class TripMapFootprint {
         isFindingWayBack = false
     }
 
-    /// `true` without a way back, or once the member has left it too.
-    private func IsOffWayBack(_ coordinate: Coordinate) -> Bool {
-        guard let wayBack, let position = RoutePosition.Locate(coordinate, on: wayBack) else { return true }
-        return position.distanceFromRoute > Self.offPathDistance
+    /// Whether the member is still on `wayBack` and has not reached its end yet.
+    private func IsDriving(_ wayBack: [Coordinate], at coordinate: Coordinate) -> Bool {
+        guard let end = wayBack.last, coordinate.Distance(to: end) > Self.offPathDistance,
+              let position = RoutePosition.Locate(coordinate, on: wayBack) else { return false }
+        return position.distanceFromRoute <= Self.offPathDistance
     }
 
     private func Instruction(for direction: TripMapGuidance.TurnDirection) -> LocalizedStringResource {

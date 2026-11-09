@@ -14,7 +14,7 @@ struct TripMapCarGroupsTests {
     private static let start = Coordinate(latitude: -7.27, longitude: 112.73)
 
     /// A car `metres` north of the same point.
-    private func Pin(_ name: String, metres: Double, isAlerting: Bool = false) -> TripMapCarPin {
+    private func Pin(_ name: String, metres: Double, isAlerting: Bool = false, isMe: Bool = false) -> TripMapCarPin {
         TripMapCarPin(
             id: UUID(),
             displayName: name,
@@ -24,7 +24,7 @@ struct TripMapCarGroupsTests {
             ),
             motionState: .driving,
             isLeader: false,
-            isMe: false,
+            isMe: isMe,
             isOffline: false,
             isAlerting: isAlerting
         )
@@ -59,6 +59,15 @@ struct TripMapCarGroupsTests {
         )
 
         #expect(Names(groups) == [["Agus", "Budi", "Citra"]])
+    }
+
+    @Test func MyCarStaysAloneSoICanAlwaysFindIt() {
+        let groups = TripMapCarGroup.Make(
+            pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 30, isMe: true), Pin("Citra", metres: 60)],
+            within: 100
+        )
+
+        #expect(Names(groups) == [["Agus", "Citra"], ["Budi"]])
     }
 
     @Test func ACarWithAnAlertStaysAloneSoItsWarningShows() {

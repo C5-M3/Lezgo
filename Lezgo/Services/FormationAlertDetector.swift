@@ -42,7 +42,7 @@ struct FormationAlertDetector {
         }
         // Past the destination is off the end of the route too; one wait covers both, as only one shows.
         let isOffRoute = HasLasted(
-            position.distanceFromRoute > Self.offRouteDistance,
+            position.distanceFromRoute > Self.offRouteDistance && IsOnShortcut(car, at: coordinate, in: state) == false,
             since: &offRouteSince,
             at: car.lastSeenAt
         )
@@ -62,6 +62,16 @@ struct FormationAlertDetector {
     /// member behind the leader is measured against the road the leader actually took, not only the route ahead.
     private func Polyline(of state: TripState) -> [Coordinate] {
         state.groupPath
+    }
+
+    /// A member driving the shorter road their phone gave them has not left the route. Such a road starts on the
+    /// group's road; a way back after a wrong turn starts where the car already was, off it.
+    private func IsOnShortcut(_ car: Participant, at coordinate: Coordinate, in state: TripState) -> Bool {
+        guard let start = car.wayBack.first,
+              let startPosition = RoutePosition.Locate(start, on: Polyline(of: state)),
+              startPosition.distanceFromRoute <= Self.offRouteDistance,
+              let position = RoutePosition.Locate(coordinate, on: car.wayBack) else { return false }
+        return position.distanceFromRoute <= Self.offRouteDistance
     }
 
     /// Whether `condition` has held for `holdTime`, keeping in `since` when it started.

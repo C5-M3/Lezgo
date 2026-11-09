@@ -262,7 +262,7 @@ final class TripMapViewModel {
     /// Works out this member's alert from the new state and saves it when it changed, so the other phones see it.
     /// A failed save is not shown: the next update, a second later, tries again.
     private func UpdateMyAlert() async {
-        guard let state, let alert = alerts.Update(state) else { return }
+        guard let state, let alert = alerts.Update(following.WithMyWayBack(state)) else { return }
         guard (try? await tripService.SetAlert(alert, participantID: myParticipantID, tripID: tripID)) != nil else {
             return
         }

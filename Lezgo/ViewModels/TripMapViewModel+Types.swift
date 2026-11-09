@@ -10,10 +10,11 @@ import Foundation
 // The trip map's small state types, nested in `TripMapViewModel` (ADR 0019), kept here so the view model file stays
 // within SwiftLint's file length.
 extension TripMapViewModel {
-    /// What is left of a member's way back to the group's road, as the leader's map draws it.
-    struct MemberWayBack: Identifiable, Hashable {
+    /// What is left of another member's way back to the group's road, drawn dashed in the colour of their robot.
+    struct CarWayBack: Identifiable, Hashable {
         let id: UUID
         let path: [Coordinate]
+        let carColor: TripMapCarPin.CarColor
     }
 
     /// What the trip map camera follows.

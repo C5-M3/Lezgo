@@ -47,18 +47,19 @@ struct TripMapCarGroup: Identifiable, Hashable {
 
     /// Groups cars that are within `metres` of each other, directly or through a car between them.
     ///
-    /// A car with an alert stays on its own, so its warning still shows. A tapped car stays on its card and glows
-    /// there, so the card does not jump while its status is open.
+    /// A car with an alert stays on its own, so its warning still shows, and so does this phone's own car, so the
+    /// driver can always find it. A tapped car stays on its card and glows there, so the card does not jump while its
+    /// status is open.
     static func Make(pins: [TripMapCarPin], within metres: Double) -> [TripMapCarGroup] {
         var groups: [[TripMapCarPin]] = []
         for pin in pins {
-            guard pin.isAlerting == false else {
+            guard IsGroupable(pin) else {
                 groups.append([pin])
                 continue
             }
             let isClose = { (group: [TripMapCarPin]) in
                 group.contains { other in
-                    other.isAlerting == false && other.coordinate.Distance(to: pin.coordinate) <= metres
+                    IsGroupable(other) && other.coordinate.Distance(to: pin.coordinate) <= metres
                 }
             }
             let joined = groups.filter(isClose).flatMap { $0 } + [pin]
@@ -70,5 +71,9 @@ struct TripMapCarGroup: Identifiable, Hashable {
             groups = groups.enumerated().filter { $0.offset == first || isClose($0.element) == false }.map(\.element)
         }
         return groups.map(TripMapCarGroup.init)
+    }
+
+    private static func IsGroupable(_ pin: TripMapCarPin) -> Bool {
+        pin.isAlerting == false && pin.isMe == false
     }
 }

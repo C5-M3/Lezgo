@@ -24,6 +24,11 @@ struct TripMapCarPin: Identifiable, Hashable {
     /// Which robot this car drives.
     var carColor = CarColor.yellow
 
+    /// The name under the robot: "You" under this phone's own car, so the driver finds themselves at a glance.
+    var label: String {
+        isMe ? String(localized: .tripMapCarYou) : displayName
+    }
+
     /// The robot colors in the asset catalog: yellow for the leader, the others for the members.
     enum CarColor: Hashable {
         case yellow, purple, pink, blue, green

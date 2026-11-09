@@ -44,7 +44,8 @@ enum PathTurns {
         return .straight
     }
 
-    private static func Bearing(from start: Coordinate, to end: Coordinate) -> Double {
+    /// The compass direction from `start` to `end`, in degrees clockwise from north (-180 to 180).
+    static func Bearing(from start: Coordinate, to end: Coordinate) -> Double {
         let latitude1 = start.latitude * .pi / 180
         let latitude2 = end.latitude * .pi / 180
         let longitudeDelta = (end.longitude - start.longitude) * .pi / 180

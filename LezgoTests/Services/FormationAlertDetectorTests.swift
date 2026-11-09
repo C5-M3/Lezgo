@@ -48,6 +48,48 @@ struct FormationAlertDetectorTests {
         #expect(detector.Update(rerouted(20), for: Fixtures.budiID) == .none)
     }
 
+    @Test func MemberOnTheirShortcutIsNotOffRoute() {
+        // Budi's phone sent him off the road on purpose: a shorter road that starts on the road and joins it again.
+        var detector = FormationAlertDetector()
+        let shortcut = [
+            Self.Along(150), Self.Along(150, sideways: 300), Self.Along(500, sideways: 300), Self.Along(500)
+        ]
+        let onShortcut = { (seconds: TimeInterval) -> TripState in
+            self.WithBudiWayBack(
+                shortcut,
+                self.State(at: seconds, budi: Self.Along(300, sideways: 300), agus: Self.Along(600))
+            )
+        }
+
+        _ = detector.Update(onShortcut(0), for: Fixtures.budiID)
+
+        #expect(detector.Update(onShortcut(20), for: Fixtures.budiID) == .none)
+    }
+
+    @Test func MemberOnAWayBackAfterAWrongTurnIsStillOffRoute() {
+        // This way back starts where Budi already was, off the road: he did leave the route.
+        var detector = FormationAlertDetector()
+        let wayBack = [Self.Along(200, sideways: 300), Self.Along(500, sideways: 300), Self.Along(500)]
+        let onWayBack = { (seconds: TimeInterval) -> TripState in
+            self.WithBudiWayBack(
+                wayBack,
+                self.State(at: seconds, budi: Self.Along(300, sideways: 300), agus: Self.Along(600))
+            )
+        }
+
+        _ = detector.Update(onWayBack(0), for: Fixtures.budiID)
+
+        #expect(detector.Update(onWayBack(20), for: Fixtures.budiID) == .offRoute)
+    }
+
+    private func WithBudiWayBack(_ wayBack: [Coordinate], _ state: TripState) -> TripState {
+        var state = state
+        if let index = state.participants.firstIndex(where: { $0.id == Fixtures.budiID }) {
+            state.participants[index].wayBack = wayBack
+        }
+        return state
+    }
+
     @Test func MemberOffTheFootprintToo() {
         var detector = FormationAlertDetector()
         let offEverything = { (seconds: TimeInterval) -> TripState in
