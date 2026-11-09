@@ -43,7 +43,8 @@ struct TripMapViewModelShortcutTests {
         var budiCar = Fixtures.Car(id: Fixtures.budiID, name: "Budi", lastSeenSecondsAgo: budiSecondsAgo)
         budiCar.coordinate = budi
         budiCar.course = 180
-        var state = Fixtures.State(cars: [agus, budiCar])
+        // Every checkpoint is visited: the fixture's checkpoint is far from these streets.
+        var state = Fixtures.State(cars: [agus, budiCar], currentWaypointIndex: 2)
         state.route?.polyline = [Self.agusAt, Self.Point(east: -300, north: 2_000)]
         state.trail = trail
         return state

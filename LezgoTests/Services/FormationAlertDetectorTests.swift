@@ -55,7 +55,10 @@ struct FormationAlertDetectorTests {
             Self.Along(150), Self.Along(150, sideways: 300), Self.Along(500, sideways: 300), Self.Along(500)
         ]
         let onShortcut = { (seconds: TimeInterval) -> TripState in
-            self.WithBudiWayBack(shortcut, self.State(at: seconds, budi: Self.Along(300, sideways: 300)))
+            self.WithBudiWayBack(
+                shortcut,
+                self.State(at: seconds, budi: Self.Along(300, sideways: 300), agus: Self.Along(600))
+            )
         }
 
         _ = detector.Update(onShortcut(0), for: Fixtures.budiID)
@@ -68,7 +71,10 @@ struct FormationAlertDetectorTests {
         var detector = FormationAlertDetector()
         let wayBack = [Self.Along(200, sideways: 300), Self.Along(500, sideways: 300), Self.Along(500)]
         let onWayBack = { (seconds: TimeInterval) -> TripState in
-            self.WithBudiWayBack(wayBack, self.State(at: seconds, budi: Self.Along(300, sideways: 300)))
+            self.WithBudiWayBack(
+                wayBack,
+                self.State(at: seconds, budi: Self.Along(300, sideways: 300), agus: Self.Along(600))
+            )
         }
 
         _ = detector.Update(onWayBack(0), for: Fixtures.budiID)
