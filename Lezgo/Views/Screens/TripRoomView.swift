@@ -141,6 +141,7 @@ struct TripRoomView: View {
         .sheet(item: $participantToEdit) { participant in
             EditProfileSheetView(viewModel: viewModel, participant: participant)
         }
+        .modifier(EditRouteCover(viewModel: viewModel))
         // The hi-fi is dark only: BrandYellow text has no contrast on a light background (US-04, "Room").
         .preferredColorScheme(.dark)
     }
@@ -189,6 +190,20 @@ struct TripRoomView: View {
 
 // MARK: - Subviews
 
+/// The route planner the leader opens with "Edit": on screen exactly while the view model has one, so Back and Save
+/// close it there too.
+private struct EditRouteCover: ViewModifier {
+    let viewModel: TripRoomViewModel
+
+    func body(content: Content) -> some View {
+        content.fullScreenCover(
+            item: Binding(get: { viewModel.editRoute }, set: { _ in viewModel.CloseEditRoute() })
+        ) { editRoute in
+            EditRouteView(viewModel: editRoute, onClose: viewModel.CloseEditRoute)
+        }
+    }
+}
+
 /// Everything that scrolls: the map with the title, the overview, the participants and End Trip or Exit Trip.
 private struct TripRoomContent: View {
     let viewModel: TripRoomViewModel
@@ -199,6 +214,12 @@ private struct TripRoomContent: View {
     let onInvite: () -> Void
     let onLeave: () -> Void
 
+    /// "Edit" is only there for the leader.
+    private var editAction: (() -> Void)? {
+        guard viewModel.canEditRoute else { return nil }
+        return { viewModel.RequestEditRoute() }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
@@ -208,7 +229,8 @@ private struct TripRoomContent: View {
                     TripRoomOverview(
                         startName: viewModel.startPoint?.name,
                         destinationName: viewModel.destination?.name,
-                        numberOfStops: viewModel.numberOfStops
+                        numberOfStops: viewModel.numberOfStops,
+                        onEdit: editAction
                     )
                     TripRoomParticipantsSection(
                         viewModel: viewModel,

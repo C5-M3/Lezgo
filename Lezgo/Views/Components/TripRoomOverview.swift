@@ -7,17 +7,30 @@
 
 import SwiftUI
 
-/// "Overview": the start point, the destination and how many checkpoints lie between them (US-04, "Room").
+/// "Overview": the start point, the destination and how many checkpoints lie between them, with "Edit" for the
+/// leader (US-04, "Room").
 struct TripRoomOverview: View {
     let startName: String?
     let destinationName: String?
     let numberOfStops: Int
+    /// Opens the route planner; `nil` for a member, who sees no "Edit".
+    var onEdit: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Overview")
-                .font(.title3.bold())
-                .accessibilityAddTraits(.isHeader)
+            HStack {
+                Text("Overview")
+                    .font(.title3.bold())
+                    .accessibilityAddTraits(.isHeader)
+                Spacer()
+                if let onEdit {
+                    Button("Edit", action: onEdit)
+                        .font(.headline)
+                        .foregroundStyle(Color(.brandYellow))
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel("Edit route")
+                }
+            }
             // Side by side like the hi-fi; stacked when large text no longer fits in three columns.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: 16) { items }
@@ -60,6 +73,17 @@ private struct OverviewItem: View {
     TripRoomOverview(startName: "Universitas Ciputra", destinationName: "Tunjungan Plaza", numberOfStops: 6)
         .padding()
         .preferredColorScheme(.dark)
+}
+
+#Preview("Leader with Edit") {
+    TripRoomOverview(
+        startName: "Universitas Ciputra",
+        destinationName: "Tunjungan Plaza",
+        numberOfStops: 6,
+        onEdit: {}
+    )
+    .padding()
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Long names, Accessibility XXXL") {
