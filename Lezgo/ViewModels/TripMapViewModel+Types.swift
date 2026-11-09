@@ -24,6 +24,8 @@ extension TripMapViewModel {
         case wholeRoute
         /// The person moved the map by hand; the camera stays where they left it.
         case free
+        /// The camera stays on a tapped car as it moves, while its status card is open.
+        case followCar(UUID)
     }
 
     /// The confirmation shown before leaving the trip from the map (`specs/UserStories.md` → US-07, "Leave and end").

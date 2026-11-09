@@ -14,13 +14,12 @@ struct TripMapLeaveButton: View {
     let action: () -> Void
 
     var body: some View {
+        // The role tells VoiceOver this leaves the trip; the red is the same as the confirmation's red button.
         Button(role: .destructive, action: action) {
             Text(isLeader ? .tripMapEndTrip : .tripMapExitTrip)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
+                .foregroundStyle(Color(.tripAlertRed))
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
+        .buttonStyle(TripMapCardButtonStyle())
     }
 }
 
@@ -30,6 +29,8 @@ struct TripMapLeaveButton: View {
         TripMapLeaveButton(isLeader: false, action: {})
     }
     .padding()
+    .background(Color(.tripCard))
+    .environment(\.colorScheme, .dark)
 }
 
 #Preview("Largest text") {

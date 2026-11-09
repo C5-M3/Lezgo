@@ -19,8 +19,8 @@ final class TripRoomStartTripUITests: XCTestCase {
         app.launch()
     }
 
-    /// After the leader taps LEZGO, the map opens over the lobby. The map's "Show whole route" is checked, not its
-    /// "End Trip": that one is hidden while the map's sheet is collapsed.
+    /// After the leader confirms the start, the lobby closes and the "Lez Go!" animation opens the map. The leader's
+    /// "End Trip" is in the bottom card, out of reach until the card is opened.
     @MainActor
     func testStartTripOpensTheMap() throws {
         let startTrip = app.buttons["Start Trip"]
@@ -36,7 +36,15 @@ final class TripRoomStartTripUITests: XCTestCase {
         Attach(named: "Start trip confirmation")
         start.tap()
 
-        XCTAssertTrue(app.buttons["Show whole route"].waitForExistence(timeout: 5))
+        let openCard = app.buttons["Show trip actions"]
+        // The animation alone takes about 3 seconds; a simulator busy with a long test run can take several times that.
+        XCTAssertTrue(openCard.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.buttons["End Trip"].exists)
+        // The card slides in, so it is only hittable once it has settled.
+        let settled = expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: openCard)
+        wait(for: [settled], timeout: 5)
+        openCard.tap()
+        XCTAssertTrue(app.buttons["End Trip"].waitForExistence(timeout: 3))
         // The map covers the lobby, which stays in the tree below it, so its button can no longer be tapped.
         XCTAssertFalse(startTrip.isHittable)
         Attach(named: "Map after the start")

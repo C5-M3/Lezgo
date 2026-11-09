@@ -58,6 +58,7 @@ DEFINE SCHEMA
         lastSeenAt     TIMESTAMP,
         course         DOUBLE,
         wayBack        BYTES,
+        arrivedAtWaypointID STRING,
         GRANT WRITE TO "_icloud",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

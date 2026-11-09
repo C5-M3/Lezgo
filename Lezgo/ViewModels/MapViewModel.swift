@@ -83,6 +83,10 @@ final class MapViewModel {
     var activeSelectionSheet: ActivePointSelection?
     var searchQuery: String = ""
 
+    var isSearching: Bool {
+        activeSelectionSheet != nil
+    }
+
     init(
         tripService: (any TripService)? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
@@ -205,7 +209,7 @@ final class MapViewModel {
         }
     }
 
-    private func closeSearch() {
+    func closeSearch() {
         activeSelectionSheet = nil
         searchQuery = ""
         searchService.updateQueryFragment("")

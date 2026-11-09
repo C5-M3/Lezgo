@@ -22,10 +22,10 @@ struct EditRouteView: View {
     }
 
     var body: some View {
-        SetRouteMapView(
+        SetRouteView(
             viewModel: planner,
             title: viewModel.purpose == .newDestination ? .tripMapNewDestination : .editRouteTitle,
-            nextTitle: .editRouteSave,
+            saveTitle: .editRouteSave,
             onBack: onClose,
             onNext: Save,
             // Back while saving would leave a save running with no screen to show its result.

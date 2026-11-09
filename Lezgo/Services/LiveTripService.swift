@@ -211,7 +211,13 @@ final class LiveTripService: TripService {
     }
 
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
-        try await ReplaceRoute(tripID, with: plan, by: leaderID, allowing: [.lobby, .inTrip]) { trip in
+        try await ReplaceRoute(
+            tripID,
+            with: plan,
+            by: leaderID,
+            allowing: [.lobby, .inTrip],
+            keepsDestination: true
+        ) { trip in
             // In the lobby nobody has left yet, so the first stop to reach stays the start.
             if trip.status == .inTrip { trip.currentWaypointIndex = 1 }
         }
@@ -260,37 +266,6 @@ final class LiveTripService: TripService {
             change(&participant)
             TripRecordMapper.Write(participant, into: record)
             try await database.Save([record], savePolicy: .changedKeys)
-        }
-    }
-
-    /// Saves the new waypoints and route first and the trip last, so a phone never sees a route version without
-    /// its route. The old waypoints and routes are deleted afterwards.
-    private func ReplaceRoute(
-        _ tripID: UUID,
-        with plan: TripPlan,
-        by leaderID: UUID, allowing allowedStatuses: [TripStatus] = [.inTrip],
-        _ change: (inout Trip) -> Void
-    ) async throws {
-        try await Run {
-            guard plan.isValid else { throw TripServiceError.notAllowed }
-            let (trip, record) = try await reader.OpenTrip(tripID, by: leaderID)
-            guard allowedStatuses.contains(trip.status) else { throw TripServiceError.notAllowed }
-            let oldWaypoints = try await reader.Children(of: tripID, type: TripRecordMapper.waypointType)
-            let oldRoutes = try await reader.Children(of: tripID, type: TripRecordMapper.routeType)
-            let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID)
-
-            var changed = trip
-            changed.routeVersion += 1
-            change(&changed)
-            let waypoints = plan.MakeWaypoints(tripID: tripID)
-            let route = Route(id: UUID(), tripID: tripID, version: changed.routeVersion, polyline: plan.polyline)
-            try await database.Save(
-                waypoints.map { TripRecordMapper.MakeRecord($0) } + [TripRecordMapper.MakeRecord(route)],
-                savePolicy: .allKeys
-            )
-            TripRecordMapper.Write(changed, into: record)
-            try await database.Save([record], savePolicy: .changedKeys)
-            try await database.Delete(oldRecordIDs)
         }
     }
 
@@ -343,6 +318,16 @@ extension LiveTripService {
             participant.wayBack = wayBack
         }
     }
+
+    func MarkArrived(at destinationID: UUID, participantID: UUID, tripID: UUID) async throws {
+        let state = try await FetchTrip(tripID: tripID)
+        guard state.trip.status == .inTrip, state.destination?.id == destinationID else {
+            throw TripServiceError.notAllowed
+        }
+        try await ChangeParticipant(participantID, tripID: tripID) { participant in
+            participant.arrivedAtWaypointID = destinationID
+        }
+    }
 }
 
 // MARK: Names
@@ -357,5 +342,48 @@ extension LiveTripService {
     ) async throws {
         let state = try await Run { try await reader.LoadState(tripID: tripID) }
         if state.IsNameTaken(name, excluding: participantID) { throw TripServiceError.nameAlreadyUsed }
+    }
+}
+
+// MARK: - Replacing the route
+
+extension LiveTripService {
+    /// Saves the new waypoints and route first and the trip last, so a phone never sees a route version without
+    /// its route. The old waypoints and routes are deleted afterwards.
+    /// - Parameter keepsDestination: a destination still in the same place keeps its record, and with it every
+    ///   "I've Arrived" saved for it.
+    private func ReplaceRoute(
+        _ tripID: UUID,
+        with plan: TripPlan,
+        by leaderID: UUID,
+        allowing allowedStatuses: [TripStatus] = [.inTrip],
+        keepsDestination: Bool = false,
+        _ change: (inout Trip) -> Void
+    ) async throws {
+        try await Run {
+            guard plan.isValid else { throw TripServiceError.notAllowed }
+            let (trip, record) = try await reader.OpenTrip(tripID, by: leaderID)
+            guard allowedStatuses.contains(trip.status) else { throw TripServiceError.notAllowed }
+            let oldWaypoints = try await reader.Children(of: tripID, type: TripRecordMapper.waypointType)
+            let oldRoutes = try await reader.Children(of: tripID, type: TripRecordMapper.routeType)
+            let oldDestination = keepsDestination
+                ? try oldWaypoints.map(TripRecordMapper.MakeWaypoint).first { $0.kind == .destination }
+                : nil
+
+            var changed = trip
+            changed.routeVersion += 1
+            change(&changed)
+            let waypoints = plan.MakeWaypoints(tripID: tripID, keeping: oldDestination)
+            let keptRecordIDs = Set(waypoints.map { TripRecordMapper.RecordID($0.id) })
+            let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID).filter { keptRecordIDs.contains($0) == false }
+            let route = Route(id: UUID(), tripID: tripID, version: changed.routeVersion, polyline: plan.polyline)
+            try await database.Save(
+                waypoints.map { TripRecordMapper.MakeRecord($0) } + [TripRecordMapper.MakeRecord(route)],
+                savePolicy: .allKeys
+            )
+            TripRecordMapper.Write(changed, into: record)
+            try await database.Save([record], savePolicy: .changedKeys)
+            try await database.Delete(oldRecordIDs)
+        }
     }
 }

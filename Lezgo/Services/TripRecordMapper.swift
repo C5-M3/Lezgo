@@ -103,6 +103,7 @@ enum TripRecordMapper {
         record["lastSeenAt"] = participant.lastSeenAt
         record["course"] = participant.course
         record["wayBack"] = participant.wayBack.isEmpty ? nil : PolylineBytes(participant.wayBack)
+        record["arrivedAtWaypointID"] = participant.arrivedAtWaypointID?.uuidString
     }
 
     static func MakeParticipant(from record: CKRecord) throws -> Participant {
@@ -125,7 +126,9 @@ enum TripRecordMapper {
             course: reader.OptionalValue("course"),
             wayBack: (reader.OptionalValue("wayBack") as Data?).flatMap(Polyline(from:)) ?? [],
             // Records from before avatars, or with an avatar a newer build added, show the leader's yellow.
-            avatar: (reader.OptionalValue("avatar") as String?).flatMap(Avatar.init(rawValue:)) ?? .yellow
+            avatar: (reader.OptionalValue("avatar") as String?).flatMap(Avatar.init(rawValue:)) ?? .yellow,
+            arrivedAtWaypointID: (reader.OptionalValue("arrivedAtWaypointID") as String?)
+                .flatMap(UUID.init(uuidString:))
         )
     }
 

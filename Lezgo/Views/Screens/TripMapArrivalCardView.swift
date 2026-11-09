@@ -17,32 +17,31 @@ struct TripMapArrivalCardView: View {
     let onNewDestination: (() -> Void)?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(Title())
-                    .font(.title3.bold())
+                    .font(.title.bold())
+                    .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle = Subtitle() {
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.callout)
+                        .foregroundStyle(Color(.tripCardSubtext))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
 
             if isLeader, let onNewDestination {
-                Button {
-                    onNewDestination()
-                } label: {
+                Button(action: onNewDestination) {
                     Text(.tripMapNewDestination)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                // Yellow once everyone is there. Before that it still works, because the leader is never blocked by
+                // late cars (US-07), but it is not what the leader is expected to do yet.
+                .buttonStyle(TripMapCardButtonStyle(isProminent: card == .everyoneArrived))
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func Title() -> LocalizedStringResource {
@@ -63,20 +62,24 @@ struct TripMapArrivalCardView: View {
 #Preview("Member, waiting") {
     TripMapArrivalCardView(card: .waitingForEveryone, isLeader: false, onNewDestination: nil)
         .padding()
+        .background(Color(.tripCard))
 }
 
 #Preview("Member, everyone arrived") {
     TripMapArrivalCardView(card: .everyoneArrived, isLeader: false, onNewDestination: nil)
         .padding()
+        .background(Color(.tripCard))
 }
 
 #Preview("Leader, waiting") {
     TripMapArrivalCardView(card: .waitingForEveryone, isLeader: true, onNewDestination: {})
         .padding()
+        .background(Color(.tripCard))
 }
 
 #Preview("Leader, everyone arrived, largest text") {
     TripMapArrivalCardView(card: .everyoneArrived, isLeader: true, onNewDestination: {})
         .padding()
+        .background(Color(.tripCard))
         .dynamicTypeSize(.accessibility5)
 }

@@ -184,6 +184,15 @@ final class InMemoryTripService: TripService {
         }
     }
 
+    func MarkArrived(at destinationID: UUID, participantID: UUID, tripID: UUID) async throws {
+        if let state = store.trips[tripID], state.trip.status != .inTrip || state.destination?.id != destinationID {
+            throw TripServiceError.notAllowed
+        }
+        try ChangeParticipant(participantID, tripID: tripID) { participant in
+            participant.arrivedAtWaypointID = destinationID
+        }
+    }
+
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws {
         try Change(tripID: tripID, by: leaderID) { state in
             guard state.trip.status == .inTrip else { throw TripServiceError.notAllowed }
@@ -195,7 +204,7 @@ final class InMemoryTripService: TripService {
         try Validate(plan)
         try Change(tripID: tripID, by: leaderID) { state in
             guard state.trip.status == .inTrip || state.trip.status == .lobby else { throw TripServiceError.notAllowed }
-            ReplaceRoute(in: &state, with: plan)
+            ReplaceRoute(in: &state, with: plan, keeping: state.destination)
             // In the lobby nobody has left yet, so the first stop to reach stays the start.
             if state.trip.status == .inTrip { state.trip.currentWaypointIndex = 1 }
         }
@@ -267,10 +276,10 @@ final class InMemoryTripService: TripService {
         guard plan.isValid else { throw TripServiceError.notAllowed }
     }
 
-    private func ReplaceRoute(in state: inout TripState, with plan: TripPlan) {
+    private func ReplaceRoute(in state: inout TripState, with plan: TripPlan, keeping oldDestination: Waypoint? = nil) {
         let version = state.trip.routeVersion + 1
         state.trip.routeVersion = version
-        state.waypoints = plan.MakeWaypoints(tripID: state.trip.id)
+        state.waypoints = plan.MakeWaypoints(tripID: state.trip.id, keeping: oldDestination)
         state.route = Route(id: UUID(), tripID: state.trip.id, version: version, polyline: plan.polyline)
     }
 

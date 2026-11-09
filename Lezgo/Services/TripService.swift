@@ -69,6 +69,9 @@ protocol TripService {
 
     /// Saves the way back of a member who left the group's road, for the leader's map; empty clears it. Members only.
     func SetWayBack(_ wayBack: [Coordinate], participantID: UUID, tripID: UUID) async throws
+    /// "I've Arrived": the leader or a member says they reached the trip's current destination
+    /// (`Participant.arrivedAtWaypointID`). Throws `.notAllowed` before the trip starts or for another waypoint.
+    func MarkArrived(at destinationID: UUID, participantID: UUID, tripID: UUID) async throws
 
     /// Moves the trip past a checkpoint. Only forward: a lower or equal index changes nothing.
     func AdvanceCheckpoint(to waypointIndex: Int, tripID: UUID, by leaderID: UUID) async throws
