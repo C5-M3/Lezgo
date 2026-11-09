@@ -124,8 +124,8 @@ struct TripRoomView: View {
                     .accessibilityLabel("Start")
             }
         )
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: isTransitioning)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: showingStartTripConfirmation)
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: isTransitioning)
+        .animation(Animation.lezgoFade.Respecting(reduceMotion: reduceMotion), value: showingStartTripConfirmation)
         .navigationBarBackButtonHidden(true)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .modifier(TripRoomAlertsModifier(
@@ -174,7 +174,7 @@ struct TripRoomView: View {
     }
 
     private func Release() {
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.3)) { heldParticipant = nil }
+        withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) { heldParticipant = nil }
     }
 
     private func StartTrip(_ viewModel: TripRoomViewModel) {
