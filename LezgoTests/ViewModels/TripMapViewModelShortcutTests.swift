@@ -24,7 +24,7 @@ struct TripMapViewModelShortcutTests {
         )
     }
 
-    /// Agus drove south 400 m, west 300 m, then north 450 m: a loop around a block. Budi is at its start, heading south.
+    /// Agus drove south 400 m, west 300 m, then north 450 m: a loop round a block. Budi is at its start, heading south.
     private static let loop = [
         Point(east: 0, north: 400), Point(east: 0, north: 0), Point(east: -300, north: 0), Point(east: -300, north: 400)
     ]
