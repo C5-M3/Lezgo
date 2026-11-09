@@ -1,6 +1,6 @@
 # 0023. CarPlay mirrors the trip map with Apple's templates
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-07
 - Deciders: N
 
