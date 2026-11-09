@@ -130,6 +130,53 @@ struct TripServiceRoadTests {
         #expect(state.destination?.name == "Pakuwon city mall")
     }
 
+    /// Edit in the Trip Room (US-04): the route changes while the trip stays in the lobby, so nobody has "passed" a
+    /// checkpoint and the first stop to reach stays the start.
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewRouteInTheTripRoomIsTheNextVersionAndTheTripStaysInTheLobby(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroup()
+
+        try await phones.agus.SaveRoute(TripPlanFixtures.ciputraToPakuwonCity, tripID: group.tripID, by: group.agusID)
+
+        let state = try await phones.budi.FetchTrip(tripID: group.tripID)
+        #expect(state.trip.status == .lobby)
+        #expect(state.trip.routeVersion == 2)
+        #expect(state.route?.version == 2)
+        #expect(state.trip.currentWaypointIndex == 0)
+        #expect(state.destination?.name == "Pakuwon city mall")
+        #expect(state.participants.count == 3)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func MemberCannotChangeTheRouteInTheTripRoom(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroup()
+
+        await #expect(throws: TripServiceError.notAllowed) {
+            try await phones.budi.SaveRoute(
+                TripPlanFixtures.ciputraToPakuwonCity,
+                tripID: group.tripID,
+                by: group.budiID
+            )
+        }
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func RouteCannotChangeOnceTheTripHasEnded(kind: TripPhones.Kind) async throws {
+        let phones = TripPhones(kind)
+        let group = try await phones.MakeGroup()
+        try await phones.agus.EndTrip(tripID: group.tripID, by: group.agusID)
+
+        await #expect(throws: TripServiceError.self) {
+            try await phones.agus.SaveRoute(
+                TripPlanFixtures.ciputraToPakuwonCity,
+                tripID: group.tripID,
+                by: group.agusID
+            )
+        }
+    }
+
     @Test(arguments: TripPhones.Kind.allCases)
     func NewDestinationGoesBackToTheTripRoom(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)

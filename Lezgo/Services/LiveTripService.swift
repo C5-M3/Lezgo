@@ -211,8 +211,15 @@ final class LiveTripService: TripService {
     }
 
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
-        try await ReplaceRoute(tripID, with: plan, by: leaderID, keepsDestination: true) { trip in
-            trip.currentWaypointIndex = 1
+        try await ReplaceRoute(
+            tripID,
+            with: plan,
+            by: leaderID,
+            allowing: [.lobby, .inTrip],
+            keepsDestination: true
+        ) { trip in
+            // In the lobby nobody has left yet, so the first stop to reach stays the start.
+            if trip.status == .inTrip { trip.currentWaypointIndex = 1 }
         }
     }
 
@@ -349,13 +356,14 @@ extension LiveTripService {
         _ tripID: UUID,
         with plan: TripPlan,
         by leaderID: UUID,
+        allowing allowedStatuses: [TripStatus] = [.inTrip],
         keepsDestination: Bool = false,
         _ change: (inout Trip) -> Void
     ) async throws {
         try await Run {
             guard plan.isValid else { throw TripServiceError.notAllowed }
             let (trip, record) = try await reader.OpenTrip(tripID, by: leaderID)
-            guard trip.status == .inTrip else { throw TripServiceError.notAllowed }
+            guard allowedStatuses.contains(trip.status) else { throw TripServiceError.notAllowed }
             let oldWaypoints = try await reader.Children(of: tripID, type: TripRecordMapper.waypointType)
             let oldRoutes = try await reader.Children(of: tripID, type: TripRecordMapper.routeType)
             let oldDestination = keepsDestination
