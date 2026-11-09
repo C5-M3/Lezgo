@@ -125,7 +125,6 @@ struct TripRoomView: View {
             }
         )
         .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: isTransitioning)
-        .animation(Animation.lezgoFade.Respecting(reduceMotion: reduceMotion), value: showingStartTripConfirmation)
         .navigationBarBackButtonHidden(true)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .modifier(TripRoomAlertsModifier(

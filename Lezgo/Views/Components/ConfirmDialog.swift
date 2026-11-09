@@ -7,135 +7,180 @@
 
 import SwiftUI
 
-/// The colours of a `ConfirmDialog`. The defaults are the hi-fi: a dark card, a white title, "Cancel" in red text and
-/// the main button in black on BrandYellow. Any screen can pass its own.
-struct ConfirmDialogStyle {
-    var titleColor: Color = .white
-    var messageColor: Color = .secondary
-    var background: Color = Color(uiColor: .secondarySystemBackground)
-    var cancelForeground: Color = .red
-    var cancelBackground: Color = Color(uiColor: .tertiarySystemBackground)
-    var confirmForeground: Color = .black
-    var confirmBackground: Color = Color(.brandYellow)
-}
-
-/// A confirmation drawn over a dimmed screen: a title, an optional message, "Cancel" and one main button. A system
-/// alert cannot show an image on its button (the LEZGO logo) or take our colours, so every confirmation in the app
-/// uses this one. Tapping outside does nothing, like a system alert: the person picks a button.
+/// The one alert of the app, drawn as in the hi-fi ("H2 Has Arrived · Confirm"): a dark card over a dimmed screen
+/// with a centred title, an optional message, a grey "Cancel" and the main button in a yellow capsule, or a red one
+/// for what cannot be undone. A system alert cannot take these colours or show the LEZGO logo on its button, so every
+/// question and message in the app uses this one. Tapping outside does nothing: the person picks a button.
 ///
 /// The main button's content is a view, so it can be text or an image. Without `cancelTitle` there is only the main
 /// button, for messages that just say "OK".
 struct ConfirmDialog<Confirm: View>: View {
     let title: Text
-    let message: Text?
-    let cancelTitle: LocalizedStringResource?
-    let style: ConfirmDialogStyle
-    let onCancel: () -> Void
+    var message: Text?
+    var cancelTitle: LocalizedStringResource? = .tripRoomCancel
+    /// Red for what ends or throws away something, yellow for the rest.
+    var isDestructive = false
+    /// While the answer is being saved, so a second tap cannot send it twice.
+    var isConfirmDisabled = false
+    var onCancel: () -> Void = {}
     let onConfirm: () -> Void
-    let confirm: Confirm
+    @ViewBuilder let confirm: Confirm
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// `false` for the moment the dialog arrives, so its card grows into place while the dark backdrop fades in.
+    @State private var hasArrived = false
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.7)
+                .ignoresSafeArea()
+                .accessibilityHidden(true)
+
+            // At the largest text sizes the card scrolls instead of being cut off.
+            ViewThatFits(in: .vertical) {
+                Card()
+                ScrollView { Card() }
+            }
+            .frame(maxWidth: 330)
+            .padding(.horizontal, 24)
+            .padding(.vertical)
+            .scaleEffect(hasArrived || reduceMotion ? 1 : 0.9)
+        }
+        .contentShape(.rect)
+        .onAppear {
+            withAnimation(Animation.lezgoDialog.Respecting(reduceMotion: reduceMotion)) { hasArrived = true }
+        }
+        .accessibilityAddTraits(.isModal)
+        .accessibilityAction(.escape) { cancelTitle == nil ? onConfirm() : onCancel() }
+    }
+
+    private func Card() -> some View {
+        VStack(spacing: 10) {
+            title
+                .font(.title3.bold())
+                .foregroundStyle(.white)
+                .accessibilityAddTraits(.isHeader)
+            if let message {
+                message
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.tripCardSubtext))
+            }
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { Buttons() }
+                VStack(spacing: 12) { Buttons() }
+            }
+            .padding(.top, 18)
+        }
+        .multilineTextAlignment(.center)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(Color(.tripCardButton), in: .rect(cornerRadius: 30))
+        // Named after its title, so VoiceOver and the UI tests find the dialog by what it asks.
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(title)
+        .accessibilityIdentifier("ConfirmDialog")
+    }
+
+    @ViewBuilder
+    private func Buttons() -> some View {
+        if let cancelTitle {
+            Button(action: onCancel) {
+                Text(cancelTitle)
+                    .modifier(ButtonLabel(foreground: .white, background: Color(.tripCardSubtext).opacity(0.25)))
+            }
+            .buttonStyle(.pressable)
+        }
+        Button(action: onConfirm) {
+            confirm
+                .modifier(ButtonLabel(
+                    foreground: Color(.tripCard),
+                    background: isDestructive ? Color(.tripAlertRed) : Color(.brandYellow)
+                ))
+        }
+        .buttonStyle(.pressable)
+        .disabled(isConfirmDisabled)
+        .opacity(isConfirmDisabled ? 0.5 : 1)
+        .animation(.lezgoFade, value: isConfirmDisabled)
+    }
+}
+
+extension ConfirmDialog where Confirm == Text {
+    /// A dialog whose main button is a text, for example "Confirm" or "OK".
     init(
         title: Text,
         message: Text? = nil,
         cancelTitle: LocalizedStringResource? = .tripRoomCancel,
-        style: ConfirmDialogStyle = ConfirmDialogStyle(),
-        onCancel: @escaping () -> Void,
-        onConfirm: @escaping () -> Void,
-        @ViewBuilder confirm: () -> Confirm
+        confirmTitle: LocalizedStringResource,
+        isDestructive: Bool = false,
+        isConfirmDisabled: Bool = false,
+        onCancel: @escaping () -> Void = {},
+        onConfirm: @escaping () -> Void
     ) {
-        self.title = title
-        self.message = message
-        self.cancelTitle = cancelTitle
-        self.style = style
-        self.onCancel = onCancel
-        self.onConfirm = onConfirm
-        self.confirm = confirm()
+        self.init(
+            title: title,
+            message: message,
+            cancelTitle: cancelTitle,
+            isDestructive: isDestructive,
+            isConfirmDisabled: isConfirmDisabled,
+            onCancel: onCancel,
+            onConfirm: onConfirm,
+            confirm: { Text(confirmTitle) }
+        )
     }
+}
 
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.6)
-                .ignoresSafeArea()
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    title
-                        .font(.title3.bold())
-                        .foregroundStyle(style.titleColor)
-                        .accessibilityAddTraits(.isHeader)
-                    if let message {
-                        message
-                            .font(.body)
-                            .foregroundStyle(style.messageColor)
-                    }
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) { buttons }
-                    VStack(spacing: 12) { buttons }
-                }
-            }
-            .padding(20)
-            .background(style.background, in: .rect(cornerRadius: 28))
-            .padding(.horizontal, 24)
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(title)
-            .accessibilityAddTraits(.isModal)
-        }
-        .accessibilityAction(.escape) { cancelTitle == nil ? onConfirm() : onCancel() }
-    }
+extension ConfirmDialog {
+    /// The text of a dialog button, in its coloured capsule.
+    struct ButtonLabel: ViewModifier {
+        let foreground: Color
+        let background: Color
 
-    @ViewBuilder private var buttons: some View {
-        if let cancelTitle {
-            Button(action: onCancel) {
-                Text(cancelTitle)
-                    .font(.headline)
-                    .foregroundStyle(style.cancelForeground)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(style.cancelBackground, in: Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        Button(action: onConfirm) {
-            confirm
-                .font(.headline)
-                .foregroundStyle(style.confirmForeground)
+        func body(content: Content) -> some View {
+            content
+                .font(.body.bold())
+                .foregroundStyle(foreground)
+                .padding(.horizontal, 12)
                 .frame(maxWidth: .infinity, minHeight: 52)
-                .background(style.confirmBackground, in: Capsule())
+                .background(background, in: .capsule)
+                .contentShape(.capsule)
         }
-        .buttonStyle(.plain)
     }
 }
 
 extension View {
-    /// Shows a `ConfirmDialog` over this view while `isPresented` is true. "Cancel" and the main button both close it;
-    /// the main button runs `onConfirm` first, so the action can still read the state that opened the dialog.
+    /// Shows a `ConfirmDialog` over this view while `isPresented` is true, fading it in and out. "Cancel" and the main
+    /// button both close it; the main button runs `onConfirm` first, so the action can still read the state that
+    /// opened the dialog.
     func confirmDialog<Confirm: View>(
         isPresented: Binding<Bool>,
         title: Text,
         message: Text? = nil,
         cancelTitle: LocalizedStringResource? = .tripRoomCancel,
-        style: ConfirmDialogStyle = ConfirmDialogStyle(),
+        isDestructive: Bool = false,
         onConfirm: @escaping () -> Void,
         @ViewBuilder confirm: () -> Confirm
     ) -> some View {
         let confirmLabel = confirm()
         return overlay {
-            if isPresented.wrappedValue {
-                ConfirmDialog(
-                    title: title,
-                    message: message,
-                    cancelTitle: cancelTitle,
-                    style: style,
-                    onCancel: { isPresented.wrappedValue = false },
-                    onConfirm: {
-                        onConfirm()
-                        isPresented.wrappedValue = false
-                    },
-                    confirm: { confirmLabel }
-                )
-                .transition(.opacity)
+            ZStack {
+                if isPresented.wrappedValue {
+                    ConfirmDialog(
+                        title: title,
+                        message: message,
+                        cancelTitle: cancelTitle,
+                        isDestructive: isDestructive,
+                        onCancel: { isPresented.wrappedValue = false },
+                        onConfirm: {
+                            onConfirm()
+                            isPresented.wrappedValue = false
+                        },
+                        confirm: { confirmLabel }
+                    )
+                    .transition(.opacity)
+                }
             }
+            .animation(.lezgoFade, value: isPresented.wrappedValue)
         }
     }
 
@@ -146,7 +191,7 @@ extension View {
         message: Text? = nil,
         cancelTitle: LocalizedStringResource? = .tripRoomCancel,
         confirmTitle: LocalizedStringResource = .tripRoomConfirm,
-        style: ConfirmDialogStyle = ConfirmDialogStyle(),
+        isDestructive: Bool = false,
         onConfirm: @escaping () -> Void
     ) -> some View {
         confirmDialog(
@@ -154,7 +199,7 @@ extension View {
             title: title,
             message: message,
             cancelTitle: cancelTitle,
-            style: style,
+            isDestructive: isDestructive,
             onConfirm: onConfirm
         ) {
             Text(confirmTitle)
@@ -170,14 +215,22 @@ extension View {
         confirmTitle: .tripRoomConfirm,
         onConfirm: { }
     )
-    .preferredColorScheme(.dark)
 }
 
-#Preview("Image button and message") {
+#Preview("Destructive with a message") {
+    ConfirmDialog(
+        title: Text(.tripMapEndTripQuestion),
+        message: Text(.tripMapEndTripNotEveryoneMessage),
+        confirmTitle: .tripMapConfirm,
+        isDestructive: true,
+        onConfirm: { }
+    )
+}
+
+#Preview("Image button") {
     Color.black.confirmDialog(
         isPresented: .constant(true),
         title: Text(verbatim: "Start Trip?"),
-        message: Text(verbatim: "Everyone is ready."),
         onConfirm: { },
         confirm: {
             Image(.lezgoBlack)
@@ -187,18 +240,15 @@ extension View {
                 .accessibilityLabel("Start")
         }
     )
-    .preferredColorScheme(.dark)
 }
 
 #Preview("OK only, Accessibility XXXL") {
-    Color.black.confirmDialog(
-        isPresented: .constant(true),
-        title: Text(verbatim: "You were removed from the trip."),
+    ConfirmDialog(
+        title: Text(.tripMapLeaderEndedTrip),
         cancelTitle: nil,
         confirmTitle: .tripRoomOK,
         onConfirm: { }
     )
     .dynamicTypeSize(.accessibility5)
-    .preferredColorScheme(.dark)
 }
 #endif

@@ -290,36 +290,33 @@ extension TripMapView {
         @ViewBuilder
         private func Dialog() -> some View {
             if let confirmation = viewModel.leaveConfirmation {
-                TripMapDialog(
+                ConfirmDialog(
                     title: Text(IsEndTrip(confirmation) ? .tripMapEndTripQuestion : .tripMapExitTripQuestion),
                     message: Message(of: confirmation),
-                    cancel: viewModel.CancelLeave,
-                    confirmTitle: Text(.tripMapConfirm),
+                    cancelTitle: .tripMapCancel,
+                    confirmTitle: .tripMapConfirm,
                     isDestructive: IsEndTrip(confirmation),
                     isConfirmDisabled: viewModel.isLeaving,
-                    confirm: { Task { await viewModel.ConfirmLeave(confirmation) } }
+                    onCancel: viewModel.CancelLeave,
+                    onConfirm: { Task { await viewModel.ConfirmLeave(confirmation) } }
                 )
             } else if let confirmation = viewModel.manualArrival.confirmation {
                 ArrivalQuestion(manualArrival: viewModel.manualArrival, confirmation: confirmation)
             } else if let error = viewModel.manualArrival.errorMessage {
-                TripMapDialog(
-                    title: Text(verbatim: error),
-                    confirmTitle: Text(.tripMapOK),
-                    confirm: viewModel.manualArrival.DismissError
-                )
+                Message(Text(verbatim: error), onOK: viewModel.manualArrival.DismissError)
             } else if let error = viewModel.leaveErrorMessage {
-                TripMapDialog(
-                    title: Text(verbatim: error),
-                    confirmTitle: Text(.tripMapOK),
-                    confirm: viewModel.DismissLeaveError
-                )
+                Message(Text(verbatim: error), onOK: viewModel.DismissLeaveError)
             } else if viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed {
-                TripMapDialog(
-                    title: Text(viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip),
-                    confirmTitle: Text(.tripMapOK),
-                    confirm: close
+                Message(
+                    Text(viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip),
+                    onOK: close
                 )
             }
+        }
+
+        /// A message with only "OK".
+        private func Message(_ title: Text, onOK: @escaping () -> Void) -> some View {
+            ConfirmDialog(title: title, cancelTitle: nil, confirmTitle: .tripMapOK, onConfirm: onOK)
         }
 
         private func IsEndTrip(_ confirmation: TripMapViewModel.LeaveConfirmation) -> Bool {
@@ -347,13 +344,14 @@ extension TripMapView {
             // one line at large text sizes.
             let distance = confirmation.distance.formatted(.measurement(width: .abbreviated, usage: .asProvided))
                 .replacing(" ", with: "\u{00A0}")
-            TripMapDialog(
+            ConfirmDialog(
                 title: Text(.tripMapArrivedQuestion(confirmation.destinationName)),
                 message: Text(.tripMapArrivedMessage(distance)),
-                cancel: manualArrival.Cancel,
-                confirmTitle: Text(.tripMapIveArrived),
+                cancelTitle: .tripMapCancel,
+                confirmTitle: .tripMapIveArrived,
                 isConfirmDisabled: manualArrival.isSaving,
-                confirm: { Task { await manualArrival.Confirm(confirmation) } }
+                onCancel: manualArrival.Cancel,
+                onConfirm: { Task { await manualArrival.Confirm(confirmation) } }
             )
         }
     }
