@@ -111,7 +111,7 @@ struct TripMapViewModelMyGPSTests {
         open.cancel()
         await open.value
 
-        #expect(viewModel.showsMyLocationDot == false)
+        #expect(viewModel.followsPhoneLocation == false)
         #expect(viewModel.myCoordinate == TripFixtures.ciputraWorld)
         #expect(viewModel.carPins.contains { $0.isMe })
     }

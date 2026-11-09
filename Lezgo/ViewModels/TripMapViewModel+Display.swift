@@ -102,7 +102,7 @@ extension TripMapViewModel {
 
     /// `true` while the phone shares its GPS, so the camera follows the phone's own location, as in Apple Maps;
     /// otherwise (previews and the simulated drive) it follows this car's position in the trip.
-    var showsMyLocationDot: Bool {
+    var followsPhoneLocation: Bool {
         locationSharer != nil
     }
 

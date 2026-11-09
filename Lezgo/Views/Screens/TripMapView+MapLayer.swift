@@ -100,7 +100,7 @@ extension TripMapView {
             .onAppear(perform: MoveCamera)
             .onChange(of: viewModel.myCoordinate) {
                 // The camera following the phone's location moves with the car by itself.
-                if viewModel.showsMyLocationDot == false { MoveCamera() }
+                if viewModel.followsPhoneLocation == false { MoveCamera() }
             }
             .onChange(of: viewModel.cameraMode) { MoveCamera() }
             .onChange(of: viewModel.route) { MoveCamera() }
@@ -140,7 +140,7 @@ extension TripMapView {
 
         private func CameraTarget() -> MapCameraPosition? {
             switch viewModel.cameraMode {
-            case .followMyCar where viewModel.showsMyLocationDot:
+            case .followMyCar where viewModel.followsPhoneLocation:
                 // Already following: setting it again would restart the camera's move.
                 guard cameraPosition.followsUserLocation == false else { return nil }
                 return .userLocation(followsHeading: true, fallback: .automatic)
