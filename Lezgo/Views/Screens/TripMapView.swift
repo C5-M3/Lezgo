@@ -101,7 +101,10 @@ struct TripMapView: View {
         }
         .task { await viewModel.Start() }
         .onAppear { activeTripMap.Show(viewModel) }
-        .onDisappear { activeTripMap.Hide(viewModel) }
+        .onDisappear {
+            activeTripMap.Hide(viewModel)
+            viewModel.sound.Stop()
+        }
         .task { await PlayStartIntro() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }
         .onChange(of: viewModel.selectedCarID) {
@@ -228,6 +231,8 @@ extension TripMapView {
                 if isSheetExpanded == false || dynamicTypeSize.isAccessibilitySize == false {
                     TripMapCameraControls(
                         cameraMode: viewModel.cameraMode,
+                        isMuted: viewModel.sound.isMuted,
+                        toggleMute: viewModel.sound.ToggleMute,
                         showWholeRoute: viewModel.ShowWholeRoute,
                         followMyCar: viewModel.FollowMyCar
                     )
