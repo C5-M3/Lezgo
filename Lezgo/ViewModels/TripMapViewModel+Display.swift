@@ -100,8 +100,8 @@ extension TripMapViewModel {
         return TripSession(myParticipantID: myParticipantID, state: state)
     }
 
-    /// This phone's car is the map's own location dot while the phone shares its GPS, as in Apple Maps; otherwise
-    /// (previews and the simulated drive) it is a car pin like the others, from the trip.
+    /// `true` while the phone shares its GPS, so the camera follows the phone's own location, as in Apple Maps;
+    /// otherwise (previews and the simulated drive) it follows this car's position in the trip.
     var showsMyLocationDot: Bool {
         locationSharer != nil
     }
@@ -122,8 +122,6 @@ extension TripMapViewModel {
         guard let state, let updatedAt else { return [] }
         return state.participants.compactMap { participant in
             guard let coordinate = participant.coordinate else { return nil }
-            // The location dot already shows this phone's car.
-            if showsMyLocationDot, participant.id == myParticipantID { return nil }
             return TripMapCarPin(
                 id: participant.id,
                 displayName: state.DisplayName(of: participant),

@@ -816,7 +816,7 @@
       }
     },
     "tripMapCarYou" : {
-      "comment" : "VoiceOver status of a car pin: this phone's own car.",
+      "comment" : "Label under this phone's own robot on the trip map, and its VoiceOver status.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

@@ -9,7 +9,7 @@ import MapKit
 import SwiftUI
 
 extension TripMapView {
-    /// The map itself: the route, the waypoints, this phone's location dot and the other cars. Its own view, so the
+    /// The map itself: the route, the waypoints and every car, this phone's own one included. Its own view, so the
     /// screen's body stays small enough for the compiler.
     struct MapLayer: View {
         let viewModel: TripMapViewModel
@@ -71,10 +71,6 @@ extension TripMapView {
                     }
                 }
 
-                if viewModel.showsMyLocationDot {
-                    UserAnnotation()
-                }
-
                 ForEach(CarGroups()) { group in
                     Annotation(group.pins[0].displayName, coordinate: group.coordinate.locationCoordinate) {
                         CarGroupMarker(group: group, viewModel: viewModel, mapHeading: mapHeading)
@@ -103,7 +99,7 @@ extension TripMapView {
             .onGeometryChange(for: CGFloat.self, of: \.size.width) { mapWidth = Double($0) }
             .onAppear(perform: MoveCamera)
             .onChange(of: viewModel.myCoordinate) {
-                // The location dot camera follows the car by itself.
+                // The camera following the phone's location moves with the car by itself.
                 if viewModel.showsMyLocationDot == false { MoveCamera() }
             }
             .onChange(of: viewModel.cameraMode) { MoveCamera() }
