@@ -299,6 +299,7 @@ Feature: Resume an unfinished trip
 - At the top, a map preview shows the start point, the destination and the road route only: no checkpoints, no other routes, no cars.
 - The title is "Lez Get Ready !".
 - "Overview" shows STARTING POINT, DESTINATION and "# OF STOPS" (the number of checkpoints, without the start point and the destination).
+- Only the leader sees "Edit" next to "Overview". It opens the same Edit Route planner as on the trip map (US-06), but starting from the trip's start point, the checkpoints and the destination, not from the leader's position. "Save" closes the planner and every phone in the room shows the new route within 2 seconds; "Back" without saving changes nothing. The trip stays in the Trip Room. If the leader hands over the lead while the planner is open, it closes. Once the trip has started, "Edit" is gone (the map has its own Edit Route).
 - "Participants" shows everyone's avatar, name and car description; the leader has a crown. Under the list a hint says "Hold to manage participants" to the leader and "Hold to edit your profile" to a member.
 - The list updates within 2 seconds when someone joins, leaves, is removed, edits their profile, or the leader changes.
 - The leader sees "Start Trip". Members see "Waiting for others ...".
@@ -356,6 +357,26 @@ Feature: Trip Room
   Scenario: Count the stops
     Given the route has 2 checkpoints
     Then the overview shows "2" under "# OF STOPS"
+
+  Scenario: The leader edits the route
+    Given "Agus" is the leader in the Trip Room
+    When "Agus" taps "Edit", changes the destination to "Pakuwon city mall" and taps "Save"
+    Then "Agus" is back in the Trip Room
+    And "Agus" and "Budi" see "Pakuwon city mall" as the destination within 2 seconds
+    And the trip is still in the Trip Room
+
+  Scenario: Back from the planner changes nothing
+    When "Agus" taps "Edit" and then "Back"
+    Then "Agus" is back in the Trip Room and the route is unchanged
+
+  Scenario: A member has no Edit
+    Given "Budi" is a member
+    Then "Budi" sees no "Edit" next to "Overview"
+
+  Scenario: The lead is handed over while the planner is open
+    Given "Agus" has the route planner open
+    When the lead is handed over to "Budi"
+    Then the planner closes on "Agus"'s phone
 
   Scenario: Someone joins
     When "Citra" joins with the room code
