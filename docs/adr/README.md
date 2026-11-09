@@ -37,3 +37,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0020](0020-UniversalInviteLinkOnNetlify.md) | Universal invite link on a free Netlify site | Proposed | 2026-10-30 |
 | [0021](0021-OneCarPerPhone.md) | One car per phone, not per iCloud account | Proposed | 2026-10-31 |
 | [0022](0022-CustomTripMapControls.md) | Custom trip map cards instead of Apple's sheet and glass | Proposed | 2026-11-05 |
+| [0023](0023-CarPlayMirrorsTheTripMap.md) | CarPlay mirrors the trip map with Apple's templates | Accepted | 2026-11-07 |

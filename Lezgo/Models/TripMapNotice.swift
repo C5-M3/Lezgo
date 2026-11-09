@@ -27,4 +27,30 @@ enum TripMapNotice: Hashable {
         case .rerouteFailed, .leaderOffline: nil
         }
     }
+
+    /// A notice that something is wrong is shown in red.
+    var isUrgent: Bool {
+        switch self {
+        case .rerouteFailed, .leaderOffline: true
+        case .newRoute, .routeUpdated: false
+        }
+    }
+
+    /// What the notice says, on the phone's pill and on CarPlay's navigation alert. A new route ends with the new
+    /// time once guidance knows it: "New route · Following Agus · 52 min".
+    func Message(timeLeft: Duration?) -> String {
+        switch self {
+        case let .newRoute(leaderName?): WithTime(.tripMapNoticeNewRouteFollowing(leaderName), timeLeft)
+        case .newRoute(nil): WithTime(.tripMapNoticeNewRoute, timeLeft)
+        case let .routeUpdated(leaderName?): WithTime(.tripMapNoticeRouteUpdatedBy(leaderName), timeLeft)
+        case .routeUpdated(nil): WithTime(.tripMapNoticeRouteUpdated, timeLeft)
+        case .rerouteFailed: String(localized: .tripMapNoticeRerouteFailed)
+        case let .leaderOffline(name): String(localized: .tripMapNoticeLeaderOffline(name))
+        }
+    }
+
+    private func WithTime(_ message: LocalizedStringResource, _ timeLeft: Duration?) -> String {
+        guard let timeLeft else { return String(localized: message) }
+        return "\(String(localized: message)) · \(timeLeft.formatted(TripMapCarStatus.durationStyle))"
+    }
 }

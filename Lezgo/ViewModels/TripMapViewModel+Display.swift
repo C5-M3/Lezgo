@@ -140,7 +140,7 @@ extension TripMapViewModel {
     }
 
     /// Worked out from the whole group, so a member keeps their color before everyone has sent a position.
-    private func CarColor(of participant: Participant, in state: TripState) -> TripMapCarPin.CarColor {
+    func CarColor(of participant: Participant, in state: TripState) -> TripMapCarPin.CarColor {
         let members = state.participants.filter { $0.IsLeader(in: state.trip) == false }
         guard let index = members.firstIndex(where: { $0.id == participant.id }) else { return .yellow }
         return .ForMember(atIndex: index)

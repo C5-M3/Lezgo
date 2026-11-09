@@ -20,7 +20,7 @@ struct TripMapTurnCard: View {
             : AnyLayout(HStackLayout(spacing: 22))
 
         layout {
-            Image(systemName: ArrowSymbol())
+            Image(systemName: guidance.direction.symbolName)
                 .font(.system(size: arrowSize, weight: .bold))
                 .foregroundStyle(Color(.brandYellow))
                 .accessibilityHidden(true)
@@ -40,17 +40,6 @@ struct TripMapTurnCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.tripCard), in: .rect(cornerRadius: 30))
         .accessibilityElement(children: .combine)
-    }
-
-    private func ArrowSymbol() -> String {
-        switch guidance.direction {
-        case .left: "arrow.turn.up.left"
-        case .right: "arrow.turn.up.right"
-        case .straight: "arrow.up"
-        // Indonesia drives on the left, so roundabouts go clockwise.
-        case .roundabout: "arrow.clockwise.circle"
-        case .uTurn: "arrow.uturn.down"
-        }
     }
 }
 

@@ -119,3 +119,24 @@ struct TripMapAlerts {
         case carStopped(id: UUID, name: String)
     }
 }
+
+extension TripMapAlerts.Banner {
+    /// What the banner says, on the phone's pill and on CarPlay's navigation alert.
+    var message: LocalizedStringResource {
+        switch self {
+        case .mine(.offRoute): .tripMapAlertOffRoute
+        case .mine(.passedCheckpoint): .tripMapAlertPassedCheckpoint
+        case .mine(.passedDestination): .tripMapAlertPassedDestination
+        case .mine: .tripMapAlertAheadOfLeader
+        case let .otherCar(_, name, .offRoute): .tripMapAlertCarOffRoute(name)
+        case let .otherCar(_, name, _): .tripMapAlertCarAheadOfLeader(name)
+        case let .carStopped(_, name): .tripMapAlertCarStopped(name)
+        }
+    }
+
+    /// A car that has stopped is shown in red.
+    var isUrgent: Bool {
+        if case .carStopped = self { return true }
+        return false
+    }
+}
