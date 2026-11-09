@@ -56,27 +56,28 @@ struct SetRouteSheet: View {
                 toolbarLeading
                 toolbarTrailing
             }
-            .alert(
-                "Discard Changes?",
-                isPresented: $isShowingBackConfirmation
-            ) {
-                Button("Cancel", role: .cancel) { }
-                Button("Discard", role: .destructive) {
-                    onBack?()
-                }
-            } message: {
-                Text("Going back will clear your selected destination and route planning")
-            }
-            .alert(
-                "Notice",
+            .confirmDialog(
+                isPresented: $isShowingBackConfirmation,
+                title: Text("Discard Changes?"),
+                message: Text("Going back will clear your selected destination and route planning"),
+                cancelTitle: "Cancel",
+                confirmTitle: "Discard",
+                isDestructive: true,
+                onConfirm: { onBack?() }
+            )
+            .confirmDialog(
                 isPresented: Binding(
                     get: { viewModel.errorMessage != nil },
                     set: { if !$0 { viewModel.errorMessage = nil } }
-                )
-            ) {
-                Button("OK") { viewModel.errorMessage = nil }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
+                ),
+                title: Text("Notice"),
+                message: Text(verbatim: viewModel.errorMessage ?? ""),
+                cancelTitle: nil,
+                confirmTitle: "OK",
+                onConfirm: { }
+            )
+            .onChange(of: viewModel.errorMessage) { _, message in
+                if message != nil { onExpand?() }
             }
             .fullScreenCover(
                 item: $viewModel.createdSession,
@@ -97,6 +98,8 @@ private extension SetRouteSheet {
         ToolbarItem(placement: .topBarLeading) {
             Button("Back", systemImage: "chevron.left") {
                 if viewModel.hasPlanChanges {
+                    // The dialog is drawn inside this sheet, so the sheet opens fully to give it room.
+                    onExpand?()
                     isShowingBackConfirmation = true
                 } else {
                     onBack?()

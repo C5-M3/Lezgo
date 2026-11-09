@@ -82,28 +82,26 @@ struct SetRouteView: View {
                 }
             }
         }
-        .alert(
-            "Discard Changes?",
-            isPresented: $isShowingBackConfirmation
-        ) {
-            Button("Cancel", role: .cancel) { }
-            Button("Discard", role: .destructive) {
-                HandleBack()
-            }
-        } message: {
-            Text("Going back will clear your selected destination and route planning")
-        }
-        .alert(
-            "Notice",
+        .confirmDialog(
+            isPresented: $isShowingBackConfirmation,
+            title: Text("Discard Changes?"),
+            message: Text("Going back will clear your selected destination and route planning"),
+            cancelTitle: "Cancel",
+            confirmTitle: "Discard",
+            isDestructive: true,
+            onConfirm: HandleBack
+        )
+        .confirmDialog(
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
-            )
-        ) {
-            Button("OK") { viewModel.errorMessage = nil }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
+            ),
+            title: Text("Notice"),
+            message: Text(verbatim: viewModel.errorMessage ?? ""),
+            cancelTitle: nil,
+            confirmTitle: "OK",
+            onConfirm: { }
+        )
         .fullScreenCover(
             item: $viewModel.createdSession,
             onDismiss: HandleTripRoomDismissed,

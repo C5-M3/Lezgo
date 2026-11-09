@@ -131,14 +131,6 @@ final class DraftTripViewModel {
         isConfirmingNewTrip = true
     }
 
-    func DismissConfirmation() {
-        isConfirmingNewTrip = false
-    }
-
-    func DismissCancelledNotice() {
-        wasCancelledByLeader = false
-    }
-
     /// Handles confirming creation of a new trip:
     /// - For members: exits the current trip (ExitTrip).
     /// - For leaders: ends the trip for everyone (EndTrip).
