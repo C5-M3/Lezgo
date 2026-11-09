@@ -66,7 +66,6 @@ struct JoinTripView: View {
     var onEnter: ((String) -> Void)?
     var onNavigateToTripRoom: ((TripSession) -> Void)?
 
-    private let brandYellow = Color(red: 247/255, green: 255/255, blue: 0/255)
     private let boxBackground = Color(red: 32/255, green: 32/255, blue: 34/255)
     private let sheetBackground = Color(red: 24/255, green: 24/255, blue: 26/255)
     private let disabledButtonBackground = Color(red: 36/255, green: 36/255, blue: 38/255)
@@ -101,11 +100,11 @@ struct JoinTripView: View {
                 if let errorMessage = viewModel.errorMessage {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.circle.fill")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(.red)
 
                         Text(errorMessage)
-                            .font(.system(size: 14, weight: .regular))
+                            .font(.subheadline)
                             .foregroundStyle(.red)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -158,11 +157,11 @@ struct JoinTripView: View {
     private var headerSection: some View {
         VStack(alignment: .center, spacing: 4) {
             Text("Enter room code")
-                .font(.system(size: 20, weight: .bold))
+                .font(.title3.weight(.bold))
                 .foregroundStyle(.white)
 
             Text("Ask the leader for the 6 digits")
-                .font(.system(size: 14, weight: .regular))
+                .font(.subheadline)
                 .foregroundStyle(Color(white: 0.6))
         }
     }
@@ -231,17 +230,17 @@ struct JoinTripView: View {
 
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(
-                    hasError ? Color.red : (isCurrentSlot ? brandYellow : Color.clear),
+                    hasError ? Color(.tripAlertRed) : (isCurrentSlot ? Color(.brandYellow) : Color.clear),
                     lineWidth: 2
                 )
 
             if isCurrentSlot && !hasError {
-                BlinkingCursor(color: brandYellow)
+                BlinkingCursor(color: Color(.brandYellow))
             }
 
             if hasDigit {
                 Text(charString)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .font(.system(.title2, design: .rounded, weight: .bold))
                     .foregroundStyle(.white)
                     .contentTransition(.identity)
                     .transaction { $0.animation = nil }
@@ -263,7 +262,7 @@ struct JoinTripView: View {
                         .tint(Color.brandYellow)
                 } else {
                     Text("Enter")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.callout.weight(.semibold))
                         .foregroundStyle(viewModel.isValidCode ? .black : Color(white: 0.45))
                 }
             }
@@ -271,7 +270,11 @@ struct JoinTripView: View {
             .frame(height: 52)
             .background(
                 Capsule()
-                    .fill(viewModel.isValidCode && !viewModel.isSubmitting ? brandYellow : disabledButtonBackground)
+                    .fill(
+                        viewModel.isValidCode && !viewModel.isSubmitting
+                            ? Color(.brandYellow)
+                            : disabledButtonBackground
+                    )
             )
         }
         .disabled(!viewModel.isValidCode || viewModel.isSubmitting)

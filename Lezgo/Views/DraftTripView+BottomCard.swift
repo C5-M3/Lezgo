@@ -32,11 +32,11 @@ extension DraftTripView {
         private var headerSection: some View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("WAIT!")
-                    .font(.system(size: 38, weight: .heavy))
+                    .font(.largeTitle.weight(.heavy))
                     .foregroundStyle(.white)
 
                 Text("YOU HAVE A TRIP IN PROGRESS")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.footnote.weight(.semibold))
                     .tracking(1.2)
                     .foregroundStyle(Color(white: 0.75))
             }
@@ -49,13 +49,13 @@ extension DraftTripView {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 16) {
                     Image(systemName: "house.fill")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.brandYellow)
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
 
                     Text(viewModel.startPointName)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                 }
@@ -69,13 +69,13 @@ extension DraftTripView {
 
                 HStack(spacing: 16) {
                     Image(systemName: "flag.checkered")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.brandYellow)
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
 
                     Text(viewModel.destinationName)
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.body.weight(.semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                 }
@@ -114,7 +114,7 @@ extension DraftTripView {
                 .accessibilityHidden(true)
 
                 Text(viewModel.tripInfoText)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color(white: 0.6))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -126,7 +126,7 @@ extension DraftTripView {
                     viewModel.TapNewTrip()
                 } label: {
                     Text("New Trip")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.body.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)
@@ -141,7 +141,7 @@ extension DraftTripView {
                     onContinueTrip()
                 } label: {
                     Text("Continue Trip")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.body.weight(.bold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
                         .frame(height: 54)

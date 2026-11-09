@@ -128,7 +128,7 @@ private extension SetRouteView {
                     .frame(width: 40, height: 40)
                     .overlay(
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.callout.weight(.bold))
                             .foregroundStyle(.white)
                             .accessibilityHidden(true)
                     )
@@ -140,7 +140,7 @@ private extension SetRouteView {
             Spacer()
 
             Text(navigationTitleText)
-                .font(.system(size: 18, weight: .bold))
+                .font(.body.weight(.bold))
                 .foregroundStyle(.white)
 
             Spacer()
@@ -307,14 +307,14 @@ private extension SetRouteView {
                     ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
                         if routeIndex != leg.selectedRouteIndex {
                             MapPolyline(route.polyline)
-                                .stroke(Color.heroYellow.opacity(0.38), lineWidth: 5)
+                                .stroke(Color(.brandYellow).opacity(0.38), lineWidth: 5)
                         }
                     }
                 }
 
                 ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
                     MapPolyline(polyline)
-                        .stroke(Color.heroYellow, lineWidth: 6)
+                        .stroke(Color(.brandYellow), lineWidth: 6)
                 }
             }
             .onTapGesture { screenPoint in

@@ -59,8 +59,8 @@ struct RouteSearchSuggestionsList: View {
                     .frame(width: 42, height: 42)
                     .overlay(
                         Image(systemName: "location.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(Color.heroYellow)
+                            .font(.callout)
+                            .foregroundStyle(Color(.brandYellow))
                             .accessibilityHidden(true)
                     )
 
@@ -91,7 +91,7 @@ struct RouteSearchSuggestionsList: View {
                     .frame(width: 42, height: 42)
                     .overlay(
                         Image(systemName: "mappin")
-                            .font(.system(size: 16))
+                            .font(.callout)
                             .foregroundStyle(.white)
                             .accessibilityHidden(true)
                     )
@@ -133,7 +133,7 @@ struct RouteSearchSuggestionsList: View {
         VStack(spacing: 10) {
             Spacer().frame(height: 32)
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 32))
+                .font(.largeTitle)
                 .foregroundStyle(Color(white: 0.5))
                 .accessibilityHidden(true)
             Text("No places found. Check the spelling.")

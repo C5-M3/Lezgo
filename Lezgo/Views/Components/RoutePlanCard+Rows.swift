@@ -20,27 +20,27 @@ extension RoutePlanCard {
                 HStack(alignment: .center, spacing: 12) {
                     ZStack {
                         Rectangle()
-                            .fill(Color.heroYellow.opacity(0.85))
+                            .fill(Color(.brandYellow).opacity(0.85))
                             .frame(width: 1.5)
 
                         Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundStyle(Color.heroYellow)
-                            .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                            .font(.callout)
+                            .foregroundStyle(Color(.brandYellow))
+                            .background(Color(.routeCard))
                             .frame(width: 24, height: 24)
                             .accessibilityHidden(true)
                     }
                     .frame(width: 24)
 
                     Text("\(count) stops")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(Color.heroYellow)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color(.brandYellow))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(minHeight: 28)
 
                     Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.heroYellow)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Color(.brandYellow))
                         .frame(width: 28, height: 28)
                         .accessibilityHidden(true)
                 }
@@ -99,21 +99,21 @@ extension RoutePlanCard {
         ZStack {
             if !isFinalDestination {
                 Rectangle()
-                    .fill(Color.heroYellow.opacity(0.85))
+                    .fill(Color(.brandYellow).opacity(0.85))
                     .frame(width: 1.5)
             } else {
                 VStack(spacing: 0) {
                     Rectangle()
-                        .fill(Color.heroYellow.opacity(0.85))
+                        .fill(Color(.brandYellow).opacity(0.85))
                         .frame(width: 1.5, height: 18)
                     Spacer(minLength: 0)
                 }
             }
 
             Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.heroYellow)
-                .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                .font(.callout)
+                .foregroundStyle(Color(.brandYellow))
+                .background(Color(.routeCard))
                 .frame(width: 24, height: 24)
                 .accessibilityHidden(true)
         }
@@ -126,7 +126,7 @@ extension RoutePlanCard {
                 onSelectPointForEditing(.destination(index: index))
             } label: {
                 Text(stop.name)
-                    .font(.system(size: 15))
+                    .font(.subheadline)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -136,7 +136,7 @@ extension RoutePlanCard {
             .buttonStyle(.plain)
 
             Image(systemName: "line.3.horizontal")
-                .font(.system(size: 14))
+                .font(.subheadline)
                 .foregroundStyle(Color(white: 0.35))
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
@@ -153,14 +153,14 @@ extension RoutePlanCard {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(Color.heroYellow)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color(.brandYellow))
                     .frame(width: 24, height: 24)
                     .accessibilityHidden(true)
 
                 Text("Add Destination")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Color.heroYellow)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color(.brandYellow))
 
                 Spacer()
             }
@@ -173,7 +173,7 @@ extension RoutePlanCard {
     func searchTextField(placeholder: String) -> some View {
         HStack(spacing: 8) {
             TextField(placeholder, text: $searchQuery)
-                .font(.system(size: 15))
+                .font(.subheadline)
                 .foregroundStyle(.white)
                 .focused($isFieldFocused)
                 .autocorrectionDisabled()
@@ -182,7 +182,7 @@ extension RoutePlanCard {
             if !searchQuery.isEmpty {
                 Button(action: onClearSearch) {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                        .font(.callout)
                         .foregroundStyle(Color(white: 0.55))
                 }
                 .buttonStyle(.plain)
@@ -193,7 +193,7 @@ extension RoutePlanCard {
         .frame(height: 38)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.heroYellow, lineWidth: 1.5)
+                .strokeBorder(Color(.brandYellow), lineWidth: 1.5)
         )
     }
 }

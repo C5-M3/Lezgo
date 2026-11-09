@@ -105,7 +105,7 @@ struct TravelSearchBar: View {
     private var searchPromptView: some View {
         HStack(spacing: 8) {
             Text(placeholder)
-                .font(.system(size: 16, weight: .medium))
+                .font(.callout.weight(.medium))
                 .foregroundStyle(Color(uiColor: .placeholderText).opacity(0.85))
                 .lineLimit(1)
             Spacer()
@@ -114,7 +114,7 @@ struct TravelSearchBar: View {
 
     private var searchIconView: some View {
         Image(systemName: "magnifyingglass")
-            .font(.system(size: 20, weight: .medium))
+            .font(.title3.weight(.medium))
             .accessibilityHidden(true)
     }
 }
@@ -128,7 +128,7 @@ struct MapDoorButton: View {
         if #available(iOS 18.0, *) {
             Button(action: action) {
                 Image(systemName: "door.left.hand.closed")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.title3.weight(.medium))
                     .frame(width: 30, height: 40)
                     .accessibilityHidden(true)
             }
@@ -137,7 +137,7 @@ struct MapDoorButton: View {
         } else {
             Button(action: action) {
                 Image(systemName: "door.left.hand.closed")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(Color(uiColor: .label).opacity(0.85))
                     .frame(width: 30, height: 40)
                     .background(.ultraThinMaterial, in: Circle())

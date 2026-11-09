@@ -18,7 +18,6 @@ struct HomeView: View {
     @State private var isSetRoutePresented: Bool = false
 
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
-    private let screenBackground = Color(red: 18/255, green: 18/255, blue: 18/255)
 
     private var shouldHideHomeControls: Bool {
         viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
@@ -29,7 +28,7 @@ struct HomeView: View {
         @Bindable var boundHomeViewModel = viewModel
 
         ZStack {
-            screenBackground
+            Color(.tripCard)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -161,7 +160,7 @@ private extension HomeView {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Text("Make and lead a trip or join one !")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -197,24 +196,24 @@ private extension HomeView {
                                 .frame(width: 50, height: 50)
 
                             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(Color.brandYellow)
                         }
 
                         Spacer()
 
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.title3.weight(.bold))
                             .foregroundStyle(.black)
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Lead a trip")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.title.weight(.bold))
                             .foregroundStyle(.black)
 
                         Text("Plan the trip and make a room for friends to join trip!")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(.black)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
@@ -252,24 +251,24 @@ private extension HomeView {
                                 .frame(width: 50, height: 50)
 
                             Image(systemName: "door.left.hand.open")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(.black)
                         }
 
                         Spacer()
 
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.title3.weight(.bold))
                             .foregroundStyle(Color(white: 0.6))
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Join a trip")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.title.weight(.bold))
                             .foregroundStyle(.white)
 
                         Text("Got a room code from friend leader? Join the room now!")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(Color(white: 0.6))
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)

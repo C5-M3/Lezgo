@@ -38,7 +38,7 @@ extension DraftTripView {
                 if let badgeCoord = primaryBadgeCoordinate, !primaryDurationText.isEmpty {
                     Annotation("", coordinate: badgeCoord) {
                         Text(primaryDurationText)
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -82,13 +82,13 @@ extension DraftTripView {
                                     .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
 
                                 Image(systemName: "flag.checkered")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.subheadline.weight(.bold))
                                     .foregroundStyle(.black)
                                     .accessibilityHidden(true)
                             }
 
                             Text(destinationName)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.footnote.weight(.bold))
                                 .foregroundStyle(.white)
                                 .shadow(color: .black.opacity(0.85), radius: 3, x: 0, y: 1)
                                 .multilineTextAlignment(.center)
