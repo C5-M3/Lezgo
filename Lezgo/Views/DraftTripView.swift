@@ -287,6 +287,8 @@ struct DraftTripView: View {
     }
 }
 
+// `sample` is debug-only (ADR 0018), so the preview is too; without the guard the Release build fails.
+#if DEBUG
 #Preview {
     DraftTripView(
         viewModel: .sample,
@@ -295,3 +297,4 @@ struct DraftTripView: View {
         onTripEnded: {}
     )
 }
+#endif
