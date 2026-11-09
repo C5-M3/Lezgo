@@ -16,4 +16,10 @@ struct InfoPlistTests {
         let value = Bundle.main.object(forInfoDictionaryKey: "ITSAppUsesNonExemptEncryption")
         #expect(try #require(value as? Bool) == false)
     }
+
+    /// Voice guidance keeps speaking with the screen locked, as navigation apps do (ADR 0024).
+    @Test func PlaysAudioInTheBackground() throws {
+        let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String]
+        #expect(try #require(modes).contains("audio"))
+    }
 }
