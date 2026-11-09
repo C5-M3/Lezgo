@@ -14,13 +14,14 @@ extension TripMapFixtures {
         me: UUID = budiID,
         states: [TripState],
         service: MockTripService? = nil,
-        guidance: TripMapGuidance = Guidance()
+        guidance: TripMapGuidance? = Guidance()
     ) -> TripMapViewModel {
+        // Without guidance the navigator fails, as it does before MapKit answers.
         TripMapViewModel(
             tripID: tripID,
             myParticipantID: me,
             tripService: service ?? MockTripService(states: states),
-            navigator: MockTripMapNavigator(results: [.success(guidance)]),
+            navigator: MockTripMapNavigator(results: guidance.map { [.success($0)] } ?? []),
             streetNameService: MockStreetNameService(),
             clock: { now }
         )
