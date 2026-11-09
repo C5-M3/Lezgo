@@ -204,7 +204,7 @@ final class InMemoryTripService: TripService {
         try Validate(plan)
         try Change(tripID: tripID, by: leaderID) { state in
             guard state.trip.status == .inTrip else { throw TripServiceError.notAllowed }
-            ReplaceRoute(in: &state, with: plan)
+            ReplaceRoute(in: &state, with: plan, keeping: state.destination)
             state.trip.currentWaypointIndex = 1
         }
     }
@@ -275,10 +275,10 @@ final class InMemoryTripService: TripService {
         guard plan.isValid else { throw TripServiceError.notAllowed }
     }
 
-    private func ReplaceRoute(in state: inout TripState, with plan: TripPlan) {
+    private func ReplaceRoute(in state: inout TripState, with plan: TripPlan, keeping oldDestination: Waypoint? = nil) {
         let version = state.trip.routeVersion + 1
         state.trip.routeVersion = version
-        state.waypoints = plan.MakeWaypoints(tripID: state.trip.id)
+        state.waypoints = plan.MakeWaypoints(tripID: state.trip.id, keeping: oldDestination)
         state.route = Route(id: UUID(), tripID: state.trip.id, version: version, polyline: plan.polyline)
     }
 

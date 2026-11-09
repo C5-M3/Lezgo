@@ -211,7 +211,7 @@ final class LiveTripService: TripService {
     }
 
     func SaveRoute(_ plan: TripPlan, tripID: UUID, by leaderID: UUID) async throws {
-        try await ReplaceRoute(tripID, with: plan, by: leaderID) { trip in
+        try await ReplaceRoute(tripID, with: plan, by: leaderID, keepsDestination: true) { trip in
             trip.currentWaypointIndex = 1
         }
     }
@@ -343,10 +343,13 @@ extension LiveTripService {
 extension LiveTripService {
     /// Saves the new waypoints and route first and the trip last, so a phone never sees a route version without
     /// its route. The old waypoints and routes are deleted afterwards.
+    /// - Parameter keepsDestination: a destination still in the same place keeps its record, and with it every
+    ///   "I've Arrived" saved for it.
     private func ReplaceRoute(
         _ tripID: UUID,
         with plan: TripPlan,
         by leaderID: UUID,
+        keepsDestination: Bool = false,
         _ change: (inout Trip) -> Void
     ) async throws {
         try await Run {
@@ -355,12 +358,16 @@ extension LiveTripService {
             guard trip.status == .inTrip else { throw TripServiceError.notAllowed }
             let oldWaypoints = try await reader.Children(of: tripID, type: TripRecordMapper.waypointType)
             let oldRoutes = try await reader.Children(of: tripID, type: TripRecordMapper.routeType)
-            let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID)
+            let oldDestination = keepsDestination
+                ? try oldWaypoints.map(TripRecordMapper.MakeWaypoint).first { $0.kind == .destination }
+                : nil
 
             var changed = trip
             changed.routeVersion += 1
             change(&changed)
-            let waypoints = plan.MakeWaypoints(tripID: tripID)
+            let waypoints = plan.MakeWaypoints(tripID: tripID, keeping: oldDestination)
+            let keptRecordIDs = Set(waypoints.map { TripRecordMapper.RecordID($0.id) })
+            let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID).filter { keptRecordIDs.contains($0) == false }
             let route = Route(id: UUID(), tripID: tripID, version: changed.routeVersion, polyline: plan.polyline)
             try await database.Save(
                 waypoints.map { TripRecordMapper.MakeRecord($0) } + [TripRecordMapper.MakeRecord(route)],
