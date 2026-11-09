@@ -14,7 +14,7 @@ import Observation
 @MainActor
 final class TripRoomViewModel {
     private(set) var state: TripState?
-    private let tripService: any TripService
+    let tripService: any TripService
     /// Sends this phone's position while the room is open, so the group sees who is at the start point; `nil` in
     /// previews and tests that do not need it.
     private let locationSharer: LocationSharer?
@@ -40,6 +40,9 @@ final class TripRoomViewModel {
     var profileErrorMessage: String?
     /// `true` after a save was refused because another car has this name, so the sheet can mark the name field.
     var isProfileNameTaken = false
+    /// The planner the leader opened with "Edit" next to "Overview"; `nil` while it is closed. Changed only by
+    /// `RequestEditRoute` and `CloseEditRoute` (`TripRoomViewModel+EditRoute.swift`).
+    var editRoute: EditRouteViewModel?
 
     var roomCode: String {
         state?.trip.roomCode ?? ""
@@ -343,6 +346,7 @@ extension TripRoomViewModel {
             let isStillInTrip = newState.participants.contains(where: { $0.id == myParticipantID })
 
             state = newState
+            CloseEditRouteIfNotAllowed()
 
             // No earlier snapshot is needed: I joined this trip, so any snapshot without me means I was removed,
             // even the first one (for example when I was removed before the room finished opening). The update that
