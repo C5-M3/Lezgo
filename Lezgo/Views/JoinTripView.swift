@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 /// Animasi shake horizontal untuk menandai error pada field input.
 struct ShakeEffect: GeometryEffect {
@@ -283,14 +282,10 @@ struct JoinTripView: View {
     // MARK: - Actions
 
     private func triggerErrorFeedback() {
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
-        generator.notificationOccurred(.error)
-
-        if !reduceMotion {
-            withAnimation(.easeInOut(duration: 0.36)) {
-                shakeAttempts += 1
-            }
+        // `sensoryFeedback(.error, trigger: shakeAttempts)` plays the haptic, so the count goes up even with Reduce
+        // Motion; only the shake itself is skipped then.
+        withAnimation(Animation.easeInOut(duration: 0.36).Respecting(reduceMotion: reduceMotion)) {
+            shakeAttempts += 1
         }
     }
 

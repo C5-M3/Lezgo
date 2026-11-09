@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(\.tripService) private var tripService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
     @State private var isJoinTripPresented: Bool = false
@@ -319,12 +320,12 @@ private extension HomeView {
                     }
                 },
                 onNewTrip: {
-                    withAnimation {
+                    withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                         viewModel.ClearActiveDraftTrip()
                     }
                 },
                 onTripEnded: {
-                    withAnimation {
+                    withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                         viewModel.handleDraftTripEnded()
                     }
                 }

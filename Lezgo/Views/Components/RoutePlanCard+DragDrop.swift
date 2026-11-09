@@ -12,6 +12,7 @@ struct PointDragDropModifier: ViewModifier {
     let index: Int?
     let destinations: [RoutePoint]
     let onMoveDestination: ((IndexSet, Int) -> Void)?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         if let point = point, let index = index, destinations.count > 1 {
@@ -23,7 +24,7 @@ struct PointDragDropModifier: ViewModifier {
                           fromIndex != index else {
                         return false
                     }
-                    withAnimation {
+                    withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                         onMoveDestination?(
                             IndexSet(integer: fromIndex),
                             index > fromIndex ? index + 1 : index

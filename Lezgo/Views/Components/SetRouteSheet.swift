@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SetRouteSheet: View {
     @Environment(\.tripService) private var tripService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
     /// "Set Route" when planning a trip, "Edit Route" on the road.
@@ -281,7 +282,7 @@ private extension SetRouteSheet {
                   fromIndex != index else {
                 return false
             }
-            withAnimation {
+            withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                 viewModel.moveDestination(
                     fromOffsets: IndexSet(integer: fromIndex),
                     toOffset: index > fromIndex ? index + 1 : index

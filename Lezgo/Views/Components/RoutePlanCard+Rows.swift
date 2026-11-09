@@ -12,7 +12,7 @@ extension RoutePlanCard {
         let count = max(0, destinations.count - 1)
 
         return Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
                 isStopsExpanded.toggle()
             }
         } label: {
@@ -146,7 +146,7 @@ extension RoutePlanCard {
 
     var addDestinationRow: some View {
         Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
                 isStopsExpanded = false
             }
             onAddDestination()

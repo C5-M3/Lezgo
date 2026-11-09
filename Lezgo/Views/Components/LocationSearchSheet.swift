@@ -10,6 +10,7 @@ import MapKit
 
 struct LocationSearchSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var viewModel: MapViewModel
     let selectionType: ActivePointSelection
     var autoFocus: Bool = true
@@ -84,10 +85,10 @@ struct LocationSearchSheet: View {
                                     Spacer()
 
                                     if let meters = result.distanceInMeters {
-                                        let distText = meters >= 1000
-                                            ? String(format: "%.1f km", meters / 1000.0)
-                                            : String(format: "%.0f m", meters)
-                                        Text(distText)
+                                        Text(
+                                            Measurement(value: meters, unit: UnitLength.meters)
+                                                .formatted(.measurement(width: .abbreviated, usage: .road))
+                                        )
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                             .transition(.opacity)
@@ -101,7 +102,10 @@ struct LocationSearchSheet: View {
                                 }
                             }
                             .buttonStyle(.plain)
-                            .animation(.easeInOut(duration: 0.25), value: result.distanceInMeters)
+                            .animation(
+                                Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion),
+                                value: result.distanceInMeters
+                            )
                         }
                     } header: {
                         if selectionType == .start {

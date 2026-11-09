@@ -11,6 +11,7 @@ import SwiftUI
 struct SetRouteView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.tripService) var tripService
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State var viewModel: MapViewModel
     @State var isShowingBackConfirmation: Bool = false
     @State var activeMapSession: TripSession?
@@ -334,7 +335,7 @@ extension SetRouteView {
     func HandleBackButtonTapped() {
         if viewModel.isSearching {
             if !viewModel.destinations.isEmpty {
-                withAnimation {
+                withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                     viewModel.closeSearch()
                 }
                 return

@@ -10,6 +10,7 @@ import MapKit
 
 struct SetRouteMapView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: MapViewModel
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(310)
@@ -115,7 +116,7 @@ struct SetRouteMapView: View {
                 onNext: onNext,
                 onTripCreated: onTripCreated,
                 onExpand: {
-                    withAnimation {
+                    withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
                         selectedDetent = .large
                     }
                 },

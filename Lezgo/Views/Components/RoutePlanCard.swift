@@ -19,6 +19,7 @@ struct RoutePlanCard: View {
     let onAddDestination: () -> Void
     let onRemoveDestination: (Int) -> Void
     let onMoveDestination: ((IndexSet, Int) -> Void)?
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @FocusState var isFieldFocused: Bool
 
