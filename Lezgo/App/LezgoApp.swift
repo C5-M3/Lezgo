@@ -6,27 +6,34 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct LezgoApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips sync through CloudKit
+    /// (ADR 0014); previews and tests use `InMemoryTripService` instead.
+    private let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    var isUITestingSetRouteMap: Bool {
+        CommandLine.arguments.contains("-ui-testing-set-route-map")
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            #if DEBUG
+            // Launched with `-DebugScreen <name>`: open that screen with simulated data. See `DebugScreen` for how
+            // to set this up in your own unshared scheme. Without the argument, and in every release build, the app
+            // starts normally.
+            if let debugScreen = DebugScreen.FromLaunchArguments() {
+                debugScreen.MakeView()
+            } else if isUITestingSetRouteMap {
+                SetRouteMapView()
+            } else {
+                HomeView()
+            }
+            #else
+            HomeView()
+            #endif
         }
-        .modelContainer(sharedModelContainer)
+        .environment(\.tripService, tripService)
     }
 }

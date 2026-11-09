@@ -1,0 +1,13 @@
+// Signing settings shared by every target (ADR 0015).
+// These are the release values that Xcode Cloud uses. To build on your own Apple Developer account,
+// copy Local.xcconfig.example to Local.xcconfig and override them there instead of editing this file.
+
+DEVELOPMENT_TEAM = K64G2J8QL7
+BUNDLE_IDENTIFIER_PREFIX = com.nathansudiara
+
+// The app's entitlements. Nathan's account has the CarPlay navigation entitlement (ADR 0023); an account without it
+// cannot sign this file and uses Lezgo/Lezgo.entitlements in its Local.xcconfig instead.
+LEZGO_ENTITLEMENTS = Lezgo/LezgoCarPlay.entitlements
+
+// Optional: the build still works when Local.xcconfig does not exist.
+#include? "Local.xcconfig"

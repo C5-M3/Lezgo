@@ -12,26 +12,40 @@ If a rule here conflicts with a skill or your own defaults, this file wins.
 
 How the app works:
 
-- One phone is one car. Every trip has exactly one **Leader** (the lead driver); everyone else is a **Member**.
-- The Leader plans the route (start point, 0 or more checkpoints, destination) and opens a **Trip Room**. Members join with a 6-character room code or an invite link.
+- One car is one person with one phone: only one person per car joins. There are only two roles: one **Leader** per trip (the lead car) and **Members** (everyone else). A member driving alone is still just a member.
+- The Leader plans the route (start point, 0 or more checkpoints, destination) and opens a **Trip Room**. Members join with a 6-digit room code (numbers only) or an invite link.
 - In the Trip Room the group reviews the route and the participant list. The Leader can remove participants, hand over the lead and start the trip.
 - During the trip everyone sees the shared route and every car on the map. Tapping a car shows its driver, status, street and ETA. Members get silent visual alerts when they leave the route, pass a checkpoint, or drive ahead of the Leader.
-- If the Leader leaves the route, the route is recalculated for everyone. The Leader can edit the route, add a new destination on arrival, or end the trip; Members can exit on their own.
+- If the Leader leaves the route, the route is recalculated for everyone. The Leader can edit the route, pick a New Destination on arrival, or End Trip; Members can Exit Trip on their own. When the Leader leaves, the trip ends for everyone (with a warning); to leave without ending it, the Leader hands over the lead first.
 - Safety first: the driver must not be distracted. Alerts are visual, controls are large, and destructive actions ask for confirmation.
 
-Local planning material (git-ignored, shared outside Git; ask the team if you do not have it):
+Each task's lo-fi screens, acceptance criteria, TDD steps and Definition of Done are in its GitHub issue. Read the issue before you start.
 
-| Folder | Contents |
-| --- | --- |
-| `context/` | Lo-fi screens of every flow (PNG). Treat them as the source of truth for screens and copy. |
-| `tasks/` | User stories (`US-01` to `US-08`) and the task backlog. |
+The rules, copy, data model and Gherkin scenarios of every user story are in [`specs/UserStories.md`](specs/UserStories.md) (decision record: [0016](docs/adr/0016-UserStoriesInTheRepository.md)). Build models and copy from it word for word. If the code needs a different field or text, change the spec in the same PR and tell the team.
+
+
+## Who owns which screen
+
+The team splits the work by screen, not by the tasks in the GitHub Project. The screens are the blue boxes in the team's app flow diagram. Each developer builds their screens and everything that branches off them in the flow, and the screens are joined together afterwards. The GitHub Project tasks are kept for the record only.
+
+| Screens | Owner | GitHub |
+| --- | --- | --- |
+| Home, Insert Code (join route), Draft Trip | R | `zalllrizalll` |
+| Set Route | F | `fsudjatmiko` |
+| Trip Room | O | `okyfaishal` |
+| Trip Started | N | `Vallykrie` |
+
+- Work only on your own screens. If you need a change in a screen someone else owns, ask its owner first.
+- Agree on the data passed between screens (for example the route and the participant list handed from Trip Room to Trip Started) with the owner of the other screen before you build on it.
+- Shared code (models, services, components) is used by more than one screen. Tell the team before you change it, so that nobody's screen breaks when the work is joined.
+- The workflow, branch, TDD and PR rules below still apply to each screen's work.
 
 
 ## Project snapshot
 
 | Item | Value |
 | --- | --- |
-| Platform | iOS 27.0+, Xcode 27.1 |
+| Platform | iOS 26.0+, Xcode 27.1 |
 | UI | SwiftUI (no UIKit unless asked) |
 | Persistence | SwiftData |
 | Concurrency | Default actor isolation `MainActor`, approachable concurrency on |
@@ -41,6 +55,18 @@ Local planning material (git-ignored, shared outside Git; ask the team if you do
 | Remote | `github.com/C5-M3/Lezgo`, tasks live in the GitHub Project "Project Management" (#1, org `C5-M3`) |
 
 Do not add third-party dependencies without asking first.
+
+
+## Signing on your own account
+
+Decision record: [0015](docs/adr/0015-PerDeveloperSigningSettings.md).
+
+- Each developer signs with their own Apple Developer account. Copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and set your team ID and bundle identifier prefix there. `Local.xcconfig` is git-ignored.
+- Never commit a change to `DEVELOPMENT_TEAM`, `PRODUCT_BUNDLE_IDENTIFIER`, the iCloud container or the URL type name. `Config/Base.xcconfig` holds the release values that Xcode Cloud uses.
+- Never hard-code the iCloud container in code. Use `CKContainer.default()`.
+- The app signs with `Lezgo/LezgoCarPlay.entitlements`. If Apple has not given your account the CarPlay navigation entitlement, set `LEZGO_ENTITLEMENTS = Lezgo/Lezgo.entitlements` in your `Local.xcconfig` (decision record: [0023](docs/adr/0023-CarPlayMirrorsTheTripMap.md)). Add a new capability to both entitlements files; `EntitlementsTests` fails when they differ in anything but CarPlay.
+- Your build uses your own CloudKit container, so it cannot see trips from other developers' builds. Tests with several phones must all run the same build (normally TestFlight).
+- Change the CloudKit schema in the exported schema file (`CloudKit/Schema.ckdb`), not only in your own CloudKit Dashboard.
 
 
 ## Architecture decisions
@@ -172,9 +198,11 @@ Lezgo/
 ├── ViewModels/       One @Observable view model per screen
 ├── Views/
 │   ├── Screens/      Full screens (LoginView.swift, ProfileView.swift)
-│   └── Components/   Reusable views used in 2+ places
+│   ├── Components/   Reusable views used in 2+ places
+│   └── CarPlay/      CarPlay base view and templates (ADR 0023)
 ├── Services/         Networking, persistence and system access behind protocols
 ├── Extensions/       Small extensions on Apple types
+├── Debug/            Developer tools for debug builds only: DebugScreen, sample data, Sync Check
 └── Resources/        Assets.xcassets, Localizable.xcstrings
 LezgoTests/           Unit tests, mirroring the folders above
 LezgoUITests/         UI tests
@@ -184,8 +212,10 @@ LezgoUITests/         UI tests
 - Views stay thin: layout, bindings and calls into the view model. No business logic, networking or persistence in a view.
 - View models are `@Observable final class` types. They hold screen state and logic, and receive services through their initializer so tests can pass in fakes.
 - Services are defined by a protocol (`AuthService`) with a real implementation (`LiveAuthService`) and a test fake (`MockAuthService`).
+- Trip data goes through the shared `TripService` and the models in `Models/` (decision record: [0017](docs/adr/0017-TripServiceContractFirst.md)). Do not define your own trip, participant or route types. A view reads the service with `@Environment(\.tripService)` and passes it to its view model's initializer. `InMemoryTripService` runs every screen without iCloud in previews, `DebugScreen` and tests. [`CloudKit/TripSync.md`](CloudKit/TripSync.md) explains the models, the service and how sync works, with examples.
 - Models do not import SwiftUI.
-- One type per file. The file is named after the type.
+- Debug-only code (sample data, simulated drives, check screens) goes in `Debug/` and is wrapped in `#if DEBUG`; app code never uses it (decision record: [0018](docs/adr/0018-DebugToolsInTheirOwnFolder.md)).
+- One main type per file, named after the file. A small type used only by that type (an enum, a small struct) may stay in the same file, preferably nested: `TripMapViewModel.CameraMode` (decision record: [0019](docs/adr/0019-SmallTypesStayWithTheirOwner.md)). A type used by two or more types gets its own file.
 
 
 ## Naming
