@@ -42,7 +42,8 @@ struct SimulatedTripRoomScreen: View {
                     myParticipantID: myParticipantID,
                     tripService: tripService,
                     navigator: SimulatedTripMapNavigator(),
-                    streetNameService: LiveStreetNameService()
+                    streetNameService: LiveStreetNameService(),
+                    showsStartIntro: true
                 ),
                 onClose: { isShowingMap = false },
                 onReturnToTripRoom: { _ in isShowingMap = false }

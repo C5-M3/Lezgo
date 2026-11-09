@@ -15,12 +15,28 @@ struct SimulatedTripMapScreen: View {
     let startSecond: Int
     /// Budi drives beside the route, to show the formation alerts.
     let budiLeavesRoute: Bool
+    /// Budi stops on the road, to show the "has stopped" banner.
+    let budiStops: Bool
+    /// Agus's phone has been silent for 6 minutes.
+    let agusIsOffline: Bool
+    /// Agus gets a new route on the way.
+    let agusChangesRoute: SimulatedDrive.RouteChange?
     @State private var tripService: InMemoryTripService
 
-    init(myParticipantID: UUID, startSecond: Int = 0, budiLeavesRoute: Bool = false) {
+    init(
+        myParticipantID: UUID,
+        startSecond: Int = 0,
+        budiLeavesRoute: Bool = false,
+        budiStops: Bool = false,
+        agusIsOffline: Bool = false,
+        agusChangesRoute: SimulatedDrive.RouteChange? = nil
+    ) {
         self.myParticipantID = myParticipantID
         self.startSecond = startSecond
         self.budiLeavesRoute = budiLeavesRoute
+        self.budiStops = budiStops
+        self.agusIsOffline = agusIsOffline
+        self.agusChangesRoute = agusChangesRoute
         _tripService = State(initialValue: SampleTrip.Service(status: .inTrip, me: myParticipantID))
     }
 
@@ -39,7 +55,10 @@ struct SimulatedTripMapScreen: View {
             await SimulatedDrive(
                 tripService: tripService,
                 startSecond: startSecond,
-                budiLeavesRoute: budiLeavesRoute
+                budiLeavesRoute: budiLeavesRoute,
+                budiStops: budiStops,
+                agusIsOffline: agusIsOffline,
+                agusChangesRoute: agusChangesRoute
             ).Run()
         }
     }

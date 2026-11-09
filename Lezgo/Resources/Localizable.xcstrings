@@ -550,7 +550,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ - Out of The Way"
+            "value" : "%@ has gone out of route"
+          }
+        }
+      }
+    },
+    "tripMapAlertCarStopped" : {
+      "comment" : "Banner when another car that was driving has stopped short of the destination (US-06). The placeholder is the driver's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ has stopped"
           }
         }
       }
@@ -599,6 +611,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Arrive %@"
+          }
+        }
+      }
+    },
+    "tripMapArrivedMessage" : {
+      "comment" : "Message under \"Arrived at …?\" after tapping I've Arrived on the trip map. The argument is the distance from this car to the destination's point, for example \"200 m\" (US-07, Arrive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are %@ from the destination point. Are you sure you have arrived?"
+          }
+        }
+      }
+    },
+    "tripMapArrivedQuestion" : {
+      "comment" : "Question after tapping I've Arrived on the trip map. The argument is the destination's name, for example \"Tunjungan Plaza\" (US-07, Arrive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrived at %@?"
           }
         }
       }
@@ -759,6 +795,42 @@
         }
       }
     },
+    "tripMapArrivedCount" : {
+      "comment" : "VoiceOver label of the top card once this phone's car has arrived, for example \"2 of 4 cars have arrived\". The card shows it as robots and \"2/4\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld cars have arrived"
+          }
+        }
+      }
+    },
+    "tripMapCollapseCard" : {
+      "comment" : "VoiceOver label of the grabber on the trip map's bottom card while it is open.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide trip actions"
+          }
+        }
+      }
+    },
+    "tripMapExpandCard" : {
+      "comment" : "VoiceOver label of the grabber on the trip map's bottom card while it is collapsed.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show trip actions"
+          }
+        }
+      }
+    },
     "tripMapConfirm" : {
       "comment" : "Button on a confirmation that goes ahead (US-07).",
       "extractionState" : "manual",
@@ -831,14 +903,14 @@
         }
       }
     },
-    "tripMapEndTripNotEveryoneArrived" : {
-      "comment" : "Confirmation when the leader taps End Trip while someone has not arrived (US-07).",
+    "tripMapEndTripNotEveryoneMessage" : {
+      "comment" : "Line under \"End trip?\" on the trip map while cars are still on the way (US-07).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "End trip? Not everyone has arrived yet."
+            "value" : "Not everyone has arrived yet."
           }
         }
       }
@@ -875,6 +947,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Exit Trip"
+          }
+        }
+      }
+    },
+    "tripMapExitTripMessage" : {
+      "comment" : "Line under \"Exit trip?\" on the trip map (US-07).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your car disappears from every map."
           }
         }
       }
@@ -951,6 +1035,42 @@
         }
       }
     },
+    "tripMapGroupShowFewer" : {
+      "comment" : "VoiceOver label of the button that closes an opened card of cars close together on the trip map.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show fewer cars"
+          }
+        }
+      }
+    },
+    "tripMapGroupShowMore" : {
+      "comment" : "VoiceOver label of the count on a card of cars close together on the trip map, for example \"+6\". Tapping it shows every car on the card.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %lld more cars"
+          }
+        }
+      }
+    },
+    "tripMapIveArrived" : {
+      "comment" : "Button in the pulled-up trip map card near the destination, and the confirm button of its question: the driver says they have arrived although the app has not seen it, for example in a big mall (US-07, Arrive).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I've Arrived"
+          }
+        }
+      }
+    },
     "tripMapLeaderEndedTrip" : {
       "comment" : "Shown on every member's phone when the leader ends the trip; OK returns to Home (US-07).",
       "extractionState" : "manual",
@@ -983,6 +1103,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "New Destination"
+          }
+        }
+      }
+    },
+    "tripMapNoticeLeaderOffline" : {
+      "comment" : "Banner when the leader has sent no location for 2 minutes (US-06). The placeholder is the leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is offline"
+          }
+        }
+      }
+    },
+    "tripMapNoticeNewRoute" : {
+      "comment" : "Banner on the leader's own phone after a reroute (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New route"
+          }
+        }
+      }
+    },
+    "tripMapNoticeNewRouteFollowing" : {
+      "comment" : "Banner on members' phones after the leader left the route (US-06). The placeholder is the leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New route \u00b7 Following %@"
+          }
+        }
+      }
+    },
+    "tripMapNoticeRerouteFailed" : {
+      "comment" : "Banner on the leader's phone when a new route could not be saved (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't update the route. Trying again."
+          }
+        }
+      }
+    },
+    "tripMapNoticeRouteUpdated" : {
+      "comment" : "Banner on the leader's own phone after changing the stops (US-06).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route updated"
+          }
+        }
+      }
+    },
+    "tripMapNoticeRouteUpdatedBy" : {
+      "comment" : "Banner after the leader changed the stops (US-06). The placeholder is the leader's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route updated by %@"
           }
         }
       }

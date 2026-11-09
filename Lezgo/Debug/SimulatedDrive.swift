@@ -17,6 +17,8 @@ import Foundation
 struct SimulatedDrive {
     /// About 40 km/h.
     static let metresPerSecond = 11.0
+    private static let budiStopSecond = 8
+    private static let routeChangeSecond = 6
 
     let tripService: any TripService
     /// How far into the drive to start, in seconds; a large value starts with the cars at the destination.
@@ -24,14 +26,37 @@ struct SimulatedDrive {
     var interval: Duration = .seconds(1)
     /// Budi drives beside the route instead of on it, to show the formation alerts.
     var budiLeavesRoute = false
+    /// Budi stops on the road after 8 seconds and stays there, to show the "has stopped" banner.
+    var budiStops = false
+    /// Agus's phone last sent a position 6 minutes ago.
+    var agusIsOffline = false
+    /// After 6 seconds Agus gets a new route, with the same stops or another destination.
+    var agusChangesRoute: RouteChange?
+
+    /// How the simulated leader changes the route.
+    enum RouteChange {
+        case sameStops, newDestination
+    }
 
     /// Moves the cars until the task is cancelled.
     func Run() async {
         var second = startSecond
         while Task.isCancelled == false {
             let agusDistance = 400 + Double(second) * Self.metresPerSecond
-            await Move(SampleTrip.agusID, metresAlongRoute: agusDistance)
-            await Move(SampleTrip.budiID, metresAlongRoute: agusDistance - 250, sideways: budiLeavesRoute ? 150 : 0)
+            await Move(
+                SampleTrip.agusID,
+                metresAlongRoute: agusDistance,
+                recordedAt: agusIsOffline ? .now.addingTimeInterval(-360) : .now
+            )
+            if second - startSecond == Self.routeChangeSecond { await ChangeRoute() }
+            let hasBudiStopped = budiStops && second - startSecond >= Self.budiStopSecond
+            let budiSecond = hasBudiStopped ? startSecond + Self.budiStopSecond : second
+            await Move(
+                SampleTrip.budiID,
+                metresAlongRoute: 150 + Double(budiSecond) * Self.metresPerSecond,
+                isStopped: hasBudiStopped,
+                sideways: budiLeavesRoute ? 150 : 0
+            )
             if budiLeavesRoute, second - startSecond == Int(FormationAlertDetector.holdTime) {
                 try? await tripService.SetAlert(.offRoute, participantID: SampleTrip.budiID, tripID: SampleTrip.tripID)
             }
@@ -43,17 +68,41 @@ struct SimulatedDrive {
         }
     }
 
+    private func ChangeRoute() async {
+        guard let agusChangesRoute else { return }
+        var waypoints = SampleTrip.plan.waypoints
+        if agusChangesRoute == .newDestination, let last = waypoints.indices.last {
+            waypoints[last].name = "Pakuwon city mall"
+        }
+        let plan = TripPlan(waypoints: waypoints, polyline: SampleTrip.plan.polyline)
+        try? await tripService.SaveRoute(plan, tripID: SampleTrip.tripID, by: SampleTrip.agusID)
+    }
+
     /// Moves a car to `distance` metres along the route, and `sideways` metres to the left of it.
-    private func Move(_ participantID: UUID, metresAlongRoute distance: Double, sideways: Double = 0) async {
-        let hasArrived = distance >= Self.DistanceAlongRoute(toPointAt: SampleTrip.plan.polyline.count - 1)
+    private func Move(
+        _ participantID: UUID,
+        metresAlongRoute distance: Double,
+        isStopped: Bool = false,
+        sideways: Double = 0,
+        recordedAt: Date = .now
+    ) async {
+        let reachedTheEnd = distance >= Self.DistanceAlongRoute(toPointAt: SampleTrip.plan.polyline.count - 1)
+        let hasArrived = reachedTheEnd || isStopped
         let coordinate = Self.Beside(metresAlongRoute: distance, sideways: sideways)
         let update = LocationUpdate(
             coordinate: coordinate,
             speedKmh: hasArrived ? 0 : Self.metresPerSecond * 3.6,
             motionState: hasArrived ? .stopped : .driving,
-            recordedAt: .now
+            recordedAt: recordedAt
         )
         try? await tripService.UpdateLocation(update, participantID: participantID, tripID: SampleTrip.tripID)
+    }
+
+    /// The start second at which Budi, with `budiStops`, parks `metres` before the destination's point, as if in the
+    /// far corner of a big mall's car park. Agus, ahead of him, has arrived by then.
+    static func StartSecond(budiParksMetresBeforeTheEnd metres: Double) -> Int {
+        let end = DistanceAlongRoute(toPointAt: SampleTrip.plan.polyline.count - 1)
+        return Int(((end - metres - 150) / metresPerSecond).rounded()) - budiStopSecond
     }
 
     /// Metres along the sample route from the start point to its point at `index`.

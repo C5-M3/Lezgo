@@ -11,29 +11,34 @@ import SwiftUI
 struct TripMapTurnCard: View {
     let guidance: TripMapGuidance
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var distanceSize = 46
+    @ScaledMetric(relativeTo: .largeTitle) private var arrowSize = 52
 
     var body: some View {
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading))
-            : AnyLayout(HStackLayout(spacing: 16))
+            : AnyLayout(HStackLayout(spacing: 22))
 
         layout {
             Image(systemName: ArrowSymbol())
-                .font(.largeTitle.bold())
+                .font(.system(size: arrowSize, weight: .bold))
+                .foregroundStyle(Color(.brandYellow))
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(guidance.distanceToTurn.formatted(.measurement(width: .abbreviated, usage: .road)))
-                    .font(.largeTitle.bold())
-                // Primary, not secondary: grey text on glass over a bright map falls below 4.5:1 contrast.
+                    .font(.system(size: distanceSize, weight: .heavy))
+                    .foregroundStyle(Color(.tripCardText))
                 Text(guidance.instruction)
-                    .font(.title3)
+                    .font(.callout)
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding()
+        .padding(.horizontal, 28)
+        .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(in: .rect(cornerRadius: 24))
+        .background(Color(.tripCard), in: .rect(cornerRadius: 30))
         .accessibilityElement(children: .combine)
     }
 
@@ -62,21 +67,24 @@ extension TripMapTurnCard {
             HStack(spacing: 16) {
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.largeTitle.bold())
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(Color(.brandYellow))
                     .symbolEffect(.rotate, options: .repeat(.continuous), isActive: reduceMotion == false)
                     .accessibilityHidden(true)
 
                 VStack(alignment: .leading) {
                     Text(.tripMapRerouting)
                         .font(.largeTitle.bold())
+                        .foregroundStyle(Color(.tripCardText))
                     Text(isLeader ? .tripMapReroutingLeader : .tripMapReroutingMember)
-                        .font(.title3)
+                        .font(.callout)
+                        .foregroundStyle(Color(.tripCardSubtext))
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding()
+            .padding(.horizontal, 28)
+            .padding(.vertical, 18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(in: .rect(cornerRadius: 24))
+            .background(Color(.tripCard), in: .rect(cornerRadius: 30))
             .accessibilityElement(children: .combine)
         }
     }

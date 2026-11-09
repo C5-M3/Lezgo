@@ -25,10 +25,14 @@ struct TripPlan: Hashable {
     }
 
     /// The plan's waypoints as they belong to a trip, numbered in driving order from 0.
-    func MakeWaypoints(tripID: UUID) -> [Waypoint] {
+    ///
+    /// - Parameter oldDestination: the destination of the route being replaced. When the new destination is in the
+    ///   same place, it keeps that waypoint's ID, so "I've Arrived" (saved per destination ID) survives a reroute
+    ///   or Edit Route.
+    func MakeWaypoints(tripID: UUID, keeping oldDestination: Waypoint? = nil) -> [Waypoint] {
         waypoints.enumerated().map { index, planned in
             Waypoint(
-                id: UUID(),
+                id: KeptID(for: planned, oldDestination: oldDestination) ?? UUID(),
                 tripID: tripID,
                 orderIndex: index,
                 kind: planned.kind,
@@ -36,5 +40,13 @@ struct TripPlan: Hashable {
                 coordinate: planned.coordinate
             )
         }
+    }
+
+    /// The old destination's ID when this is the destination and it has not moved, so it is the same place.
+    private func KeptID(for planned: PlannedWaypoint, oldDestination: Waypoint?) -> UUID? {
+        guard planned.kind == .destination, let oldDestination,
+            planned.coordinate.Distance(to: oldDestination.coordinate) < 1
+        else { return nil }
+        return oldDestination.id
     }
 }
