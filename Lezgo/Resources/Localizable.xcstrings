@@ -1267,6 +1267,18 @@
         }
       }
     },
+    "tripMapPointNorth" : {
+      "comment" : "Compass button on the trip map that turns the map back to north.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Point the map north"
+          }
+        }
+      }
+    },
     "tripMapRemovedFromTrip" : {
       "comment" : "Shown to a member the leader removed; OK returns to Home (US-05).",
       "extractionState" : "manual",

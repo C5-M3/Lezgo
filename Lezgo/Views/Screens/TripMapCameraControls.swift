@@ -7,9 +7,10 @@
 
 import SwiftUI
 
-/// The round map buttons above the bottom card: mute, and one camera button that follows my car or shows the whole
-/// route, as in Apple Maps on CarPlay.
+/// The round map buttons above the bottom card: the compass while the map is turned, mute, and one camera button
+/// that follows my car or shows the whole route, as in Apple Maps on CarPlay.
 struct TripMapCameraControls: View {
+    let mapHeading: TripMapHeading
     let cameraMode: TripMapViewModel.CameraMode
     let isMuted: Bool
     let toggleMute: () -> Void
@@ -20,6 +21,8 @@ struct TripMapCameraControls: View {
 
     var body: some View {
         VStack(spacing: 14) {
+            TripMapCompass(heading: mapHeading)
+
             // Named after what a tap does, like the mute button in Apple Maps.
             Button(
                 isMuted ? .tripMapUnmute : .tripMapMute,
@@ -62,17 +65,35 @@ extension TripMapCameraControls {
 }
 
 #Preview("Following my car") {
-    TripMapCameraControls(cameraMode: .followMyCar, isMuted: false, toggleMute: {}, toggleCamera: {})
-        .padding()
+    TripMapCameraControls(
+        mapHeading: TripMapHeading(),
+        cameraMode: .followMyCar,
+        isMuted: false,
+        toggleMute: {},
+        toggleCamera: {}
+    )
+    .padding()
 }
 
 #Preview("Muted") {
-    TripMapCameraControls(cameraMode: .followMyCar, isMuted: true, toggleMute: {}, toggleCamera: {})
-        .padding()
+    TripMapCameraControls(
+        mapHeading: TripMapHeading(),
+        cameraMode: .followMyCar,
+        isMuted: true,
+        toggleMute: {},
+        toggleCamera: {}
+    )
+    .padding()
 }
 
 #Preview("Largest text") {
-    TripMapCameraControls(cameraMode: .wholeRoute, isMuted: false, toggleMute: {}, toggleCamera: {})
-        .padding()
-        .dynamicTypeSize(.accessibility5)
+    TripMapCameraControls(
+        mapHeading: TripMapHeading(),
+        cameraMode: .wholeRoute,
+        isMuted: false,
+        toggleMute: {},
+        toggleCamera: {}
+    )
+    .padding()
+    .dynamicTypeSize(.accessibility5)
 }
