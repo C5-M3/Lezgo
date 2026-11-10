@@ -133,25 +133,29 @@ struct TripMapView: View {
     private func PlayStartIntro() async {
         guard showsStartIntro else { return }
         if reduceMotion {
-            try? await Task.sleep(for: .seconds(1))
-            withAnimation(.easeInOut(duration: 0.3)) {
-                isMapVisible = true
-                mapScale = 1
-                isTripScreenRevealed = true
-                showsStartIntro = false
-            }
+            await TripStartIntro.RunSteps([
+                TripStartIntro.Step(at: 1) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isMapVisible = true
+                        mapScale = 1
+                        isTripScreenRevealed = true
+                        showsStartIntro = false
+                    }
+                }
+            ])
             return
         }
-        // The hole opens just before the robot leaves, so the map must be there by then.
-        let mapAppears = TripStartIntro.robotLeaves - 0.2
-        try? await Task.sleep(for: .seconds(mapAppears))
-        isMapVisible = true
-        try? await Task.sleep(for: .seconds(TripStartIntro.mapSettles - mapAppears))
-        withAnimation(.easeOut(duration: 0.9)) { mapScale = 1 }
-        try? await Task.sleep(for: .seconds(TripStartIntro.mapReveals - TripStartIntro.mapSettles))
-        withAnimation(.spring(duration: 0.5, bounce: 0.3)) { isTripScreenRevealed = true }
-        try? await Task.sleep(for: .seconds(TripStartIntro.duration - TripStartIntro.mapReveals))
-        showsStartIntro = false
+        await TripStartIntro.RunSteps([
+            // The hole opens just before the robot leaves, so the map must be there by then.
+            TripStartIntro.Step(at: TripStartIntro.robotLeaves - 0.2) { isMapVisible = true },
+            TripStartIntro.Step(at: TripStartIntro.mapSettles) {
+                withAnimation(.easeOut(duration: 0.9)) { mapScale = 1 }
+            },
+            TripStartIntro.Step(at: TripStartIntro.mapReveals) {
+                withAnimation(.spring(duration: 0.5, bounce: 0.3)) { isTripScreenRevealed = true }
+            },
+            TripStartIntro.Step(at: TripStartIntro.duration) { showsStartIntro = false }
+        ])
     }
 
     private func Close() {

@@ -47,6 +47,35 @@ enum TripStartIntro {
         return abs(date.timeIntervalSince(startedAt)) <= justStartedWindow
     }
 
+    /// Something the map does at a moment of the animation, such as showing the cards.
+    struct Step {
+        /// Seconds after the map opened.
+        let at: Double
+        let run: () -> Void
+    }
+
+    /// Runs each step at its moment, in order. `sleep` waits that many seconds.
+    ///
+    /// When the task is cancelled the run stops and the remaining steps do not run. SwiftUI can restart the map's
+    /// task while it presents the map over the Trip Room; the first run is then cancelled, and racing through its
+    /// steps would remove the yellow before anyone saw it. The restarted run plays the animation instead.
+    static func RunSteps(
+        _ steps: [Step],
+        sleep: (Double) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }
+    ) async {
+        var elapsed = 0.0
+        for step in steps {
+            do {
+                try await sleep(step.at - elapsed)
+            } catch {
+                return
+            }
+            guard Task.isCancelled == false else { return }
+            elapsed = step.at
+            step.run()
+        }
+    }
+
     /// The letters of the logo, each drawn on its own.
     enum Letter: CaseIterable, Hashable {
         case letterL, letterE, letterZ, letterG, letterO, bang
