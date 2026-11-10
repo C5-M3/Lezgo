@@ -1,0 +1,101 @@
+# Promotes dev to staging, or staging to main, without a pull request (ADR 0026).
+# It runs only when someone starts it (Actions tab > Promote > Run workflow), never on a push.
+# It moves the target branch forward to the source branch's commit (a fast-forward):
+# it never force-pushes, and it refuses a commit whose required checks did not pass.
+
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: staging takes dev, main takes staging, staging-and-main moves dev into both
+        type: choice
+        options:
+          - staging
+          - main
+          - staging-and-main
+        default: staging
+
+# The only workflow that writes: it moves a trunk branch forward and reads check results.
+permissions:
+  contents: write
+  checks: read
+
+# One promotion at a time, so two runs cannot move the same branch at once.
+concurrency:
+  group: promote
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    name: Promote
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The input is passed through an environment variable and never pasted into the script with ${{ }}.
+      - name: Move the branch forward
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # The built-in token may not move a branch over commits that change workflow files.
+          # Add a PROMOTE_TOKEN secret (contents and workflows write) to allow those too.
+          PROMOTE_TOKEN: ${{ secrets.PROMOTE_TOKEN || github.token }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          requiredChecks=("Secret Scan" "XCSSET Malware Scan" "SwiftLint")
+
+          Report() {
+            echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"
+          }
+
+          Fail() {
+            echo "::error::$1"
+            echo "Failed: $1" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          # Stops unless every required check passed on the commit.
+          RequirePassedChecks() {
+            local commit="$1" checkName conclusion
+            for checkName in "${requiredChecks[@]}"; do
+              conclusion="$(CHECK_NAME="$checkName" gh api "repos/$GITHUB_REPOSITORY/commits/$commit/check-runs?per_page=100" \
+                --jq '[.check_runs[] | select(.name == env.CHECK_NAME)] | sort_by(.started_at) | last | .conclusion // "missing"')"
+              if [[ "$conclusion" != "success" ]]; then
+                Fail "Check '$checkName' is '$conclusion' on ${commit:0:7}. Wait for it to pass, or fix it, then run Promote again."
+              fi
+            done
+          }
+
+          # Moves targetBranch forward to sourceBranch's commit.
+          PromoteBranch() {
+            local sourceBranch="$1" targetBranch="$2" state commit
+            state="$(gh api "repos/$GITHUB_REPOSITORY/compare/$targetBranch...$sourceBranch" --jq .status)"
+            case "$state" in
+              identical | behind)
+                Report "$targetBranch already has everything in $sourceBranch. Nothing to promote."
+                return
+                ;;
+              diverged)
+                Fail "$targetBranch has commits that $sourceBranch does not have (for example a hotfix). Merge main into dev with a pull request first, then run Promote again."
+                ;;
+              ahead) ;;
+              *) Fail "Could not compare $targetBranch with $sourceBranch (state '$state')." ;;
+            esac
+
+            commit="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$sourceBranch" --jq .object.sha)"
+            RequirePassedChecks "$commit"
+            GH_TOKEN="$PROMOTE_TOKEN" gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$targetBranch" \
+              -f sha="$commit" -F force=false --silent
+            Report "Promoted $sourceBranch to $targetBranch at ${commit:0:7}, started by $GITHUB_ACTOR."
+          }
+
+          case "$TARGET" in
+            staging) PromoteBranch dev staging ;;
+            main) PromoteBranch staging main ;;
+            staging-and-main)
+              PromoteBranch dev staging
+              PromoteBranch staging main
+              ;;
+            *) Fail "Unknown target '$TARGET'." ;;
+          esac

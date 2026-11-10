@@ -85,8 +85,8 @@ Decision record: [0005](docs/adr/0005-TrunkBranchesAndConventionalBranch.md).
 
 | Branch | Purpose | Who merges into it |
 | --- | --- | --- |
-| `main` | Production / App Store. The last stop. | Release PR from `staging` |
-| `staging` | External TestFlight builds | PR from `dev` when a feature needs TestFlight testing |
+| `main` | Production / App Store. The last stop. | The `Promote` workflow, from `staging` |
+| `staging` | External TestFlight builds | The `Promote` workflow, from `dev`, when a feature needs TestFlight testing |
 | `dev` | Integration and quick developer testing | Feature PRs, after review |
 | `<type>/<description>` | One issue's work | Nobody; it is merged and then deleted |
 
@@ -100,7 +100,7 @@ Feature branches follow [Conventional Branch](https://conventionalbranch.org): l
 | `release/` | Release preparation | `release/v1.2.0` |
 | `chore/` | Tooling, docs, dependencies | `chore/issue-7-add-swiftlint` |
 
-Never push directly to `main`, `staging` or `dev`. Never merge your own PR.
+Never push directly to `main`, `staging` or `dev`. Never merge your own PR. The one exception is the `Promote` workflow, which moves `staging` or `main` forward without a pull request, because the code was already reviewed on its way into `dev` (decision record: [0026](docs/adr/0026-ManualPromotionWorkflow.md)). After a hotfix on `staging` or `main`, merge `main` back into `dev` with a PR before the next promotion.
 
 
 ## Workflow for every task
@@ -148,6 +148,7 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the 
 | `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
 | `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`), ADR format and index (`Scripts/CheckDecisionRecords.sh`) |
 | `SwiftLint` | Every PR, pushes to `main`, `staging`, `dev` | `.swiftlint.yml` rules in strict mode: any warning fails |
+| `Promote` | Only when someone starts it | That the required checks passed on the commit; then it moves `staging` or `main` forward to it, with no pull request ([0026](docs/adr/0026-ManualPromotionWorkflow.md)) |
 
 Run the same checks locally before opening a PR:
 

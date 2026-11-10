@@ -38,8 +38,8 @@ If you work with AI agents (Claude Code, Codex, Cursor), install the shared Swif
 
 | Branch | Purpose |
 | --- | --- |
-| `main` | Production / App Store. The last branch anything is merged into. |
-| `staging` | External TestFlight builds. Merged from `dev` when a feature needs testing. |
+| `main` | Production / App Store. The last stop, promoted from `staging`. |
+| `staging` | External TestFlight builds. Promoted from `dev` when a feature needs testing. |
 | `dev` | Development. Feature branches are merged here after review. |
 | `<type>/<description>` | One issue's work. Deleted after it is merged. |
 
@@ -128,6 +128,8 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions checks every pul
 - **Security Checks:** scans Xcode projects for XCSSET malware and the git history for leaked secrets.
 - **Pull Request Checks:** checks the branch name, the target branch, the PR title, every commit message and the architecture decision records.
 
+- **SwiftLint:** lints the Swift code in strict mode, so any warning fails.
+
 Run the same checks locally before you open a pull request:
 
 ```bash
@@ -135,3 +137,43 @@ Scripts/ScanForXcsset.sh .
 Scripts/CheckDecisionRecords.sh
 git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git branch --show-current)" dev "<PR title>"
 ```
+
+
+## Promoting to staging or main
+
+`dev` goes to `staging` when a feature needs a TestFlight build, and `staging` goes to `main` for a release. The **Promote** workflow does this in one step, with no pull request and no second review: the code was already reviewed on its way into `dev` (see [ADR 0026](docs/adr/0026-ManualPromotionWorkflow.md)). It runs only when someone starts it, never on a push.
+
+On GitHub:
+
+1. Open the **Actions** tab and choose **Promote** in the list on the left.
+2. Click **Run workflow**.
+3. Pick the target:
+   - `staging`: moves `staging` to where `dev` is.
+   - `main`: moves `main` to where `staging` is.
+   - `staging-and-main`: moves both to where `dev` is.
+4. Click **Run workflow**. The run summary says which commit was promoted.
+
+Or from the terminal, on any branch. Each command matches one target above:
+
+```bash
+# staging: moves staging to where dev is
+gh workflow run Promote --repo C5-M3/Lezgo -f target=staging
+```
+
+```bash
+# main: moves main to where staging is
+gh workflow run Promote --repo C5-M3/Lezgo -f target=main
+```
+
+```bash
+# staging-and-main: moves both to where dev is
+gh workflow run Promote --repo C5-M3/Lezgo -f target=staging-and-main
+```
+
+Good to know:
+
+- It promotes the branch as it is on GitHub. Work that is not merged into `dev` yet is not included.
+- It only moves the target branch forward (a fast-forward). It never force-pushes, so it cannot delete commits.
+- It stops if Secret Scan, XCSSET Malware Scan or SwiftLint did not pass on the commit. Wait for the checks on `dev` to finish, then run it again.
+- It stops if the target has commits the source does not have, for example a hotfix on `staging`. Merge `main` into `dev` with a pull request first, then run it again.
+- A promotion that includes changes to `.github/workflows` needs a `PROMOTE_TOKEN` repository secret (a token with contents and workflows write access). Ask a repository admin.
