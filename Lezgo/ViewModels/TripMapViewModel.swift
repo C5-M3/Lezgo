@@ -146,13 +146,12 @@ final class TripMapViewModel {
         }
     }
 
-    func ShowWholeRoute() {
-        camera.ShowWholeRoute()
-    }
+    func ShowWholeRoute() { camera.ShowWholeRoute() }
 
-    func FollowMyCar() {
-        camera.FollowMyCar()
-    }
+    func FollowMyCar() { camera.FollowMyCar() }
+
+    /// The phone's one camera button: the whole route while following this car, otherwise back to this car.
+    func ToggleCamera() { camera.Toggle() }
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
     func RequestLeave() {

@@ -247,8 +247,7 @@ extension TripMapView {
                         cameraMode: viewModel.cameraMode,
                         isMuted: viewModel.sound.isMuted,
                         toggleMute: viewModel.sound.ToggleMute,
-                        showWholeRoute: viewModel.ShowWholeRoute,
-                        followMyCar: viewModel.FollowMyCar
+                        toggleCamera: viewModel.ToggleCamera
                     )
                 }
                 TripMapSheet(viewModel: viewModel, onNewDestination: onNewDestination, isExpanded: $isSheetExpanded)

@@ -22,6 +22,12 @@ struct TripMapCamera {
         mode = .followMyCar
     }
 
+    /// The one camera button, as in Apple Maps on CarPlay: while the camera follows this phone's car it shows the
+    /// whole route; from anywhere else (the whole route, a map moved by hand, another car) it follows the car again.
+    mutating func Toggle() {
+        mode = mode == .followMyCar ? .wholeRoute : .followMyCar
+    }
+
     /// The person panned or zoomed the map by hand.
     mutating func StopFollowing() {
         mode = .free
