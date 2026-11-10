@@ -61,22 +61,31 @@ struct TripMapCarGroupsTests {
         #expect(Names(groups) == [["Agus", "Budi", "Citra"]])
     }
 
-    @Test func MyCarStaysAloneSoICanAlwaysFindIt() {
+    @Test func MyCarJoinsTheCarsNextToItInsteadOfCoveringThem() {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 30, isMe: true), Pin("Citra", metres: 60)],
             within: 100
         )
 
-        #expect(Names(groups) == [["Agus", "Citra"], ["Budi"]])
+        #expect(Names(groups) == [["Agus", "Budi", "Citra"]])
     }
 
-    @Test func ACarWithAnAlertStaysAloneSoItsWarningShows() {
+    @Test func ACarWithAnAlertJoinsTheCarsNextToItInsteadOfCoveringThem() {
         let groups = TripMapCarGroup.Make(
             pins: [Pin("Agus", metres: 0), Pin("Budi", metres: 50, isAlerting: true)],
             within: 100
         )
 
-        #expect(Names(groups) == [["Agus"], ["Budi"]])
+        #expect(Names(groups) == [["Agus", "Budi"]])
+    }
+
+    @Test func MyCarAndACarWithAnAlertOnTheSameSpotAreOneGroup() {
+        let groups = TripMapCarGroup.Make(
+            pins: [Pin("Agus", metres: 0, isMe: true), Pin("Budi", metres: 0, isAlerting: true)],
+            within: 100
+        )
+
+        #expect(Names(groups) == [["Agus", "Budi"]])
     }
 
     @Test func TheTappedCarStaysOnItsCardSoTheCardDoesNotJump() {

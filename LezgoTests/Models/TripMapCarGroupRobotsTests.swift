@@ -12,15 +12,21 @@ import Testing
 /// Which robots a group of cars shows: the leader first, so its crown is always in sight, and the rest counted once
 /// the card is full, until it is opened.
 struct TripMapCarGroupRobotsTests {
-    private func Pin(_ name: String, isLeader: Bool = false) -> TripMapCarPin {
+    private func Pin(
+        _ name: String,
+        isLeader: Bool = false,
+        isMe: Bool = false,
+        isAlerting: Bool = false
+    ) -> TripMapCarPin {
         TripMapCarPin(
             id: UUID(),
             displayName: name,
             coordinate: Coordinate(latitude: -7.27, longitude: 112.73),
             motionState: .stopped,
             isLeader: isLeader,
-            isMe: false,
-            isOffline: false
+            isMe: isMe,
+            isOffline: false,
+            isAlerting: isAlerting
         )
     }
 
@@ -39,6 +45,21 @@ struct TripMapCarGroupRobotsTests {
         let group = TripMapCarGroup(pins: [Pin("Budi"), Pin("Citra"), Pin("Agus", isLeader: true)])
 
         #expect(group.ShownPins(isOpen: false).map(\.displayName) == ["Agus", "Budi", "Citra"])
+    }
+
+    @Test func MyCarComesRightAfterTheLeader() {
+        let group = TripMapCarGroup(pins: [Pin("Budi"), Pin("Citra", isMe: true), Pin("Agus", isLeader: true)])
+
+        #expect(group.ShownPins(isOpen: false).map(\.displayName) == ["Agus", "Citra", "Budi"])
+    }
+
+    @Test func MyCarAndCarsWithAnAlertAreShownEvenWhenTheCardIsFull() {
+        var pins = (0..<10).map { Pin("Car \($0)", isLeader: $0 == 0) }
+        pins[8] = Pin("Me", isMe: true)
+        pins[9] = Pin("Alert", isAlerting: true)
+        let group = TripMapCarGroup(pins: pins)
+
+        #expect(group.ShownPins(isOpen: false).map(\.displayName) == ["Car 0", "Me", "Alert", "Car 1"])
     }
 
     @Test func AFullCardCountsTheRest() {

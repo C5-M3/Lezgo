@@ -48,8 +48,8 @@ struct TripMapCarPinView: View {
                 }
             }
             .overlay(alignment: .topLeading) {
-                if let badge = Badge() {
-                    BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
+                if let badge = pin.badge {
+                    BadgeView(badge: badge)
                         .offset(x: -6, y: -6)
                 }
             }
@@ -78,29 +78,8 @@ struct TripMapCarPinView: View {
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(verbatim: pin.displayName))
-            .accessibilityValue(Text(Statuses().formatted(.list(type: .and, width: .narrow))))
+            .accessibilityValue(Text(pin.statuses.formatted(.list(type: .and, width: .narrow))))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private static let alertSymbol = "exclamationmark"
-
-    /// The status badge at the top left; the leader's crown sits at the top right.
-    private func Badge() -> String? {
-        if pin.isAlerting { return Self.alertSymbol }
-        return pin.motionState == .stopped ? "pause.fill" : nil
-    }
-
-    private func Statuses() -> [String] {
-        var statuses: [String] = []
-        if pin.isMe { statuses.append(String(localized: .tripMapCarYou)) }
-        if pin.isLeader { statuses.append(String(localized: .tripMapCarLeader)) }
-        if pin.isAlerting { statuses.append(String(localized: .tripMapCarAlert)) }
-        if pin.isOffline {
-            statuses.append(String(localized: .tripMapCarOffline))
-        } else {
-            statuses.append(String(localized: pin.motionState == .stopped ? .tripMapCarStopped : .tripMapCarDriving))
-        }
-        return statuses
     }
 }
 
@@ -124,17 +103,16 @@ extension TripMapCarPinView {
         }
     }
 
-    /// A small round badge on the robot's shoulder.
+    /// A small round badge on the robot's shoulder, on a car alone and on a group card alike.
     struct BadgeView: View {
-        let symbol: String
-        let isAlert: Bool
+        let badge: TripMapCarPin.Badge
 
         var body: some View {
-            Image(systemName: symbol)
+            Image(systemName: badge.symbolName)
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 22, height: 22)
-                .background(isAlert ? Color(.formationAlertBackground) : Color(.tripCard), in: .circle)
+                .background(badge == .alert ? Color(.formationAlertBackground) : Color(.tripCard), in: .circle)
                 .overlay { Circle().strokeBorder(.white, lineWidth: 1.5) }
                 .accessibilityHidden(true)
         }
