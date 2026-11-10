@@ -16,7 +16,8 @@ struct TripMapViewModelTests {
         me: UUID = Fixtures.budiID,
         states: [TripState],
         service: MockTripService? = nil,
-        navigator: MockTripMapNavigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+        navigator: MockTripMapNavigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+        clock: @escaping () -> Date = { Fixtures.now }
     ) -> TripMapViewModel {
         TripMapViewModel(
             tripID: Fixtures.tripID,
@@ -24,7 +25,7 @@ struct TripMapViewModelTests {
             tripService: service ?? MockTripService(states: states),
             navigator: navigator,
             streetNameService: MockStreetNameService(),
-            clock: { Fixtures.now }
+            clock: clock
         )
     }
 
@@ -286,6 +287,44 @@ struct TripMapViewModelTests {
         viewModel.ToggleCamera()
 
         #expect(viewModel.cameraMode == .followMyCar)
+    }
+
+    // The map reports a camera move cut short by the next tap, or one leaving the phone's own location, as moved by
+    // hand. Right after a tap that report must not undo the button's choice.
+
+    @Test func MapReportRightAfterTheCameraButtonKeepsTheButtonsChoice() {
+        var now = Fixtures.now
+        let viewModel = MakeViewModel(states: [], clock: { now })
+
+        viewModel.ToggleCamera()
+        now += 0.5
+        viewModel.StopFollowing()
+
+        #expect(viewModel.cameraMode == .wholeRoute)
+    }
+
+    @Test func TappingTheCameraButtonQuicklyEndsOnTheLastTap() {
+        var now = Fixtures.now
+        let viewModel = MakeViewModel(states: [], clock: { now })
+
+        for _ in 1...5 {
+            viewModel.ToggleCamera()
+            now += 0.3
+            viewModel.StopFollowing()
+        }
+
+        #expect(viewModel.cameraMode == .wholeRoute)
+    }
+
+    @Test func MovingTheMapByHandOnceTheCameraHasSettledStopsFollowing() {
+        var now = Fixtures.now
+        let viewModel = MakeViewModel(states: [], clock: { now })
+
+        viewModel.ToggleCamera()
+        now += 3
+        viewModel.StopFollowing()
+
+        #expect(viewModel.cameraMode == .free)
     }
 
     @Test func CameraButtonFollowsMyCarWhileAnotherCarIsFollowed() {
