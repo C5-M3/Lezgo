@@ -30,15 +30,17 @@ struct RoutePlanCard: View {
 
     var body: some View {
         List {
+            let startInsets = EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16)
             startPointRow
-                .listRowInsets(EdgeInsets(top: 14, leading: 16, bottom: 6, trailing: 16))
-                .listRowBackground(Color.clear)
+                .listRowInsets(startInsets)
+                .listRowBackground(ConnectorLine(reachesUp: false, reachesDown: true, insets: startInsets))
                 .listRowSeparator(.hidden)
 
             if showsStopsToggle {
+                let toggleInsets = EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16)
                 stopsToggleRow
-                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                    .listRowBackground(Color.clear)
+                    .listRowInsets(toggleInsets)
+                    .listRowBackground(ConnectorLine(reachesUp: true, reachesDown: true, insets: toggleInsets))
                     .listRowSeparator(.hidden)
             }
 
@@ -47,14 +49,11 @@ struct RoutePlanCard: View {
             }
 
             if showsDestinationRow {
+                let destinationBottom: CGFloat = canAddDestination ? 6 : 14
+                let destinationInsets = EdgeInsets(top: 6, leading: 16, bottom: destinationBottom, trailing: 16)
                 destinationRow
-                    .listRowInsets(EdgeInsets(
-                        top: 6,
-                        leading: 16,
-                        bottom: canAddDestination ? 6 : 14,
-                        trailing: 16
-                    ))
-                    .listRowBackground(Color.clear)
+                    .listRowInsets(destinationInsets)
+                    .listRowBackground(ConnectorLine(reachesUp: true, reachesDown: false, insets: destinationInsets))
                     .listRowSeparator(.hidden)
             }
 
@@ -180,7 +179,6 @@ extension RoutePlanCard {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
-                    ConnectorLine(reachesUp: false, reachesDown: true, crossesDivider: showsStartDivider)
 
                     Image(systemName: "house.fill")
                         .font(.callout)
@@ -226,9 +224,12 @@ extension RoutePlanCard {
         ForEach(Array(listedRows.enumerated()), id: \.element.id) { index, stop in
             let isLast = index == listedRows.count - 1
             let bottomInset: CGFloat = (isLast && !showsDestinationRow && !canAddDestination) ? 14 : 6
+            let insets = EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16)
             stopRow(index: index, stop: stop)
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16))
-                .listRowBackground(Color.clear)
+                .listRowInsets(insets)
+                .listRowBackground(
+                    ConnectorLine(reachesUp: true, reachesDown: !IsFinalDestination(index: index), insets: insets)
+                )
                 .listRowSeparator(.hidden)
         }
         .onDelete { indexSet in
@@ -249,7 +250,6 @@ extension RoutePlanCard {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
-                    ConnectorLine(reachesUp: true, reachesDown: false)
 
                     Image(systemName: "flag.checkered")
                         .font(.callout)

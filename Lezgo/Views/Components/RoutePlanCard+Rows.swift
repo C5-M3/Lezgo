@@ -19,8 +19,6 @@ extension RoutePlanCard {
             VStack(spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     ZStack {
-                        ConnectorLine(reachesUp: true, reachesDown: true)
-
                         Image(systemName: "mappin.circle.fill")
                             .font(.callout)
                             .foregroundStyle(Color(.brandYellow))
@@ -95,7 +93,6 @@ extension RoutePlanCard {
 
     private func stopRowLeadingIndicator(isFinalDestination: Bool) -> some View {
         ZStack {
-            ConnectorLine(reachesUp: true, reachesDown: !isFinalDestination)
 
             Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
                 .font(.callout)
@@ -186,32 +183,35 @@ extension RoutePlanCard {
 }
 
 extension RoutePlanCard {
-    /// The line joining the route's icons, drawn behind one icon. Each piece reaches past its row's padding and list
-    /// inset to the row's edge, so the pieces of neighbouring rows meet in one unbroken line, as in the HiFi.
+    /// The line joining the route's icons, drawn behind one row from the row's edge to its icon's centre. It is the
+    /// row's background, which always fills the whole row, so the pieces of neighbouring rows meet in one unbroken
+    /// line, as in the HiFi.
     struct ConnectorLine: View {
         let reachesUp: Bool
         let reachesDown: Bool
-        /// The row has a divider under its content, which the piece going down crosses too.
-        var crossesDivider = true
-        @Environment(\.pixelLength) private var pixelLength
-
-        /// From a row's content to its edge: the content's vertical padding (4) and the list row inset (6).
-        private static let distanceToRowEdge: CGFloat = 10
+        /// The row's list insets: the icon sits in the middle of what is left, `leading` from the side.
+        let insets: EdgeInsets
+        /// Half of the icon column's width.
+        private static let iconCentreOffset: CGFloat = 12
 
         var body: some View {
-            VStack(spacing: 0) {
-                Piece(isDrawn: reachesUp)
-                Piece(isDrawn: reachesDown)
+            GeometryReader { geometry in
+                let height = geometry.size.height
+                let centre = insets.top + (height - insets.top - insets.bottom) / 2
+                let x = insets.leading + Self.iconCentreOffset
+                Path { path in
+                    if reachesUp {
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x, y: centre))
+                    }
+                    if reachesDown {
+                        path.move(to: CGPoint(x: x, y: centre))
+                        path.addLine(to: CGPoint(x: x, y: height))
+                    }
+                }
+                .stroke(Color(.brandYellow).opacity(0.3), lineWidth: 1.5)
             }
-            .padding(.top, -Self.distanceToRowEdge)
-            .padding(.bottom, -(Self.distanceToRowEdge + (crossesDivider ? pixelLength : 0)))
             .accessibilityHidden(true)
-        }
-
-        private func Piece(isDrawn: Bool) -> some View {
-            Rectangle()
-                .fill(isDrawn ? Color(.brandYellow).opacity(0.3) : .clear)
-                .frame(width: 1.5)
         }
     }
 }
