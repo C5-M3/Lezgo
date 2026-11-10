@@ -55,6 +55,24 @@ final class FakeCloudServer {
         queryCount += 1
     }
 
+    /// What queries see. CloudKit's query index lags behind saves and deletes, so after `FreezeQueryIndex()` a
+    /// query sees the records as they were then (deleted ones included), until `CatchUpQueryIndex()`.
+    private var queryIndex: [CKRecord.ID: CKRecord]?
+
+    func FreezeQueryIndex() {
+        queryIndex = records.compactMapValues { $0.copy() as? CKRecord }
+    }
+
+    func CatchUpQueryIndex() {
+        queryIndex = nil
+    }
+
+    /// Copies of the records a query can see now that pass `isIncluded`.
+    func QueryableRecords(where isIncluded: (CKRecord) -> Bool) -> [CKRecord] {
+        guard let queryIndex else { return records.values.filter(isIncluded).compactMap { HandOut($0.recordID) } }
+        return queryIndex.values.filter(isIncluded).compactMap { $0.copy() as? CKRecord }
+    }
+
     func Delete(_ recordID: CKRecord.ID) {
         records[recordID] = nil
     }
