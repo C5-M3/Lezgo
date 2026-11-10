@@ -1,0 +1,53 @@
+# Opens the pull request that promotes dev to staging, or staging to main.
+# It runs only when someone starts it (Actions tab > Promote > Run workflow), never on a push.
+# It only opens the pull request: review and merge stay manual (ADR 0025).
+
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Branch to promote into (staging takes dev, main takes staging)
+        type: choice
+        options: [staging, main]
+        default: staging
+
+# The only workflow that writes: it needs to open a pull request, nothing else.
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: promote-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  open-pull-request:
+    name: Open Promotion Pull Request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The input is passed through an environment variable and never pasted into the script with ${{ }}.
+      - name: Open the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_BRANCH: ${{ inputs.target }}
+        run: |
+          case "$TARGET_BRANCH" in
+            staging) sourceBranch=dev ;;
+            main) sourceBranch=staging ;;
+            *) echo "::error::Target must be staging or main, not '$TARGET_BRANCH'."; exit 1 ;;
+          esac
+
+          existingUrl="$(gh pr list --repo "$GITHUB_REPOSITORY" --base "$TARGET_BRANCH" --head "$sourceBranch" --state open --json url --jq '.[0].url // empty')"
+          if [[ -n "$existingUrl" ]]; then
+            echo "A pull request from $sourceBranch into $TARGET_BRANCH is already open: $existingUrl" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          newUrl="$(gh pr create --repo "$GITHUB_REPOSITORY" \
+            --base "$TARGET_BRANCH" --head "$sourceBranch" \
+            --title "chore(release): promote $sourceBranch to $TARGET_BRANCH" \
+            --body "Promotes the current \`$sourceBranch\` into \`$TARGET_BRANCH\`. Opened by the Promote workflow, started by @$GITHUB_ACTOR. A teammate reviews and merges it.")"
+          echo "Opened $newUrl" | tee -a "$GITHUB_STEP_SUMMARY"
