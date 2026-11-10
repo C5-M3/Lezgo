@@ -10,6 +10,9 @@ import Foundation
 // The trip map's small state types, nested in `TripMapViewModel` (ADR 0019), kept here so the view model file stays
 // within SwiftLint's file length.
 extension TripMapViewModel {
+    /// How often a tapped car's street and time left are looked up again (`specs/UserStories.md` → US-06, "Data").
+    static let carLookupInterval: TimeInterval = 30
+
     /// What is left of another member's way back to the group's road, drawn dashed in the colour of their robot.
     struct CarWayBack: Identifiable, Hashable {
         let id: UUID

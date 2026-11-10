@@ -8,8 +8,9 @@
 import Foundation
 
 extension TripMapViewModel {
-    /// The trip map on a real phone: MapKit guidance and street names, this phone's GPS shared every second, and the
-    /// leader's automatic reroute. Every screen that opens the map uses this, so they all behave the same.
+    /// The trip map on a real phone: MapKit guidance and street names, this phone's GPS shared every second, the
+    /// leader's automatic reroute, and voice guidance. Every screen that opens the map uses this, so they all behave
+    /// the same.
     convenience init(
         session: TripSession,
         tripService: any TripService,
@@ -32,5 +33,6 @@ extension TripMapViewModel {
             activeTripStorage: activeTripStorage,
             showsStartIntro: TripStartIntro.ShouldPlay(for: session.state.trip, at: .now)
         )
+        sound = TripMapSound(speaker: LiveNavigationSpeaker())
     }
 }

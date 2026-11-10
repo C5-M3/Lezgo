@@ -1163,6 +1163,18 @@
         }
       }
     },
+    "tripMapMute" : {
+      "comment" : "Round map button that turns off voice guidance and alert sounds on the trip map (US-06, Sound).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        }
+      }
+    },
     "tripMapNewDestination" : {
       "comment" : "Arrival card button for the leader: plan a new destination for the same group (US-07).",
       "extractionState" : "manual",
@@ -1339,6 +1351,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "To %@"
+          }
+        }
+      }
+    },
+    "tripMapUnmute" : {
+      "comment" : "Round map button that turns voice guidance and alert sounds back on (US-06, Sound).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unmute"
+          }
+        }
+      }
+    },
+    "tripMapVoiceTurnIn" : {
+      "comment" : "Spoken by voice guidance before a turn (US-06, Sound). The first placeholder is the distance (\"200 meters\"), the second the turn instruction from Maps (\"turn right\").",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In %1$@, %2$@"
           }
         }
       }
