@@ -608,7 +608,7 @@ Feature: Manage the group and start
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
 - Tap elsewhere or swipe down to close.
-- Cars so close that their robots would overlap on screen are drawn side by side on one dark card, each with the driver's name under the robot. A car with an alert stays on its own.
+- Cars so close that their robots would overlap on screen are drawn side by side on one dark card, each with the driver's name under the robot ("You" under this phone's own car). This phone's own car and a car with an alert join the card too, so they never cover the cars under them; on the card the leader comes first, then "You", then cars with an alert, and each car keeps its pause or warning badge.
 - The leader's car has a crown beside it, on its own or on a card, where the leader always comes first.
 - A card shows at most 4 cars and counts the rest ("+6"), for example 10 cars at the start point. Tapping the count opens the card to show every car; tapping a car on the card opens its status, and the car glows in its place.
 - An offline car's card shows no ETA, because its last position is out of date.

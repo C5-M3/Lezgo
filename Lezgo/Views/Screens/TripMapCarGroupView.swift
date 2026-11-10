@@ -8,9 +8,10 @@
 import SwiftUI
 
 /// Cars so close together that their robots would overlap, side by side on one dark card with each driver's name
-/// under their robot. The leader comes first with its crown beside it. A full card counts the other cars; tapping the
-/// count opens the card to show them all. Each robot is a button; a tapped car glows in its place while its status is
-/// open (`TripMapCarGroup`).
+/// under their robot ("You" under this phone's own car). The leader comes first with its crown beside it; a stopped
+/// car keeps its pause badge, and a car with an alert keeps its warning badge and red name. A full card counts the
+/// other cars; tapping the count opens the card to show them all. Each robot is a button; a tapped car glows in its
+/// place while its status is open (`TripMapCarGroup`).
 struct TripMapCarGroupView: View {
     let group: TripMapCarGroup
     /// The car whose status card is open, if it is on this card.
@@ -56,7 +57,8 @@ struct TripMapCarGroupView: View {
 }
 
 extension TripMapCarGroupView {
-    /// One car on the card: its robot with the driver's name under it, and the crown for the leader.
+    /// One car on the card: its robot with the driver's name under it, the crown for the leader at the top left and
+    /// the car's status badge at the top right.
     struct RobotButton: View {
         let pin: TripMapCarPin
         let isSelected: Bool
@@ -74,10 +76,12 @@ extension TripMapCarGroupView {
                         .accessibilityHidden(true)
                         .frame(width: Self.imageSize, height: Self.imageSize)
                         .frame(width: Self.robotSize.width, height: Self.robotSize.height)
-                    Text(verbatim: pin.displayName)
+                    Text(verbatim: pin.label)
                         .font(.footnote.weight(.semibold))
                         .lineLimit(1)
-                        .foregroundStyle(Color(.tripCardText))
+                        .foregroundStyle(pin.isAlerting ? Color.white : Color(.tripCardText))
+                        .padding(.horizontal, pin.isAlerting ? 6 : 0)
+                        .background(pin.isAlerting ? Color(.formationAlertBackground) : Color.clear, in: .capsule)
                         .frame(maxWidth: 58)
                 }
                 .frame(minWidth: 50, minHeight: 58)
@@ -97,8 +101,14 @@ extension TripMapCarGroupView {
                         .offset(x: -8, y: -8)
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if let badge = pin.badge {
+                    TripMapCarPinView.BadgeView(badge: badge)
+                        .offset(x: 6, y: -6)
+                }
+            }
             .accessibilityLabel(Text(verbatim: pin.displayName))
-            .accessibilityValue(pin.isLeader ? Text(.tripMapCarLeader) : Text(verbatim: ""))
+            .accessibilityValue(Text(pin.statuses.formatted(.list(type: .and, width: .narrow))))
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
     }
@@ -139,10 +149,11 @@ extension TripMapCarGroupView {
             id: UUID(),
             displayName: name,
             coordinate: Coordinate(latitude: 0, longitude: 0),
-            motionState: .stopped,
+            motionState: index == 3 ? .stopped : .driving,
             isLeader: index == 0,
-            isMe: false,
+            isMe: index == 1,
             isOffline: index == 7,
+            isAlerting: index == 2,
             carColor: index == 0 ? .yellow : .ForMember(atIndex: index - 1)
         )
     }
