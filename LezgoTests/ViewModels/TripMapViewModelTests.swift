@@ -252,40 +252,12 @@ struct TripMapViewModelTests {
         #expect(viewModel.cameraMode == .followMyCar)
     }
 
-    @Test func ShowWholeRouteThenFollowMyCarAgain() {
-        let viewModel = MakeViewModel(states: [])
-
-        viewModel.ShowWholeRoute()
-        #expect(viewModel.cameraMode == .wholeRoute)
-
-        viewModel.FollowMyCar()
-        #expect(viewModel.cameraMode == .followMyCar)
-    }
-
-    @Test func RepeatedTapsKeepTheSameCameraMode() {
-        let viewModel = MakeViewModel(states: [])
-
-        viewModel.ShowWholeRoute()
-        viewModel.ShowWholeRoute()
-
-        #expect(viewModel.cameraMode == .wholeRoute)
-    }
-
     @Test func MovingTheMapByHandStopsFollowing() {
         let viewModel = MakeViewModel(states: [])
 
         viewModel.StopFollowing()
 
         #expect(viewModel.cameraMode == .free)
-    }
-
-    @Test func FollowMyCarAfterMovingTheMapByHand() {
-        let viewModel = MakeViewModel(states: [])
-
-        viewModel.StopFollowing()
-        viewModel.FollowMyCar()
-
-        #expect(viewModel.cameraMode == .followMyCar)
     }
 
     // The one camera button, as in Apple Maps on CarPlay (US-06, "Trip map").

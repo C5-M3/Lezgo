@@ -262,12 +262,15 @@ final class CarPlayTripViewModel {
         tripMap?.SelectCar(carID)
     }
 
-    func ShowWholeRoute() {
-        tripMap?.ShowWholeRoute()
+    /// `true` while the camera follows this phone's car: the camera button then offers the whole route, and
+    /// otherwise the way back to the car. Without a trip there is nothing else to follow.
+    var isFollowingMyCar: Bool {
+        tripMap.map { $0.cameraMode == .followMyCar } ?? true
     }
 
-    func FollowMyCar() {
-        tripMap?.FollowMyCar()
+    /// The one camera button, as on the phone and in Apple Maps.
+    func ToggleCamera() {
+        tripMap?.ToggleCamera()
     }
 }
 

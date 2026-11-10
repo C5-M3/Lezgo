@@ -14,14 +14,6 @@ struct TripMapCamera {
     /// Where the camera was before a tapped car took it, and where the tap put it.
     private var carFocus: (before: TripMapViewModel.CameraMode, focused: TripMapViewModel.CameraMode)?
 
-    mutating func ShowWholeRoute() {
-        mode = .wholeRoute
-    }
-
-    mutating func FollowMyCar() {
-        mode = .followMyCar
-    }
-
     /// The one camera button, as in Apple Maps on CarPlay: while the camera follows this phone's car it shows the
     /// whole route; from anywhere else (the whole route, a map moved by hand, another car) it follows the car again.
     mutating func Toggle() {

@@ -591,7 +591,7 @@ Feature: Manage the group and start
 - Top card: next turn ("200 m, Turn right"). Bottom card: "To [destination]" and time left ("50 min").
 - Members are measured against the group's road: the leader's footprint, then the leader, then the route ahead of the leader. A member behind the leader on the footprint is not off route, even after the leader was rerouted and the route now starts at the leader.
 - The bottom card is a sheet. Pulled up, it adds only End Trip (leader) or Exit Trip (member), and Edit Route for the leader. The cars are on the map, and the room code is in the Trip Room, so the sheet lists neither.
-- One map camera button, as in Apple Maps on CarPlay: while the map follows my car it shows the whole route; otherwise (the whole route, a map moved by hand, another car) it follows my car again.
+- One map camera button, as in Apple Maps on CarPlay: while the map follows my car it shows the whole route; otherwise (the whole route, a map moved by hand, another car) it follows my car again. CarPlay has the same button.
 - Checkpoints follow the leader: when the leader's car is within 20 m of the next checkpoint, it is visited for everyone. The app does not wait for members.
 
 **Footprint**
