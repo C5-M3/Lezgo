@@ -41,7 +41,7 @@ struct TripRoomMapPreview: View {
                 .annotationTitles(showsNames ? .automatic : .hidden)
             }
         }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapStyle(.lezgo)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
     }

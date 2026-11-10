@@ -76,7 +76,7 @@ extension TripMapView {
                     .annotationTitles(.hidden)
                 }
             }
-            .mapStyle(.standard(emphasis: .muted, pointsOfInterest: .excludingAll))
+            .mapStyle(.lezgo)
             // Apple's compass is Liquid Glass; the phone draws its own with the round map buttons (`TripMapCompass`).
             .mapControls {}
             .onMapCameraChange(frequency: .continuous) { context in
