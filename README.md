@@ -38,8 +38,8 @@ If you work with AI agents (Claude Code, Codex, Cursor), install the shared Swif
 
 | Branch | Purpose |
 | --- | --- |
-| `main` | Production / App Store. The last branch anything is merged into. |
-| `staging` | External TestFlight builds. Merged from `dev` when a feature needs testing. |
+| `main` | Production / App Store. The last stop, promoted from `staging`. |
+| `staging` | External TestFlight builds. Promoted from `dev` when a feature needs testing. |
 | `dev` | Development. Feature branches are merged here after review. |
 | `<type>/<description>` | One issue's work. Deleted after it is merged. |
 
@@ -141,14 +141,17 @@ git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git b
 
 ## Promoting to staging or main
 
-`dev` goes to `staging` when a feature needs a TestFlight build, and `staging` goes to `main` for a release. The **Promote** workflow opens that pull request for you, with the right branches and title. It runs only when someone starts it, never on a push (see [ADR 0025](docs/adr/0025-ManualPromotionWorkflow.md)).
+`dev` goes to `staging` when a feature needs a TestFlight build, and `staging` goes to `main` for a release. The **Promote** workflow does this in one step, with no pull request and no second review: the code was already reviewed on its way into `dev` (see [ADR 0025](docs/adr/0025-ManualPromotionWorkflow.md)). It runs only when someone starts it, never on a push.
 
 On GitHub:
 
 1. Open the **Actions** tab and choose **Promote** in the list on the left.
 2. Click **Run workflow**.
-3. Pick the target: `staging` (takes `dev`) or `main` (takes `staging`).
-4. Click **Run workflow**. The link to the new pull request is in the run summary.
+3. Pick the target:
+   - `staging`: moves `staging` to where `dev` is.
+   - `main`: moves `main` to where `staging` is.
+   - `staging-and-main`: moves both to where `dev` is.
+4. Click **Run workflow**. The run summary says which commit was promoted.
 
 Or from the terminal, on any branch:
 
@@ -158,7 +161,8 @@ gh workflow run Promote --repo C5-M3/Lezgo -f target=staging
 
 Good to know:
 
-- The workflow only opens the pull request. A teammate still reviews and merges it.
 - It promotes the branch as it is on GitHub. Work that is not merged into `dev` yet is not included.
-- If a promotion pull request is already open, the run prints its link and opens nothing new.
-- The first run needs an admin to turn on **Allow GitHub Actions to create and approve pull requests** (Settings > Actions > General).
+- It only moves the target branch forward (a fast-forward). It never force-pushes, so it cannot delete commits.
+- It stops if Secret Scan, XCSSET Malware Scan or SwiftLint did not pass on the commit. Wait for the checks on `dev` to finish, then run it again.
+- It stops if the target has commits the source does not have, for example a hotfix on `staging`. Merge `main` into `dev` with a pull request first, then run it again.
+- A promotion that includes changes to `.github/workflows` needs a `PROMOTE_TOKEN` repository secret (a token with contents and workflows write access). Ask a repository admin.

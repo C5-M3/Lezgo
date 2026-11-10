@@ -1,4 +1,4 @@
-# 0025. Manual workflow that opens promotion pull requests
+# 0025. Manual workflow that promotes trunk branches without a pull request
 
 - Status: Proposed
 - Date: 2026-11-10
@@ -6,24 +6,28 @@
 
 ## Context
 
-Code moves from `dev` to `staging` to `main` through pull requests ([0005](0005-TrunkBranchesAndConventionalBranch.md)). Opening a promotion pull request is done by hand: pick the right base and head on the compare page and type a title that passes the pull request rules. It is easy to pick the wrong branches or a title the checks reject.
+Code moves from `dev` to `staging` to `main` ([0005](0005-TrunkBranchesAndConventionalBranch.md)). Until now each promotion was a pull request that waited for a reviewer. Everything in `dev` was already reviewed in its feature pull request, so the second review found nothing new and delayed TestFlight builds.
 
-`staging` is promoted only when a feature needs TestFlight testing, and `main` only for a release, so a person must decide when. GitHub Actions is used only for fast Linux checks on the source ([0011](0011-XcodeCloudAndGitHubActions.md)).
+`staging` is promoted only when a feature needs TestFlight testing, and `main` only for a release, so a person must decide when. The ruleset on the trunk branches blocks force pushes and requires the Secret Scan, XCSSET Malware Scan and SwiftLint checks.
 
 ## Decision
 
-We will add a `Promote` workflow that runs only when someone starts it (`workflow_dispatch`). The person picks the target, `staging` or `main`, and the workflow opens the pull request from `dev` or `staging` with a title that follows the rules. It only opens the pull request: review and merge stay manual, and Xcode Cloud still builds after the merge.
+We will promote with a `Promote` workflow that runs only when someone starts it (`workflow_dispatch`). The person picks `staging`, `main` or `staging-and-main`, and the workflow moves the target branch forward to the source branch's commit (a fast-forward), with no pull request and no second review. It refuses to run when the required checks did not pass on that commit, and it never force-pushes.
+
+This is the one exception to "never push directly to a trunk branch". Feature work still reaches `dev` only through a reviewed pull request.
 
 ## Alternatives considered
 
-- **Open the pull request on every push to `dev`:** promotes work nobody asked to test yet, and keeps a pull request open all the time.
-- **Merge or push to the trunk branch from the workflow:** skips review and breaks the rule that nobody pushes to a trunk branch.
-- **A bookmarked compare link with the title filled in:** needs no setup, but each person must keep their own link, and it does not cover both targets in one place.
-- **A third-party "create pull request" action:** adds a dependency to pin and review; the `gh` command that is already on the runner does the same job.
+- **Keep a pull request for every promotion:** a second review of code that was already reviewed; this is the delay we want to remove.
+- **Open the pull request from the workflow and merge it at once:** adds a merge commit to the target that the source does not have, so the branches drift apart and the next promotion needs a merge again.
+- **Promote on every push to `dev`:** sends work to TestFlight that nobody asked to test yet.
+- **Force-push the target branch:** can delete a hotfix that exists only on `staging` or `main`, and the ruleset blocks it.
 
 ## Consequences
 
-- The workflow needs `pull-requests: write`, the first write permission in our workflows. An admin must turn on "Allow GitHub Actions to create and approve pull requests" in the repository's Actions settings, or the run fails.
-- A pull request opened by the workflow's built-in token does not start `Pull Request Checks`. The required checks (Secret Scan, XCSSET Malware Scan, SwiftLint) already ran when the head commit was pushed to `dev` or `staging`, so they still show on the pull request. The workflow sets the branches and the title itself, so the skipped branch, title and commit rules cannot be wrong there.
-- The pull request is opened by `github-actions`, so the person who started the run may approve it. Keep the habit of asking a teammate to review.
-- See AGENTS.md "Continuous integration".
+- After a promotion, `staging` (or `main`) points to the same commit as its source. Xcode Cloud builds the exact commit that was reviewed and checked in `dev`.
+- A fast-forward only works when the target has no commits of its own. After a hotfix on `staging` or `main`, merge `main` back into `dev` with a pull request first; the workflow stops and says so. The same one-time merge is needed before the first run, because earlier promotion pull requests left merge commits on `staging` and `main`.
+- Anyone with write access can start a promotion, including to `main`. The feature review in `dev` is the only review, so it must stay strict.
+- The workflow needs `contents: write`, the first write permission in our workflows. GitHub's built-in token may not move a branch over commits that change files in `.github/workflows`; for those promotions a `PROMOTE_TOKEN` secret (a token with contents and workflows write access) is needed.
+- A promotion made with the built-in token does not start GitHub Actions on the target branch. Nothing is lost: the same commit already passed the checks on its source branch.
+- See AGENTS.md "Branches" and "Continuous integration".
