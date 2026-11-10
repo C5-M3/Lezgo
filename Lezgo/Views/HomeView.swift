@@ -38,6 +38,7 @@ struct HomeView: View {
                     homeContent
                         .padding(.vertical, 24)
                 }
+                .scrollBounceBehavior(.basedOnSize)
             } else {
                 VStack(spacing: 0) {
                     homeContent

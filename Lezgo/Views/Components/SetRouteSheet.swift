@@ -50,6 +50,8 @@ struct SetRouteSheet: View {
                     )
                 }
             }
+            // Its few rows fit in the sheet; dragging them would fight the sheet's own drag.
+            .scrollBounceBehavior(.basedOnSize)
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

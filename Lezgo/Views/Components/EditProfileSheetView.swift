@@ -58,6 +58,8 @@ struct EditProfileSheetView: View {
                 .padding()
             }
             .scrollDismissesKeyboard(.interactively)
+            // Scrolls only when the content is taller than the screen; otherwise the page stays put.
+            .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom) {
                 Button("Save", action: Save)
                     .buttonStyle(.yellowCapsule(disabledBackground: Color(uiColor: .systemGray3)))

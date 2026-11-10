@@ -45,6 +45,7 @@ struct RouteSearchSuggestionsList: View {
             .padding(.horizontal, 16)
         }
         .scrollDismissesKeyboard(.interactively)
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     private var hasEmptySearchQuery: Bool {

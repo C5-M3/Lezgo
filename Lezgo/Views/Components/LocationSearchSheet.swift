@@ -114,6 +114,7 @@ struct LocationSearchSheet: View {
                     }
                 }
             }
+            .scrollBounceBehavior(.basedOnSize)
             .navigationTitle(selectionType.title)
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
