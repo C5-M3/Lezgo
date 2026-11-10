@@ -21,8 +21,7 @@ struct TripRoomMapPreview: View {
     var body: some View {
         Map(initialPosition: .automatic, interactionModes: []) {
             if polyline.count > 1 {
-                MapPolyline(coordinates: JoinedLine().map(\.locationCoordinate))
-                    .stroke(Color(.brandBlue), style: StrokeStyle(lineWidth: 6, lineCap: .round, lineJoin: .round))
+                RouteLineMapContent(coordinates: JoinedLine().map(\.locationCoordinate))
             }
             if let start {
                 Annotation(start.name, coordinate: start.coordinate.locationCoordinate) {
