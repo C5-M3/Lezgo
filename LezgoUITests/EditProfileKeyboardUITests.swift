@@ -26,6 +26,10 @@ final class EditProfileKeyboardUITests: XCTestCase {
     @MainActor
     func testSaveStaysBelowTheFieldsWhileTyping() throws {
         nameField.tap()
+        // The bug only shows with the on-screen keyboard; a simulator using the Mac keyboard never raises "Save".
+        guard app.keyboards.firstMatch.waitForExistence(timeout: 5) else {
+            throw XCTSkip("No on-screen keyboard: in the simulator, I/O > Keyboard > Toggle Software Keyboard")
+        }
         let save = app.buttons["Save"]
         // Waits until Save has risen with the keyboard, so the frames are compared once the layout has settled.
         let risen = NSPredicate { _, _ in save.frame.maxY < self.app.frame.maxY - 200 }
