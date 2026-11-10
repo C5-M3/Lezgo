@@ -30,14 +30,14 @@ final class TripRoomHoldMenuUITests: XCTestCase {
         Attach(named: "Menu of Budi held by the leader")
 
         remove.tap()
-        XCTAssertTrue(app.alerts["Remove Budi from the trip?"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.Dialog("Remove Budi from the trip?").waitForExistence(timeout: 3))
         Attach(named: "Remove dialog")
-        app.alerts.buttons["Cancel"].tap()
+        app.dialog.buttons["Cancel"].tap()
         XCTAssertTrue(app.ParticipantAvatar(named: "Budi").exists, "Cancel must keep Budi")
 
         app.HoldAvatar(named: "Budi")
         app.buttons["Remove from Trip"].tap()
-        app.alerts["Remove Budi from the trip?"].buttons["Remove"].tap()
+        app.Dialog("Remove Budi from the trip?").buttons["Remove"].tap()
 
         let budi = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label BEGINSWITH %@", "Budi,")).firstMatch

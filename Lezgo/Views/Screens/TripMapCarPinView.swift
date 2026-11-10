@@ -23,6 +23,10 @@ struct TripMapCarPinView: View {
     /// The robot's image has wide transparent margins, so it is drawn larger than the space it takes.
     private static let imageSize = 114.0
     private static let bodySize = CGSize(width: 64, height: 53)
+    /// The whole pin: the robot's turned image, the badges, the crown and the name all fit inside, with the robot in
+    /// the middle so it stays on its coordinate. CarPlay's map cuts an annotation off at its frame, so nothing may
+    /// reach outside it.
+    private static let pinSize = CGSize(width: 130, height: 115)
 
     var body: some View {
         Image(pin.carColor.TopViewImage(isGlowing: isSelected))
@@ -43,16 +47,17 @@ struct TripMapCarPinView: View {
                         .frame(width: 62, height: 62)
                 }
             }
-            .overlay(alignment: .topTrailing) {
+            .overlay(alignment: .topLeading) {
                 if let badge = Badge() {
                     BadgeView(symbol: badge, isAlert: badge == Self.alertSymbol)
-                        .offset(x: 6, y: -6)
+                        .offset(x: -6, y: -6)
                 }
             }
-            .overlay(alignment: .topLeading) {
+            // The crown sits at the top right, as in the hi-fi; the status badge takes the other corner.
+            .overlay(alignment: .topTrailing) {
                 if pin.isLeader {
                     TripMapLeaderCrown()
-                        .offset(x: -6, y: -6)
+                        .offset(x: 6, y: -6)
                 }
             }
             .overlay(alignment: .bottom) {
@@ -67,6 +72,7 @@ struct TripMapCarPinView: View {
                     .offset(y: 24)
             }
             .opacity(pin.isOffline ? 0.4 : 1)
+            .frame(width: Self.pinSize.width, height: Self.pinSize.height)
             // The pin is a map graphic of a fixed size; bigger text would cover the cars around it.
             // VoiceOver still reads the name and status at any text size, and tapping the car shows its full name.
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
@@ -78,7 +84,7 @@ struct TripMapCarPinView: View {
 
     private static let alertSymbol = "exclamationmark"
 
-    /// The status badge at the top right; the leader's crown sits at the top left.
+    /// The status badge at the top left; the leader's crown sits at the top right.
     private func Badge() -> String? {
         if pin.isAlerting { return Self.alertSymbol }
         return pin.motionState == .stopped ? "pause.fill" : nil

@@ -9,7 +9,7 @@ import SwiftUI
 
 /// Shown on the Trip Room and the trip map while Precise Location is off. Lezgo then only knows the phone's position
 /// to a few kilometres, so this car is not shared and cannot be ready at the start point. The button opens Lezgo in
-/// Settings, where Precise Location is turned on.
+/// Settings, where Precise Location is turned on. A dark card like the trip map's cards, with the yellow button.
 struct PreciseLocationNotice: View {
     @Environment(\.openURL) private var openURL
 
@@ -24,10 +24,12 @@ struct PreciseLocationNotice: View {
                         .font(.headline)
                     Text(.preciseLocationOffDetail)
                         .font(.subheadline)
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
                 .fixedSize(horizontal: false, vertical: true)
             } icon: {
                 Image(systemName: "location.slash.fill")
+                    .foregroundStyle(Color(.brandYellow))
                     .accessibilityHidden(true)
             }
             if let settingsURL = Self.settingsURL {
@@ -35,25 +37,27 @@ struct PreciseLocationNotice: View {
                     openURL(settingsURL)
                 } label: {
                     Text(.preciseLocationOpenSettings)
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.yellowCapsule(minHeight: 48))
+                .padding(.top, 4)
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(in: .rect(cornerRadius: 24))
+        .foregroundStyle(Color(.tripCardText))
+        .background(Color(.tripCard), in: .rect(cornerRadius: 24))
     }
 }
 
 #Preview("Precise Location off") {
     PreciseLocationNotice()
         .padding()
+        .background(.black)
 }
 
 #Preview("Largest text") {
     PreciseLocationNotice()
         .padding()
+        .background(.black)
         .dynamicTypeSize(.accessibility5)
 }

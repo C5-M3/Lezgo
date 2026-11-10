@@ -265,14 +265,28 @@ struct CarPlayTripViewModelTests {
 
     // MARK: Map buttons
 
-    @Test func MapButtonsMoveTheCamera() async {
+    @Test func CameraButtonShowsTheWholeRouteThenFollowsMyCarAgain() async {
+        let tripMap = Fixtures.TripMap(states: [Fixtures.State()])
+        let viewModel = await Fixtures.CarPlay(mirroring: tripMap)
+        #expect(viewModel.isFollowingMyCar)
+
+        viewModel.ToggleCamera()
+        #expect(tripMap.cameraMode == .wholeRoute)
+        #expect(viewModel.isFollowingMyCar == false)
+
+        viewModel.ToggleCamera()
+        #expect(tripMap.cameraMode == .followMyCar)
+        #expect(viewModel.isFollowingMyCar)
+    }
+
+    @Test func CameraButtonFollowsMyCarAfterThePhoneMovedTheMap() async {
         let tripMap = Fixtures.TripMap(states: [Fixtures.State()])
         let viewModel = await Fixtures.CarPlay(mirroring: tripMap)
 
-        viewModel.ShowWholeRoute()
-        #expect(tripMap.cameraMode == .wholeRoute)
+        tripMap.StopFollowing()
+        #expect(viewModel.isFollowingMyCar == false)
 
-        viewModel.FollowMyCar()
+        viewModel.ToggleCamera()
         #expect(tripMap.cameraMode == .followMyCar)
     }
 }

@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// The notification pill under the turn card: yellow, or red when something is wrong. Dark text and an icon, so it
-/// reads at a glance in sunlight and without colour. A tap closes it; without `onTap` it cannot be closed.
+/// The notification pill under the turn card, as in the hi-fi: dark with yellow text, or red with dark text when
+/// something is wrong. Always with an icon, so it reads at a glance without colour. A tap closes it; without `onTap`
+/// it cannot be closed.
 struct TripMapPill: View {
     let message: Text
     var isUrgent = false
@@ -38,11 +39,11 @@ struct TripMapPill: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .font(.subheadline.bold())
-        .foregroundStyle(Color(.tripCard))
+        .foregroundStyle(isUrgent ? Color(.tripCard) : Color(.brandYellow))
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: 44)
-        .background(isUrgent ? Color(.tripAlertRed) : Color(.brandYellow), in: .rect(cornerRadius: 22))
+        .background(isUrgent ? Color(.tripAlertRed) : Color(.tripCard), in: .rect(cornerRadius: 22))
         .contentShape(.rect(cornerRadius: 22))
     }
 }

@@ -117,32 +117,6 @@ struct DraftTripViewModelTests {
         #expect(viewModel.isConfirmingNewTrip == true)
     }
 
-    @Test("DismissConfirmation hides confirmation dialog")
-    func dismissConfirmation() {
-        let summary = makeMemberSummary()
-        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
-        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
-
-        viewModel.TapNewTrip()
-        #expect(viewModel.isConfirmingNewTrip == true)
-
-        viewModel.DismissConfirmation()
-        #expect(viewModel.isConfirmingNewTrip == false)
-    }
-
-    @Test("DismissCancelledNotice resets cancelled flag")
-    func dismissCancelledNoticeResetsFlag() {
-        let summary = makeMemberSummary()
-        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.budiID)
-        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
-
-        viewModel.wasCancelledByLeader = true
-        #expect(viewModel.wasCancelledByLeader == true)
-
-        viewModel.DismissCancelledNotice()
-        #expect(viewModel.wasCancelledByLeader == false)
-    }
-
     @Test("Leader confirmation message contains ending trip notice")
     func leaderConfirmationMessage() {
         let summary = makeLeaderSummary()

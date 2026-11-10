@@ -28,7 +28,7 @@ struct RouteMetricsBottomCard: View {
         .padding(.vertical, 18)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                .fill(Color(.routeCard))
         )
         .shadow(color: .black.opacity(0.3), radius: 14, x: 0, y: 6)
         .padding(.horizontal, 16)
@@ -39,12 +39,12 @@ struct RouteMetricsBottomCard: View {
         HStack(alignment: .firstTextBaseline) {
             if isLoadingRoute {
                 Text("Calculating…")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.heroYellow)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Color(.brandYellow))
             } else {
                 Text(FormattedDuration(duration))
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundStyle(Color.heroYellow)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Color(.brandYellow))
             }
 
             Spacer()
@@ -74,7 +74,7 @@ struct RouteMetricsBottomCard: View {
             .frame(height: 52)
             .background(
                 Capsule()
-                    .fill(Color.heroYellow)
+                    .fill(Color(.brandYellow))
             )
         }
         .disabled(!canSave || isSaving)

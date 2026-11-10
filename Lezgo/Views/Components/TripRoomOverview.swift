@@ -15,6 +15,7 @@ struct TripRoomOverview: View {
     let numberOfStops: Int
     /// Opens the route planner; `nil` for a member, who sees no "Edit".
     var onEdit: (() -> Void)?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -37,11 +38,13 @@ struct TripRoomOverview: View {
                     .accessibilityInputLabels(["Edit", "Edit route"])
                 }
             }
-            // Side by side like the hi-fi; stacked when large text no longer fits in three columns.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 16) { items }
-                VStack(alignment: .leading, spacing: 16) { items }
-            }
+            // Side by side like the hi-fi, with long names wrapping inside their column; stacked only at the
+            // accessibility text sizes. `ViewThatFits` measured each name on one line, so a long street name alone
+            // stacked the columns at the normal size.
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+            layout { items }
         }
     }
 

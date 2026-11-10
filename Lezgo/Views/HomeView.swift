@@ -10,6 +10,8 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(\.tripService) private var tripService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
     @State private var isJoinTripPresented: Bool = false
@@ -17,7 +19,6 @@ struct HomeView: View {
     @State private var isSetRoutePresented: Bool = false
 
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
-    private let screenBackground = Color(red: 18/255, green: 18/255, blue: 18/255)
 
     private var shouldHideHomeControls: Bool {
         viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
@@ -28,21 +29,23 @@ struct HomeView: View {
         @Bindable var boundHomeViewModel = viewModel
 
         ZStack {
-            screenBackground
+            Color(.tripCard)
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                headerView
-                    .padding(.top, 120)
-                    .padding(.horizontal, 24)
+            // At the largest text sizes the cards no longer fit on one screen, so they scroll.
+            if dynamicTypeSize.isAccessibilitySize {
+                ScrollView {
+                    homeContent
+                        .padding(.vertical, 24)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+            } else {
+                VStack(spacing: 0) {
+                    homeContent
+                        .padding(.top, 72)
 
-                cardsSection
-                    .padding(.top, 24)
-                    .padding(.horizontal, 24)
-
-                Spacer(minLength: 16)
-
-                MascotsView()
+                    Spacer(minLength: 16)
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -150,19 +153,24 @@ struct HomeView: View {
 // MARK: - Header & Cards
 
 private extension HomeView {
+    var homeContent: some View {
+        VStack(spacing: 24) {
+            headerView
+            cardsSection
+        }
+        .padding(.horizontal, 24)
+    }
+
     @ViewBuilder
     var headerView: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Only the logo, as in the hi-fi ("N1 Home · No map"): the two cards say what the app does.
             Image("LezgoIcon")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 42)
                 .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text("Make and lead a trip or join one !")
-                .font(.system(size: 20, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(Text(verbatim: "Lezgo"))
         }
     }
 
@@ -196,26 +204,28 @@ private extension HomeView {
                                 .frame(width: 50, height: 50)
 
                             Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(Color.brandYellow)
+                                // The icon must stay inside its 50-point circle.
+                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         }
 
                         Spacer()
 
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.title3.weight(.bold))
                             .foregroundStyle(.black)
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Lead a trip")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.title.weight(.bold))
                             .foregroundStyle(.black)
 
                         Text("Plan the trip and make a room for friends to join trip!")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(.black)
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .minimumScaleFactor(0.85)
                     }
                 }
@@ -226,7 +236,7 @@ private extension HomeView {
             .background(Color.brandYellow)
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 
     @ViewBuilder
@@ -251,26 +261,28 @@ private extension HomeView {
                                 .frame(width: 50, height: 50)
 
                             Image(systemName: "door.left.hand.open")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(.black)
+                                // The icon must stay inside its 50-point circle.
+                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
                         }
 
                         Spacer()
 
                         Image(systemName: "arrow.up.right")
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.title3.weight(.bold))
                             .foregroundStyle(Color(white: 0.6))
                     }
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Join a trip")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.title.weight(.bold))
                             .foregroundStyle(.white)
 
                         Text("Got a room code from friend leader? Join the room now!")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(Color(white: 0.6))
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .minimumScaleFactor(0.8)
                     }
                 }
@@ -281,7 +293,7 @@ private extension HomeView {
             .background(cardDarkBackground)
             .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
     }
 }
 
@@ -319,12 +331,12 @@ private extension HomeView {
                     }
                 },
                 onNewTrip: {
-                    withAnimation {
+                    withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                         viewModel.ClearActiveDraftTrip()
                     }
                 },
                 onTripEnded: {
-                    withAnimation {
+                    withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                         viewModel.handleDraftTripEnded()
                     }
                 }

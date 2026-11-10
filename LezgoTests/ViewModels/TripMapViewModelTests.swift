@@ -252,25 +252,6 @@ struct TripMapViewModelTests {
         #expect(viewModel.cameraMode == .followMyCar)
     }
 
-    @Test func ShowWholeRouteThenFollowMyCarAgain() {
-        let viewModel = MakeViewModel(states: [])
-
-        viewModel.ShowWholeRoute()
-        #expect(viewModel.cameraMode == .wholeRoute)
-
-        viewModel.FollowMyCar()
-        #expect(viewModel.cameraMode == .followMyCar)
-    }
-
-    @Test func RepeatedTapsKeepTheSameCameraMode() {
-        let viewModel = MakeViewModel(states: [])
-
-        viewModel.ShowWholeRoute()
-        viewModel.ShowWholeRoute()
-
-        #expect(viewModel.cameraMode == .wholeRoute)
-    }
-
     @Test func MovingTheMapByHandStopsFollowing() {
         let viewModel = MakeViewModel(states: [])
 
@@ -279,11 +260,39 @@ struct TripMapViewModelTests {
         #expect(viewModel.cameraMode == .free)
     }
 
-    @Test func FollowMyCarAfterMovingTheMapByHand() {
+    // The one camera button, as in Apple Maps on CarPlay (US-06, "Trip map").
+
+    @Test func CameraButtonShowsTheWholeRouteWhileFollowingMyCar() {
+        let viewModel = MakeViewModel(states: [])
+
+        viewModel.ToggleCamera()
+
+        #expect(viewModel.cameraMode == .wholeRoute)
+    }
+
+    @Test func CameraButtonFollowsMyCarAgainFromTheWholeRoute() {
+        let viewModel = MakeViewModel(states: [])
+
+        viewModel.ToggleCamera()
+        viewModel.ToggleCamera()
+
+        #expect(viewModel.cameraMode == .followMyCar)
+    }
+
+    @Test func CameraButtonFollowsMyCarAfterMovingTheMapByHand() {
         let viewModel = MakeViewModel(states: [])
 
         viewModel.StopFollowing()
-        viewModel.FollowMyCar()
+        viewModel.ToggleCamera()
+
+        #expect(viewModel.cameraMode == .followMyCar)
+    }
+
+    @Test func CameraButtonFollowsMyCarWhileAnotherCarIsFollowed() {
+        let viewModel = MakeViewModel(states: [])
+
+        viewModel.SelectCar(Fixtures.agusID)
+        viewModel.ToggleCamera()
 
         #expect(viewModel.cameraMode == .followMyCar)
     }

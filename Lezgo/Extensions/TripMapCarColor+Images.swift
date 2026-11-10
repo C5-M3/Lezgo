@@ -24,7 +24,18 @@ extension TripMapCarPin.CarColor {
         }
     }
 
-    /// The robot seen from the front, as on the arrival card and the car status card.
+    /// The whole mascot, arms and feet, as on the car status card in the hi-fi.
+    var fullBodyImage: ImageResource {
+        switch self {
+        case .yellow: .mainUnselectedYellow
+        case .purple: .mainUnselectedPurple
+        case .pink: .mainUnselectedPink
+        case .blue: .mainUnselectedBlue
+        case .green: .mainUnselectedGreen
+        }
+    }
+
+    /// The robot seen from the front, as on the arrival card.
     var frontImage: ImageResource {
         switch self {
         case .yellow: .frontballActiveYellow

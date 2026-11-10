@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SetRouteSheet: View {
     @Environment(\.tripService) private var tripService
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Bindable var viewModel: MapViewModel
     var isFullPresentation: Bool = false
     /// "Set Route" when planning a trip, "Edit Route" on the road.
@@ -49,33 +50,36 @@ struct SetRouteSheet: View {
                     )
                 }
             }
+            // Its few rows fit in the sheet; dragging them would fight the sheet's own drag.
+            .scrollBounceBehavior(.basedOnSize)
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 toolbarLeading
                 toolbarTrailing
             }
-            .alert(
-                "Discard Changes?",
-                isPresented: $isShowingBackConfirmation
-            ) {
-                Button("Cancel", role: .cancel) { }
-                Button("Discard", role: .destructive) {
-                    onBack?()
-                }
-            } message: {
-                Text("Going back will clear your selected destination and route planning")
-            }
-            .alert(
-                "Notice",
+            .confirmDialog(
+                isPresented: $isShowingBackConfirmation,
+                title: Text("Discard Changes?"),
+                message: Text("Going back will clear your selected destination and route planning"),
+                cancelTitle: "Cancel",
+                confirmTitle: "Discard",
+                isDestructive: true,
+                onConfirm: { onBack?() }
+            )
+            .confirmDialog(
                 isPresented: Binding(
                     get: { viewModel.errorMessage != nil },
                     set: { if !$0 { viewModel.errorMessage = nil } }
-                )
-            ) {
-                Button("OK") { viewModel.errorMessage = nil }
-            } message: {
-                Text(viewModel.errorMessage ?? "")
+                ),
+                title: Text("Notice"),
+                message: Text(verbatim: viewModel.errorMessage ?? ""),
+                cancelTitle: nil,
+                confirmTitle: "OK",
+                onConfirm: { }
+            )
+            .onChange(of: viewModel.errorMessage) { _, message in
+                if message != nil { onExpand?() }
             }
             .fullScreenCover(
                 item: $viewModel.createdSession,
@@ -96,6 +100,8 @@ private extension SetRouteSheet {
         ToolbarItem(placement: .topBarLeading) {
             Button("Back", systemImage: "chevron.left") {
                 if viewModel.hasPlanChanges {
+                    // The dialog is drawn inside this sheet, so the sheet opens fully to give it room.
+                    onExpand?()
                     isShowingBackConfirmation = true
                 } else {
                     onBack?()
@@ -281,7 +287,7 @@ private extension SetRouteSheet {
                   fromIndex != index else {
                 return false
             }
-            withAnimation {
+            withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                 viewModel.moveDestination(
                     fromOffsets: IndexSet(integer: fromIndex),
                     toOffset: index > fromIndex ? index + 1 : index

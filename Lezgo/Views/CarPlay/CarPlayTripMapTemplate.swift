@@ -31,6 +31,10 @@ final class CarPlayTripMapTemplate: NSObject {
     /// The navigation bar's buttons. The bar is only rebuilt when they change: a button replaced while the driver
     /// taps it drops the tap.
     private var shownBar: NavigationBar?
+    /// The one map button: the whole route, or back to this car.
+    private lazy var cameraButton = CPMapButton { [weak self] _ in self?.viewModel.ToggleCamera() }
+    /// Which of its two icons the camera button shows; `nil` before the first update.
+    private var shownFollowingMyCar: Bool?
     private var shownAlert: CarPlayTripViewModel.Alert?
     private var shownModalAlert: ModalAlert?
 
@@ -46,13 +50,7 @@ final class CarPlayTripMapTemplate: NSObject {
         // The dark turn card of the Sketch design, with the yellow arrow.
         mapTemplate.guidanceBackgroundColor = UIColor(resource: .tripCard)
         mapTemplate.tripEstimateStyle = .dark
-        mapTemplate.mapButtons = [
-            MapButton(
-                symbolName: "point.topleft.down.to.point.bottomright.curvepath",
-                action: viewModel.ShowWholeRoute
-            ),
-            MapButton(symbolName: "location.fill", action: viewModel.FollowMyCar)
-        ]
+        mapTemplate.mapButtons = [cameraButton]
         Observe()
     }
 
@@ -66,6 +64,7 @@ final class CarPlayTripMapTemplate: NSObject {
     }
 
     private func Update() {
+        UpdateCameraButton()
         UpdateNavigationBar()
         UpdateGuidance()
         UpdateAlert()
@@ -73,10 +72,15 @@ final class CarPlayTripMapTemplate: NSObject {
         if #available(iOS 27.0, *) { UpdatePanel() }
     }
 
-    private func MapButton(symbolName: String, action: @escaping () -> Void) -> CPMapButton {
-        let button = CPMapButton { _ in action() }
-        button.image = UIImage(systemName: symbolName)
-        return button
+    /// Shows what a tap does, as in Apple Maps: the whole route while the camera follows this car, otherwise the
+    /// arrow that takes the camera back to the car.
+    private func UpdateCameraButton() {
+        let isFollowingMyCar = viewModel.isFollowingMyCar
+        guard isFollowingMyCar != shownFollowingMyCar else { return }
+        shownFollowingMyCar = isFollowingMyCar
+        cameraButton.image = UIImage(
+            systemName: isFollowingMyCar ? "point.topleft.down.to.point.bottomright.curvepath" : "location.fill"
+        )
     }
 }
 

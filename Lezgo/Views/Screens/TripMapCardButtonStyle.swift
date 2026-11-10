@@ -24,6 +24,7 @@ struct TripMapCardButtonStyle: ButtonStyle {
             .foregroundStyle(isProminent ? AnyShapeStyle(Color(.tripCard)) : AnyShapeStyle(.foreground))
             .background(isProminent ? Color(.brandYellow) : Color(.tripCardButton), in: .capsule)
             .contentShape(.capsule)
-            .opacity(isEnabled ? (configuration.isPressed ? 0.7 : 1) : 0.5)
+            .pressFeedback(isPressed: configuration.isPressed)
+            .opacity(isEnabled ? 1 : 0.5)
     }
 }

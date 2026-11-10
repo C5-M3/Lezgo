@@ -19,6 +19,8 @@ struct TripMapView: View {
     /// Whether the bottom card is pulled up. It starts collapsed, so End Trip and Exit Trip are out of reach while
     /// driving.
     @State private var isSheetExpanded = false
+    /// Which way the map is turned, for the compass button.
+    @State private var mapHeading = TripMapHeading()
     /// The planner on screen; `nil` while it is closed.
     @State private var presentedEditRoute: EditRouteViewModel?
     /// The yellow "Lez Go!" animation is on top of the map.
@@ -54,7 +56,7 @@ struct TripMapView: View {
         // The map closes the car status on a tap (below) but is not a button, so it gets no button trait;
         // VoiceOver closes it with its Close button or the escape gesture instead.
         // swiftlint:disable:next accessibility_trait_for_button
-        MapLayer(viewModel: viewModel, showsCars: isTripScreenRevealed)
+        MapLayer(viewModel: viewModel, showsCars: isTripScreenRevealed, compassHeading: mapHeading)
         // Keeps Apple's Maps logo and Legal link above the bottom card, where they must stay visible, and the compass
         // under the turn card. Fixed, so the map never changes size as the cards come and go.
         .safeAreaPadding(.vertical, 140)
@@ -72,6 +74,7 @@ struct TripMapView: View {
             if isTripScreenRevealed {
                 BottomControls(
                     viewModel: viewModel,
+                    mapHeading: mapHeading,
                     onNewDestination: NewDestinationAction(),
                     isSheetExpanded: $isSheetExpanded
                 )
@@ -185,14 +188,17 @@ extension TripMapView {
                         .transition(.opacity)
                 } else if viewModel.isRerouting {
                     TripMapTurnCard.Rerouting(isLeader: viewModel.isLeader)
+                        .transition(.opacity)
                 } else if let guidance = viewModel.guidance {
                     TripMapTurnCard(guidance: guidance)
                         .transition(.opacity)
                 }
                 if viewModel.isLocationImprecise {
                     PreciseLocationNotice()
+                        .transition(.opacity)
                 } else if viewModel.isConnectionLost {
                     ConnectionLostNotice()
+                        .transition(.opacity)
                 }
                 if let notice = viewModel.noticeBanner {
                     TripMapNoticeBanner(
@@ -212,15 +218,27 @@ extension TripMapView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 12)
             .padding(.top, verticalSizeClass == .compact ? 8 : 0)
-            .animation(reduceMotion ? nil : .default, value: viewModel.alertBanner)
-            .animation(reduceMotion ? nil : .default, value: viewModel.noticeBanner)
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: viewModel.arrivalProgress == nil)
+            .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: Shown())
+            .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: viewModel.alertBanner)
+            .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: viewModel.noticeBanner)
+        }
+
+        /// Which cards are on screen, so one animation covers every card coming, going or swapping.
+        private func Shown() -> [Bool] {
+            [
+                viewModel.arrivalProgress == nil,
+                viewModel.isRerouting,
+                viewModel.guidance == nil,
+                viewModel.isLocationImprecise,
+                viewModel.isConnectionLost
+            ]
         }
     }
 
     /// The round map buttons and the card under them, which move up together as the card opens.
     struct BottomControls: View {
         let viewModel: TripMapViewModel
+        let mapHeading: TripMapHeading
         let onNewDestination: (() -> Void)?
         @Binding var isSheetExpanded: Bool
         @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -230,11 +248,11 @@ extension TripMapView {
                 // At the largest text sizes the open card and the turn card fill the screen, with no room left.
                 if isSheetExpanded == false || dynamicTypeSize.isAccessibilitySize == false {
                     TripMapCameraControls(
+                        mapHeading: mapHeading,
                         cameraMode: viewModel.cameraMode,
                         isMuted: viewModel.sound.isMuted,
                         toggleMute: viewModel.sound.ToggleMute,
-                        showWholeRoute: viewModel.ShowWholeRoute,
-                        followMyCar: viewModel.FollowMyCar
+                        toggleCamera: viewModel.ToggleCamera
                     )
                 }
                 TripMapSheet(viewModel: viewModel, onNewDestination: onNewDestination, isExpanded: $isSheetExpanded)
@@ -254,37 +272,55 @@ extension TripMapView {
         let close: () -> Void
 
         var body: some View {
+            // A fade only: the dialog's card brings its own small pop as it arrives.
+            ZStack {
+                Dialog()
+                    .transition(.opacity)
+            }
+            .animation(.lezgoFade, value: Shown())
+        }
+
+        /// Which dialogs could show, so changing from one dialog to the next fades between them.
+        private func Shown() -> [Bool] {
+            [
+                viewModel.leaveConfirmation != nil,
+                viewModel.manualArrival.confirmation != nil,
+                viewModel.manualArrival.errorMessage != nil,
+                viewModel.leaveErrorMessage != nil,
+                viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed
+            ]
+        }
+
+        @ViewBuilder
+        private func Dialog() -> some View {
             if let confirmation = viewModel.leaveConfirmation {
-                TripMapDialog(
+                ConfirmDialog(
                     title: Text(IsEndTrip(confirmation) ? .tripMapEndTripQuestion : .tripMapExitTripQuestion),
                     message: Message(of: confirmation),
-                    cancel: viewModel.CancelLeave,
-                    confirmTitle: Text(.tripMapConfirm),
+                    cancelTitle: .tripMapCancel,
+                    confirmTitle: .tripMapConfirm,
                     isDestructive: IsEndTrip(confirmation),
                     isConfirmDisabled: viewModel.isLeaving,
-                    confirm: { Task { await viewModel.ConfirmLeave(confirmation) } }
+                    onCancel: viewModel.CancelLeave,
+                    onConfirm: { Task { await viewModel.ConfirmLeave(confirmation) } }
                 )
             } else if let confirmation = viewModel.manualArrival.confirmation {
                 ArrivalQuestion(manualArrival: viewModel.manualArrival, confirmation: confirmation)
             } else if let error = viewModel.manualArrival.errorMessage {
-                TripMapDialog(
-                    title: Text(verbatim: error),
-                    confirmTitle: Text(.tripMapOK),
-                    confirm: viewModel.manualArrival.DismissError
-                )
+                Message(Text(verbatim: error), onOK: viewModel.manualArrival.DismissError)
             } else if let error = viewModel.leaveErrorMessage {
-                TripMapDialog(
-                    title: Text(verbatim: error),
-                    confirmTitle: Text(.tripMapOK),
-                    confirm: viewModel.DismissLeaveError
-                )
+                Message(Text(verbatim: error), onOK: viewModel.DismissLeaveError)
             } else if viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed {
-                TripMapDialog(
-                    title: Text(viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip),
-                    confirmTitle: Text(.tripMapOK),
-                    confirm: close
+                Message(
+                    Text(viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip),
+                    onOK: close
                 )
             }
+        }
+
+        /// A message with only "OK".
+        private func Message(_ title: Text, onOK: @escaping () -> Void) -> some View {
+            ConfirmDialog(title: title, cancelTitle: nil, confirmTitle: .tripMapOK, onConfirm: onOK)
         }
 
         private func IsEndTrip(_ confirmation: TripMapViewModel.LeaveConfirmation) -> Bool {
@@ -312,13 +348,14 @@ extension TripMapView {
             // one line at large text sizes.
             let distance = confirmation.distance.formatted(.measurement(width: .abbreviated, usage: .asProvided))
                 .replacing(" ", with: "\u{00A0}")
-            TripMapDialog(
+            ConfirmDialog(
                 title: Text(.tripMapArrivedQuestion(confirmation.destinationName)),
                 message: Text(.tripMapArrivedMessage(distance)),
-                cancel: manualArrival.Cancel,
-                confirmTitle: Text(.tripMapIveArrived),
+                cancelTitle: .tripMapCancel,
+                confirmTitle: .tripMapIveArrived,
                 isConfirmDisabled: manualArrival.isSaving,
-                confirm: { Task { await manualArrival.Confirm(confirmation) } }
+                onCancel: manualArrival.Cancel,
+                onConfirm: { Task { await manualArrival.Confirm(confirmation) } }
             )
         }
     }
@@ -331,9 +368,11 @@ extension TripMapView {
         var body: some View {
             Label(.tripMapConnectionLost, systemImage: "wifi.slash")
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color(.tripCardText))
                 .padding(.horizontal)
                 .padding(.vertical, 8)
-                .glassEffect(in: .capsule)
+                // A dark capsule like the other trip map cards, instead of Liquid Glass.
+                .background(Color(.tripCard), in: .capsule)
                 .accessibilityAddTraits(.isStaticText)
         }
     }

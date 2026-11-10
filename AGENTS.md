@@ -306,6 +306,7 @@ Clean code:
 - Use the shared components in `Views/Components/` and the colors in `Assets.xcassets`. Do not hard-code colors, fonts or one-off styles in screens.
 - Use system text styles (`.font(.body)`, `.font(.headline)`) and system spacing. Avoid fixed padding and stack spacing unless the design asks for it.
 - Same element, same look, everywhere: buttons, cards, empty states, loading states and error states share one component each.
+- Every alert uses the shared `ConfirmDialog` (`.confirmDialog(isPresented:...)`), never a system `.alert` or `.confirmationDialog` (decision record: [0025](docs/adr/0025-OneCustomAlertForTheWholeApp.md)).
 - Follow the Human Interface Guidelines for layout, navigation and controls.
 
 

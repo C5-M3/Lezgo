@@ -20,75 +20,61 @@ extension DraftTripView {
         let destinationCoordinate: Coordinate?
         let destinationName: String
 
+        /// The route joined to the robot and the flag, so it does not stop on the nearest road.
+        private var joinedCoordinates: [CLLocationCoordinate2D] {
+            let line = primaryCoordinates.map { Coordinate(latitude: $0.latitude, longitude: $0.longitude) }
+            return RouteLineEnds.Joined(line, from: startCoordinate, to: destinationCoordinate)
+                .map(\.locationCoordinate)
+        }
+
         var body: some View {
             Map(position: $cameraPosition, interactionModes: []) {
                 // Primary route outer glow casing
                 if !primaryCoordinates.isEmpty {
-                    MapPolyline(coordinates: primaryCoordinates)
-                        .stroke(Color.blue.opacity(0.38), lineWidth: 12)
+                    MapPolyline(coordinates: joinedCoordinates)
+                        .stroke(Color(.brandBlue).opacity(0.38), lineWidth: 12)
                 }
 
                 // Primary route solid core (vibrant blue)
                 if !primaryCoordinates.isEmpty {
-                    MapPolyline(coordinates: primaryCoordinates)
-                        .stroke(Color(red: 0.05, green: 0.52, blue: 1.0), lineWidth: 6)
+                    MapPolyline(coordinates: joinedCoordinates)
+                        .stroke(Color(.brandBlue), lineWidth: 6)
                 }
 
                 // Primary route duration badge positioned in the middle, slightly above the route
                 if let badgeCoord = primaryBadgeCoordinate, !primaryDurationText.isEmpty {
                     Annotation("", coordinate: badgeCoord) {
                         Text(primaryDurationText)
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.subheadline.weight(.bold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color(red: 0.0, green: 0.48, blue: 1.0))
+                            .background(Color(.brandBlue))
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
                             .offset(y: -30)
                     }
                 }
 
-                // Start point marker (Yellow ball car mascot with glow)
+                // Start point marker: the leader's robot, as in the hi-fi
                 if let start = startCoordinate {
                     Annotation("", coordinate: start.locationCoordinate) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.blue.opacity(0.35))
-                                .frame(width: 48, height: 48)
-                                .blur(radius: 4)
-
-                            Image("OntripGlowYellow")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 46, height: 46)
-                                .accessibilityHidden(true)
-                        }
+                        Image(.ontripNoglowYellow)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 56, height: 56)
+                            .accessibilityHidden(true)
                     }
                 }
 
-                // Destination marker (Yellow circle with checkered flag, blue halo, and destination name)
+                // Destination marker: the shared yellow flag pin, with the destination name
                 if let destination = destinationCoordinate {
                     Annotation("", coordinate: destination.locationCoordinate) {
                         VStack(spacing: 4) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.35))
-                                    .frame(width: 46, height: 46)
-
-                                Circle()
-                                    .fill(Color.brandYellow)
-                                    .frame(width: 34, height: 34)
-                                    .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
-
-                                Image(systemName: "flag.checkered")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(.black)
-                                    .accessibilityHidden(true)
-                            }
+                            RouteStopPin(kind: .destination)
 
                             Text(destinationName)
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.footnote.weight(.bold))
                                 .foregroundStyle(.white)
                                 .shadow(color: .black.opacity(0.85), radius: 3, x: 0, y: 1)
                                 .multilineTextAlignment(.center)
@@ -98,6 +84,8 @@ extension DraftTripView {
                 }
             }
             .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            // The badges are map graphics of a fixed size, as on the trip map; bigger text would cover the route.
+            .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .mapControlVisibility(.hidden)
             .disabled(true)
             .allowsHitTesting(false)

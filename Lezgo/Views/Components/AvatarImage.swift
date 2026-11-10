@@ -16,8 +16,6 @@ struct AvatarImage: View {
     static let roomSize: CGFloat = 160
     /// The size of the chosen avatar in Edit Profile.
     static let chosenSize: CGFloat = 200
-    /// The size of the avatars that are not chosen in Edit Profile.
-    static let pickerSize: CGFloat = 130
 
     let avatar: Avatar
     /// The burst: ready at the start point in the participant list, or the chosen avatar in Edit Profile.

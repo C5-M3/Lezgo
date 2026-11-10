@@ -36,10 +36,6 @@ final class MapViewModel {
     /// from the current stops, and the route on the map must not be saved for them.
     var routedPoints: [RoutePoint] = []
 
-    var selectedPolylines: [MKPolyline] {
-        routeLegs.map { $0.selectedRoute.polyline }
-    }
-
     var totalDistance: CLLocationDistance {
         routeLegs.reduce(0) { $0 + $1.selectedRoute.distance }
     }

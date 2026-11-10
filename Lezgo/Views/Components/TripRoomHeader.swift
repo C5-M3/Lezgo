@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-/// The map preview with "Lez Get Ready !" on its lower edge, fading into the black page like the hi-fi. At the
+/// The map preview with "Lez Get Ready!" on its lower edge, fading into the black page like the hi-fi. At the
 /// accessibility text sizes the title wraps over several lines, so it moves under the map instead of covering it.
 struct TripRoomHeader: View {
     let viewModel: TripRoomViewModel
@@ -42,9 +42,9 @@ struct TripRoomHeader: View {
     }
 
     private var title: some View {
-        Text("Lez Get Ready !")
+        Text("Lez Get Ready!")
             .font(.largeTitle.weight(.black))
-            .foregroundStyle(Color(.brandYellow))
+            .foregroundStyle(.white)
             .padding(.horizontal)
             .accessibilityAddTraits(.isHeader)
     }

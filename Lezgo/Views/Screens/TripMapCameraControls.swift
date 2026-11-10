@@ -7,40 +7,44 @@
 
 import SwiftUI
 
-/// The round map buttons above the bottom card: mute, show the whole route, and follow my car.
+/// The round map buttons above the bottom card: the compass while the map is turned, mute, and one camera button
+/// that follows my car or shows the whole route, as in Apple Maps on CarPlay.
 struct TripMapCameraControls: View {
+    let mapHeading: TripMapHeading
     let cameraMode: TripMapViewModel.CameraMode
     let isMuted: Bool
     let toggleMute: () -> Void
-    let showWholeRoute: () -> Void
-    let followMyCar: () -> Void
+    let toggleCamera: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var isFollowingMyCar: Bool { cameraMode == .followMyCar }
 
     var body: some View {
         VStack(spacing: 14) {
+            TripMapCompass(heading: mapHeading)
+
             // Named after what a tap does, like the mute button in Apple Maps.
             Button(
                 isMuted ? .tripMapUnmute : .tripMapMute,
                 systemImage: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
                 action: toggleMute
             )
-            .contentTransition(.symbolEffect(.replace))
 
+            // Also named after what a tap does: the whole route while the camera follows my car, and back to my
+            // car from anywhere else (the whole route, a map moved by hand, another car).
             Button(
-                .tripMapShowWholeRoute,
-                systemImage: "point.topleft.down.to.point.bottomright.curvepath",
-                action: showWholeRoute
+                isFollowingMyCar ? .tripMapShowWholeRoute : .tripMapFollowMyCar,
+                systemImage: isFollowingMyCar
+                    ? "point.topleft.down.to.point.bottomright.curvepath"
+                    : "location.fill",
+                action: toggleCamera
             )
-            .accessibilityAddTraits(cameraMode == .wholeRoute ? .isSelected : [])
-
-            Button(
-                .tripMapFollowMyCar,
-                systemImage: cameraMode == .followMyCar ? "location.fill" : "location",
-                action: followMyCar
-            )
-            .accessibilityAddTraits(cameraMode == .followMyCar ? .isSelected : [])
         }
         .labelStyle(.iconOnly)
         .buttonStyle(RoundStyle())
+        // The icons change into each other instead of blinking.
+        .contentTransition(.symbolEffect(.replace))
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: cameraMode)
     }
 }
 
@@ -55,23 +59,41 @@ extension TripMapCameraControls {
                 .frame(width: 61, height: 61)
                 .background(Color(.tripCard), in: .circle)
                 .contentShape(.circle)
-                .opacity(configuration.isPressed ? 0.7 : 1)
+                .pressFeedback(isPressed: configuration.isPressed)
         }
     }
 }
 
 #Preview("Following my car") {
-    TripMapCameraControls(cameraMode: .followMyCar, isMuted: false, toggleMute: {}, showWholeRoute: {}, followMyCar: {})
-        .padding()
+    TripMapCameraControls(
+        mapHeading: TripMapHeading(),
+        cameraMode: .followMyCar,
+        isMuted: false,
+        toggleMute: {},
+        toggleCamera: {}
+    )
+    .padding()
 }
 
 #Preview("Muted") {
-    TripMapCameraControls(cameraMode: .followMyCar, isMuted: true, toggleMute: {}, showWholeRoute: {}, followMyCar: {})
-        .padding()
+    TripMapCameraControls(
+        mapHeading: TripMapHeading(),
+        cameraMode: .followMyCar,
+        isMuted: true,
+        toggleMute: {},
+        toggleCamera: {}
+    )
+    .padding()
 }
 
 #Preview("Largest text") {
-    TripMapCameraControls(cameraMode: .wholeRoute, isMuted: false, toggleMute: {}, showWholeRoute: {}, followMyCar: {})
-        .padding()
-        .dynamicTypeSize(.accessibility5)
+    TripMapCameraControls(
+        mapHeading: TripMapHeading(),
+        cameraMode: .wholeRoute,
+        isMuted: false,
+        toggleMute: {},
+        toggleCamera: {}
+    )
+    .padding()
+    .dynamicTypeSize(.accessibility5)
 }
