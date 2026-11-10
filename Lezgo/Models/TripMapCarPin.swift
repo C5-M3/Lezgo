@@ -29,6 +29,39 @@ struct TripMapCarPin: Identifiable, Hashable {
         isMe ? String(localized: .tripMapCarYou) : displayName
     }
 
+    /// The small round badge on the robot's shoulder; `nil` for a car driving with nothing to report.
+    var badge: Badge? {
+        if isAlerting { return .alert }
+        return motionState == .stopped ? .stopped : nil
+    }
+
+    /// What VoiceOver says about the car after its name, such as "You, Leader, Stopped".
+    var statuses: [String] {
+        var statuses: [String] = []
+        if isMe { statuses.append(String(localized: .tripMapCarYou)) }
+        if isLeader { statuses.append(String(localized: .tripMapCarLeader)) }
+        if isAlerting { statuses.append(String(localized: .tripMapCarAlert)) }
+        if isOffline {
+            statuses.append(String(localized: .tripMapCarOffline))
+        } else {
+            statuses.append(String(localized: motionState == .stopped ? .tripMapCarStopped : .tripMapCarDriving))
+        }
+        return statuses
+    }
+
+    /// A badge on the robot: a red warning for a car off the route or ahead of the leader, a pause for a stopped car.
+    enum Badge {
+        case alert, stopped
+
+        /// The SF Symbol drawn on the badge.
+        var symbolName: String {
+            switch self {
+            case .alert: "exclamationmark"
+            case .stopped: "pause.fill"
+            }
+        }
+    }
+
     /// The robot colors in the asset catalog: yellow for the leader, the others for the members.
     enum CarColor: Hashable {
         case yellow, purple, pink, blue, green
