@@ -149,7 +149,7 @@ final class TripMapViewModel {
     /// The one camera button, on the phone and on CarPlay: the whole route while following this car, otherwise back
     /// to this car.
     func ToggleCamera() {
-        camera.Toggle()
+        camera.Toggle(at: clock())
     }
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
@@ -206,9 +206,10 @@ final class TripMapViewModel {
         alerts.Close(alertBanner)
     }
 
-    /// Called when the person pans or zooms the map by hand.
+    /// Called when the map says it was panned or zoomed by hand. Ignored right after a camera button tap, when the
+    /// map says so about its own cut-short move (`TripMapCamera`).
     func StopFollowing() {
-        camera.StopFollowing()
+        camera.StopFollowing(at: clock())
     }
 
     /// Opens a tapped car's status card and focuses the camera on it; `nil` closes it (`TripMapCamera`).

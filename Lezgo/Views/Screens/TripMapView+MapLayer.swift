@@ -89,6 +89,9 @@ extension TripMapView {
                 // Panning or zooming by hand stops the camera from jumping back to the car every second.
                 if cameraPosition.positionedByUser {
                     viewModel.StopFollowing()
+                    // A camera button move cut short by the next tap stops wherever it was, even over the sea:
+                    // finish the move to what the button chose.
+                    if viewModel.cameraMode != .free { MoveCamera() }
                 }
                 let metresPerMapPoint = 1 / MKMapPointsPerMeterAtLatitude(context.camera.centerCoordinate.latitude)
                 visibleWidthInMetres = context.rect.width * metresPerMapPoint
