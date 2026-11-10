@@ -166,7 +166,7 @@ extension RoutePlanCard {
         }
     }
 
-    var showsStartConnectingLine: Bool {
+    var showsStartDivider: Bool {
         !destinations.isEmpty || isSearchingDestination
     }
 }
@@ -178,14 +178,7 @@ extension RoutePlanCard {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
-                    if showsStartConnectingLine {
-                        VStack(spacing: 0) {
-                            Spacer(minLength: 0)
-                            Rectangle()
-                                .fill(Color(.brandYellow).opacity(0.85))
-                                .frame(width: 1.5, height: 20)
-                        }
-                    }
+                    ConnectorLine(reachesUp: false, reachesDown: true, crossesDivider: showsStartDivider)
 
                     Image(systemName: "house.fill")
                         .font(.callout)
@@ -219,7 +212,7 @@ extension RoutePlanCard {
             .frame(minHeight: 36)
             .padding(.vertical, 4)
 
-            if !destinations.isEmpty || isSearchingDestination {
+            if showsStartDivider {
                 Divider()
                     .overlay(Color(white: 0.22))
                     .padding(.leading, 36)
@@ -254,12 +247,7 @@ extension RoutePlanCard {
         VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 ZStack {
-                    VStack(spacing: 0) {
-                        Rectangle()
-                            .fill(Color(.brandYellow).opacity(0.85))
-                            .frame(width: 1.5, height: 18)
-                        Spacer(minLength: 0)
-                    }
+                    ConnectorLine(reachesUp: true, reachesDown: false)
 
                     Image(systemName: "flag.checkered")
                         .font(.callout)

@@ -19,9 +19,7 @@ extension RoutePlanCard {
             VStack(spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     ZStack {
-                        Rectangle()
-                            .fill(Color(.brandYellow).opacity(0.85))
-                            .frame(width: 1.5)
+                        ConnectorLine(reachesUp: true, reachesDown: true)
 
                         Image(systemName: "mappin.circle.fill")
                             .font(.callout)
@@ -97,18 +95,7 @@ extension RoutePlanCard {
 
     private func stopRowLeadingIndicator(isFinalDestination: Bool) -> some View {
         ZStack {
-            if !isFinalDestination {
-                Rectangle()
-                    .fill(Color(.brandYellow).opacity(0.85))
-                    .frame(width: 1.5)
-            } else {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Color(.brandYellow).opacity(0.85))
-                        .frame(width: 1.5, height: 18)
-                    Spacer(minLength: 0)
-                }
-            }
+            ConnectorLine(reachesUp: true, reachesDown: !isFinalDestination)
 
             Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
                 .font(.callout)
@@ -195,5 +182,36 @@ extension RoutePlanCard {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(Color(.brandYellow), lineWidth: 1.5)
         )
+    }
+}
+
+extension RoutePlanCard {
+    /// The line joining the route's icons, drawn behind one icon. Each piece reaches past its row's padding and list
+    /// inset to the row's edge, so the pieces of neighbouring rows meet in one unbroken line, as in the HiFi.
+    struct ConnectorLine: View {
+        let reachesUp: Bool
+        let reachesDown: Bool
+        /// The row has a divider under its content, which the piece going down crosses too.
+        var crossesDivider = true
+        @Environment(\.pixelLength) private var pixelLength
+
+        /// From a row's content to its edge: the content's vertical padding (4) and the list row inset (6).
+        private static let distanceToRowEdge: CGFloat = 10
+
+        var body: some View {
+            VStack(spacing: 0) {
+                Piece(isDrawn: reachesUp)
+                Piece(isDrawn: reachesDown)
+            }
+            .padding(.top, -Self.distanceToRowEdge)
+            .padding(.bottom, -(Self.distanceToRowEdge + (crossesDivider ? pixelLength : 0)))
+            .accessibilityHidden(true)
+        }
+
+        private func Piece(isDrawn: Bool) -> some View {
+            Rectangle()
+                .fill(isDrawn ? Color(.brandYellow).opacity(0.3) : .clear)
+                .frame(width: 1.5)
+        }
     }
 }
