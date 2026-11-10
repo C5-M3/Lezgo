@@ -67,11 +67,13 @@ struct TripRecordMapperTests {
     func WaypointSurvivesTheRoundTrip(kind: WaypointKind) throws {
         let waypoint = TripFixtures.Waypoint(orderIndex: 3, kind: kind)
 
-        #expect(try TripRecordMapper.MakeWaypoint(from: TripRecordMapper.MakeRecord(waypoint)) == waypoint)
+        let record = TripRecordMapper.MakeRecord(waypoint, routeVersion: 1)
+
+        #expect(try TripRecordMapper.MakeWaypoint(from: record) == waypoint)
     }
 
     @Test func WaypointIsDeletedWithItsTrip() throws {
-        let record = TripRecordMapper.MakeRecord(TripFixtures.Waypoint(orderIndex: 1))
+        let record = TripRecordMapper.MakeRecord(TripFixtures.Waypoint(orderIndex: 1), routeVersion: 1)
 
         let reference = try #require(record["tripID"] as? CKRecord.Reference)
         #expect(reference.recordID.recordName == TripFixtures.tripID.uuidString)
@@ -79,7 +81,7 @@ struct TripRecordMapperTests {
     }
 
     @Test func WaypointStoresLatitudeAndLongitudeSeparately() {
-        let record = TripRecordMapper.MakeRecord(TripFixtures.Waypoint(orderIndex: 1))
+        let record = TripRecordMapper.MakeRecord(TripFixtures.Waypoint(orderIndex: 1), routeVersion: 1)
 
         #expect(record["latitude"] as? Double == TripFixtures.ciputraWorld.latitude)
         #expect(record["longitude"] as? Double == TripFixtures.ciputraWorld.longitude)

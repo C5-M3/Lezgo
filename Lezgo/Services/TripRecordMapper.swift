@@ -57,15 +57,23 @@ enum TripRecordMapper {
 
     // MARK: Waypoint
 
-    static func MakeRecord(_ waypoint: Waypoint) -> CKRecord {
+    /// - Parameter routeVersion: the trip's route version this stop belongs to. A query can still return the stops of
+    ///   an older route after a change (#291), so readers keep only the current version's.
+    static func MakeRecord(_ waypoint: Waypoint, routeVersion: Int) -> CKRecord {
         let record = CKRecord(recordType: waypointType, recordID: RecordID(waypoint.id))
         record["tripID"] = TripReference(waypoint.tripID)
+        record["routeVersion"] = Int64(routeVersion)
         record["orderIndex"] = Int64(waypoint.orderIndex)
         record["kind"] = waypoint.kind.rawValue
         record["name"] = waypoint.name
         record["latitude"] = waypoint.coordinate.latitude
         record["longitude"] = waypoint.coordinate.longitude
         return record
+    }
+
+    /// The route version a waypoint record belongs to; `nil` for a record saved before stops had one.
+    static func RouteVersion(ofWaypoint record: CKRecord) -> Int? {
+        (record["routeVersion"] as? Int64).map(Int.init)
     }
 
     static func MakeWaypoint(from record: CKRecord) throws -> Waypoint {

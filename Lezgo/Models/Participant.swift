@@ -50,7 +50,8 @@ struct Participant: Identifiable, Hashable, Codable {
     /// Someone who just created or joined a trip: no location yet, stopped, no alert.
     /// - Parameters:
     ///   - profile: `nil` uses "Member" plus the end of the iCloud user ID.
-    ///   - isLeader: `true` for the creator; picks the default avatar when the profile has none.
+    ///   - isLeader: `true` for the creator. It picks the avatar: every trip starts with the role's default, whatever
+    ///     the profile picked in an earlier trip (US-04, "Avatar"); it can be changed in the Trip Room.
     static func Joining(
         tripID: UUID,
         userRecordID: String,
@@ -70,7 +71,7 @@ struct Participant: Identifiable, Hashable, Codable {
             motionState: .stopped,
             alert: .none,
             lastSeenAt: date,
-            avatar: profile.avatar ?? Avatar.Default(isLeader: isLeader)
+            avatar: Avatar.Default(isLeader: isLeader)
         )
     }
 }

@@ -32,6 +32,7 @@ struct EditRouteView: View {
             isBackDisabled: viewModel.isSaving,
             // Nothing to save until the road path for the current stops is ready.
             isNextDisabled: viewModel.isSaving || planner.MakeTripPlan() == nil,
+            isSaving: viewModel.isSaving,
             isStartPointLocked: true
         )
         // The planner only finds a road path once a stop changes, so the route it opens with needs one too. New

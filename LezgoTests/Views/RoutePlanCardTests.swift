@@ -169,41 +169,76 @@ struct RoutePlanCardTests {
         #expect(!card.isSearchingDestination)
     }
 
-    @Test func AllDestinationsIncludedInIntermediateStopsWhenExpanded() {
-        let card = RoutePlanCard(
+    private func Card(
+        destinations: [RoutePoint],
+        activeSelection: ActivePointSelection? = nil,
+        isStopsExpanded: Bool = false
+    ) -> RoutePlanCard {
+        RoutePlanCard(
             startPoint: sampleStart,
-            destinations: [dest1, dest2],
-            activeSelection: nil,
+            destinations: destinations,
+            activeSelection: activeSelection,
             searchQuery: .constant(""),
             isStartPointLocked: false,
-            isStopsExpanded: .constant(true),
+            isStopsExpanded: .constant(isStopsExpanded),
             onSelectPointForEditing: { _ in },
             onClearSearch: {},
             onAddDestination: {},
             onRemoveDestination: { _ in },
             onMoveDestination: nil
         )
-
-        #expect(card.intermediateStops.count == 2)
-        #expect(card.intermediateStops.map(\.name) == ["Dest 1", "Dest 2"])
     }
 
-    @Test func CalculatedHeightIsCompactWhenCollapsed() {
-        let card = RoutePlanCard(
-            startPoint: sampleStart,
-            destinations: [dest1, dest2],
-            activeSelection: nil,
-            searchQuery: .constant(""),
-            isStartPointLocked: false,
-            isStopsExpanded: .constant(false),
-            onSelectPointForEditing: { _ in },
-            onClearSearch: {},
-            onAddDestination: {},
-            onRemoveDestination: { _ in },
-            onMoveDestination: nil
-        )
+    @Test func OpenedStopsListEveryDestinationWithTheLastAsTheDestination() {
+        let card = Card(destinations: [dest1, dest2, dest3], isStopsExpanded: true)
 
-        // start point (56) + toggle (44) + destination (60) + add destination (50) + bottom padding (14) = 224
-        #expect(card.calculatedHeight <= 230)
+        #expect(card.isShowingAllStops)
+        #expect(card.listedRows.map(\.name) == ["Dest 1", "Dest 2", "Dest 3"])
+        #expect(card.IsFinalDestination(index: 2))
+        #expect(!card.showsDestinationRow)
+    }
+
+    /// #295: one destination has nothing to reorder with.
+    @Test func OneDestinationHasNoReorderHandle() {
+        #expect(!Card(destinations: [dest1]).showsDestinationReorderHandle)
+        #expect(Card(destinations: [dest1, dest2, dest3]).showsDestinationReorderHandle)
+    }
+
+    /// #296: deleting stops from the opened list until fewer than two are left closes it, so no space is kept for it.
+    @Test func OpenedStopsCloseWhenFewerThanTwoStopsAreLeft() {
+        let card = Card(destinations: [dest1, dest2], isStopsExpanded: true)
+
+        #expect(!card.showsStopsToggle)
+        #expect(!card.isShowingAllStops)
+    }
+
+    /// #297: while adding, the old destination becomes a stop, so the closed stops count it and the search field is
+    /// the destination row.
+    @Test func StopsCountThePreviousDestinationWhileAdding() {
+        let card = Card(destinations: [dest1, dest2], activeSelection: .destination(index: 2))
+
+        #expect(card.showsStopsToggle)
+        #expect(card.intermediateStops.count == 2)
+        #expect(card.listedRows.isEmpty)
+        #expect(card.showsDestinationRow)
+    }
+
+    /// #298: opening the stops while adding keeps the search field under them.
+    @Test func SearchFieldStaysWhenTheStopsOpenWhileAdding() {
+        let card = Card(destinations: [dest1, dest2], activeSelection: .destination(index: 2), isStopsExpanded: true)
+
+        #expect(card.listedRows.map(\.name) == ["Dest 1", "Dest 2"])
+        #expect(!card.IsFinalDestination(index: 1))
+        #expect(card.showsDestinationRow)
+    }
+
+    /// #299: one stop and the destination are rows of one list, so dragging swaps them.
+    @Test func OneStopAndTheDestinationAreListedTogether() {
+        let card = Card(destinations: [dest1, dest2])
+
+        #expect(!card.showsStopsToggle)
+        #expect(card.listedRows.map(\.name) == ["Dest 1", "Dest 2"])
+        #expect(card.IsFinalDestination(index: 1))
+        #expect(!card.showsDestinationRow)
     }
 }

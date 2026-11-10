@@ -9,7 +9,7 @@ import SwiftUI
 
 extension RoutePlanCard {
     var stopsToggleRow: some View {
-        let count = max(0, destinations.count - 1)
+        let count = intermediateStops.count
 
         return Button {
             withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
@@ -19,10 +19,6 @@ extension RoutePlanCard {
             VStack(spacing: 0) {
                 HStack(alignment: .center, spacing: 12) {
                     ZStack {
-                        Rectangle()
-                            .fill(Color(.brandYellow).opacity(0.85))
-                            .frame(width: 1.5)
-
                         Image(systemName: "mappin.circle.fill")
                             .font(.callout)
                             .foregroundStyle(Color(.brandYellow))
@@ -38,7 +34,7 @@ extension RoutePlanCard {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(minHeight: 28)
 
-                    Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: isShowingAllStops ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color(.brandYellow))
                         .frame(width: 28, height: 28)
@@ -57,7 +53,7 @@ extension RoutePlanCard {
     }
 
     func stopRow(index: Int, stop: RoutePoint) -> some View {
-        let isFinalDestination = isStopsExpanded && index == destinations.count - 1
+        let isFinalDestination = IsFinalDestination(index: index)
 
         return VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
@@ -97,18 +93,6 @@ extension RoutePlanCard {
 
     private func stopRowLeadingIndicator(isFinalDestination: Bool) -> some View {
         ZStack {
-            if !isFinalDestination {
-                Rectangle()
-                    .fill(Color(.brandYellow).opacity(0.85))
-                    .frame(width: 1.5)
-            } else {
-                VStack(spacing: 0) {
-                    Rectangle()
-                        .fill(Color(.brandYellow).opacity(0.85))
-                        .frame(width: 1.5, height: 18)
-                    Spacer(minLength: 0)
-                }
-            }
 
             Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
                 .font(.callout)
@@ -195,5 +179,39 @@ extension RoutePlanCard {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(Color(.brandYellow), lineWidth: 1.5)
         )
+    }
+}
+
+extension RoutePlanCard {
+    /// The line joining the route's icons, drawn behind one row from the row's edge to its icon's centre. It is the
+    /// row's background, which always fills the whole row, so the pieces of neighbouring rows meet in one unbroken
+    /// line, as in the HiFi.
+    struct ConnectorLine: View {
+        let reachesUp: Bool
+        let reachesDown: Bool
+        /// The row's list insets: the icon sits in the middle of what is left, `leading` from the side.
+        let insets: EdgeInsets
+        /// Half of the icon column's width.
+        private static let iconCentreOffset: CGFloat = 12
+
+        var body: some View {
+            GeometryReader { geometry in
+                let height = geometry.size.height
+                let centre = insets.top + (height - insets.top - insets.bottom) / 2
+                let x = insets.leading + Self.iconCentreOffset
+                Path { path in
+                    if reachesUp {
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x, y: centre))
+                    }
+                    if reachesDown {
+                        path.move(to: CGPoint(x: x, y: centre))
+                        path.addLine(to: CGPoint(x: x, y: height))
+                    }
+                }
+                .stroke(Color(.brandYellow).opacity(0.3), lineWidth: 1.5)
+            }
+            .accessibilityHidden(true)
+        }
     }
 }

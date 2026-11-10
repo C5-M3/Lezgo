@@ -13,7 +13,7 @@ import Testing
 /// both implementations (ADR 0017).
 struct TripServiceNameTests {
     /// The only place to rename is Edit Profile inside the room, so a clash on join must not keep the person out:
-    /// they join with the name left empty (shown as "Car 2") and keep their car and avatar.
+    /// they join with the name left empty (shown as "Car 2") and keep their car.
     @Test(arguments: TripPhones.Kind.allCases)
     func JoiningWithANameAnotherCarHasStillReachesTheRoomWithoutThatName(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
@@ -32,7 +32,7 @@ struct TripServiceNameTests {
         let budi = try #require(state.participants.first { $0.id == session.myParticipantID })
         #expect(budi.displayName.isEmpty)
         #expect(budi.carDescription == "White Brio")
-        #expect(budi.avatar == .pink)
+        #expect(Avatar.memberAvatars.contains(budi.avatar))
         #expect(state.DisplayName(of: budi) == String(localized: .participantCarName(2)))
     }
 

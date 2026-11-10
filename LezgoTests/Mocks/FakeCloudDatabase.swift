@@ -43,9 +43,7 @@ final class FakeCloudDatabase: CloudDatabase {
     ) async throws -> [CKRecord] {
         try server.ThrowFailure()
         server.CountQuery()
-        return server.records.values
-            .filter { $0.recordType == recordType && Matches($0, conditions) }
-            .compactMap { server.HandOut($0.recordID) }
+        return server.QueryableRecords { $0.recordType == recordType && Matches($0, conditions) }
     }
 
     func Save(_ records: [CKRecord], savePolicy: CKModifyRecordsOperation.RecordSavePolicy) async throws {

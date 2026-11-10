@@ -181,27 +181,38 @@ final class MapViewModel {
         Task {
             do {
                 let resolved = try await searchService.resolveLocation(from: item)
-                await MainActor.run {
-                    guard let active = self.activeSelectionSheet else { return }
-                    switch active {
-                    case .start:
-                        self.startPoint = resolved
-                    case .destination(let index):
-                        if index < self.destinations.count {
-                            self.destinations[index] = resolved
-                        } else {
-                            self.destinations.append(resolved)
-                        }
-                    }
-
-                    self.closeSearch()
-                    self.findRoute()
-                }
+                await MainActor.run { self.ApplySearchResult(resolved) }
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Could not resolve coordinates for this location."
                 }
             }
+        }
+    }
+
+    /// Puts the picked place where the search was for, then finds the route through the stops.
+    func ApplySearchResult(_ resolved: RoutePoint) {
+        guard let active = activeSelectionSheet else { return }
+        switch active {
+        case .start:
+            startPoint = resolved
+        case .destination(let index):
+            if index < destinations.count {
+                destinations[index] = resolved
+            } else {
+                destinations.append(resolved)
+            }
+        }
+
+        closeSearch()
+        findRoute()
+        // A route moves the map to fit it once found; without a destination there is none, so show the start.
+        if active == .start, destinations.isEmpty {
+            cameraPosition = .region(MKCoordinateRegion(
+                center: resolved.coordinate,
+                latitudinalMeters: 1_500,
+                longitudinalMeters: 1_500
+            ))
         }
     }
 

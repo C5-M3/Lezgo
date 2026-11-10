@@ -39,15 +39,16 @@ struct TripServiceCreateTests {
         #expect(session.state.leader?.avatar == .yellow)
     }
 
+    /// #290: the avatar picked in an earlier trip is not carried over; whoever creates a trip starts yellow.
     @Test(arguments: TripPhones.Kind.allCases)
-    func LeaderKeepsTheAvatarTheyChose(kind: TripPhones.Kind) async throws {
+    func LeaderWhoPickedAnotherAvatarBeforeStartsYellow(kind: TripPhones.Kind) async throws {
         let phones = TripPhones(kind)
         var profile = TripPlanFixtures.agusProfile
         profile.avatar = .pink
 
         let session = try await phones.agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: profile)
 
-        #expect(session.state.leader?.avatar == .pink)
+        #expect(session.state.leader?.avatar == .yellow)
     }
 
     @Test(arguments: TripPhones.Kind.allCases)

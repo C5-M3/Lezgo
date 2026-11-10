@@ -25,6 +25,8 @@ struct SetRouteView: View {
     let onDismiss: (() -> Void)?
     let isBackDisabled: Bool
     let isNextDisabled: Bool
+    /// `true` while a caller saves the route itself, like Edit Route; Save shows progress meanwhile.
+    let isSaving: Bool
     let isStartPointLocked: Bool
 
     init(
@@ -37,6 +39,7 @@ struct SetRouteView: View {
         onDismiss: (() -> Void)? = nil,
         isBackDisabled: Bool = false,
         isNextDisabled: Bool = false,
+        isSaving: Bool = false,
         isStartPointLocked: Bool = false
     ) {
         _viewModel = State(initialValue: viewModel)
@@ -48,6 +51,7 @@ struct SetRouteView: View {
         self.onDismiss = onDismiss
         self.isBackDisabled = isBackDisabled
         self.isNextDisabled = isNextDisabled
+        self.isSaving = isSaving
         self.isStartPointLocked = isStartPointLocked
     }
 
@@ -227,7 +231,7 @@ private extension SetRouteView {
             hasIntermediateStops: viewModel.destinations.count > 1,
             isLoadingRoute: viewModel.isLoadingRoute,
             canSave: canSaveRoute,
-            isSaving: viewModel.isCreatingTrip,
+            isSaving: isShowingSaveProgress,
             saveTitle: saveTitle,
             onSave: HandleSave
         )
@@ -299,6 +303,11 @@ private extension SetRouteView {
 // MARK: - Actions & Navigation
 
 extension SetRouteView {
+    /// Creating a trip saves in the planner; Edit Route saves in its own view model.
+    var isShowingSaveProgress: Bool {
+        viewModel.isCreatingTrip || isSaving
+    }
+
     func HandleBackButtonTapped() {
         if viewModel.isSearching {
             if !viewModel.destinations.isEmpty {

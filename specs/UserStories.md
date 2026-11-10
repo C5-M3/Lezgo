@@ -347,7 +347,7 @@ Feature: Resume an unfinished trip
 **Avatar**
 - Five avatars: Yellow, Blue, Green, Pink, Purple. Each is a set of finished mascot images told apart by asset name (`MainSelectedBlue`, `MainUnselectedBlue`, …); the trip stores only the key (`Blue`).
 - Several cars may have the same avatar.
-- Someone who never picked one gets Yellow when they create a trip and a random other avatar when they join.
+- Every trip starts with the role's avatar, whatever was picked in an earlier trip: Yellow for whoever creates the trip and a random other avatar for whoever joins. It is only a default: in the Trip Room the leader can pick another avatar and a member can pick any of the five, Yellow included.
 - Records without a known avatar show Yellow.
 
 **Ready**
@@ -414,12 +414,18 @@ Feature: Trip Room
     When "Budi" holds his own avatar and taps "Edit Details"
     And scrolls to the Pink avatar and sets "Budi" and "White Avanza"
     Then everyone sees the Pink avatar and "White Avanza" for "Budi" within 2 seconds
-    And next time "Budi" joins a trip he joins as "Budi" with "White Avanza" and the Pink avatar
+    And next time "Budi" joins a trip he joins as "Budi" with "White Avanza" and an avatar that is not Yellow
 
   Scenario: Default avatars
-    Given "Citra" never picked an avatar
+    Given "Citra" had the Yellow avatar in an earlier trip
     When "Citra" joins
     Then "Citra" has an avatar that is not Yellow
+    And "Citra" can still pick the Yellow avatar in Edit Profile
+
+  Scenario: The creator starts yellow
+    Given "Agus" had the Blue avatar in an earlier trip
+    When "Agus" creates a trip
+    Then "Agus" has the Yellow avatar
 
   Scenario: Tapping an avatar does nothing
     When "Agus" taps the avatar of "Budi"
