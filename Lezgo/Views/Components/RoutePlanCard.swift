@@ -22,6 +22,10 @@ struct RoutePlanCard: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @FocusState var isFieldFocused: Bool
+    /// The height of the rows, measured by the list.
+    @State private var contentHeight: CGFloat = 0
+    /// About five rows; more stops scroll inside the card so the map stays visible.
+    private static let maximumHeight: CGFloat = 392
 
     var body: some View {
         List {
@@ -30,11 +34,18 @@ struct RoutePlanCard: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
 
-            if !intermediateStops.isEmpty {
-                intermediateStopsSection
+            if showsStopsToggle {
+                stopsToggleRow
+                    .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             }
 
-            if !isStopsExpanded {
+            if !listedRows.isEmpty {
+                listedRowsSection
+            }
+
+            if showsDestinationRow {
                 destinationRow
                     .listRowInsets(EdgeInsets(
                         top: 6,
@@ -56,8 +67,12 @@ struct RoutePlanCard: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 0)
-        .scrollDisabled(!isStopsExpanded || intermediateStops.count <= 4)
-        .frame(height: calculatedHeight)
+        // The card is as tall as its rows, so it fits every state and text size; past `maximumHeight` it scrolls.
+        .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, height in
+            contentHeight = height
+        }
+        .scrollDisabled(contentHeight <= Self.maximumHeight)
+        .frame(height: min(contentHeight, Self.maximumHeight))
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(.routeCard))
@@ -96,14 +111,43 @@ extension RoutePlanCard {
         return false
     }
 
+    /// The stops between the start and the destination: every destination but the last, or every destination while
+    /// a new one is being added, since the new one becomes the destination.
     var intermediateStops: [RoutePoint] {
-        if isAddingNewDestination || isStopsExpanded {
-            return destinations
-        } else if destinations.count > 1 {
-            return Array(destinations.dropLast())
-        } else {
-            return []
-        }
+        isAddingNewDestination ? destinations : Array(destinations.dropLast())
+    }
+
+    /// Two or more stops fold into one "N stops" row that opens and closes.
+    var showsStopsToggle: Bool {
+        intermediateStops.count >= 2
+    }
+
+    /// Whether the folded stops are open. Fewer than two stops have no fold, whatever was opened before.
+    var isShowingAllStops: Bool {
+        isStopsExpanded && showsStopsToggle
+    }
+
+    /// The destinations drawn one row each, in one list so they can be reordered by dragging: none while the stops
+    /// are folded, otherwise every destination (while adding, they are all stops and the search field follows).
+    var listedRows: [RoutePoint] {
+        if intermediateStops.isEmpty || (showsStopsToggle && !isShowingAllStops) { return [] }
+        return destinations
+    }
+
+    /// Whether `listedRows[index]` is the destination, drawn with the flag.
+    func IsFinalDestination(index: Int) -> Bool {
+        !isAddingNewDestination && index == destinations.count - 1
+    }
+
+    /// The last row on its own: the destination under folded stops, the search field while adding, or the only
+    /// destination.
+    var showsDestinationRow: Bool {
+        listedRows.isEmpty || isAddingNewDestination
+    }
+
+    /// One destination has nothing to swap with.
+    var showsDestinationReorderHandle: Bool {
+        destinations.count > 1
     }
 
     var isSearchingDestination: Bool {
@@ -124,26 +168,6 @@ extension RoutePlanCard {
 
     var showsStartConnectingLine: Bool {
         !destinations.isEmpty || isSearchingDestination
-    }
-
-    var calculatedHeight: CGFloat {
-        var height: CGFloat = showsStartConnectingLine ? 56 : 52
-        if !intermediateStops.isEmpty {
-            if isStopsExpanded {
-                height += 80
-                let stopsHeight = CGFloat(intermediateStops.count) * 44
-                height += min(stopsHeight, 192)
-            } else {
-                height += 44
-            }
-        }
-        if !isStopsExpanded {
-            height += isSearchingDestination ? 65 : 60
-        }
-        if canAddDestination {
-            height += 50
-        }
-        return height + 14
     }
 }
 
@@ -203,39 +227,22 @@ extension RoutePlanCard {
         }
     }
 
-    @ViewBuilder
-    var intermediateStopsSection: some View {
-        let count = intermediateStops.count
-
-        if count == 1, let singleStop = intermediateStops.first {
-            stopRow(index: 0, stop: singleStop)
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+    var listedRowsSection: some View {
+        ForEach(Array(listedRows.enumerated()), id: \.element.id) { index, stop in
+            let isLast = index == listedRows.count - 1
+            let bottomInset: CGFloat = (isLast && !showsDestinationRow && !canAddDestination) ? 14 : 6
+            stopRow(index: index, stop: stop)
+                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-        } else if count > 1 {
-            stopsToggleRow
-                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-
-            if isStopsExpanded {
-                ForEach(Array(intermediateStops.enumerated()), id: \.element.id) { index, stop in
-                    let isLast = index == intermediateStops.count - 1
-                    let bottomInset: CGFloat = (isLast && !canAddDestination) ? 20 : 6
-                    stopRow(index: index, stop: stop)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
-                .onDelete { indexSet in
-                    for index in indexSet.sorted().reversed() {
-                        onRemoveDestination(index)
-                    }
-                }
-                .onMove { fromOffsets, toOffset in
-                    onMoveDestination?(fromOffsets, toOffset)
-                }
+        }
+        .onDelete { indexSet in
+            for index in indexSet.sorted().reversed() {
+                onRemoveDestination(index)
             }
+        }
+        .onMove { fromOffsets, toOffset in
+            onMoveDestination?(fromOffsets, toOffset)
         }
     }
 
@@ -280,7 +287,7 @@ extension RoutePlanCard {
                     }
                     .buttonStyle(.plain)
 
-                    if !destinations.isEmpty {
+                    if showsDestinationReorderHandle {
                         Image(systemName: "line.3.horizontal")
                             .font(.subheadline)
                             .foregroundStyle(Color(white: 0.35))

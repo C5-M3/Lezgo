@@ -9,7 +9,7 @@ import SwiftUI
 
 extension RoutePlanCard {
     var stopsToggleRow: some View {
-        let count = max(0, destinations.count - 1)
+        let count = intermediateStops.count
 
         return Button {
             withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
@@ -38,7 +38,7 @@ extension RoutePlanCard {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .frame(minHeight: 28)
 
-                    Image(systemName: isStopsExpanded ? "chevron.up" : "chevron.down")
+                    Image(systemName: isShowingAllStops ? "chevron.up" : "chevron.down")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Color(.brandYellow))
                         .frame(width: 28, height: 28)
@@ -57,7 +57,7 @@ extension RoutePlanCard {
     }
 
     func stopRow(index: Int, stop: RoutePoint) -> some View {
-        let isFinalDestination = isStopsExpanded && index == destinations.count - 1
+        let isFinalDestination = IsFinalDestination(index: index)
 
         return VStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
