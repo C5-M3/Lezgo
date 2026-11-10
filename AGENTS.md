@@ -148,6 +148,7 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the 
 | `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
 | `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`), ADR format and index (`Scripts/CheckDecisionRecords.sh`) |
 | `SwiftLint` | Every PR, pushes to `main`, `staging`, `dev` | `.swiftlint.yml` rules in strict mode: any warning fails |
+| `Promote` | Only when someone starts it | Nothing: it opens the pull request from `dev` into `staging`, or from `staging` into `main` ([0025](docs/adr/0025-ManualPromotionWorkflow.md)) |
 
 Run the same checks locally before opening a PR:
 

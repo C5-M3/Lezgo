@@ -128,6 +128,8 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions checks every pul
 - **Security Checks:** scans Xcode projects for XCSSET malware and the git history for leaked secrets.
 - **Pull Request Checks:** checks the branch name, the target branch, the PR title, every commit message and the architecture decision records.
 
+- **SwiftLint:** lints the Swift code in strict mode, so any warning fails.
+
 Run the same checks locally before you open a pull request:
 
 ```bash
@@ -135,3 +137,28 @@ Scripts/ScanForXcsset.sh .
 Scripts/CheckDecisionRecords.sh
 git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git branch --show-current)" dev "<PR title>"
 ```
+
+
+## Promoting to staging or main
+
+`dev` goes to `staging` when a feature needs a TestFlight build, and `staging` goes to `main` for a release. The **Promote** workflow opens that pull request for you, with the right branches and title. It runs only when someone starts it, never on a push (see [ADR 0025](docs/adr/0025-ManualPromotionWorkflow.md)).
+
+On GitHub:
+
+1. Open the **Actions** tab and choose **Promote** in the list on the left.
+2. Click **Run workflow**.
+3. Pick the target: `staging` (takes `dev`) or `main` (takes `staging`).
+4. Click **Run workflow**. The link to the new pull request is in the run summary.
+
+Or from the terminal, on any branch:
+
+```bash
+gh workflow run Promote --repo C5-M3/Lezgo -f target=staging
+```
+
+Good to know:
+
+- The workflow only opens the pull request. A teammate still reviews and merges it.
+- It promotes the branch as it is on GitHub. Work that is not merged into `dev` yet is not included.
+- If a promotion pull request is already open, the run prints its link and opens nothing new.
+- The first run needs an admin to turn on **Allow GitHub Actions to create and approve pull requests** (Settings > Actions > General).
