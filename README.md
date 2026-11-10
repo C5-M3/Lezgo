@@ -153,10 +153,21 @@ On GitHub:
    - `staging-and-main`: moves both to where `dev` is.
 4. Click **Run workflow**. The run summary says which commit was promoted.
 
-Or from the terminal, on any branch:
+Or from the terminal, on any branch. Each command matches one target above:
 
 ```bash
+# staging: moves staging to where dev is
 gh workflow run Promote --repo C5-M3/Lezgo -f target=staging
+```
+
+```bash
+# main: moves main to where staging is
+gh workflow run Promote --repo C5-M3/Lezgo -f target=main
+```
+
+```bash
+# staging-and-main: moves both to where dev is
+gh workflow run Promote --repo C5-M3/Lezgo -f target=staging-and-main
 ```
 
 Good to know:
