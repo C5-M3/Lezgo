@@ -23,13 +23,13 @@ final class TripRoomExitUITests: XCTestCase {
 
         TapLeave("Exit Trip")
 
-        let alert = app.alerts["Exit the room?"]
+        let alert = app.Dialog("Exit the room?")
         XCTAssertTrue(alert.waitForExistence(timeout: 3))
         XCTAssertTrue(alert.buttons["Confirm"].exists)
         Attach(named: "Member exit alert")
 
         alert.buttons["Cancel"].tap()
-        XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 1))
+        XCTAssertFalse(app.dialog.waitForExistence(timeout: 1))
         XCTAssertTrue(app.buttons["Exit Trip"].exists, "Cancel must keep the member in the room")
     }
 
@@ -39,7 +39,7 @@ final class TripRoomExitUITests: XCTestCase {
 
         TapLeave("End Trip")
 
-        let alert = app.alerts["Exit and end the trip for everyone? All members will leave this trip."]
+        let alert = app.Dialog("Exit and end the trip for everyone? All members will leave this trip.")
         XCTAssertTrue(alert.waitForExistence(timeout: 3))
         XCTAssertTrue(alert.buttons["Confirm"].exists)
         Attach(named: "Leader exit alert")
@@ -50,12 +50,12 @@ final class TripRoomExitUITests: XCTestCase {
     func testMemberIsToldTheLeaderEndedTheTrip() throws {
         Launch(debugScreen: "tripRoomMemberLeaderEndsTrip")
 
-        let alert = app.alerts["The leader ended the trip."]
+        let alert = app.Dialog("The leader ended the trip.")
         XCTAssertTrue(alert.waitForExistence(timeout: 10))
         Attach(named: "Leader ended the trip alert")
 
         alert.buttons["OK"].tap()
-        XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 1))
+        XCTAssertFalse(app.dialog.waitForExistence(timeout: 1))
     }
 
     private func Launch(debugScreen: String) {

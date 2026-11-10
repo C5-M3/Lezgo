@@ -16,7 +16,7 @@ struct CarPlayMapView: View {
 
     var body: some View {
         if let tripMap = activeTripMap.tripMap, tripMap.closeReason == nil {
-            TripMapView.MapLayer(viewModel: tripMap, showsCompass: false)
+            TripMapView.MapLayer(viewModel: tripMap)
                 // A new trip map starts with a fresh camera instead of the last trip's.
                 .id(ObjectIdentifier(tripMap))
         } else {

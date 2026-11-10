@@ -146,4 +146,36 @@ struct MapViewModelTripPlanTests {
 
         #expect(viewModel.MakeTripPlan() == nil)
     }
+
+    @Test func MapLinesReachEveryPin() throws {
+        let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
+        let start = Fixtures.startPoint.coordinate
+        let checkpoint = Fixtures.checkpoint.coordinate
+        let destination = Fixtures.destination.coordinate
+        // Each leg starts and ends on a road a little away from its stops, as Apple's directions do.
+        let nearStart = Coordinate(latitude: start.latitude + 0.0005, longitude: start.longitude)
+        let nearCheckpoint = Coordinate(latitude: checkpoint.latitude + 0.0005, longitude: checkpoint.longitude)
+        let nearDestination = Coordinate(latitude: destination.latitude + 0.0005, longitude: destination.longitude)
+        Route(viewModel, [
+            Leg(0, through: [nearStart, nearCheckpoint]),
+            Leg(1, through: [nearCheckpoint, nearDestination])
+        ])
+
+        let lines = viewModel.selectedRouteLines
+
+        #expect(lines.count == 2)
+        #expect(IsClose(try #require(lines.first?.first), to: start))
+        #expect(IsClose(try #require(lines.first?.last), to: checkpoint))
+        #expect(IsClose(try #require(lines.last?.first), to: checkpoint))
+        #expect(IsClose(try #require(lines.last?.last), to: destination))
+    }
+
+    @Test func MapLinesWaitForTheRouteOfTheCurrentStops() {
+        let viewModel = MapViewModel(startingWaypoints: Self.remainingRoute)
+        Route(viewModel, [Leg(0, through: [Fixtures.startPoint.coordinate, Fixtures.checkpoint.coordinate])])
+        viewModel.destinations.removeFirst()
+
+        // The pins moved but the old route is still on screen: joining it to the new pins would draw a false road.
+        #expect(viewModel.selectedRouteLines.map(\.count) == [2])
+    }
 }

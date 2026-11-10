@@ -10,6 +10,7 @@ import MapKit
 
 struct SetRouteMapView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var viewModel: MapViewModel
     @State private var drawerHeight: CGFloat = 310
     @State private var selectedDetent: PresentationDetent = .height(310)
@@ -58,40 +59,7 @@ struct SetRouteMapView: View {
                     UserAnnotation()
                 }
 
-                if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
-                    Marker(start.name, coordinate: start.coordinate)
-                        .tint(.blue)
-                }
-
-                ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
-                    if viewModel.destinations.count == 1 || index == viewModel.destinations.count - 1 {
-                        Marker(point.name, coordinate: point.coordinate)
-                            .tint(.red)
-                    } else {
-                        Marker(
-                            "\(index + 1). \(point.name)",
-                            systemImage: "\(index + 1).circle",
-                            coordinate: point.coordinate
-                        )
-                        .tint(.purple)
-                    }
-                }
-
-                // Alternative routes for each leg (yellow)
-                ForEach(viewModel.routeLegs) { leg in
-                    ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
-                        if routeIndex != leg.selectedRouteIndex {
-                            MapPolyline(route.polyline)
-                                .stroke(Color.yellow.opacity(0.88), lineWidth: 5)
-                        }
-                    }
-                }
-
-                // Selected route for each leg (highlighted blue tint)
-                ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
-                    MapPolyline(polyline)
-                        .stroke(.tint, lineWidth: 6)
-                }
+                RoutePlanMapContent(viewModel: viewModel)
             }
             .onTapGesture { screenPoint in
                 if let coord = proxy.convert(screenPoint, from: .local) {
@@ -115,7 +83,7 @@ struct SetRouteMapView: View {
                 onNext: onNext,
                 onTripCreated: onTripCreated,
                 onExpand: {
-                    withAnimation {
+                    withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
                         selectedDetent = .large
                     }
                 },

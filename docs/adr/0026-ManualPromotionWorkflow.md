@@ -1,4 +1,4 @@
-# 0025. Manual workflow that promotes trunk branches without a pull request
+# 0026. Manual workflow that promotes trunk branches without a pull request
 
 - Status: Proposed
 - Date: 2026-11-10

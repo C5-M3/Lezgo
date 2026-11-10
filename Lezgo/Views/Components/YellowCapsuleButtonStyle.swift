@@ -25,7 +25,7 @@ struct YellowCapsuleButtonStyle: ButtonStyle {
             .foregroundStyle(.black)
             .frame(maxWidth: .infinity, minHeight: minHeight)
             .background(background, in: Capsule())
-            .opacity(configuration.isPressed ? 0.8 : 1)
+            .pressFeedback(isPressed: configuration.isPressed)
     }
 }
 

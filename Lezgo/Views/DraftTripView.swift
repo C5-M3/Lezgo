@@ -149,46 +149,30 @@ struct DraftTripView: View {
         .task {
             await viewModel.Listen()
         }
-        .alert(
-            viewModel.confirmTitle,
-            isPresented: $bindableViewModel.isConfirmingNewTrip
-        ) {
-            Button("Cancel", role: .cancel, action: viewModel.DismissConfirmation)
-            Button("Create", role: .destructive) {
+        .confirmDialog(
+            isPresented: $bindableViewModel.isConfirmingNewTrip,
+            title: Text(verbatim: viewModel.confirmTitle),
+            message: viewModel.confirmMessage.map { Text(verbatim: $0) },
+            cancelTitle: "Cancel",
+            confirmTitle: "Create",
+            // Only the leader's "Create" ends the current trip for everyone.
+            isDestructive: viewModel.confirmMessage != nil,
+            onConfirm: {
                 Task {
                     if await viewModel.ConfirmNewTrip() {
                         onNewTrip()
                     }
                 }
             }
-        } message: {
-            if let message = viewModel.confirmMessage {
-                Text(message)
-                    .lineLimit(1)
-                    .multilineTextAlignment(.leading)
-            }
-        }
-        .alert(
-            viewModel.cancelledTitle,
-            isPresented: Binding(
-                get: { viewModel.wasCancelledByLeader },
-                set: { isPresented in
-                    viewModel.wasCancelledByLeader = isPresented
-                    if !isPresented {
-                        onTripEnded()
-                    }
-                }
-            )
-        ) {
-            Button("OK") {
-                viewModel.DismissCancelledNotice()
-                onTripEnded()
-            }
-        } message: {
-            Text(viewModel.cancelledMessage)
-                .lineLimit(1)
-                .multilineTextAlignment(.leading)
-        }
+        )
+        .confirmDialog(
+            isPresented: $bindableViewModel.wasCancelledByLeader,
+            title: Text(verbatim: viewModel.cancelledTitle),
+            message: Text(verbatim: viewModel.cancelledMessage),
+            cancelTitle: nil,
+            confirmTitle: "OK",
+            onConfirm: onTripEnded
+        )
     }
 
     // MARK: - Route & Camera Helpers

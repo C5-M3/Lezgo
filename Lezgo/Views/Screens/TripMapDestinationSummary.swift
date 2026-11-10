@@ -14,20 +14,24 @@ struct TripMapDestinationSummary: View {
     let timeLeft: Duration?
 
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 36
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(.tripMapToDestination(destinationName))
-                .font(.title3.weight(.semibold))
-                .fixedSize(horizontal: false, vertical: true)
+        // The time comes first, as in the hi-fi ("04 Trip Started"): it is what the driver looks for.
+        VStack(alignment: .leading, spacing: 4) {
             if let timeLeft {
                 Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
                     .font(.system(size: timeSize, weight: .black))
-                    .foregroundStyle(Color(.brandYellow))
+                    .foregroundStyle(Color(.tripCardText))
                     .fixedSize(horizontal: false, vertical: true)
+                    .contentTransition(.numericText(countsDown: true))
             }
+            Text(.tripMapToDestination(destinationName))
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: timeLeft)
         .accessibilityElement(children: .combine)
     }
 }

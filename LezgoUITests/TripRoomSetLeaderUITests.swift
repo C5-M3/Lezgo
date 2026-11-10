@@ -27,9 +27,9 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         XCTAssertTrue(setLead.waitForExistence(timeout: 3))
 
         setLead.tap()
-        XCTAssertTrue(app.alerts["Set Budi as Trip Leader?"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.Dialog("Set Budi as Trip Leader?").waitForExistence(timeout: 3))
         Attach(named: "Set as Trip Leader dialog on Budi")
-        app.alerts.buttons["Confirm"].tap()
+        app.dialog.buttons["Confirm"].tap()
 
         XCTAssertTrue(app.staticTexts["Waiting for others ..."].waitForExistence(timeout: 3))
         XCTAssertFalse(app.buttons["Start Trip"].exists)
@@ -41,7 +41,7 @@ final class TripRoomSetLeaderUITests: XCTestCase {
     func testCancelKeepsTheLeader() throws {
         app.HoldAvatar(named: "Budi")
         app.buttons["Set as Trip Leader"].tap()
-        app.alerts["Set Budi as Trip Leader?"].buttons["Cancel"].tap()
+        app.Dialog("Set Budi as Trip Leader?").buttons["Cancel"].tap()
 
         XCTAssertTrue(app.buttons["Start Trip"].waitForExistence(timeout: 2))
     }
@@ -57,12 +57,12 @@ final class TripRoomSetLeaderUITests: XCTestCase {
         XCTAssertTrue(setLead.waitForExistence(timeout: 3))
 
         setLead.tap()
-        app.alerts["Set Budi as Trip Leader?"].buttons["Confirm"].tap()
+        app.Dialog("Set Budi as Trip Leader?").buttons["Confirm"].tap()
 
-        XCTAssertTrue(app.alerts["Error"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.Dialog("Error").waitForExistence(timeout: 5))
         Attach(named: "Error after a failed handover")
         let message = "No internet connection. Check your connection and try again."
-        XCTAssertTrue(app.alerts["Error"].staticTexts[message].exists)
+        XCTAssertTrue(app.Dialog("Error").staticTexts[message].exists)
     }
 
     private func Attach(named name: String) {

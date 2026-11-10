@@ -15,15 +15,16 @@ extension HomeView {
 
         func body(content: Content) -> some View {
             content
-                .alert(
-                    Text(verbatim: viewModel.draftTripErrorMessage ?? ""),
+                .confirmDialog(
                     isPresented: Binding(
                         get: { viewModel.draftTripErrorMessage != nil },
                         set: { if $0 == false { viewModel.DismissDraftTripError() } }
-                    )
-                ) {
-                    Button("OK", action: viewModel.DismissDraftTripError)
-                }
+                    ),
+                    title: Text(verbatim: viewModel.draftTripErrorMessage ?? ""),
+                    cancelTitle: nil,
+                    confirmTitle: "OK",
+                    onConfirm: viewModel.DismissDraftTripError
+                )
         }
     }
 }

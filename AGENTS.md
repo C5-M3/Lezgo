@@ -100,7 +100,7 @@ Feature branches follow [Conventional Branch](https://conventionalbranch.org): l
 | `release/` | Release preparation | `release/v1.2.0` |
 | `chore/` | Tooling, docs, dependencies | `chore/issue-7-add-swiftlint` |
 
-Never push directly to `main`, `staging` or `dev`. Never merge your own PR. The one exception is the `Promote` workflow, which moves `staging` or `main` forward without a pull request, because the code was already reviewed on its way into `dev` (decision record: [0025](docs/adr/0025-ManualPromotionWorkflow.md)). After a hotfix on `staging` or `main`, merge `main` back into `dev` with a PR before the next promotion.
+Never push directly to `main`, `staging` or `dev`. Never merge your own PR. The one exception is the `Promote` workflow, which moves `staging` or `main` forward without a pull request, because the code was already reviewed on its way into `dev` (decision record: [0026](docs/adr/0026-ManualPromotionWorkflow.md)). After a hotfix on `staging` or `main`, merge `main` back into `dev` with a PR before the next promotion.
 
 
 ## Workflow for every task
@@ -148,7 +148,7 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the 
 | `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
 | `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`), ADR format and index (`Scripts/CheckDecisionRecords.sh`) |
 | `SwiftLint` | Every PR, pushes to `main`, `staging`, `dev` | `.swiftlint.yml` rules in strict mode: any warning fails |
-| `Promote` | Only when someone starts it | That the required checks passed on the commit; then it moves `staging` or `main` forward to it, with no pull request ([0025](docs/adr/0025-ManualPromotionWorkflow.md)) |
+| `Promote` | Only when someone starts it | That the required checks passed on the commit; then it moves `staging` or `main` forward to it, with no pull request ([0026](docs/adr/0026-ManualPromotionWorkflow.md)) |
 
 Run the same checks locally before opening a PR:
 
@@ -307,6 +307,7 @@ Clean code:
 - Use the shared components in `Views/Components/` and the colors in `Assets.xcassets`. Do not hard-code colors, fonts or one-off styles in screens.
 - Use system text styles (`.font(.body)`, `.font(.headline)`) and system spacing. Avoid fixed padding and stack spacing unless the design asks for it.
 - Same element, same look, everywhere: buttons, cards, empty states, loading states and error states share one component each.
+- Every alert uses the shared `ConfirmDialog` (`.confirmDialog(isPresented:...)`), never a system `.alert` or `.confirmationDialog` (decision record: [0025](docs/adr/0025-OneCustomAlertForTheWholeApp.md)).
 - Follow the Human Interface Guidelines for layout, navigation and controls.
 
 

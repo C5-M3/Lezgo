@@ -58,13 +58,13 @@ struct InviteSheetView: View {
         .sensoryFeedback(.success, trigger: copyCount)
         .task(id: copyCount) {
             guard copyCount > 0, (try? await Task.sleep(for: .seconds(2))) != nil else { return }
-            withAnimation(reduceMotion ? nil : .default) { didCopy = false }
+            withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) { didCopy = false }
         }
     }
 
     private func CopyCode() {
         UIPasteboard.general.string = viewModel.roomCode
-        withAnimation(reduceMotion ? nil : .default) { didCopy = true }
+        withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) { didCopy = true }
         copyCount += 1
         // High priority, so VoiceOver reading the button again after the tap does not cut it off.
         var announcement = AttributedString(localized: .tripRoomCopied)

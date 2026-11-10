@@ -19,7 +19,7 @@ struct MapViewModelTests {
         #expect(viewModel.startPoint == nil)
         #expect(viewModel.destinations.isEmpty)
         #expect(viewModel.routeLegs.isEmpty)
-        #expect(viewModel.selectedPolylines.isEmpty)
+        #expect(viewModel.selectedRouteLines.isEmpty)
         #expect(viewModel.totalDistance == 0)
         #expect(viewModel.totalDuration == 0)
         #expect(viewModel.combinedPolyline == nil)

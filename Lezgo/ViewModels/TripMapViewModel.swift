@@ -146,12 +146,10 @@ final class TripMapViewModel {
         }
     }
 
-    func ShowWholeRoute() {
-        camera.ShowWholeRoute()
-    }
-
-    func FollowMyCar() {
-        camera.FollowMyCar()
+    /// The one camera button, on the phone and on CarPlay: the whole route while following this car, otherwise back
+    /// to this car.
+    func ToggleCamera() {
+        camera.Toggle()
     }
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.

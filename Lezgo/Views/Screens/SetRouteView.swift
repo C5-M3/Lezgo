@@ -11,6 +11,7 @@ import SwiftUI
 struct SetRouteView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.tripService) var tripService
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     @State var viewModel: MapViewModel
     @State var isShowingBackConfirmation: Bool = false
     @State var activeMapSession: TripSession?
@@ -81,28 +82,26 @@ struct SetRouteView: View {
                 }
             }
         }
-        .alert(
-            "Discard Changes?",
-            isPresented: $isShowingBackConfirmation
-        ) {
-            Button("Cancel", role: .cancel) { }
-            Button("Discard", role: .destructive) {
-                HandleBack()
-            }
-        } message: {
-            Text("Going back will clear your selected destination and route planning")
-        }
-        .alert(
-            "Notice",
+        .confirmDialog(
+            isPresented: $isShowingBackConfirmation,
+            title: Text("Discard Changes?"),
+            message: Text("Going back will clear your selected destination and route planning"),
+            cancelTitle: "Cancel",
+            confirmTitle: "Discard",
+            isDestructive: true,
+            onConfirm: HandleBack
+        )
+        .confirmDialog(
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.errorMessage = nil } }
-            )
-        ) {
-            Button("OK") { viewModel.errorMessage = nil }
-        } message: {
-            Text(viewModel.errorMessage ?? "")
-        }
+            ),
+            title: Text("Notice"),
+            message: Text(verbatim: viewModel.errorMessage ?? ""),
+            cancelTitle: nil,
+            confirmTitle: "OK",
+            onConfirm: { }
+        )
         .fullScreenCover(
             item: $viewModel.createdSession,
             onDismiss: HandleTripRoomDismissed,
@@ -127,7 +126,7 @@ private extension SetRouteView {
                     .frame(width: 40, height: 40)
                     .overlay(
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.callout.weight(.bold))
                             .foregroundStyle(.white)
                             .accessibilityHidden(true)
                     )
@@ -139,7 +138,7 @@ private extension SetRouteView {
             Spacer()
 
             Text(navigationTitleText)
-                .font(.system(size: 18, weight: .bold))
+                .font(.body.weight(.bold))
                 .foregroundStyle(.white)
 
             Spacer()
@@ -283,38 +282,7 @@ private extension SetRouteView {
             ) {
                 UserAnnotation()
 
-                if let start = viewModel.startPoint, start.name != String(localized: .waypointCurrentLocation) {
-                    Marker(start.name, coordinate: start.coordinate)
-                        .tint(.blue)
-                }
-
-                ForEach(Array(viewModel.destinations.enumerated()), id: \.element.id) { index, point in
-                    if viewModel.destinations.count == 1 || index == viewModel.destinations.count - 1 {
-                        Marker(point.name, coordinate: point.coordinate)
-                            .tint(.red)
-                    } else {
-                        Marker(
-                            "\(index + 1). \(point.name)",
-                            systemImage: "\(index + 1).circle",
-                            coordinate: point.coordinate
-                        )
-                        .tint(.purple)
-                    }
-                }
-
-                ForEach(viewModel.routeLegs) { leg in
-                    ForEach(Array(leg.routes.enumerated()), id: \.offset) { routeIndex, route in
-                        if routeIndex != leg.selectedRouteIndex {
-                            MapPolyline(route.polyline)
-                                .stroke(Color.heroYellow.opacity(0.38), lineWidth: 5)
-                        }
-                    }
-                }
-
-                ForEach(viewModel.selectedPolylines, id: \.self) { polyline in
-                    MapPolyline(polyline)
-                        .stroke(Color.heroYellow, lineWidth: 6)
-                }
+                RoutePlanMapContent(viewModel: viewModel)
             }
             .onTapGesture { screenPoint in
                 if let coord = proxy.convert(screenPoint, from: .local) {
@@ -334,7 +302,7 @@ extension SetRouteView {
     func HandleBackButtonTapped() {
         if viewModel.isSearching {
             if !viewModel.destinations.isEmpty {
-                withAnimation {
+                withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
                     viewModel.closeSearch()
                 }
                 return

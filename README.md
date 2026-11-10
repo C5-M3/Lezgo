@@ -141,7 +141,7 @@ git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git b
 
 ## Promoting to staging or main
 
-`dev` goes to `staging` when a feature needs a TestFlight build, and `staging` goes to `main` for a release. The **Promote** workflow does this in one step, with no pull request and no second review: the code was already reviewed on its way into `dev` (see [ADR 0025](docs/adr/0025-ManualPromotionWorkflow.md)). It runs only when someone starts it, never on a push.
+`dev` goes to `staging` when a feature needs a TestFlight build, and `staging` goes to `main` for a release. The **Promote** workflow does this in one step, with no pull request and no second review: the code was already reviewed on its way into `dev` (see [ADR 0026](docs/adr/0026-ManualPromotionWorkflow.md)). It runs only when someone starts it, never on a push.
 
 On GitHub:
 

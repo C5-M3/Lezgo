@@ -19,6 +19,7 @@ struct RoutePlanCard: View {
     let onAddDestination: () -> Void
     let onRemoveDestination: (Int) -> Void
     let onMoveDestination: ((IndexSet, Int) -> Void)?
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @FocusState var isFieldFocused: Bool
 
@@ -59,7 +60,7 @@ struct RoutePlanCard: View {
         .frame(height: calculatedHeight)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                .fill(Color(.routeCard))
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.35), radius: 14, x: 0, y: 6)
@@ -149,15 +150,15 @@ extension RoutePlanCard {
                         VStack(spacing: 0) {
                             Spacer(minLength: 0)
                             Rectangle()
-                                .fill(Color.heroYellow.opacity(0.85))
+                                .fill(Color(.brandYellow).opacity(0.85))
                                 .frame(width: 1.5, height: 20)
                         }
                     }
 
                     Image(systemName: "house.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.heroYellow)
-                        .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                        .font(.callout)
+                        .foregroundStyle(Color(.brandYellow))
+                        .background(Color(.routeCard))
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
                 }
@@ -172,7 +173,7 @@ extension RoutePlanCard {
                         }
                     } label: {
                         Text(startPoint?.name ?? String(localized: .waypointCurrentLocation))
-                            .font(.system(size: 15))
+                            .font(.subheadline)
                             .foregroundStyle(.white)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -240,15 +241,15 @@ extension RoutePlanCard {
                 ZStack {
                     VStack(spacing: 0) {
                         Rectangle()
-                            .fill(Color.heroYellow.opacity(0.85))
+                            .fill(Color(.brandYellow).opacity(0.85))
                             .frame(width: 1.5, height: 18)
                         Spacer(minLength: 0)
                     }
 
                     Image(systemName: "flag.checkered")
-                        .font(.system(size: 16))
-                        .foregroundStyle(Color.heroYellow)
-                        .background(Color(red: 26 / 255, green: 26 / 255, blue: 28 / 255))
+                        .font(.callout)
+                        .foregroundStyle(Color(.brandYellow))
+                        .background(Color(.routeCard))
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
                 }
@@ -262,7 +263,7 @@ extension RoutePlanCard {
                         onSelectPointForEditing(.destination(index: targetIndex))
                     } label: {
                         Text(destinations.last?.name ?? "Choose destination...")
-                            .font(.system(size: 15))
+                            .font(.subheadline)
                             .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -273,7 +274,7 @@ extension RoutePlanCard {
 
                     if !destinations.isEmpty {
                         Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 14))
+                            .font(.subheadline)
                             .foregroundStyle(Color(white: 0.35))
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())

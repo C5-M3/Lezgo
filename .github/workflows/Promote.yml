@@ -1,4 +1,4 @@
-# Promotes dev to staging, or staging to main, without a pull request (ADR 0025).
+# Promotes dev to staging, or staging to main, without a pull request (ADR 0026).
 # It runs only when someone starts it (Actions tab > Promote > Run workflow), never on a push.
 # It moves the target branch forward to the source branch's commit (a fast-forward):
 # it never force-pushes, and it refuses a commit whose required checks did not pass.

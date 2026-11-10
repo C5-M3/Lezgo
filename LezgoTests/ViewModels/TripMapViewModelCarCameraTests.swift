@@ -28,7 +28,7 @@ struct TripMapViewModelCarCameraTests {
     @Test func TappingACarFocusesTheCameraOnIt() async {
         let viewModel = MakeViewModel()
         await viewModel.Start()
-        viewModel.ShowWholeRoute()
+        viewModel.ToggleCamera()
 
         viewModel.SelectCar(Fixtures.budiID)
 
@@ -38,7 +38,7 @@ struct TripMapViewModelCarCameraTests {
     @Test func ClosingTheCardTakesTheCameraBackToWhereItWas() async {
         let viewModel = MakeViewModel()
         await viewModel.Start()
-        viewModel.ShowWholeRoute()
+        viewModel.ToggleCamera()
         viewModel.SelectCar(Fixtures.budiID)
 
         viewModel.SelectCar(nil)
@@ -61,7 +61,7 @@ struct TripMapViewModelCarCameraTests {
     @Test func TappingMyOwnCarFollowsMyCar() async {
         let viewModel = MakeViewModel()
         await viewModel.Start()
-        viewModel.ShowWholeRoute()
+        viewModel.ToggleCamera()
 
         viewModel.SelectCar(Fixtures.agusID)
         #expect(viewModel.cameraMode == .followMyCar)
@@ -86,10 +86,11 @@ struct TripMapViewModelCarCameraTests {
         await viewModel.Start()
         viewModel.SelectCar(Fixtures.budiID)
 
-        viewModel.ShowWholeRoute()
+        viewModel.ToggleCamera()
         #expect(viewModel.selectedCarID == Fixtures.budiID)
+        #expect(viewModel.cameraMode == .followMyCar)
 
         viewModel.SelectCar(nil)
-        #expect(viewModel.cameraMode == .wholeRoute)
+        #expect(viewModel.cameraMode == .followMyCar)
     }
 }

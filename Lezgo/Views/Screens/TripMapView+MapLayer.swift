@@ -15,14 +15,17 @@ extension TripMapView {
         let viewModel: TripMapViewModel
         /// `false` hides the cars until the "Lez Go!" animation has opened the map.
         let showsCars: Bool
-        /// `false` on CarPlay, where the map may show nothing but the map (ADR 0023).
-        let showsCompass: Bool
+        /// Which way the map is turned, for the phone's compass button; `nil` on CarPlay, where the map may show
+        /// nothing but the map (ADR 0023).
+        let compassHeading: TripMapHeading?
         @State private var cameraPosition: MapCameraPosition = .automatic
         /// The cars as drawn: they follow `viewModel.carPins` with an animation, so a car glides to its new
         /// position instead of jumping there every second.
         @State private var carPins: [TripMapCarPin] = []
         /// Which way the map is turned, so the cars' direction pointers match the streets.
         @State private var mapHeading: Double = 0
+        /// Where the camera is now, so the compass can turn the map back to north from right here.
+        @State private var mapCamera: MapCamera?
         /// How much of the world the map shows across, and how wide the map is, to tell which cars would overlap.
         @State private var visibleWidthInMetres = 0.0
         @State private var mapWidth = 0.0
@@ -33,10 +36,10 @@ extension TripMapView {
         /// How far above the car the camera floats while following it, in metres.
         private static let followDistance: CLLocationDistance = 1_500
 
-        init(viewModel: TripMapViewModel, showsCars: Bool = true, showsCompass: Bool = true) {
+        init(viewModel: TripMapViewModel, showsCars: Bool = true, compassHeading: TripMapHeading? = nil) {
             self.viewModel = viewModel
             self.showsCars = showsCars
-            self.showsCompass = showsCompass
+            self.compassHeading = compassHeading
         }
 
         var body: some View {
@@ -74,14 +77,14 @@ extension TripMapView {
                 }
             }
             .mapStyle(.standard(emphasis: .muted, pointsOfInterest: .excludingAll))
-            .mapControls {
-                if showsCompass {
-                    MapCompass()
-                }
-            }
+            // Apple's compass is Liquid Glass; the phone draws its own with the round map buttons (`TripMapCompass`).
+            .mapControls {}
             .onMapCameraChange(frequency: .continuous) { context in
                 mapHeading = context.camera.heading
+                mapCamera = context.camera
+                compassHeading?.Update(context.camera.heading)
             }
+            .onChange(of: compassHeading?.northRequest) { PointNorth() }
             .onMapCameraChange(frequency: .onEnd) { context in
                 // Panning or zooming by hand stops the camera from jumping back to the car every second.
                 if cameraPosition.positionedByUser {
@@ -131,6 +134,28 @@ extension TripMapView {
 
         private func MoveCamera() {
             MoveCamera(animation: .easeInOut)
+        }
+
+        /// The compass: turns the map back to north. A camera turning with the car keeps following it, facing north.
+        private func PointNorth() {
+            let north: MapCameraPosition
+            if cameraPosition.followsUserLocation {
+                north = .userLocation(followsHeading: false, fallback: .automatic)
+            } else if let mapCamera {
+                north = .camera(MapCamera(
+                    centerCoordinate: mapCamera.centerCoordinate,
+                    distance: mapCamera.distance,
+                    heading: 0,
+                    pitch: mapCamera.pitch
+                ))
+            } else {
+                return
+            }
+            if reduceMotion {
+                cameraPosition = north
+            } else {
+                withAnimation(.easeInOut) { cameraPosition = north }
+            }
         }
 
         private func MoveCamera(animation: Animation) {

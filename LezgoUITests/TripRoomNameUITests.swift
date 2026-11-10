@@ -46,9 +46,9 @@ final class TripRoomNameUITests: XCTestCase {
         ReplaceName(with: "Citra")
         app.buttons["Save"].tap()
 
-        XCTAssertTrue(app.alerts[taken].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.Dialog(taken).waitForExistence(timeout: 3))
         Attach(named: "Dialog for a taken name")
-        app.alerts.buttons["OK"].tap()
+        app.dialog.buttons["OK"].tap()
         XCTAssertTrue(app.staticTexts[taken].waitForExistence(timeout: 2))
         XCTAssertFalse(app.buttons["Save"].isEnabled)
     }

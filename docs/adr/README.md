@@ -39,4 +39,5 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0022](0022-CustomTripMapControls.md) | Custom trip map cards instead of Apple's sheet and glass | Proposed | 2026-11-05 |
 | [0023](0023-CarPlayMirrorsTheTripMap.md) | CarPlay mirrors the trip map with Apple's templates | Accepted | 2026-11-07 |
 | [0024](0024-VoiceGuidanceAndAlertSounds.md) | Voice guidance and alert sounds on the trip map | Proposed | 2026-11-09 |
-| [0025](0025-ManualPromotionWorkflow.md) | Manual workflow that promotes trunk branches without a pull request | Proposed | 2026-11-10 |
+| [0025](0025-OneCustomAlertForTheWholeApp.md) | One custom alert for the whole app | Accepted | 2026-11-09 |
+| [0026](0026-ManualPromotionWorkflow.md) | Manual workflow that promotes trunk branches without a pull request | Proposed | 2026-11-10 |

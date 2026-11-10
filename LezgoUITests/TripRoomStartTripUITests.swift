@@ -30,9 +30,9 @@ final class TripRoomStartTripUITests: XCTestCase {
         startTrip.tap()
         // The LEZGO logo button; VoiceOver and this test know it as "Start". Citra is offline in the sample trip,
         // so the dialog shows the not-ready warning.
-        let start = app.alerts.buttons["Start"]
+        let start = app.dialog.buttons["Start"]
         XCTAssertTrue(start.waitForExistence(timeout: 3))
-        XCTAssertTrue(app.alerts.staticTexts[notReadyWarning].exists)
+        XCTAssertTrue(app.dialog.staticTexts[notReadyWarning].exists)
         Attach(named: "Start trip confirmation")
         start.tap()
 
@@ -57,11 +57,11 @@ final class TripRoomStartTripUITests: XCTestCase {
         XCTAssertTrue(startTrip.waitForExistence(timeout: 5))
 
         startTrip.tap()
-        let cancel = app.alerts.buttons["Cancel"]
+        let cancel = app.dialog.buttons["Cancel"]
         XCTAssertTrue(cancel.waitForExistence(timeout: 3))
         cancel.tap()
 
-        XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.dialog.waitForExistence(timeout: 2))
         XCTAssertTrue(startTrip.isHittable)
     }
 
