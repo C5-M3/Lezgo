@@ -22,8 +22,9 @@ struct RoutePlanCard: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     @FocusState var isFieldFocused: Bool
-    /// The height of the rows, measured by the list.
-    @State private var contentHeight: CGFloat = 0
+    /// The height of the rows, measured by the list. It starts at one row's height: a list with no height lays out
+    /// no rows, so it would never measure them.
+    @State private var contentHeight: CGFloat = 56
     /// About five rows; more stops scroll inside the card so the map stays visible.
     private static let maximumHeight: CGFloat = 392
 
@@ -69,7 +70,8 @@ struct RoutePlanCard: View {
         .environment(\.defaultMinListRowHeight, 0)
         // The card is as tall as its rows, so it fits every state and text size; past `maximumHeight` it scrolls.
         .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, height in
-            contentHeight = height
+            // The list reports no rows before it has laid them out; keeping that would hide them for good.
+            if height > 0 { contentHeight = height }
         }
         .scrollDisabled(contentHeight <= Self.maximumHeight)
         .frame(height: min(contentHeight, Self.maximumHeight))
