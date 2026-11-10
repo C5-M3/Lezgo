@@ -105,12 +105,15 @@ private struct ParticipantCell: View {
                 .frame(width: AvatarImage.roomSize, height: AvatarImage.roomSize)
                 .matchedGeometryEffect(id: participant.id, in: avatarNamespace)
                 .opacity(isHeld ? 0 : 1)
+                // The avatar is wider than its column and may spill over; the cell itself keeps the column's width,
+                // so a long name is cut inside the column instead of running off the screen.
+                .frame(minWidth: 0, maxWidth: .infinity)
                 .padding(.bottom, -20)
             HStack(spacing: 4) {
+                // One line, cut with "…" like the hi-fi; VoiceOver still reads the whole name from the label below.
                 Text(displayName)
                     .font(.headline)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
                 if isLeader {
                     Image(systemName: "crown.fill")
                         .font(.caption)

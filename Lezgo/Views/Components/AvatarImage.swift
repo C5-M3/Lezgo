@@ -15,7 +15,7 @@ struct AvatarImage: View {
     /// The size of an avatar in the Trip Room.
     static let roomSize: CGFloat = 160
     /// The size of the chosen avatar in Edit Profile.
-    static let chosenSize: CGFloat = 200
+    static let chosenSize: CGFloat = 270
 
     let avatar: Avatar
     /// The burst: ready at the start point in the participant list, or the chosen avatar in Edit Profile.

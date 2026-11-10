@@ -70,6 +70,14 @@ struct RoutePlanCard: View {
                 isFieldFocused = true
             }
         }
+        // Set Route opens as a full screen cover already searching, and focus set while the cover is still sliding
+        // in is dropped. Ask again once it has settled, so the keyboard is up without a tap.
+        .task {
+            try? await Task.sleep(for: .milliseconds(600))
+            if !Task.isCancelled, activeSelection != nil {
+                isFieldFocused = true
+            }
+        }
     }
 }
 
