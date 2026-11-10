@@ -107,10 +107,10 @@ private struct ParticipantCell: View {
                 .opacity(isHeld ? 0 : 1)
                 .padding(.bottom, -20)
             HStack(spacing: 4) {
+                // One line, cut with "…" like the hi-fi; VoiceOver still reads the whole name from the label below.
                 Text(displayName)
                     .font(.headline)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
                 if isLeader {
                     Image(systemName: "crown.fill")
                         .font(.caption)
