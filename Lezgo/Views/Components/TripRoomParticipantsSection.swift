@@ -103,6 +103,9 @@ private struct ParticipantCell: View {
         VStack(spacing: 4) {
             AvatarImage(avatar: participant.avatar, isSelected: isReady)
                 .frame(width: AvatarImage.roomSize, height: AvatarImage.roomSize)
+                // The avatar is wider than its column and may spill over; the cell itself keeps the column's width,
+                // so a long name is cut inside the column instead of running off the screen.
+                .frame(minWidth: 0, maxWidth: .infinity)
                 .matchedGeometryEffect(id: participant.id, in: avatarNamespace)
                 .opacity(isHeld ? 0 : 1)
                 .padding(.bottom, -20)
