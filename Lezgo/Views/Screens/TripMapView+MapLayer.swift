@@ -56,10 +56,7 @@ extension TripMapView {
 
                 // The group's route from the last car on, and this phone's own way back to it.
                 ForEach(RouteLines()) { line in
-                    MapPolyline(coordinates: line.coordinates)
-                        .stroke(Color(.tripCard), style: Self.RouteStroke(width: 16))
-                    MapPolyline(coordinates: line.coordinates)
-                        .stroke(Color(.brandYellow), style: Self.RouteStroke(width: 8))
+                    RouteLineMapContent(coordinates: line.coordinates)
                 }
 
                 ForEach(viewModel.upcomingWaypoints) { waypoint in
@@ -76,7 +73,7 @@ extension TripMapView {
                     .annotationTitles(.hidden)
                 }
             }
-            .mapStyle(.standard(emphasis: .muted, pointsOfInterest: .excludingAll))
+            .mapStyle(.lezgo)
             // Apple's compass is Liquid Glass; the phone draws its own with the round map buttons (`TripMapCompass`).
             .mapControls {}
             .onMapCameraChange(frequency: .continuous) { context in
@@ -109,10 +106,6 @@ extension TripMapView {
                 // A tapped car is followed as it moves, gliding with its robot.
                 if case .followCar = viewModel.cameraMode { MoveCamera(animation: .linear(duration: 1)) }
             }
-        }
-
-        private static func RouteStroke(width: CGFloat) -> StrokeStyle {
-            StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round)
         }
 
         /// The yellow lines: the group's route, and this phone's own way back to it while there is one.

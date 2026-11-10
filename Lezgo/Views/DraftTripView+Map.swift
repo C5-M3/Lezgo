@@ -29,16 +29,8 @@ extension DraftTripView {
 
         var body: some View {
             Map(position: $cameraPosition, interactionModes: []) {
-                // Primary route outer glow casing
                 if !primaryCoordinates.isEmpty {
-                    MapPolyline(coordinates: joinedCoordinates)
-                        .stroke(Color(.brandBlue).opacity(0.38), lineWidth: 12)
-                }
-
-                // Primary route solid core (vibrant blue)
-                if !primaryCoordinates.isEmpty {
-                    MapPolyline(coordinates: joinedCoordinates)
-                        .stroke(Color(.brandBlue), lineWidth: 6)
+                    RouteLineMapContent(coordinates: joinedCoordinates)
                 }
 
                 // Primary route duration badge positioned in the middle, slightly above the route
@@ -46,10 +38,10 @@ extension DraftTripView {
                     Annotation("", coordinate: badgeCoord) {
                         Text(primaryDurationText)
                             .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(Color(.brandBlue))
+                            .background(Color(.brandYellow))
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .shadow(color: .black.opacity(0.35), radius: 6, y: 3)
                             .offset(y: -30)
@@ -83,7 +75,7 @@ extension DraftTripView {
                     }
                 }
             }
-            .mapStyle(.standard(pointsOfInterest: .excludingAll))
+            .mapStyle(.lezgo)
             // The badges are map graphics of a fixed size, as on the trip map; bigger text would cover the route.
             .dynamicTypeSize(...DynamicTypeSize.xLarge)
             .mapControlVisibility(.hidden)

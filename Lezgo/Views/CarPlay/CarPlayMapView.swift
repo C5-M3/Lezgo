@@ -23,7 +23,7 @@ struct CarPlayMapView: View {
             Map(initialPosition: .userLocation(fallback: .automatic)) {
                 UserAnnotation()
             }
-            .mapStyle(.standard(emphasis: .muted, pointsOfInterest: .excludingAll))
+            .mapStyle(.lezgo)
             .mapControls {}
         }
     }

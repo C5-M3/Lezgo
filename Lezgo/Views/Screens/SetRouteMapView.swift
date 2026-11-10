@@ -61,6 +61,7 @@ struct SetRouteMapView: View {
 
                 RoutePlanMapContent(viewModel: viewModel)
             }
+            .mapStyle(.lezgo)
             .onTapGesture { screenPoint in
                 if let coord = proxy.convert(screenPoint, from: .local) {
                     viewModel.selectNearestRoute(to: coord, drawerHeight: drawerHeight)
