@@ -18,7 +18,13 @@ struct EditProfileSheetView: View {
     @State private var carDetails: String
     /// The name is already used by another car: set when the field is left, and when a save was refused.
     @State private var isNameTaken = false
-    @FocusState private var isNameFocused: Bool
+    @FocusState private var focusedField: Field?
+    @State private var scrollPosition = ScrollPosition()
+
+    /// The text field that has the keyboard.
+    enum Field {
+        case name, carDetails
+    }
 
     init(viewModel: TripRoomViewModel, participant: Participant) {
         self.viewModel = viewModel
@@ -50,13 +56,22 @@ struct EditProfileSheetView: View {
                         prompt: "Maximum 30 symbols",
                         text: $name,
                         limit: 30,
-                        isFocused: $isNameFocused,
+                        focus: $focusedField,
+                        field: .name,
                         error: isNameTaken ? .tripServiceErrorNameAlreadyUsed : nil
                     )
-                    ProfileField(title: "Car Details", prompt: "Maximum 40 symbols", text: $carDetails, limit: 40)
+                    ProfileField(
+                        title: "Car Details",
+                        prompt: "Maximum 40 symbols",
+                        text: $carDetails,
+                        limit: 40,
+                        focus: $focusedField,
+                        field: .carDetails
+                    )
                 }
                 .padding()
             }
+            .scrollPosition($scrollPosition)
             .scrollDismissesKeyboard(.interactively)
             // Scrolls only when the content is taller than the screen; otherwise the page stays put.
             .scrollBounceBehavior(.basedOnSize)
@@ -68,9 +83,14 @@ struct EditProfileSheetView: View {
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
-            .onChange(of: isNameFocused) { _, isFocused in
+            .onChange(of: focusedField) { _, field in
                 // Leaving the field checks the name; tapping it again starts over.
-                isNameTaken = !isFocused && viewModel.IsNameTaken(trimmedName, for: participant.id)
+                isNameTaken = field != .name && viewModel.IsNameTaken(trimmedName, for: participant.id)
+                // "Save" rides up with the keyboard; scrolling to the end keeps both fields above it, so the other
+                // field can still be tapped. The avatars scroll off the top instead.
+                if field != nil {
+                    withAnimation { scrollPosition.scrollTo(edge: .bottom) }
+                }
             }
             .confirmDialog(
                 isPresented: errorIsShown,
@@ -235,14 +255,15 @@ private struct ProfileField: View {
     let prompt: LocalizedStringKey
     @Binding var text: String
     let limit: Int
-    var isFocused: FocusState<Bool>.Binding?
+    let focus: FocusState<EditProfileSheetView.Field?>.Binding
+    let field: EditProfileSheetView.Field
     var error: LocalizedStringResource?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.headline)
-            field
+            textField
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
                 .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
@@ -265,14 +286,10 @@ private struct ProfileField: View {
         }
     }
 
-    @ViewBuilder private var field: some View {
-        if let isFocused {
-            TextField(title, text: $text, prompt: Text(prompt))
-                .focused(isFocused)
-                .accessibilityValue(error.map { Text($0) } ?? Text(verbatim: ""))
-        } else {
-            TextField(title, text: $text, prompt: Text(prompt))
-        }
+    private var textField: some View {
+        TextField(title, text: $text, prompt: Text(prompt))
+            .focused(focus, equals: field)
+            .accessibilityValue(error.map { Text($0) } ?? Text(verbatim: ""))
     }
 }
 
