@@ -293,4 +293,22 @@ struct MapViewModelTests {
         #expect(viewModel.activeSelectionSheet == nil)
         #expect(viewModel.searchQuery.isEmpty)
     }
+
+    /// #293: with no destination there is no route to fit, so the map moves to the new start point itself.
+    @Test func PickedStartPointWithoutADestinationMovesTheMapToIt() throws {
+        let viewModel = MapViewModel()
+        let gwalk = RoutePoint(
+            name: "GWalk Square",
+            subtitle: "",
+            coordinate: CLLocationCoordinate2D(latitude: -7.2857, longitude: 112.6318)
+        )
+        viewModel.activeSelectionSheet = .start
+
+        viewModel.ApplySearchResult(gwalk)
+
+        let center = try #require(viewModel.cameraPosition.region?.center)
+        #expect(center.latitude == gwalk.coordinate.latitude)
+        #expect(center.longitude == gwalk.coordinate.longitude)
+        #expect(viewModel.startPoint == gwalk)
+    }
 }
