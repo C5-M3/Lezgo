@@ -35,7 +35,9 @@ struct TripRecordReader {
         let trip = try TripRecordMapper.MakeTrip(from: try await tripRecord)
         let participants = try await members
         let trail = try await footprint
-        if let previous, previous.trip.routeVersion == trip.routeVersion {
+        // Reused only once the current route was read in full, so a read the query index was not ready for is
+        // tried again on the next poll instead of being kept until the route changes again (#291).
+        if let previous, previous.route?.version == trip.routeVersion {
             return TripState(
                 trip: trip,
                 waypoints: previous.waypoints,
@@ -46,13 +48,42 @@ struct TripRecordReader {
         }
         async let waypointRecords = Children(of: tripID, type: TripRecordMapper.waypointType)
         async let routeRecords = Children(of: tripID, type: TripRecordMapper.routeType)
-        let waypoints = try await waypointRecords
-            .compactMap { try? TripRecordMapper.MakeWaypoint(from: $0) }
-            .sorted { $0.orderIndex < $1.orderIndex }
+        let waypoints = Self.CurrentWaypoints(in: try await waypointRecords, routeVersion: trip.routeVersion)
         let route = try await routeRecords
             .compactMap { try? TripRecordMapper.MakeRoute(from: $0) }
             .first { $0.version == trip.routeVersion }
+        if let previous, route == nil || Self.IsWholeRoute(waypoints) == false {
+            // The query cannot see the new route yet: keep showing the one the group already has.
+            return TripState(
+                trip: trip,
+                waypoints: previous.waypoints,
+                participants: participants,
+                route: previous.route,
+                trail: trail
+            )
+        }
         return TripState(trip: trip, waypoints: waypoints, participants: participants, route: route, trail: trail)
+    }
+
+    /// The stops of the trip's current route, in driving order. A query can still return the stops of an older route
+    /// (deleted, or never deleted because the query that looked for them could not see them yet). Records saved
+    /// before stops had a route version are all kept when there are no others.
+    private static func CurrentWaypoints(in records: [CKRecord], routeVersion: Int) -> [Waypoint] {
+        let versioned = records.filter { TripRecordMapper.RouteVersion(ofWaypoint: $0) != nil }
+        let current = versioned.isEmpty
+            ? records
+            : versioned.filter { TripRecordMapper.RouteVersion(ofWaypoint: $0) == routeVersion }
+        return current
+            .compactMap { try? TripRecordMapper.MakeWaypoint(from: $0) }
+            .sorted { $0.orderIndex < $1.orderIndex }
+    }
+
+    /// Whether these are every stop of one route: numbered 0, 1, 2… from the start to the destination.
+    private static func IsWholeRoute(_ waypoints: [Waypoint]) -> Bool {
+        waypoints.count >= 2
+            && waypoints.map(\.orderIndex) == Array(waypoints.indices)
+            && waypoints.first?.kind == .start
+            && waypoints.last?.kind == .destination
     }
 
     /// The leader's footprint, or the one in `previous` when this poll skips it. Empty before the leader saves one.
