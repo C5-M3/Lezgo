@@ -23,6 +23,10 @@ struct TripMapCarPinView: View {
     /// The robot's image has wide transparent margins, so it is drawn larger than the space it takes.
     private static let imageSize = 114.0
     private static let bodySize = CGSize(width: 64, height: 53)
+    /// The whole pin: the robot's turned image, the badges, the crown and the name all fit inside, with the robot in
+    /// the middle so it stays on its coordinate. CarPlay's map cuts an annotation off at its frame, so nothing may
+    /// reach outside it.
+    private static let pinSize = CGSize(width: 130, height: 115)
 
     var body: some View {
         Image(pin.carColor.TopViewImage(isGlowing: isSelected))
@@ -68,6 +72,7 @@ struct TripMapCarPinView: View {
                     .offset(y: 24)
             }
             .opacity(pin.isOffline ? 0.4 : 1)
+            .frame(width: Self.pinSize.width, height: Self.pinSize.height)
             // The pin is a map graphic of a fixed size; bigger text would cover the cars around it.
             // VoiceOver still reads the name and status at any text size, and tapping the car shows its full name.
             .dynamicTypeSize(...DynamicTypeSize.xLarge)

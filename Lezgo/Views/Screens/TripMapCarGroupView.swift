@@ -92,8 +92,9 @@ extension TripMapCarGroupView {
             .buttonStyle(.plain)
             .overlay(alignment: .topLeading) {
                 if pin.isLeader {
+                    // Inside the card's padding: CarPlay's map cuts an annotation off at its frame.
                     TripMapLeaderCrown()
-                        .offset(x: -14, y: -14)
+                        .offset(x: -8, y: -8)
                 }
             }
             .accessibilityLabel(Text(verbatim: pin.displayName))
