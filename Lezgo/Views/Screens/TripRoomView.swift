@@ -247,8 +247,24 @@ private struct TripRoomContent: View {
             }
             .padding(.bottom)
         }
+        // Scrolls only when the content is taller than the screen; otherwise the page stays put.
+        .scrollBounceBehavior(.basedOnSize)
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
+        // The map runs up under the status bar. A dark band there keeps the clock readable over the map, and the
+        // title and the overview from showing through the clock once the page scrolls.
+        .overlay(alignment: .top) {
+            VStack(spacing: 0) {
+                // No height of its own: its background fills only the status bar above it.
+                Color.clear
+                    .frame(height: 0)
+                    .background(.black, ignoresSafeAreaEdges: .top)
+                LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 16)
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .background(.black)
     }
 }
