@@ -141,4 +141,39 @@ struct TripStartIntroTests {
 
         #expect(TripStartIntro.ShouldPlay(for: trip, at: TripMapFixtures.now) == false)
     }
+
+    // MARK: Running the steps on the map
+
+    /// What the steps did, in order, and how long each wait was.
+    private final class Recorder {
+        var steps: [String] = []
+        var waits: [Double] = []
+    }
+
+    private func Steps(_ recorder: Recorder) -> [TripStartIntro.Step] {
+        [
+            TripStartIntro.Step(at: 1.5) { recorder.steps.append("map") },
+            TripStartIntro.Step(at: 2.8) { recorder.steps.append("settle") },
+            TripStartIntro.Step(at: 3.06) { recorder.steps.append("done") }
+        ]
+    }
+
+    @Test func StepsRunInOrderAfterWaitingForTheirMoment() async {
+        let recorder = Recorder()
+
+        await TripStartIntro.RunSteps(Steps(recorder)) { recorder.waits.append($0) }
+
+        #expect(recorder.steps == ["map", "settle", "done"])
+        #expect(recorder.waits.map { ($0 * 100).rounded() / 100 } == [1.5, 1.3, 0.26])
+    }
+
+    /// SwiftUI can restart the map's task while it presents the map, which cancels the first run. A cancelled run
+    /// must stop, not race through its steps: that removed the yellow before anyone saw it.
+    @Test func ACancelledRunStopsWithoutRunningTheRemainingSteps() async {
+        let recorder = Recorder()
+
+        await TripStartIntro.RunSteps(Steps(recorder)) { _ in throw CancellationError() }
+
+        #expect(recorder.steps.isEmpty)
+    }
 }
