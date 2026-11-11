@@ -241,7 +241,13 @@ extension CarPlayTripMapTemplate {
 
     /// The yellow arrow for the dark turn card. Drawn into a bitmap: CarPlay sends the image on to the car's
     /// screen, and a symbol image does not always arrive there.
+    static let maxCompactManeuverSymbolWidth: CGFloat = 50
+
     private func ManeuverSymbol(_ symbolName: String) -> UIImage? {
+        Self.ManeuverSymbol(symbolName, scale: 3)
+    }
+
+    static func ManeuverSymbol(_ symbolName: String, scale: CGFloat) -> UIImage? {
         let configuration = UIImage.SymbolConfiguration(pointSize: 40, weight: .bold)
         guard let symbol = UIImage(systemName: symbolName, withConfiguration: configuration)?
             .withTintColor(UIColor(resource: .brandYellow), renderingMode: .alwaysOriginal) else { return nil }

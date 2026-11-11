@@ -17,8 +17,7 @@ import Observation
 final class TripMapViewModel {
     private(set) var state: TripState?
     private(set) var guidance: TripMapGuidance?
-    private var camera = TripMapCamera()
-    var cameraMode: CameraMode { camera.mode }
+    private(set) var camera = TripMapCamera()
     /// The confirmation to show before leaving, or `nil`.
     private(set) var leaveConfirmation: LeaveConfirmation?
     /// Set once the map should close and the phone return to Home; sharing stops at the same time.
@@ -152,6 +151,10 @@ final class TripMapViewModel {
         camera.Toggle(at: clock())
     }
 
+    func ZoomIn() {}
+
+    func ZoomOut() {}
+
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
     func RequestLeave() {
         guard closeReason == nil, isLeaving == false, let state else { return }
@@ -169,10 +172,8 @@ final class TripMapViewModel {
     }
 
     /// "Confirm" on the confirmation: leaves or ends the trip, then closes the map. On failure the map stays open
-    /// with a message, so nobody is stuck believing they left.
-    ///
-    /// The view passes the confirmation it showed, because the alert closes (and clears `leaveConfirmation`) before
-    /// the task that calls this runs.
+    /// with a message, so nobody is stuck believing they left. The view passes the confirmation it showed, because
+    /// the alert closes (and clears `leaveConfirmation`) before the task that calls this runs.
     func ConfirmLeave(_ confirmation: LeaveConfirmation) async {
         guard closeReason == nil, state != nil, isLeaving == false else { return }
         isLeaving = true

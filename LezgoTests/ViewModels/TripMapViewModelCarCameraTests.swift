@@ -93,4 +93,80 @@ struct TripMapViewModelCarCameraTests {
         viewModel.SelectCar(nil)
         #expect(viewModel.cameraMode == .followMyCar)
     }
+
+    @Test func ZoomingInMovesTheCameraCloserAndStopsAtTheMinimum() {
+        let viewModel = MakeViewModel()
+        #expect(viewModel.followDistance == TripMapCamera.defaultFollowDistance)
+
+        viewModel.ZoomIn()
+        #expect(viewModel.followDistance < TripMapCamera.defaultFollowDistance)
+
+        for _ in 0..<20 { viewModel.ZoomIn() }
+        #expect(viewModel.followDistance == TripMapCamera.minFollowDistance)
+        #expect(viewModel.cameraMode == .followMyCar)
+    }
+
+    @Test func ZoomingOutMovesTheCameraBackAndStopsAtTheMaximum() {
+        let viewModel = MakeViewModel()
+
+        viewModel.ZoomOut()
+        #expect(viewModel.followDistance > TripMapCamera.defaultFollowDistance)
+
+        for _ in 0..<20 { viewModel.ZoomOut() }
+        #expect(viewModel.followDistance == TripMapCamera.maxFollowDistance)
+        #expect(viewModel.cameraMode == .followMyCar)
+    }
+
+    @Test func MapReportRightAfterZoomingKeepsFollowingMyCar() {
+        var now = Fixtures.now
+        let viewModel = TripMapViewModel(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.agusID,
+            tripService: MockTripService(states: [Fixtures.State()]),
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService(),
+            clock: { now }
+        )
+
+        viewModel.ZoomIn()
+        now += 0.5
+        viewModel.StopFollowing()
+
+        #expect(viewModel.cameraMode == .followMyCar)
+    }
+
+    @Test func MyHeadingFollowsMyDrivingCourse() async {
+        var agus = Fixtures.Car(id: Fixtures.agusID, name: "Agus")
+        agus.course = 135
+        let viewModel = TripMapViewModel(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.agusID,
+            tripService: MockTripService(states: [Fixtures.State(cars: [agus])]),
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService()
+        )
+
+        await viewModel.Start()
+
+        #expect(viewModel.myHeading == 135)
+        #expect(viewModel.carPins.first { $0.isMe }?.course == 135)
+    }
+
+    @Test func StoppedCarLooksForwardAlongTheRouteAhead() async throws {
+        var agus = Fixtures.Car(id: Fixtures.agusID, name: "Agus")
+        agus.course = nil
+        let viewModel = TripMapViewModel(
+            tripID: Fixtures.tripID,
+            myParticipantID: Fixtures.agusID,
+            tripService: MockTripService(states: [Fixtures.State(cars: [agus])]),
+            navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
+            streetNameService: MockStreetNameService()
+        )
+
+        await viewModel.Start()
+
+        let me = try #require(viewModel.carPins.first { $0.isMe })
+        #expect(viewModel.myHeading > 0)
+        #expect(me.course == viewModel.myHeading)
+    }
 }

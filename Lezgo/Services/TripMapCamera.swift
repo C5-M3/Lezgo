@@ -12,8 +12,12 @@ import Foundation
 struct TripMapCamera {
     /// How long after a camera button tap the map is still flying to the button's choice, in seconds.
     static let buttonMoveTime: TimeInterval = 2
+    static let defaultFollowDistance = 600.0
+    static let minFollowDistance = 200.0
+    static let maxFollowDistance = 12_000.0
 
     private(set) var mode: TripMapViewModel.CameraMode = .followMyCar
+    private(set) var followDistance = defaultFollowDistance
     /// When the camera button was last tapped.
     private var buttonTappedAt: Date?
     /// Where the camera was before a tapped car took it, and where the tap put it.

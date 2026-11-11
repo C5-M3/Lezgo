@@ -10,6 +10,10 @@ import Foundation
 // What the map reads straight from the trip state. It lives in its own file so `TripMapViewModel.swift` stays under
 // SwiftLint's 400-line limit while everything that changes the trip stays private there.
 extension TripMapViewModel {
+    var cameraMode: CameraMode { camera.mode }
+    var followDistance: Double { camera.followDistance }
+    var myHeading: Double { 0 }
+
     var waypoints: [Waypoint] {
         state?.waypoints.sorted { $0.orderIndex < $1.orderIndex } ?? []
     }
