@@ -17,9 +17,33 @@ struct TripMapCamera {
     static let minFollowDistance = 200.0
     static let maxFollowDistance = 12_000.0
     static let zoomFactor = 1.5
+    private static let referencePinWidth = 64.0
+    private static let maxLongSideRatio = 0.078
+    private static let maxShortSideRatio = 0.125
+    private static let minZoomScale = 0.38
 
     private(set) var mode: TripMapViewModel.CameraMode = .followMyCar
     private(set) var followDistance = defaultFollowDistance
+
+    /// Scales a car pin or group card so it takes a small, consistent share of the map on every screen size and
+    /// shrinks as the camera zooms out instead of covering the route.
+    static func MarkerScale(
+        mapWidth: Double,
+        mapHeight: Double,
+        cameraDistance: Double = defaultFollowDistance,
+        carCount: Int = 1
+    ) -> Double {
+        guard mapWidth > 0, mapHeight > 0 else { return 1 }
+        let longSide = max(mapWidth, mapHeight)
+        let shortSide = min(mapWidth, mapHeight)
+        let targetWidth = min(longSide * maxLongSideRatio, shortSide * maxShortSideRatio)
+        let screenScale = min(max(targetWidth / referencePinWidth, 0.30), 1.0)
+        let zoomScale = cameraDistance > defaultFollowDistance
+            ? max(pow(defaultFollowDistance / cameraDistance, 0.45), minZoomScale)
+            : 1.0
+        let groupScale = 1.0 / pow(Double(min(max(carCount, 1), 5)), 0.25)
+        return screenScale * zoomScale * groupScale
+    }
     /// Bumped on every `+` or `-` tap so the map zooms even when it is not following a car.
     private(set) var zoomStep = 0
     private(set) var lastZoomFactor = 1.0

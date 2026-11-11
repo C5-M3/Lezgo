@@ -26,9 +26,9 @@ extension TripMapView {
         @State private var mapHeading: Double = 0
         /// Where the camera is now, so the compass can turn the map back to north from right here.
         @State private var mapCamera: MapCamera?
-        /// How much of the world the map shows across, and how wide the map is, to tell which cars would overlap.
+        /// How much of the world the map shows across, and the map's viewport size, to scale and group car pins.
         @State private var visibleWidthInMetres = 0.0
-        @State private var mapWidth = 0.0
+        @State private var mapSize: CGSize = .zero
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         /// Cars closer than this on screen would overlap, in points.
@@ -62,13 +62,14 @@ extension TripMapView {
                 ForEach(viewModel.upcomingWaypoints) { waypoint in
                     Annotation(waypoint.name, coordinate: waypoint.coordinate.locationCoordinate, anchor: .bottom) {
                         TripMapWaypointPinView(waypoint: waypoint)
+                            .scaleEffect(MarkerScale(), anchor: .bottom)
                     }
                 }
 
                 ForEach(CarGroups()) { group in
                     Annotation(group.pins[0].displayName, coordinate: group.coordinate.locationCoordinate) {
                         CarGroupMarker(group: group, viewModel: viewModel, mapHeading: mapHeading)
-                            .scaleEffect(showsCars ? 1 : 0)
+                            .scaleEffect(showsCars ? MarkerScale(carCount: group.pins.count) : 0)
                     }
                     .annotationTitles(.hidden)
                 }
@@ -80,6 +81,8 @@ extension TripMapView {
                 mapHeading = context.camera.heading
                 mapCamera = context.camera
                 compassHeading?.Update(context.camera.heading)
+                let metresPerMapPoint = 1 / MKMapPointsPerMeterAtLatitude(context.camera.centerCoordinate.latitude)
+                visibleWidthInMetres = context.rect.width * metresPerMapPoint
             }
             .onChange(of: compassHeading?.northRequest) { PointNorth() }
             .onMapCameraChange(frequency: .onEnd) { context in
@@ -93,7 +96,7 @@ extension TripMapView {
                 let metresPerMapPoint = 1 / MKMapPointsPerMeterAtLatitude(context.camera.centerCoordinate.latitude)
                 visibleWidthInMetres = context.rect.width * metresPerMapPoint
             }
-            .onGeometryChange(for: CGFloat.self, of: \.size.width) { mapWidth = Double($0) }
+            .onGeometryChange(for: CGSize.self, of: \.size) { mapSize = $0 }
             .onAppear(perform: MoveCamera)
             .onChange(of: viewModel.myCoordinate) {
                 MoveCamera(animation: .linear(duration: 1))
@@ -118,8 +121,19 @@ extension TripMapView {
         }
 
         private func CarGroups() -> [TripMapCarGroup] {
-            let metresPerPoint = mapWidth > 0 ? visibleWidthInMetres / mapWidth : 0
-            return TripMapCarGroup.Make(pins: carPins, within: metresPerPoint * Self.groupDistance)
+            let width = Double(mapSize.width)
+            let metresPerPoint = width > 0 ? visibleWidthInMetres / width : 0
+            return TripMapCarGroup.Make(pins: carPins, within: metresPerPoint * Self.groupDistance * MarkerScale())
+        }
+
+        private func MarkerScale(carCount: Int = 1) -> Double {
+            let effectiveDistance = max(mapCamera?.distance ?? viewModel.followDistance, visibleWidthInMetres)
+            return TripMapCamera.MarkerScale(
+                mapWidth: Double(mapSize.width),
+                mapHeight: Double(mapSize.height),
+                cameraDistance: effectiveDistance,
+                carCount: carCount
+            )
         }
 
         /// Moves the cars to their new positions over about the time between two updates, so they glide.
