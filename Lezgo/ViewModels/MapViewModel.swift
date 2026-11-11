@@ -223,7 +223,7 @@ final class MapViewModel {
     }
 
     // MARK: - Route Calculation
-    func findRoute(drawerHeight: CGFloat = 280) {
+    func findRoute() {
         var orderedPoints: [RoutePoint] = []
         if let start = startPoint { orderedPoints.append(start) }
         orderedPoints.append(contentsOf: destinations)
@@ -244,7 +244,7 @@ final class MapViewModel {
                     self.routeLegs = legs
                     self.routedPoints = orderedPoints
                     self.isLoadingRoute = false
-                    self.adjustCameraToFitRoute(bottomPadding: drawerHeight)
+                    self.adjustCameraToFitRoute()
                 }
             } catch {
                 await MainActor.run {
@@ -258,11 +258,11 @@ final class MapViewModel {
         }
     }
 
-    func selectLegRoute(legIndex: Int, routeIndex: Int, drawerHeight: CGFloat = 280) {
+    func selectLegRoute(legIndex: Int, routeIndex: Int) {
         guard routeLegs.indices.contains(legIndex) else { return }
         guard routeLegs[legIndex].routes.indices.contains(routeIndex) else { return }
         routeLegs[legIndex].selectedRouteIndex = routeIndex
-        adjustCameraToFitRoute(bottomPadding: drawerHeight)
+        adjustCameraToFitRoute()
     }
 
     func selectNearestRoute(to coordinate: CLLocationCoordinate2D, drawerHeight: CGFloat = 280) {
@@ -300,26 +300,21 @@ final class MapViewModel {
     }
 
     // MARK: - Camera Framing
-    func adjustCameraToFitRoute(bottomPadding: CGFloat) {
+    /// Fits the camera to the whole route. The screen keeps its cards out of the map's safe area, so the map centers
+    /// the route in the space between them.
+    func adjustCameraToFitRoute() {
         guard let polyline = combinedPolyline else { return }
-        let baseRect = polyline.boundingMapRect
-
-        // Standard horizontal and top margins
-        let horizontalPadding = baseRect.size.width * 0.25
-        let topPadding = baseRect.size.height * 0.20
-
-        // Scale bottom padding relative to screen sheet height
-        let bottomMapOffset = baseRect.size.height * Double(bottomPadding / 300.0)
-
-        let paddedRect = MKMapRect(
-            x: baseRect.origin.x - horizontalPadding,
-            y: baseRect.origin.y - topPadding,
-            width: baseRect.size.width + (horizontalPadding * 2),
-            height: baseRect.size.height + topPadding + bottomMapOffset
-        )
+        let framedRect = Self.FramingRect(around: polyline.boundingMapRect)
 
         withAnimation(.easeInOut(duration: 0.5)) {
-            self.cameraPosition = .rect(paddedRect)
+            self.cameraPosition = .rect(framedRect)
         }
+    }
+
+    /// The route's bounds with the same margin on every side, so the route stays centered in the framed area.
+    static func FramingRect(around routeRect: MKMapRect) -> MKMapRect {
+        let horizontalMargin = routeRect.size.width * 0.15
+        let verticalMargin = routeRect.size.height * 0.15
+        return routeRect.insetBy(dx: -horizontalMargin, dy: -verticalMargin)
     }
 }
