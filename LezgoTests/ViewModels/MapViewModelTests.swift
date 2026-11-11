@@ -296,8 +296,8 @@ struct MapViewModelTests {
     }
 
     /// #293: with no destination there is no route to fit, so the map moves to the new start point itself.
-    @Test func PickedStartPointWithoutADestinationMovesTheMapToIt() throws {
-        let viewModel = MapViewModel()
+    @Test func PickedStartPointWithoutADestinationMovesTheMapToIt() async throws {
+        let viewModel = MapViewModel(tilePreloader: MockTilePreloader())
         let gwalk = RoutePoint(
             name: "GWalk Square",
             subtitle: "",
@@ -306,6 +306,7 @@ struct MapViewModelTests {
         viewModel.activeSelectionSheet = .start
 
         viewModel.ApplySearchResult(gwalk)
+        await viewModel.startMoveTask?.value
 
         let center = try #require(viewModel.cameraPosition.region?.center)
         #expect(center.latitude == gwalk.coordinate.latitude)
