@@ -85,6 +85,8 @@ final class RoutingService: RouteCalculating {
 
         var legs: [RouteLeg] = []
         for index in 0..<(points.count - 1) {
+            // Stops reordered again: stop asking MapKit for legs nobody will use, which also keeps the rate limit away.
+            try Task.checkCancellation()
             let legRoutes = try await calculateLegRoutes(
                 from: points[index].coordinate,
                 to: points[index + 1].coordinate

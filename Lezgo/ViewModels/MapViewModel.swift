@@ -12,7 +12,9 @@ import CoreLocation
 @Observable
 final class MapViewModel {
     // MARK: - Dependencies & Services
-    private let routingService: any RouteCalculating
+    let routingService: any RouteCalculating
+    /// The calculation for the latest order of the stops; an older one is cancelled so it cannot answer late.
+    var routeTask: Task<Void, Never>?
     let searchService = LocationFindService()
     let locationService = LocationService()
     var tripService: any TripService
@@ -222,42 +224,6 @@ final class MapViewModel {
         activeSelectionSheet = nil
         searchQuery = ""
         searchService.updateQueryFragment("")
-    }
-
-    // MARK: - Route Calculation
-    func findRoute() {
-        var orderedPoints: [RoutePoint] = []
-        if let start = startPoint { orderedPoints.append(start) }
-        orderedPoints.append(contentsOf: destinations)
-
-        guard orderedPoints.count >= 2 else {
-            routeLegs = []
-            routedPoints = []
-            return
-        }
-
-        isLoadingRoute = true
-        errorMessage = nil
-
-        Task {
-            do {
-                let legs = try await routingService.calculateMultiStopLegs(points: orderedPoints)
-                await MainActor.run {
-                    self.routeLegs = legs
-                    self.routedPoints = orderedPoints
-                    self.isLoadingRoute = false
-                    self.adjustCameraToFitRoute()
-                }
-            } catch {
-                await MainActor.run {
-                    // The old line no longer matches the stops, so it goes.
-                    self.routeLegs = []
-                    self.routedPoints = []
-                    self.isLoadingRoute = false
-                    self.errorMessage = "Failed to calculate multi-stop route."
-                }
-            }
-        }
     }
 
     func selectLegRoute(legIndex: Int, routeIndex: Int) {
