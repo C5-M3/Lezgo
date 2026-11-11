@@ -12,9 +12,14 @@ extension RoutePlanCard {
         let count = intermediateStops.count
 
         return Button {
-            let animation = isStopsExpanded ? Self.closesStops : Self.opensStops
+            let isClosing = isStopsExpanded
+            let animation = isClosing ? Self.closesStops : Self.opensStops
+            // The list measures the new height only after laying the rows out, which would leave the card behind the
+            // rows. The height is set here, in the same animation, and the measurement then only corrects it.
+            let heightChange = CGFloat(count) * stopsToggleRowHeight
             withAnimation(animation.Respecting(reduceMotion: reduceMotion)) {
                 isStopsExpanded.toggle()
+                contentHeight += isClosing ? -heightChange : heightChange
             }
         } label: {
             VStack(spacing: 0) {
@@ -51,6 +56,10 @@ extension RoutePlanCard {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+            // The row's top and bottom list insets, 6 points each.
+            stopsToggleRowHeight = height + 12
+        }
     }
 
     func stopRow(index: Int, stop: RoutePoint) -> some View {
@@ -229,8 +238,7 @@ struct StaggeredReveal: ViewModifier {
             .opacity(isShown ? 1 : 0)
             .offset(y: isShown ? 0 : -10)
             .onAppear {
-                // The card's height is measured after layout, so the rows wait a moment to let the card start growing.
-                let delay = 0.12 + 0.06 * Double(min(index, 6))
+                let delay = 0.06 * Double(min(index, 6))
                 withAnimation(RoutePlanCard.opensStops.delay(delay).Respecting(reduceMotion: reduceMotion)) {
                     isShown = true
                 }

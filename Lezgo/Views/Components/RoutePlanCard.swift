@@ -24,7 +24,10 @@ struct RoutePlanCard: View {
     @FocusState var isFieldFocused: Bool
     /// The height of the rows, measured by the list. It starts at one row's height: a list with no height lays out
     /// no rows, so it would never measure them.
-    @State private var contentHeight: CGFloat = 56
+    @State var contentHeight: CGFloat = 56
+    /// The "N stops" row's height with its insets. A stop row has the same build, so it tells how much the card grows
+    /// per stop before the list has laid the new rows out.
+    @State var stopsToggleRowHeight: CGFloat = 56
     /// The first measurement sets the height at once; only later changes (stops opening, closing, added) move.
     @State private var hasMeasuredHeight = false
     /// About five rows; more stops scroll inside the card so the map stays visible.
