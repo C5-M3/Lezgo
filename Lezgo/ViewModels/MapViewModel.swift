@@ -15,6 +15,15 @@ final class MapViewModel {
     let routingService: any RouteCalculating
     /// The calculation for the latest order of the stops; an older one is cancelled so it cannot answer late.
     var routeTask: Task<Void, Never>?
+    let tilePreloader: any TilePreloading
+    /// The latest move to a new start point; an older one is cancelled so it cannot move the camera after a newer one.
+    var startMoveTask: Task<Void, Never>?
+    /// How long each step of a move to a far start point lasts. They match the animations of the steps.
+    var zoomOutTime: Duration = .milliseconds(800)
+    var crossingTime: Duration = .milliseconds(1_000)
+    var zoomInTime: Duration = .milliseconds(800)
+    /// The longest the camera waits for the tiles of one zoom level.
+    var tileWaitLimit: Duration = .seconds(4)
     let searchService = LocationFindService()
     let locationService = LocationService()
     var tripService: any TripService
@@ -87,12 +96,14 @@ final class MapViewModel {
 
     init(
         routingService: (any RouteCalculating)? = nil,
+        tilePreloader: (any TilePreloading)? = nil,
         tripService: (any TripService)? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
         profileStorage: (any ProfileStorage)? = nil,
         streetNameService: (any StreetNameService)? = nil
     ) {
         self.routingService = routingService ?? RoutingService()
+        self.tilePreloader = tilePreloader ?? LiveTilePreloader()
         self.tripService = tripService ?? InMemoryTripService()
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
@@ -113,7 +124,7 @@ final class MapViewModel {
                 }
             }
             if self.routeLegs.isEmpty {
-                self.cameraPosition = .userLocation(fallback: .automatic)
+                self.FlyCamera(to: .userLocation(fallback: .automatic))
             }
         }
     }
@@ -172,6 +183,7 @@ final class MapViewModel {
 
     func selectCurrentLocationAsStart() {
         guard let current = locationService.userLocation else { return }
+        let previous = startPoint?.coordinate
         startPoint = RoutePoint(
             name: String(localized: .waypointCurrentLocation),
             subtitle: "GPS Location",
@@ -179,6 +191,10 @@ final class MapViewModel {
         )
         closeSearch()
         findRoute()
+        // A route moves the map to fit it once found; without a destination there is none, so show the start.
+        if destinations.isEmpty {
+            ShowStart(from: previous, to: current)
+        }
     }
 
     func selectSearchResult(_ item: SearchResultItem) {
@@ -197,6 +213,7 @@ final class MapViewModel {
     /// Puts the picked place where the search was for, then finds the route through the stops.
     func ApplySearchResult(_ resolved: RoutePoint) {
         guard let active = activeSelectionSheet else { return }
+        let previous = startPoint?.coordinate
         switch active {
         case .start:
             startPoint = resolved
@@ -212,11 +229,7 @@ final class MapViewModel {
         findRoute()
         // A route moves the map to fit it once found; without a destination there is none, so show the start.
         if active == .start, destinations.isEmpty {
-            cameraPosition = .region(MKCoordinateRegion(
-                center: resolved.coordinate,
-                latitudinalMeters: 1_500,
-                longitudinalMeters: 1_500
-            ))
+            ShowStart(from: previous, to: resolved.coordinate)
         }
     }
 
@@ -270,13 +283,34 @@ final class MapViewModel {
     // MARK: - Camera Framing
     /// Fits the camera to the whole route. The screen keeps its cards out of the map's safe area, so the map centers
     /// the route in the space between them.
-    func adjustCameraToFitRoute() {
+    func adjustCameraToFitRoute(animation: Animation = .easeInOut(duration: 0.5)) {
         guard let polyline = combinedPolyline else { return }
         let framedRect = Self.FramingRect(around: polyline.boundingMapRect)
 
-        withAnimation(.easeInOut(duration: 0.5)) {
+        withAnimation(animation) {
             self.cameraPosition = .rect(framedRect)
         }
+    }
+
+    /// How long the camera takes to travel to a new start point or route. A jump would show an empty map until the
+    /// tiles of the far place were loaded; a travel loads them on the way.
+    static let cameraFlight = Animation.easeInOut(duration: 1.5)
+
+    /// Moves the camera to `position` as a flight instead of a jump.
+    func FlyCamera(to position: MapCameraPosition) {
+        withAnimation(Self.cameraFlight) {
+            cameraPosition = position
+        }
+    }
+
+    /// The map around one place, `area` meters across.
+    static func View(of coordinate: CLLocationCoordinate2D, area: CLLocationDistance) -> MapCameraPosition {
+        .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: area, longitudinalMeters: area))
+    }
+
+    /// A street-level view around one place.
+    static func CloseUp(of coordinate: CLLocationCoordinate2D) -> MapCameraPosition {
+        View(of: coordinate, area: closeUpArea)
     }
 
     /// The route's bounds with the same margin on every side, so the route stays centered in the framed area.

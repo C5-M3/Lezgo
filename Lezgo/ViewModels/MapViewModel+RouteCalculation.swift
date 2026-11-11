@@ -29,7 +29,7 @@ extension MapViewModel {
                     self.routeLegs = legs
                     self.routedPoints = orderedPoints
                     self.isLoadingRoute = false
-                    self.adjustCameraToFitRoute()
+                    self.adjustCameraToFitRoute(animation: Self.cameraFlight)
                 }
             } catch {
                 // A cancelled calculation belongs to an older order of the stops, so its failure is not the user's.

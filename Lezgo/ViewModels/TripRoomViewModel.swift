@@ -281,6 +281,17 @@ extension TripRoomViewModel {
         state?.IsNameTaken(name, excluding: participantID) ?? false
     }
 
+    /// Whether what is typed in the edit sheet differs from the participant's saved details, so closing the sheet
+    /// would throw something away. Spaces at the ends do not count: they are trimmed when saved.
+    static func HasProfileChanges(
+        of participant: Participant, displayName: String, carDescription: String, avatar: Avatar
+    ) -> Bool {
+        let trimmed = { (text: String) in text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        return trimmed(displayName) != trimmed(participant.displayName)
+            || trimmed(carDescription) != trimmed(participant.carDescription)
+            || avatar != participant.avatar
+    }
+
     /// Changes a participant's name, car and avatar. Only my own details are remembered for my next trip; the leader
     /// fixing a member's name must not make it the leader's own.
     /// - Parameter avatar: `nil` keeps the current avatar.

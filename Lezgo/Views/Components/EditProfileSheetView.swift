@@ -18,6 +18,8 @@ struct EditProfileSheetView: View {
     @State private var carDetails: String
     /// The name is already used by another car: set when the field is left, and when a save was refused.
     @State private var isNameTaken = false
+    /// Asked when the sheet is closed with details that were changed and not saved.
+    @State private var isShowingDiscardConfirmation = false
     @FocusState private var focusedField: Field?
     @State private var scrollPosition = ScrollPosition()
 
@@ -43,7 +45,13 @@ struct EditProfileSheetView: View {
     }
 
     private var canSave: Bool {
-        !trimmedName.isEmpty && !isNameTaken && !viewModel.isSavingProfile
+        !trimmedName.isEmpty && !isNameTaken
+    }
+
+    private var hasChanges: Bool {
+        TripRoomViewModel.HasProfileChanges(
+            of: participant, displayName: name, carDescription: carDetails, avatar: avatar
+        )
     }
 
     var body: some View {
@@ -71,18 +79,38 @@ struct EditProfileSheetView: View {
                 }
                 .padding()
             }
+            // Nothing can be changed while the save is on its way.
+            .disabled(viewModel.isSavingProfile)
             .scrollPosition($scrollPosition)
             .scrollDismissesKeyboard(.interactively)
             // Scrolls only when the content is taller than the screen; otherwise the page stays put.
             .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom) {
-                Button("Save", action: Save)
-                    .buttonStyle(.yellowCapsule(disabledBackground: Color(uiColor: .systemGray3)))
-                    .disabled(!canSave)
-                    .padding()
+                Button(action: Save) {
+                    if viewModel.isSavingProfile {
+                        ProgressView()
+                            .tint(.black)
+                            .accessibilityLabel("Saving")
+                    } else {
+                        Text("Save")
+                    }
+                }
+                .buttonStyle(.yellowCapsule(disabledBackground: Color(uiColor: .systemGray3)))
+                .disabled(!canSave)
+                // The spinner keeps the yellow button: a grey one reads as a screen that has stopped answering.
+                .allowsHitTesting(!viewModel.isSavingProfile)
+                .padding()
             }
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Close", systemImage: "xmark", action: Close)
+                        .disabled(viewModel.isSavingProfile)
+                }
+            }
+            // Swiping the sheet down would lose the changes without asking; "Close" asks first.
+            .interactiveDismissDisabled(hasChanges || viewModel.isSavingProfile)
             .onChange(of: focusedField) { _, field in
                 // Leaving the field checks the name; tapping it again starts over.
                 isNameTaken = field != .name && viewModel.IsNameTaken(trimmedName, for: participant.id)
@@ -92,6 +120,15 @@ struct EditProfileSheetView: View {
                     withAnimation { scrollPosition.scrollTo(edge: .bottom) }
                 }
             }
+            .confirmDialog(
+                isPresented: $isShowingDiscardConfirmation,
+                title: Text("Discard Changes?"),
+                message: Text("Your changes to this profile will not be saved"),
+                cancelTitle: "Cancel",
+                confirmTitle: "Discard",
+                isDestructive: true,
+                onConfirm: { dismiss() }
+            )
             .confirmDialog(
                 isPresented: errorIsShown,
                 title: viewModel.isProfileNameTaken
@@ -113,6 +150,15 @@ struct EditProfileSheetView: View {
             get: { viewModel.profileErrorMessage != nil },
             set: { if !$0 { viewModel.profileErrorMessage = nil } }
         )
+    }
+
+    private func Close() {
+        if hasChanges {
+            focusedField = nil
+            isShowingDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
     }
 
     private func Save() {
@@ -217,7 +263,7 @@ private struct AvatarChoice: View {
     var body: some View {
         Button(action: action) {
             if isChosen {
-                AvatarImage(avatar: avatar, isSelected: false)
+                AvatarImage(avatar: avatar, isSelected: true)
                     .frame(width: AvatarImage.chosenSize, height: AvatarImage.chosenSize)
             } else {
                 Image(headImage)
@@ -235,7 +281,7 @@ private struct AvatarChoice: View {
     /// The neighbours are a little bigger than the heads further out, as in the hi-fi. The head fills only about
     /// 40% of its image, so the image is drawn much larger than the head it shows.
     private func HeadSize() -> CGFloat {
-        distance == 1 ? 245 : 205
+        distance == 1 ? 190 : 150
     }
 
     private var headImage: ImageResource {

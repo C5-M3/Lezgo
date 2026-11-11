@@ -84,6 +84,8 @@ struct HomeView: View {
                     isSetRoutePresented = false
                 },
                 onTripCreated: { session in
+                    // The route now belongs to the trip; the next new trip starts from an empty plan.
+                    handleSetRouteDismissed()
                     isSetRoutePresented = false
                     viewModel.onTripJoined(session)
                 },
