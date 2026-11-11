@@ -19,6 +19,9 @@ final class FakeCloudServer {
     private(set) var saveCount = 0
     private(set) var handOutCount = 0
     private(set) var queryCount = 0
+    /// The time the server gives to the records it saves. Tests move it with `AdvanceClock(by:)`.
+    private(set) var now = Date(timeIntervalSince1970: 1_800_000_000)
+    private var modifiedAt: [CKRecord.ID: Date] = [:]
     private var versions: [CKRecord.ID: Int] = [:]
     private var handedOut: [ObjectIdentifier: (record: CKRecord, version: Int)] = [:]
 
@@ -26,9 +29,14 @@ final class FakeCloudServer {
         if let failure { throw failure }
     }
 
-    /// A copy of the stored record, remembered with its current version.
+    func AdvanceClock(by seconds: TimeInterval) {
+        now = now.addingTimeInterval(seconds)
+    }
+
+    /// A copy of the stored record with its modification time, remembered with its current version.
     func HandOut(_ recordID: CKRecord.ID) -> CKRecord? {
-        guard let stored = records[recordID], let copy = stored.copy() as? CKRecord else { return nil }
+        guard let stored = records[recordID] else { return nil }
+        let copy = StampedRecord.Make(copying: stored, modifiedAt: modifiedAt[recordID])
         handedOut[ObjectIdentifier(copy)] = (copy, versions[recordID, default: 0])
         handOutCount += 1
         return copy
@@ -47,6 +55,7 @@ final class FakeCloudServer {
             target[key] = record[key]
         }
         records[recordID] = target
+        modifiedAt[recordID] = now
         versions[recordID, default: 0] += 1
         saveCount += 1
     }
@@ -57,10 +66,13 @@ final class FakeCloudServer {
 
     /// What queries see. CloudKit's query index lags behind saves and deletes, so after `FreezeQueryIndex()` a
     /// query sees the records as they were then (deleted ones included), until `CatchUpQueryIndex()`.
-    private var queryIndex: [CKRecord.ID: CKRecord]?
+    private var queryIndex: [CKRecord.ID: (record: CKRecord, modifiedAt: Date?)]?
 
     func FreezeQueryIndex() {
-        queryIndex = records.compactMapValues { $0.copy() as? CKRecord }
+        queryIndex = records.reduce(into: [:]) { index, entry in
+            guard let copy = entry.value.copy() as? CKRecord else { return }
+            index[entry.key] = (copy, modifiedAt[entry.key])
+        }
     }
 
     func CatchUpQueryIndex() {
@@ -70,10 +82,30 @@ final class FakeCloudServer {
     /// Copies of the records a query can see now that pass `isIncluded`.
     func QueryableRecords(where isIncluded: (CKRecord) -> Bool) -> [CKRecord] {
         guard let queryIndex else { return records.values.filter(isIncluded).compactMap { HandOut($0.recordID) } }
-        return queryIndex.values.filter(isIncluded).compactMap { $0.copy() as? CKRecord }
+        return queryIndex.values
+            .filter { isIncluded($0.record) }
+            .map { StampedRecord.Make(copying: $0.record, modifiedAt: $0.modifiedAt) }
     }
 
     func Delete(_ recordID: CKRecord.ID) {
         records[recordID] = nil
+        modifiedAt[recordID] = nil
+    }
+}
+
+/// A record as CloudKit hands it out: it knows when the server last saved it. `CKRecord.modificationDate` is
+/// read-only, so a test record gets one by overriding it.
+private final class StampedRecord: CKRecord, @unchecked Sendable {
+    private var stamp: Date?
+
+    override var modificationDate: Date? { stamp }
+
+    static func Make(copying record: CKRecord, modifiedAt: Date?) -> CKRecord {
+        let stamped = StampedRecord(recordType: record.recordType, recordID: record.recordID)
+        for key in record.allKeys() {
+            stamped[key] = record[key]
+        }
+        stamped.stamp = modifiedAt
+        return stamped
     }
 }

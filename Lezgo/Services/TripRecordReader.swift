@@ -48,10 +48,11 @@ struct TripRecordReader {
         }
         async let waypointRecords = Children(of: tripID, type: TripRecordMapper.waypointType)
         async let routeRecords = Children(of: tripID, type: TripRecordMapper.routeType)
-        let waypoints = Self.CurrentWaypoints(in: try await waypointRecords, routeVersion: trip.routeVersion)
-        let route = try await routeRecords
-            .compactMap { try? TripRecordMapper.MakeRoute(from: $0) }
-            .first { $0.version == trip.routeVersion }
+        let routeRecord = try await routeRecords.first {
+            (try? TripRecordMapper.MakeRoute(from: $0))?.version == trip.routeVersion
+        }
+        let route = routeRecord.flatMap { try? TripRecordMapper.MakeRoute(from: $0) }
+        let waypoints = Self.CurrentWaypoints(in: try await waypointRecords, savedWith: routeRecord)
         if let previous, route == nil || Self.IsWholeRoute(waypoints) == false {
             // The query cannot see the new route yet: keep showing the one the group already has.
             return TripState(
@@ -66,17 +67,25 @@ struct TripRecordReader {
     }
 
     /// The stops of the trip's current route, in driving order. A query can still return the stops of an older route
-    /// (deleted, or never deleted because the query that looked for them could not see them yet). Records saved
-    /// before stops had a route version are all kept when there are no others.
-    private static func CurrentWaypoints(in records: [CKRecord], routeVersion: Int) -> [Waypoint] {
-        let versioned = records.filter { TripRecordMapper.RouteVersion(ofWaypoint: $0) != nil }
-        let current = versioned.isEmpty
-            ? records
-            : versioned.filter { TripRecordMapper.RouteVersion(ofWaypoint: $0) == routeVersion }
+    /// (deleted, or never deleted because the query that looked for them could not see them yet), so only the stops
+    /// the server saved together with the current route record are kept (#291). Saving a stop again, as a kept
+    /// destination is, gives it a new modification time. A record without a time keeps its place: that is a record
+    /// that never came from the server.
+    private static func CurrentWaypoints(in records: [CKRecord], savedWith routeRecord: CKRecord?) -> [Waypoint] {
+        let current = records.filter { record in
+            guard let routeSavedAt = routeRecord?.modificationDate, let savedAt = record.modificationDate else {
+                return true
+            }
+            return abs(savedAt.timeIntervalSince(routeSavedAt)) <= savedTogetherWithin
+        }
         return current
             .compactMap { try? TripRecordMapper.MakeWaypoint(from: $0) }
             .sorted { $0.orderIndex < $1.orderIndex }
     }
+
+    /// How far apart the server may stamp the records of one save. Routes change at least several seconds apart (a
+    /// car must be off the route for 5 seconds before a reroute), so the stops of the route before are further away.
+    private static let savedTogetherWithin: TimeInterval = 2
 
     /// Whether these are every stop of one route: numbered 0, 1, 2… from the start to the destination.
     private static func IsWholeRoute(_ waypoints: [Waypoint]) -> Bool {

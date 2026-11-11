@@ -65,7 +65,7 @@ final class LiveTripService: TripService {
             let waypoints = plan.MakeWaypoints(tripID: tripID)
             let route = Route(id: UUID(), tripID: tripID, version: 1, polyline: plan.polyline)
             let records = [TripRecordMapper.MakeRecord(trip)]
-                + waypoints.map { TripRecordMapper.MakeRecord($0, routeVersion: trip.routeVersion) }
+                + waypoints.map { TripRecordMapper.MakeRecord($0) }
                 + [TripRecordMapper.MakeRecord(leader), TripRecordMapper.MakeRecord(route)]
             try await database.Save(records, savePolicy: .allKeys)
             let state = TripState(trip: trip, waypoints: waypoints, participants: [leader], route: route)
@@ -378,8 +378,7 @@ extension LiveTripService {
             let oldRecordIDs = (oldWaypoints + oldRoutes).map(\.recordID).filter { keptRecordIDs.contains($0) == false }
             let route = Route(id: UUID(), tripID: tripID, version: changed.routeVersion, polyline: plan.polyline)
             try await database.Save(
-                waypoints.map { TripRecordMapper.MakeRecord($0, routeVersion: changed.routeVersion) }
-                    + [TripRecordMapper.MakeRecord(route)],
+                waypoints.map { TripRecordMapper.MakeRecord($0) } + [TripRecordMapper.MakeRecord(route)],
                 savePolicy: .allKeys
             )
             TripRecordMapper.Write(changed, into: record)
