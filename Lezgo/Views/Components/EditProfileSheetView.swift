@@ -263,7 +263,7 @@ private struct AvatarChoice: View {
     var body: some View {
         Button(action: action) {
             if isChosen {
-                AvatarImage(avatar: avatar, isSelected: false)
+                AvatarImage(avatar: avatar, isSelected: true)
                     .frame(width: AvatarImage.chosenSize, height: AvatarImage.chosenSize)
             } else {
                 Image(headImage)
@@ -281,7 +281,7 @@ private struct AvatarChoice: View {
     /// The neighbours are a little bigger than the heads further out, as in the hi-fi. The head fills only about
     /// 40% of its image, so the image is drawn much larger than the head it shows.
     private func HeadSize() -> CGFloat {
-        distance == 1 ? 245 : 205
+        distance == 1 ? 190 : 150
     }
 
     private var headImage: ImageResource {
