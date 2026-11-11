@@ -12,7 +12,7 @@ import CoreLocation
 @Observable
 final class MapViewModel {
     // MARK: - Dependencies & Services
-    private let routingService = RoutingService()
+    private let routingService: any RouteCalculating
     let searchService = LocationFindService()
     let locationService = LocationService()
     var tripService: any TripService
@@ -84,11 +84,13 @@ final class MapViewModel {
     }
 
     init(
+        routingService: (any RouteCalculating)? = nil,
         tripService: (any TripService)? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
         profileStorage: (any ProfileStorage)? = nil,
         streetNameService: (any StreetNameService)? = nil
     ) {
+        self.routingService = routingService ?? RoutingService()
         self.tripService = tripService ?? InMemoryTripService()
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()

@@ -73,7 +73,7 @@ struct RouteLeg: Identifiable, Equatable {
     }
 }
 
-final class RoutingService {
+final class RoutingService: RouteCalculating {
     func calculateMultiStopLegs(points: [RoutePoint]) async throws -> [RouteLeg] {
         guard points.count >= 2 else {
             throw NSError(
