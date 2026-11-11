@@ -16,6 +16,15 @@ struct SetRouteView: View {
     @State var isShowingBackConfirmation: Bool = false
     @State var activeMapSession: TripSession?
     @State var isStopsExpanded: Bool = false
+    /// Where the map sits on screen, so the cards' frames can be turned into map insets.
+    @State var mapFrame: CGRect = .zero
+    /// The bottom edge of the back button and route card, measured on every layout.
+    @State var routeControlsBottom: CGFloat = 0
+    /// The bottom edge of the route card while it shows its collapsed rows. The route is framed below this, so
+    /// opening the stop list or the search does not move the map.
+    @State var collapsedRouteControlsBottom: CGFloat = 0
+    /// The top edge of the metrics card.
+    @State var metricsCardTop: CGFloat = 0
 
     let title: LocalizedStringResource
     let saveTitle: LocalizedStringResource
@@ -71,21 +80,37 @@ struct SetRouteView: View {
             }
 
             VStack(spacing: 12) {
-                topNavigationBar
+                VStack(spacing: 12) {
+                    topNavigationBar
 
-                routePlanCardView
+                    routePlanCardView
+                }
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.frame(in: .global).maxY
+                } action: { bottom in
+                    routeControlsBottom = bottom
+                    RememberCollapsedRouteControls()
+                }
 
                 if viewModel.isSearching {
                     suggestionsListView
                 } else {
                     Spacer()
 
-                    if viewModel.hasRoute || viewModel.isLoadingRoute {
+                    if isShowingMetricsCard {
                         metricsBottomCardView
+                            .onGeometryChange(for: CGFloat.self) { proxy in
+                                proxy.frame(in: .global).minY
+                            } action: { top in
+                                metricsCardTop = top
+                            }
                     }
                 }
             }
         }
+        // The card keeps its height when the search opens or closes, so no new measurement may follow.
+        .onChange(of: viewModel.isSearching) { RememberCollapsedRouteControls() }
+        .onChange(of: isStopsExpanded) { RememberCollapsedRouteControls() }
         .confirmDialog(
             isPresented: $isShowingBackConfirmation,
             title: Text("Discard Changes?"),
@@ -242,61 +267,6 @@ private extension SetRouteView {
         if isNextDisabled { return false }
         if onNext != nil { return viewModel.MakeTripPlan() != nil }
         return viewModel.canCreateTrip
-    }
-}
-
-// MARK: - Map
-
-private extension SetRouteView {
-    var mapVignetteOverlay: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.85),
-                    Color.black.opacity(0.4),
-                    Color.clear
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 200)
-
-            Spacer()
-
-            LinearGradient(
-                colors: [
-                    Color.clear,
-                    Color.black.opacity(0.45),
-                    Color.black.opacity(0.9)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 240)
-        }
-    }
-
-    @ViewBuilder
-    var mapSection: some View {
-        @Bindable var boundViewModel = viewModel
-        MapReader { proxy in
-            Map(
-                position: $boundViewModel.cameraPosition,
-                interactionModes: [.pan, .zoom]
-            ) {
-                UserAnnotation()
-
-                RoutePlanMapContent(viewModel: viewModel)
-            }
-            .onTapGesture { screenPoint in
-                if let coord = proxy.convert(screenPoint, from: .local) {
-                    viewModel.selectNearestRoute(to: coord, drawerHeight: 180)
-                }
-            }
-            .accessibilityAddTraits(.isButton)
-            .mapControls { }
-            .safeAreaPadding(.bottom, (viewModel.hasRoute || viewModel.isLoadingRoute) ? 170 : 30)
-        }
     }
 }
 
