@@ -62,6 +62,8 @@ struct JoinTripView: View {
     @State private var shakeAttempts: Int = 0
     @State private var hasSubmittedSuccessfully: Bool = false
 
+    /// A room code from an invite link that arrives while this sheet is already open.
+    var incomingRoomCode: String?
     var onBack: (() -> Void)?
     var onEnter: ((String) -> Void)?
     var onNavigateToTripRoom: ((TripSession) -> Void)?
@@ -75,11 +77,13 @@ struct JoinTripView: View {
     init(
         isPresented: Binding<Bool>,
         viewModel: JoinTripViewModel? = nil,
+        incomingRoomCode: String? = nil,
         onBack: (() -> Void)? = nil,
         onEnter: ((String) -> Void)? = nil,
         onNavigateToTripRoom: ((TripSession) -> Void)? = nil
     ) {
         self._isPresented = isPresented
+        self.incomingRoomCode = incomingRoomCode
         let vm = viewModel ?? JoinTripViewModel()
         self._viewModel = State(initialValue: vm)
         self._enteredCode = State(initialValue: vm.roomCode)
@@ -144,6 +148,10 @@ struct JoinTripView: View {
                 onBack?()
             }
             viewModel.reset()
+        }
+        .onChange(of: incomingRoomCode) { _, roomCode in
+            guard let roomCode else { return }
+            viewModel.roomCode = roomCode
         }
         .onChange(of: viewModel.roomCode) { _, newValue in
             if enteredCode != newValue {
