@@ -171,6 +171,51 @@ struct TripRoomViewModelLeaderEditTests {
     }
 }
 
+/// Whether the edit sheet has something to lose when it is closed.
+@MainActor
+struct TripRoomViewModelProfileChangesTests {
+    private func MakeBudi() throws -> Participant {
+        try #require(SampleTrip.State(status: .lobby).participants.first { $0.id == SampleTrip.budiID })
+    }
+
+    @Test func UntouchedFieldsAreNotAChange() throws {
+        let participant = try MakeBudi()
+        #expect(!TripRoomViewModel.HasProfileChanges(
+            of: participant,
+            displayName: participant.displayName,
+            carDescription: participant.carDescription,
+            avatar: participant.avatar
+        ))
+    }
+
+    @Test func SpacesAroundTheTextAreNotAChange() throws {
+        let participant = try MakeBudi()
+        #expect(!TripRoomViewModel.HasProfileChanges(
+            of: participant,
+            displayName: "  \(participant.displayName)\n",
+            carDescription: " \(participant.carDescription) ",
+            avatar: participant.avatar
+        ))
+    }
+
+    @Test func ANewNameCarOrAvatarIsAChange() throws {
+        let participant = try MakeBudi()
+        let otherAvatar = try #require(Avatar.allCases.first { $0 != participant.avatar })
+        #expect(TripRoomViewModel.HasProfileChanges(
+            of: participant, displayName: participant.displayName + "x",
+            carDescription: participant.carDescription, avatar: participant.avatar
+        ))
+        #expect(TripRoomViewModel.HasProfileChanges(
+            of: participant, displayName: participant.displayName,
+            carDescription: participant.carDescription + "x", avatar: participant.avatar
+        ))
+        #expect(TripRoomViewModel.HasProfileChanges(
+            of: participant, displayName: participant.displayName,
+            carDescription: participant.carDescription, avatar: otherAvatar
+        ))
+    }
+}
+
 /// Rows without a typed name are called "Leader", "Car 2", "Car 3" in the Trip Room.
 @MainActor
 struct TripRoomViewModelCarNameTests {
