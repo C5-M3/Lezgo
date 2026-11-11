@@ -169,4 +169,31 @@ struct TripMapViewModelCarCameraTests {
         #expect(viewModel.myHeading > 0)
         #expect(me.course == viewModel.myHeading)
     }
+
+    @Test func MarkerScaleAdjustsToScreenRatioOnSmallAndLargeDisplays() {
+        let smallCarPlayScale = TripMapCamera.MarkerScale(mapWidth: 374, mapHeight: 228)
+        let widescreenCarPlayScale = TripMapCamera.MarkerScale(mapWidth: 800, mapHeight: 450)
+        let phoneScale = TripMapCamera.MarkerScale(mapWidth: 402, mapHeight: 874)
+
+        #expect(smallCarPlayScale < 0.45)
+        #expect(smallCarPlayScale < widescreenCarPlayScale)
+        #expect(smallCarPlayScale < phoneScale)
+        let groupScale = TripMapCamera.MarkerScale(mapWidth: 374, mapHeight: 228, carCount: 2)
+        #expect(groupScale < smallCarPlayScale)
+    }
+
+    @Test func MarkerScaleShrinksWhenZoomedOutSoRouteRemainsVisible() {
+        let normalScale = TripMapCamera.MarkerScale(
+            mapWidth: 374,
+            mapHeight: 228,
+            cameraDistance: TripMapCamera.defaultFollowDistance
+        )
+        let zoomedOutScale = TripMapCamera.MarkerScale(
+            mapWidth: 374,
+            mapHeight: 228,
+            cameraDistance: TripMapCamera.defaultFollowDistance * 4
+        )
+
+        #expect(zoomedOutScale < normalScale)
+    }
 }
