@@ -73,6 +73,8 @@ struct SetRouteMapView: View {
                 MapCompass()
                 MapScaleView()
             }
+            // The compact sheet covers the bottom of the map, so the route is framed above it.
+            .safeAreaPadding(.bottom, drawerHeight)
         }
         .sheet(isPresented: .constant(true)) {
             SetRouteSheet(
