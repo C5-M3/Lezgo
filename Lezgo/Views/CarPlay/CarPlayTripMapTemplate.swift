@@ -31,8 +31,10 @@ final class CarPlayTripMapTemplate: NSObject {
     /// The navigation bar's buttons. The bar is only rebuilt when they change: a button replaced while the driver
     /// taps it drops the tap.
     private var shownBar: NavigationBar?
-    /// The one map button: the whole route, or back to this car.
+    /// The map buttons: the camera toggle, zoom in (`+`) and zoom out (`-`).
     private lazy var cameraButton = CPMapButton { [weak self] _ in self?.viewModel.ToggleCamera() }
+    private lazy var zoomInButton = MapButton(symbolName: "plus") { [weak self] in self?.viewModel.ZoomIn() }
+    private lazy var zoomOutButton = MapButton(symbolName: "minus") { [weak self] in self?.viewModel.ZoomOut() }
     /// Which of its two icons the camera button shows; `nil` before the first update.
     private var shownFollowingMyCar: Bool?
     private var shownAlert: CarPlayTripViewModel.Alert?
@@ -50,7 +52,7 @@ final class CarPlayTripMapTemplate: NSObject {
         // The dark turn card of the Sketch design, with the yellow arrow.
         mapTemplate.guidanceBackgroundColor = UIColor(resource: .tripCard)
         mapTemplate.tripEstimateStyle = .dark
-        mapTemplate.mapButtons = [cameraButton]
+        mapTemplate.mapButtons = [cameraButton, zoomInButton, zoomOutButton]
         Observe()
     }
 
@@ -81,6 +83,12 @@ final class CarPlayTripMapTemplate: NSObject {
         cameraButton.image = UIImage(
             systemName: isFollowingMyCar ? "point.topleft.down.to.point.bottomright.curvepath" : "location.fill"
         )
+    }
+
+    private func MapButton(symbolName: String, action: @escaping () -> Void) -> CPMapButton {
+        let button = CPMapButton { _ in action() }
+        button.image = UIImage(systemName: symbolName)
+        return button
     }
 }
 
@@ -239,14 +247,23 @@ extension CarPlayTripMapTemplate {
         return Measurement(value: (metres / 100).rounded() / 10, unit: .kilometers)
     }
 
-    /// The yellow arrow for the dark turn card. Drawn into a bitmap: CarPlay sends the image on to the car's
-    /// screen, and a symbol image does not always arrive there.
+    /// Above 50 pt wide, CarPlay treats the turn arrow as a wide image and puts it on top of the distance alone,
+    /// which makes the turn card tall on small (@2x) CarPlay screens.
+    static let maxCompactManeuverSymbolWidth: CGFloat = 50
+    private static let maneuverSymbolPointSize: CGFloat = 28
+
+    /// The yellow arrow for the dark turn card. Drawn into a bitmap at the car screen's scale: CarPlay sends the
+    /// image on to the car's screen, and a `@3x` bitmap unpacked on a `@2x` screen would become 1.5x wider.
     private func ManeuverSymbol(_ symbolName: String) -> UIImage? {
-        let configuration = UIImage.SymbolConfiguration(pointSize: 40, weight: .bold)
+        Self.ManeuverSymbol(symbolName, scale: interfaceController?.carTraitCollection.displayScale ?? 2)
+    }
+
+    static func ManeuverSymbol(_ symbolName: String, scale: CGFloat) -> UIImage? {
+        let configuration = UIImage.SymbolConfiguration(pointSize: maneuverSymbolPointSize, weight: .bold)
         guard let symbol = UIImage(systemName: symbolName, withConfiguration: configuration)?
             .withTintColor(UIColor(resource: .brandYellow), renderingMode: .alwaysOriginal) else { return nil }
         let format = UIGraphicsImageRendererFormat()
-        format.scale = 3
+        format.scale = max(scale, 2)
         return UIGraphicsImageRenderer(size: symbol.size, format: format).image { _ in
             symbol.draw(at: .zero)
         }

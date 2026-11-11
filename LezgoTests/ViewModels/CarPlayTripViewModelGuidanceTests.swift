@@ -7,6 +7,7 @@
 
 import Foundation
 import Testing
+import UIKit
 @testable import Lezgo
 
 /// Turn-by-turn guidance on CarPlay, and what CarPlay says when the trip closes on the phone (ADR 0023, #257).
@@ -80,6 +81,24 @@ struct CarPlayTripViewModelGuidanceTests {
         let viewModel = await Fixtures.CarPlay(mirroring: Fixtures.TripMap(states: [Fixtures.State()]))
 
         #expect(viewModel.destinationCoordinate == Fixtures.destination.coordinate)
+    }
+
+    /// Above 50 pt wide, CarPlay treats the arrow as a wide image and puts it on top of the distance alone, which
+    /// makes the turn card tall on small (@2x) CarPlay screens.
+    @Test(arguments: [
+        "arrow.up",
+        "arrow.turn.up.left",
+        "arrow.turn.up.right",
+        "arrow.uturn.down",
+        "flag.checkered"
+    ])
+    func ManeuverSymbolFitsBesideTheDistanceOnSmallScreens(symbolName: String) throws {
+        let symbol = try #require(CarPlayTripMapTemplate.ManeuverSymbol(symbolName, scale: 2))
+        let cgImage = try #require(symbol.cgImage)
+        let widthOnSmallScreen = CGFloat(cgImage.width) / 2
+
+        #expect(symbol.size.width <= CarPlayTripMapTemplate.maxCompactManeuverSymbolWidth)
+        #expect(widthOnSmallScreen <= CarPlayTripMapTemplate.maxCompactManeuverSymbolWidth)
     }
 
     // MARK: Trip closed on the phone

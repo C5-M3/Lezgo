@@ -26,15 +26,15 @@ extension TripMapView {
         @State private var mapHeading: Double = 0
         /// Where the camera is now, so the compass can turn the map back to north from right here.
         @State private var mapCamera: MapCamera?
-        /// How much of the world the map shows across, and how wide the map is, to tell which cars would overlap.
+        /// How much of the world the map shows across, and the map's viewport size, to scale and group car pins.
         @State private var visibleWidthInMetres = 0.0
-        @State private var mapWidth = 0.0
+        @State private var mapSize: CGSize = .zero
         @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
         /// Cars closer than this on screen would overlap, in points.
         private static let groupDistance = 60.0
-        /// How far above the car the camera floats while following it, in metres.
-        private static let followDistance: CLLocationDistance = 1_500
+        /// The 3D tilt while following a car, like Waze's perspective down the road ahead.
+        private static let followPitch = 60.0
 
         init(viewModel: TripMapViewModel, showsCars: Bool = true, compassHeading: TripMapHeading? = nil) {
             self.viewModel = viewModel
@@ -62,13 +62,19 @@ extension TripMapView {
                 ForEach(viewModel.upcomingWaypoints) { waypoint in
                     Annotation(waypoint.name, coordinate: waypoint.coordinate.locationCoordinate, anchor: .bottom) {
                         TripMapWaypointPinView(waypoint: waypoint)
+                            .scaleEffect(MarkerScale(), anchor: .bottom)
                     }
                 }
 
                 ForEach(CarGroups()) { group in
                     Annotation(group.pins[0].displayName, coordinate: group.coordinate.locationCoordinate) {
-                        CarGroupMarker(group: group, viewModel: viewModel, mapHeading: mapHeading)
-                            .scaleEffect(showsCars ? 1 : 0)
+                        CarGroupMarker(
+                            group: group,
+                            viewModel: viewModel,
+                            mapHeading: mapHeading,
+                            mapPitch: mapCamera?.pitch ?? Self.followPitch
+                        )
+                        .scaleEffect(showsCars ? MarkerScale(carCount: group.pins.count) : 0)
                     }
                     .annotationTitles(.hidden)
                 }
@@ -80,6 +86,8 @@ extension TripMapView {
                 mapHeading = context.camera.heading
                 mapCamera = context.camera
                 compassHeading?.Update(context.camera.heading)
+                let metresPerMapPoint = 1 / MKMapPointsPerMeterAtLatitude(context.camera.centerCoordinate.latitude)
+                visibleWidthInMetres = context.rect.width * metresPerMapPoint
             }
             .onChange(of: compassHeading?.northRequest) { PointNorth() }
             .onMapCameraChange(frequency: .onEnd) { context in
@@ -93,12 +101,15 @@ extension TripMapView {
                 let metresPerMapPoint = 1 / MKMapPointsPerMeterAtLatitude(context.camera.centerCoordinate.latitude)
                 visibleWidthInMetres = context.rect.width * metresPerMapPoint
             }
-            .onGeometryChange(for: CGFloat.self, of: \.size.width) { mapWidth = Double($0) }
+            .onGeometryChange(for: CGSize.self, of: \.size) { mapSize = $0 }
             .onAppear(perform: MoveCamera)
             .onChange(of: viewModel.myCoordinate) {
-                // The camera following the phone's location moves with the car by itself.
-                if viewModel.followsPhoneLocation == false { MoveCamera() }
+                MoveCamera(animation: .linear(duration: 1))
             }
+            .onChange(of: viewModel.myHeading) {
+                if viewModel.cameraMode == .followMyCar { MoveCamera(animation: .linear(duration: 1)) }
+            }
+            .onChange(of: viewModel.camera.zoomStep) { ApplyZoom() }
             .onChange(of: viewModel.cameraMode) { MoveCamera() }
             .onChange(of: viewModel.route) { MoveCamera() }
             .onChange(of: viewModel.carPins, initial: true) {
@@ -115,8 +126,18 @@ extension TripMapView {
         }
 
         private func CarGroups() -> [TripMapCarGroup] {
-            let metresPerPoint = mapWidth > 0 ? visibleWidthInMetres / mapWidth : 0
-            return TripMapCarGroup.Make(pins: carPins, within: metresPerPoint * Self.groupDistance)
+            let width = Double(mapSize.width)
+            let metresPerPoint = width > 0 ? visibleWidthInMetres / width : 0
+            return TripMapCarGroup.Make(pins: carPins, within: metresPerPoint * Self.groupDistance * MarkerScale())
+        }
+
+        private func MarkerScale(carCount: Int = 1) -> Double {
+            TripMapCamera.MarkerScale(
+                mapWidth: Double(mapSize.width),
+                mapHeight: Double(mapSize.height),
+                cameraDistance: mapCamera?.distance ?? viewModel.followDistance,
+                carCount: carCount
+            )
         }
 
         /// Moves the cars to their new positions over about the time between two updates, so they glide.
@@ -154,6 +175,28 @@ extension TripMapView {
             }
         }
 
+        private func ApplyZoom() {
+            if viewModel.cameraMode != .free {
+                MoveCamera()
+            } else if let mapCamera {
+                let distance = min(
+                    max(mapCamera.distance * viewModel.camera.lastZoomFactor, TripMapCamera.minFollowDistance),
+                    TripMapCamera.maxFollowDistance * 10
+                )
+                let zoomed = MapCamera(
+                    centerCoordinate: mapCamera.centerCoordinate,
+                    distance: distance,
+                    heading: mapCamera.heading,
+                    pitch: mapCamera.pitch
+                )
+                if reduceMotion {
+                    cameraPosition = .camera(zoomed)
+                } else {
+                    withAnimation(.easeInOut) { cameraPosition = .camera(zoomed) }
+                }
+            }
+        }
+
         private func MoveCamera(animation: Animation) {
             guard let target = CameraTarget() else { return }
             if reduceMotion {
@@ -165,24 +208,29 @@ extension TripMapView {
 
         private func CameraTarget() -> MapCameraPosition? {
             switch viewModel.cameraMode {
-            case .followMyCar where viewModel.followsPhoneLocation:
-                // Already following: setting it again would restart the camera's move.
-                guard cameraPosition.followsUserLocation == false else { return nil }
-                return .userLocation(followsHeading: true, fallback: .automatic)
             case .followMyCar:
-                guard let myCoordinate = viewModel.myCoordinate else { return nil }
-                let camera = MapCamera(centerCoordinate: myCoordinate.locationCoordinate, distance: Self.followDistance)
+                guard let myCoordinate = viewModel.myCoordinate else {
+                    guard cameraPosition.followsUserLocation == false else { return nil }
+                    return .userLocation(followsHeading: false, fallback: .automatic)
+                }
+                let camera = MapCamera(
+                    centerCoordinate: myCoordinate.locationCoordinate,
+                    distance: viewModel.followDistance,
+                    heading: viewModel.myHeading,
+                    pitch: Self.followPitch
+                )
                 return .camera(camera)
             case .wholeRoute:
                 guard viewModel.route.isEmpty == false else { return nil }
                 return .rect(RouteRect())
             case .followCar(let carID):
                 guard let car = viewModel.carPins.first(where: { $0.id == carID }) else { return nil }
-                // The map keeps its turn, so the streets do not spin while it moves to the car.
+                // The map keeps its 3D tilt and turns to the car's heading.
                 let camera = MapCamera(
                     centerCoordinate: car.coordinate.locationCoordinate,
-                    distance: Self.followDistance,
-                    heading: mapHeading
+                    distance: viewModel.followDistance,
+                    heading: car.course ?? mapHeading,
+                    pitch: Self.followPitch
                 )
                 return .camera(camera)
             case .free:
@@ -207,14 +255,20 @@ extension TripMapView.MapLayer {
         let group: TripMapCarGroup
         let viewModel: TripMapViewModel
         let mapHeading: Double
+        var mapPitch: Double = 60
 
         var body: some View {
             if group.pins.count == 1 {
-                Button { viewModel.SelectCar(group.pins[0].id) } label: {
+                let pin = group.pins[0]
+                Button { viewModel.SelectCar(pin.id) } label: {
                     TripMapCarPinView(
-                        pin: group.pins[0],
-                        isSelected: group.pins[0].id == viewModel.selectedCarID,
-                        mapHeading: mapHeading
+                        pin: pin,
+                        isSelected: pin.id == viewModel.selectedCarID,
+                        // While following this car, the camera turns with it and the car always looks straight ahead.
+                        mapHeading: pin.isMe && viewModel.cameraMode == .followMyCar
+                            ? (pin.course ?? mapHeading)
+                            : mapHeading,
+                        mapPitch: mapPitch
                     )
                 }
                 .buttonStyle(.plain)

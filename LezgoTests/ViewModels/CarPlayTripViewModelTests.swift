@@ -289,4 +289,17 @@ struct CarPlayTripViewModelTests {
         viewModel.ToggleCamera()
         #expect(tripMap.cameraMode == .followMyCar)
     }
+
+    @Test func ZoomButtonsZoomThePhoneMapInAndOut() async {
+        let tripMap = Fixtures.TripMap(states: [Fixtures.State()])
+        let viewModel = await Fixtures.CarPlay(mirroring: tripMap)
+        let startDistance = tripMap.followDistance
+
+        viewModel.ZoomIn()
+        let zoomedIn = tripMap.followDistance
+        #expect(zoomedIn < startDistance)
+
+        viewModel.ZoomOut()
+        #expect(tripMap.followDistance > zoomedIn)
+    }
 }
