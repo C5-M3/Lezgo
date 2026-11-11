@@ -12,7 +12,17 @@ import Foundation
 extension TripMapViewModel {
     var cameraMode: CameraMode { camera.mode }
     var followDistance: Double { camera.followDistance }
-    var myHeading: Double { 0 }
+
+    /// Which way this phone's car faces, in degrees clockwise from north: its GPS course while driving, or the
+    /// direction of the road ahead while standing still, never the phone's magnetic compass.
+    var myHeading: Double {
+        if let course = myReading?.course ?? state?.participants.first(where: { $0.id == myParticipantID })?.course {
+            return course
+        }
+        let path = routeAhead
+        guard let start = path.first, let next = path.dropFirst().first(where: { $0 != start }) else { return 0 }
+        return (PathTurns.Bearing(from: start, to: next) + 360).truncatingRemainder(dividingBy: 360)
+    }
 
     var waypoints: [Waypoint] {
         state?.waypoints.sorted { $0.orderIndex < $1.orderIndex } ?? []
@@ -152,14 +162,15 @@ extension TripMapViewModel {
         guard let state, let updatedAt else { return [] }
         return state.participants.compactMap { participant in
             guard let coordinate = participant.coordinate else { return nil }
+            let isMe = participant.id == myParticipantID
             return TripMapCarPin(
                 id: participant.id,
                 displayName: state.DisplayName(of: participant),
                 coordinate: coordinate,
                 motionState: participant.motionState,
-                course: participant.course,
+                course: isMe ? myHeading : participant.course,
                 isLeader: participant.IsLeader(in: state.trip),
-                isMe: participant.id == myParticipantID,
+                isMe: isMe,
                 isOffline: participant.IsOnline(at: updatedAt) == false,
                 isAlerting: alerts.IsShared(participant, in: state, at: updatedAt),
                 carColor: CarColor(of: participant, in: state)

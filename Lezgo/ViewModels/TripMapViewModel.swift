@@ -91,9 +91,7 @@ final class TripMapViewModel {
         self.locationSharer = locationSharer
         self.activeTripStorage = activeTripStorage
         following = TripMapFootprint(
-            tripID: tripID,
-            myParticipantID: myParticipantID,
-            tripService: tripService,
+            tripID: tripID, myParticipantID: myParticipantID, tripService: tripService,
             directionsService: directionsService
         )
         reroute = directionsService.map {
@@ -151,9 +149,13 @@ final class TripMapViewModel {
         camera.Toggle(at: clock())
     }
 
-    func ZoomIn() {}
+    func ZoomIn() {
+        camera.ZoomIn(at: clock())
+    }
 
-    func ZoomOut() {}
+    func ZoomOut() {
+        camera.ZoomOut(at: clock())
+    }
 
     /// "Exit Trip" (member) or "End Trip" (leader): asks for confirmation first.
     func RequestLeave() {
@@ -301,10 +303,7 @@ extension TripMapViewModel {
         guard editRoute == nil, canEditRoute, let state, let myCoordinate,
               let waypoints = state.RemainingWaypoints(from: .CurrentLocation(at: myCoordinate)) else { return }
         editRoute = EditRouteViewModel(
-            startingWaypoints: waypoints,
-            tripID: tripID,
-            myParticipantID: myParticipantID,
-            tripService: tripService
+            startingWaypoints: waypoints, tripID: tripID, myParticipantID: myParticipantID, tripService: tripService
         )
     }
 

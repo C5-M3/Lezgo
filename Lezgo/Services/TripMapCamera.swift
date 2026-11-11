@@ -12,13 +12,18 @@ import Foundation
 struct TripMapCamera {
     /// How long after a camera button tap the map is still flying to the button's choice, in seconds.
     static let buttonMoveTime: TimeInterval = 2
+    /// How far from the car the 3D camera starts, in metres, and how far zoom in (`+`) and out (`-`) can take it.
     static let defaultFollowDistance = 600.0
     static let minFollowDistance = 200.0
     static let maxFollowDistance = 12_000.0
+    static let zoomFactor = 1.5
 
     private(set) var mode: TripMapViewModel.CameraMode = .followMyCar
     private(set) var followDistance = defaultFollowDistance
-    /// When the camera button was last tapped.
+    /// Bumped on every `+` or `-` tap so the map zooms even when it is not following a car.
+    private(set) var zoomStep = 0
+    private(set) var lastZoomFactor = 1.0
+    /// When a camera or zoom button was last tapped.
     private var buttonTappedAt: Date?
     /// Where the camera was before a tapped car took it, and where the tap put it.
     private var carFocus: (before: TripMapViewModel.CameraMode, focused: TripMapViewModel.CameraMode)?
@@ -27,6 +32,22 @@ struct TripMapCamera {
     /// whole route; from anywhere else (the whole route, a map moved by hand, another car) it follows the car again.
     mutating func Toggle(at now: Date) {
         mode = mode == .followMyCar ? .wholeRoute : .followMyCar
+        buttonTappedAt = now
+    }
+
+    mutating func ZoomIn(at now: Date) {
+        followDistance = max(Self.minFollowDistance, followDistance / Self.zoomFactor)
+        if mode == .wholeRoute { mode = .free }
+        zoomStep += 1
+        lastZoomFactor = 1 / Self.zoomFactor
+        buttonTappedAt = now
+    }
+
+    mutating func ZoomOut(at now: Date) {
+        followDistance = min(Self.maxFollowDistance, followDistance * Self.zoomFactor)
+        if mode == .wholeRoute { mode = .free }
+        zoomStep += 1
+        lastZoomFactor = Self.zoomFactor
         buttonTappedAt = now
     }
 

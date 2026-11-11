@@ -273,9 +273,13 @@ final class CarPlayTripViewModel {
         tripMap?.ToggleCamera()
     }
 
-    func ZoomIn() {}
+    func ZoomIn() {
+        tripMap?.ZoomIn()
+    }
 
-    func ZoomOut() {}
+    func ZoomOut() {
+        tripMap?.ZoomOut()
+    }
 }
 
 extension CarPlayTripViewModel {
