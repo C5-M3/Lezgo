@@ -68,8 +68,13 @@ extension TripMapView {
 
                 ForEach(CarGroups()) { group in
                     Annotation(group.pins[0].displayName, coordinate: group.coordinate.locationCoordinate) {
-                        CarGroupMarker(group: group, viewModel: viewModel, mapHeading: mapHeading)
-                            .scaleEffect(showsCars ? MarkerScale(carCount: group.pins.count) : 0)
+                        CarGroupMarker(
+                            group: group,
+                            viewModel: viewModel,
+                            mapHeading: mapHeading,
+                            mapPitch: mapCamera?.pitch ?? Self.followPitch
+                        )
+                        .scaleEffect(showsCars ? MarkerScale(carCount: group.pins.count) : 0)
                     }
                     .annotationTitles(.hidden)
                 }
@@ -250,6 +255,7 @@ extension TripMapView.MapLayer {
         let group: TripMapCarGroup
         let viewModel: TripMapViewModel
         let mapHeading: Double
+        var mapPitch: Double = 60
 
         var body: some View {
             if group.pins.count == 1 {
@@ -261,7 +267,8 @@ extension TripMapView.MapLayer {
                         // While following this car, the camera turns with it and the car always looks straight ahead.
                         mapHeading: pin.isMe && viewModel.cameraMode == .followMyCar
                             ? (pin.course ?? mapHeading)
-                            : mapHeading
+                            : mapHeading,
+                        mapPitch: mapPitch
                     )
                 }
                 .buttonStyle(.plain)
