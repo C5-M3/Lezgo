@@ -203,7 +203,8 @@ private struct EditRouteCover: ViewModifier {
     }
 }
 
-/// Everything that scrolls: the map with the title, the overview, the participants and End Trip or Exit Trip.
+/// The page: the map with the title, the overview and the participants, which scroll, and End Trip or Exit Trip, which
+/// stays at the top left.
 private struct TripRoomContent: View {
     let viewModel: TripRoomViewModel
     let isTransitioning: Bool
@@ -239,9 +240,6 @@ private struct TripRoomContent: View {
                         heldParticipantID: heldParticipantID,
                         avatarNamespace: avatarNamespace
                     )
-                    if !isTransitioning {
-                        TripRoomLeaveButton(viewModel: viewModel, action: onLeave)
-                    }
                 }
                 .padding(.horizontal)
             }
@@ -252,6 +250,13 @@ private struct TripRoomContent: View {
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
         .background(.black)
+        .overlay(alignment: .topLeading) {
+            if !isTransitioning {
+                TripRoomLeaveButton(viewModel: viewModel, action: onLeave)
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+            }
+        }
     }
 }
 

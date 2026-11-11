@@ -820,9 +820,9 @@ Feature: Drive together
 
 | Who | Where | Button | Confirmation | Result |
 | --- | --- | --- | --- | --- |
-| Member | Trip Room | "Exit Trip" (under the participants) | "Exit the room?" | I leave; Home opens |
+| Member | Trip Room | "Exit Trip" (round button at the top left, in the place of Back) | "Exit the room?" | I leave; Home opens |
 | Member | On the road | "Exit Trip" | "Exit trip?" · "Your car disappears from every map." | I leave; my car disappears from every map |
-| Leader | Trip Room | "End Trip" (under the participants) | "Exit and end the trip for everyone? All members will leave this trip." | Trip `CANCELLED` for everyone |
+| Leader | Trip Room | "End Trip" (round button at the top left, in the place of Back) | "Exit and end the trip for everyone? All members will leave this trip." | Trip `CANCELLED` for everyone |
 | Leader | On the road | "End Trip" | "End trip?" — or, if not everyone arrived, "End trip?" · "Not everyone has arrived yet." | Trip `ENDED` for everyone |
 | Leader | Draft card | "New Trip" (US-03) | "Create a new trip? Your current trip will end for everyone." | Old trip ends for everyone |
 
