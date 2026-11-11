@@ -29,6 +29,9 @@ struct RoutePlanCard: View {
     @State private var hasMeasuredHeight = false
     /// About five rows; more stops scroll inside the card so the map stays visible.
     private static let maximumHeight: CGFloat = 392
+    /// The stops open smoothly and close faster; the rows come in one after another (`StaggeredReveal`).
+    static let opensStops = Animation.smooth(duration: 0.42)
+    static let closesStops = Animation.smooth(duration: 0.28)
 
     var body: some View {
         List {
@@ -74,7 +77,8 @@ struct RoutePlanCard: View {
             // The list reports no rows before it has laid them out; keeping that would hide them for good.
             guard height > 0 else { return }
             // The measurement arrives after the button's own animation ended, so the card moves with the rows here.
-            let animation = hasMeasuredHeight ? Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion) : nil
+            let moving = height < contentHeight ? Self.closesStops : Self.opensStops
+            let animation = hasMeasuredHeight ? moving.Respecting(reduceMotion: reduceMotion) : nil
             withAnimation(animation) { contentHeight = height }
             hasMeasuredHeight = true
         }
@@ -232,6 +236,7 @@ extension RoutePlanCard {
             let bottomInset: CGFloat = (isLast && !showsDestinationRow && !canAddDestination) ? 14 : 6
             let insets = EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16)
             stopRow(index: index, stop: stop)
+                .modifier(StaggeredReveal(index: index))
                 .listRowInsets(insets)
                 .listRowBackground(
                     ConnectorLine(reachesUp: true, reachesDown: !IsFinalDestination(index: index), insets: insets)

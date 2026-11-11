@@ -12,7 +12,8 @@ extension RoutePlanCard {
         let count = intermediateStops.count
 
         return Button {
-            withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
+            let animation = isStopsExpanded ? Self.closesStops : Self.opensStops
+            withAnimation(animation.Respecting(reduceMotion: reduceMotion)) {
                 isStopsExpanded.toggle()
             }
         } label: {
@@ -130,7 +131,7 @@ extension RoutePlanCard {
 
     var addDestinationRow: some View {
         Button {
-            withAnimation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion)) {
+            withAnimation(Self.closesStops.Respecting(reduceMotion: reduceMotion)) {
                 isStopsExpanded = false
             }
             onAddDestination()
@@ -213,5 +214,25 @@ extension RoutePlanCard {
             }
             .accessibilityHidden(true)
         }
+    }
+}
+
+/// A row that fades and slides down into place when it appears, a little later for each row below the first, so the
+/// stops open one after another. Reduce Motion shows them at once.
+struct StaggeredReveal: ViewModifier {
+    let index: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isShown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isShown ? 1 : 0)
+            .offset(y: isShown ? 0 : -10)
+            .onAppear {
+                let delay = 0.06 * Double(min(index, 6))
+                withAnimation(RoutePlanCard.opensStops.delay(delay).Respecting(reduceMotion: reduceMotion)) {
+                    isShown = true
+                }
+            }
     }
 }
