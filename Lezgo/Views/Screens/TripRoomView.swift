@@ -212,6 +212,8 @@ private struct TripRoomContent: View {
     let onHold: (Participant) -> Void
     let onInvite: () -> Void
     let onLeave: () -> Void
+    /// How far the page is pulled down past its top, passed to the header so the map fills the gap.
+    @State private var pullDistance: CGFloat = 0
 
     /// "Edit" is only there for the leader.
     private var editAction: (() -> Void)? {
@@ -220,9 +222,9 @@ private struct TripRoomContent: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 28) {
-                TripRoomHeader(viewModel: viewModel)
+                TripRoomHeader(viewModel: viewModel, pullDistance: pullDistance)
                 VStack(alignment: .leading, spacing: 28) {
                     if viewModel.isLocationImprecise { PreciseLocationNotice() }
                     TripRoomOverview(
@@ -246,9 +248,17 @@ private struct TripRoomContent: View {
                 .padding(.horizontal)
             }
             .padding(.bottom)
+            // Exactly as wide as the screen, so nothing inside can make the page slide sideways.
+            .containerRelativeFrame(.horizontal)
         }
-        // Scrolls only when the content is taller than the screen; otherwise the page stays put.
-        .scrollBounceBehavior(.basedOnSize)
+        // Scrolls only when the content is taller than the screen; otherwise the page stays put. The sideways axis
+        // is named too: `scrollBounceBehavior` only covers the vertical one unless asked.
+        .scrollBounceBehavior(.basedOnSize, axes: [.horizontal, .vertical])
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            max(0, -(geometry.contentOffset.y + geometry.contentInsets.top))
+        } action: { _, pull in
+            pullDistance = pull
+        }
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
         .background(.black)
