@@ -73,7 +73,7 @@ struct RouteLeg: Identifiable, Equatable {
     }
 }
 
-final class RoutingService {
+final class RoutingService: RouteCalculating {
     func calculateMultiStopLegs(points: [RoutePoint]) async throws -> [RouteLeg] {
         guard points.count >= 2 else {
             throw NSError(
@@ -85,6 +85,8 @@ final class RoutingService {
 
         var legs: [RouteLeg] = []
         for index in 0..<(points.count - 1) {
+            // Stops reordered again: stop asking MapKit for legs nobody will use, which also keeps the rate limit away.
+            try Task.checkCancellation()
             let legRoutes = try await calculateLegRoutes(
                 from: points[index].coordinate,
                 to: points[index + 1].coordinate

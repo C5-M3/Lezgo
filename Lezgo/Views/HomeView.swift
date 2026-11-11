@@ -69,6 +69,7 @@ struct HomeView: View {
                         tripService: tripService,
                         storage: viewModel.activeTripStorage
                     ),
+                    incomingRoomCode: viewModel.inviteRoomCode,
                     onNavigateToTripRoom: { session in
                         pendingJoinedSession = session
                     }

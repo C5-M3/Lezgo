@@ -244,7 +244,6 @@ File: `LiveCloudDatabase.swift`.
 File: `TripRecordMapper.swift`. Converts each model to and from a `CKRecord`.
 
 - **The record name is the model's UUID** (`RecordID(_:)`).
-- **A `Waypoint` record also stores `routeVersion`**, the route version it was saved for (see 7.5).
 - **Waypoint, Participant and Route store `tripID` as a `CKRecord.Reference` with `.deleteSelf`**, so deleting a trip deletes its children.
 - **A `Coordinate` is stored as `latitude` and `longitude` doubles**, as in the spec; a participant without a position has neither.
 - **The route polyline is stored as `Bytes`:** 16 bytes per point (two little-endian doubles). A 10,000-point route is about 160 KB, far below the 1 MB record limit, with no loss of precision.
@@ -258,7 +257,7 @@ File: `TripRecordMapper.swift`. Converts each model to and from a `CKRecord`.
 
 File: `TripRecordReader.swift`.
 
-- `LoadState(tripID:reusing:discoverMembers:loadTrail:)` builds a `TripState` from requests **sent together** (`async let`): the `Trip` record by ID, the members, by ID for known ones or by query when discovering new ones, and the `Trail` record by ID. Waypoints and route are fetched again **only until the current `routeVersion` has been read in full**. Each `Waypoint` record stores the `routeVersion` it belongs to, and only the current version's are kept: CloudKit's query index lags behind saves and deletes, so a query can still return the stops of an older route (#291). A read that cannot see the whole new route yet keeps the previous waypoints and route, and the next poll tries again.
+- `LoadState(tripID:reusing:discoverMembers:loadTrail:)` builds a `TripState` from requests **sent together** (`async let`): the `Trip` record by ID, the members, by ID for known ones or by query when discovering new ones, and the `Trail` record by ID. Waypoints and route are fetched again **only until the current `routeVersion` has been read in full**. Only the stops the server saved together with the current `Route` record are kept, judged by the records' modification time (`CKRecord.modificationDate`, within 2 seconds of the route's): CloudKit's query index lags behind saves and deletes, so a query can still return the stops of an older route (#291). A destination that stays in place is saved again with the new route, so it gets the new time too. A read that cannot see the whole new route yet keeps the previous waypoints and route, and the next poll tries again.
 - `Updates(tripID:every:discoverMembersEvery:loadTrailEvery:)` is the polling loop behind `TripUpdates` (section 9). It reads the footprint every 3rd poll: it is the largest record and changes only every 5 seconds.
 - `OpenTrip(_:by:)` checks that the trip is still open (and that the caller leads, when asked) before a change.
 - `IsRoomCodeInUse(_:)` checks whether an open trip already uses a code.

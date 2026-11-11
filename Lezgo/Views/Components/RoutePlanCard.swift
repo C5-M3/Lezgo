@@ -25,8 +25,13 @@ struct RoutePlanCard: View {
     /// The height of the rows, measured by the list. It starts at one row's height: a list with no height lays out
     /// no rows, so it would never measure them.
     @State private var contentHeight: CGFloat = 56
+    /// The first measurement sets the height at once; only later changes (stops opening, closing, added) move.
+    @State private var hasMeasuredHeight = false
     /// About five rows; more stops scroll inside the card so the map stays visible.
     private static let maximumHeight: CGFloat = 392
+    /// The stops open smoothly and close faster; the rows come in one after another (`StaggeredReveal`).
+    static let opensStops = Animation.smooth(duration: 0.42)
+    static let closesStops = Animation.smooth(duration: 0.28)
 
     var body: some View {
         List {
@@ -70,7 +75,12 @@ struct RoutePlanCard: View {
         // The card is as tall as its rows, so it fits every state and text size; past `maximumHeight` it scrolls.
         .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, height in
             // The list reports no rows before it has laid them out; keeping that would hide them for good.
-            if height > 0 { contentHeight = height }
+            guard height > 0 else { return }
+            // The measurement arrives after the button's own animation ended, so the card moves with the rows here.
+            let moving = height < contentHeight ? Self.closesStops : Self.opensStops
+            let animation = hasMeasuredHeight ? moving.Respecting(reduceMotion: reduceMotion) : nil
+            withAnimation(animation) { contentHeight = height }
+            hasMeasuredHeight = true
         }
         .scrollDisabled(contentHeight <= Self.maximumHeight)
         .frame(height: min(contentHeight, Self.maximumHeight))
@@ -226,6 +236,7 @@ extension RoutePlanCard {
             let bottomInset: CGFloat = (isLast && !showsDestinationRow && !canAddDestination) ? 14 : 6
             let insets = EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16)
             stopRow(index: index, stop: stop)
+                .modifier(StaggeredReveal(index: index))
                 .listRowInsets(insets)
                 .listRowBackground(
                     ConnectorLine(reachesUp: true, reachesDown: !IsFinalDestination(index: index), insets: insets)
