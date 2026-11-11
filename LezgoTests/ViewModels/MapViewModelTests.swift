@@ -312,4 +312,18 @@ struct MapViewModelTests {
         #expect(center.longitude == gwalk.coordinate.longitude)
         #expect(viewModel.startPoint == gwalk)
     }
+
+    /// The map keeps the cards out of its safe area, so the route must sit in the middle of the framed area;
+    /// an extra margin on one side would push it behind the route card.
+    @Test func FramingRectKeepsTheRouteCentered() {
+        let route = MKMapRect(x: 1_000, y: 2_000, width: 400, height: 800)
+
+        let framed = MapViewModel.FramingRect(around: route)
+
+        #expect(framed.midX == route.midX)
+        #expect(framed.midY == route.midY)
+        #expect(framed.contains(route))
+        #expect(framed.size.width > route.size.width)
+        #expect(framed.size.height > route.size.height)
+    }
 }
