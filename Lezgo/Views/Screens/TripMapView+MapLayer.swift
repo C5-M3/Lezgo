@@ -127,11 +127,10 @@ extension TripMapView {
         }
 
         private func MarkerScale(carCount: Int = 1) -> Double {
-            let effectiveDistance = max(mapCamera?.distance ?? viewModel.followDistance, visibleWidthInMetres)
-            return TripMapCamera.MarkerScale(
+            TripMapCamera.MarkerScale(
                 mapWidth: Double(mapSize.width),
                 mapHeight: Double(mapSize.height),
-                cameraDistance: effectiveDistance,
+                cameraDistance: mapCamera?.distance ?? viewModel.followDistance,
                 carCount: carCount
             )
         }

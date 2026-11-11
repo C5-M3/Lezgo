@@ -175,11 +175,12 @@ struct TripMapViewModelCarCameraTests {
         let widescreenCarPlayScale = TripMapCamera.MarkerScale(mapWidth: 800, mapHeight: 450)
         let phoneScale = TripMapCamera.MarkerScale(mapWidth: 402, mapHeight: 874)
 
-        #expect(smallCarPlayScale < 0.45)
+        #expect(smallCarPlayScale >= 0.6)
+        #expect(smallCarPlayScale < 0.75)
         #expect(smallCarPlayScale < widescreenCarPlayScale)
         #expect(smallCarPlayScale < phoneScale)
-        let groupScale = TripMapCamera.MarkerScale(mapWidth: 374, mapHeight: 228, carCount: 2)
-        #expect(groupScale < smallCarPlayScale)
+        let bigGroupScale = TripMapCamera.MarkerScale(mapWidth: 374, mapHeight: 228, carCount: 4)
+        #expect(bigGroupScale < smallCarPlayScale)
     }
 
     @Test func MarkerScaleShrinksWhenZoomedOutSoRouteRemainsVisible() {
