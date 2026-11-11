@@ -229,7 +229,8 @@ struct StaggeredReveal: ViewModifier {
             .opacity(isShown ? 1 : 0)
             .offset(y: isShown ? 0 : -10)
             .onAppear {
-                let delay = 0.06 * Double(min(index, 6))
+                // The card's height is measured after layout, so the rows wait a moment to let the card start growing.
+                let delay = 0.12 + 0.06 * Double(min(index, 6))
                 withAnimation(RoutePlanCard.opensStops.delay(delay).Respecting(reduceMotion: reduceMotion)) {
                     isShown = true
                 }
