@@ -200,7 +200,9 @@ Lezgo/
 ├── Views/
 │   ├── Screens/      Full screens (LoginView.swift, ProfileView.swift)
 │   ├── Components/   Reusable views used in 2+ places
-│   └── CarPlay/      CarPlay base view and templates (ADR 0023)
+│   ├── CarPlay/      CarPlay base view and templates (ADR 0023)
+│   └── Siri/         The cards Siri shows when Lezgo answers (ADR 0028)
+├── Intents/          Siri intents (`<Action>Intent`), their entities and the App Shortcuts phrases (ADR 0028)
 ├── Services/         Networking, persistence and system access behind protocols
 ├── Extensions/       Small extensions on Apple types
 ├── Debug/            Developer tools for debug builds only: DebugScreen, sample data, Sync Check

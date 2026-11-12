@@ -44,7 +44,11 @@ run two safe actions (mute and "I've Arrived"), as specified in US-08.
 - **Actions reuse the trip map:** mute uses the same switch as the map's Mute button (ADR 0024), and "I've Arrived"
   calls the same code as the button, with the same 1 km rule, after `requestConfirmation`.
 - **Folder:** intents, the entity and the shortcuts provider go in a new layer folder, `Lezgo/Intents/`. They are
-  not views, view models or services, and Apple groups them the same way in its samples.
+  not views, view models or services, and Apple groups them the same way in its samples. The SwiftUI cards Siri
+  shows go in `Views/Siri/`, next to `Views/CarPlay/`.
+- **Cards:** the questions return a static snippet (`ShowsSnippetView`). The mute card uses a `SnippetIntent`, so
+  its Mute / Unmute button works inside Siri (iOS 26 and later). The car card's map is a still picture
+  (`MKMapSnapshotter`), because a live map cannot run inside Siri.
 
 ## Alternatives considered
 
