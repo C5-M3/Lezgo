@@ -15,6 +15,7 @@ struct RouteSearchSuggestionsList: View {
     let selectionType: ActivePointSelection?
     let userLocation: CLLocationCoordinate2D?
     let onSelectCurrentLocation: () -> Void
+    let onChooseOnMap: () -> Void
     let onSelectResult: (SearchResultItem) -> Void
 
     var body: some View {
@@ -22,6 +23,11 @@ struct RouteSearchSuggestionsList: View {
             LazyVStack(spacing: 0) {
                 if selectionType == .start && userLocation != nil {
                     currentLocationRow
+                    Divider().overlay(Color(white: 0.18))
+                }
+
+                if selectionType != nil {
+                    chooseOnMapRow
                     Divider().overlay(Color(white: 0.18))
                 }
 
@@ -58,6 +64,15 @@ struct RouteSearchSuggestionsList: View {
             title: "Current Location",
             subtitle: "Use GPS position",
             action: onSelectCurrentLocation
+        )
+    }
+
+    private var chooseOnMapRow: some View {
+        quickOptionRow(
+            systemImage: "map",
+            title: "Choose on Map",
+            subtitle: "Pick a point on the map",
+            action: onChooseOnMap
         )
     }
 
@@ -205,6 +220,7 @@ struct RouteSearchSuggestionsList: View {
             selectionType: .destination(index: 0),
             userLocation: CLLocationCoordinate2D(latitude: -7.25, longitude: 112.75),
             onSelectCurrentLocation: {},
+            onChooseOnMap: {},
             onSelectResult: { _ in }
         )
     }
