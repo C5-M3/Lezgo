@@ -36,6 +36,9 @@ final class MapViewModel {
     // MARK: - Route Planning State
     var startPoint: RoutePoint?
     var destinations: [RoutePoint] = []
+    /// The start point and stops the planner was opened with (Edit Route, New Destination), or `nil` for a planner
+    /// that starts empty. Leaving it as it was is not a change.
+    var openingPoints: [RoutePoint]?
 
     // MARK: - Trip Creation State
     var isCreatingTrip: Bool = false
@@ -72,7 +75,8 @@ final class MapViewModel {
     }
 
     var hasPlanChanges: Bool {
-        !destinations.isEmpty || (startPoint != nil && startPoint?.name != "Current Location")
+        if let openingPoints { return [startPoint].compactMap { $0 } + destinations != openingPoints }
+        return !destinations.isEmpty || (startPoint != nil && startPoint?.name != "Current Location")
     }
 
     var cameraPosition: MapCameraPosition = .automatic

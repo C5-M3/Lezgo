@@ -18,6 +18,7 @@ extension MapViewModel {
         }
         startPoint = points.first
         destinations = Array(points.dropFirst())
+        openingPoints = points
     }
 
     /// The route on the map as a trip route: the start point, the stops as checkpoints and the last stop as the
