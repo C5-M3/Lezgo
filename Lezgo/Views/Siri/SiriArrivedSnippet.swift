@@ -45,6 +45,7 @@ struct SiriArrivedSnippet: View {
                     .background(.fill.tertiary, in: .circle)
             }
         }
+        .padding()
     }
 }
 

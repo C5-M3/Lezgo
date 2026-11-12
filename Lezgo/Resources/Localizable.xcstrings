@@ -838,6 +838,18 @@
         }
       }
     },
+    "siriMoreCars" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": cars that did not fit on the card. Only cars with the group are left out, because cars that are not come first.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld more with the group"
+          }
+        }
+      }
+    },
     "siriMuted" : {
       "comment" : "Siri (US-08): after \"Mute Lezgo\".",
       "extractionState" : "manual",

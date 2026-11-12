@@ -31,6 +31,7 @@ struct SiriArrivalSnippet: View {
             Spacer(minLength: 0)
         }
         .accessibilityElement(children: .combine)
+        .padding()
     }
 }
 

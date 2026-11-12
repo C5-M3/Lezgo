@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-/// The still map on a Siri card (US-08): MapKit's picture with Lezgo's yellow route line and the robots on top.
+/// The still map on a Siri card (US-08): MapKit's picture with Lezgo's yellow route line and the robots on top. It
+/// fills the card's width, whatever the phone, and keeps the picture's shape.
 struct SiriMapView: View {
     let map: SiriMapPicture
     /// The robot colour of each car, in the order of `map.carPoints`.
@@ -15,46 +16,57 @@ struct SiriMapView: View {
     /// "1.2 km", in a dark chip between the first two cars.
     var label: String?
 
+    private static let robotSize: CGFloat = 30
+
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Image(uiImage: map.image)
-                .resizable()
-            RouteLine(points: map.routePoints)
-            ForEach(Array(zip(map.carPoints, colors).enumerated()), id: \.offset) { _, car in
-                Image(car.1.TopViewImage(isGlowing: false))
-                    .resizable()
-                    .frame(width: 30, height: 30)
-                    .background(Color(.tripCard), in: .circle)
-                    .position(car.0)
+        Canvas { context, size in
+            let scale = size.width / SiriMapPicture.size.width
+            let place = { (point: CGPoint) in CGPoint(x: point.x * scale, y: point.y * scale) }
+            context.draw(Image(uiImage: map.image), in: CGRect(origin: .zero, size: size))
+            DrawRoute(map.routePoints.map(place), in: &context)
+            for (point, color) in zip(map.carPoints.map(place), colors) {
+                let robot = Image(uiImage: UIImage(resource: color.TopViewImage(isGlowing: false)))
+                DrawRobot(robot, at: point, in: &context)
             }
             if let label, map.carPoints.count >= 2 {
-                Text(label)
-                    .font(.caption.bold())
-                    .foregroundStyle(Color(.tripCardText))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color(.tripCard), in: .capsule)
-                    .position(Midpoint(map.carPoints[0], map.carPoints[1]))
+                let middle = CGPoint(
+                    x: (map.carPoints[0].x + map.carPoints[1].x) / 2,
+                    y: (map.carPoints[0].y + map.carPoints[1].y) / 2
+                )
+                DrawChip(label, at: place(middle), in: &context)
             }
         }
-        .frame(width: SiriMapPicture.size.width, height: SiriMapPicture.size.height)
+        .aspectRatio(SiriMapPicture.size.width / SiriMapPicture.size.height, contentMode: .fit)
         .clipShape(.rect(cornerRadius: 18))
         .accessibilityHidden(true)
     }
 
-    private func Midpoint(_ first: CGPoint, _ second: CGPoint) -> CGPoint {
-        CGPoint(x: (first.x + second.x) / 2, y: (first.y + second.y) / 2)
-    }
-}
-
-/// The group's road on the still map: yellow with a dark edge, like the trip map's route.
-private struct RouteLine: View {
-    let points: [CGPoint]
-
-    var body: some View {
+    /// The group's road: yellow with a dark edge, like the trip map's route.
+    private func DrawRoute(_ points: [CGPoint], in context: inout GraphicsContext) {
         let path = Path { path in path.addLines(points) }
-        path.stroke(Color(.tripCard), style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
-        path.stroke(Color(.brandYellow), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+        let style = { (width: CGFloat) in StrokeStyle(lineWidth: width, lineCap: .round, lineJoin: .round) }
+        context.stroke(path, with: .color(Color(.tripCard)), style: style(8))
+        context.stroke(path, with: .color(Color(.brandYellow)), style: style(5))
+    }
+
+    private func DrawRobot(_ robot: Image, at point: CGPoint, in context: inout GraphicsContext) {
+        let size = Self.robotSize
+        let frame = CGRect(x: point.x - size / 2, y: point.y - size / 2, width: size, height: size)
+        context.fill(Path(ellipseIn: frame.insetBy(dx: -2, dy: -2)), with: .color(Color(.tripCard)))
+        context.draw(robot, in: frame)
+    }
+
+    private func DrawChip(_ label: String, at point: CGPoint, in context: inout GraphicsContext) {
+        let text = context.resolve(
+            Text(verbatim: label).font(.caption.bold()).foregroundStyle(Color(.tripCardText))
+        )
+        let textSize = text.measure(in: CGSize(width: 200, height: 40))
+        let chip = CGRect(
+            x: point.x - textSize.width / 2 - 8, y: point.y - textSize.height / 2 - 3,
+            width: textSize.width + 16, height: textSize.height + 6
+        )
+        context.fill(Path(roundedRect: chip, cornerRadius: chip.height / 2), with: .color(Color(.tripCard)))
+        context.draw(text, at: point)
     }
 }
 

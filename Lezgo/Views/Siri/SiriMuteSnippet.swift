@@ -41,6 +41,7 @@ struct SiriMuteSnippet: View {
             }
             .buttonStyle(.plain)
         }
+        .padding()
     }
 }
 

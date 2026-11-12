@@ -53,6 +53,7 @@ struct SiriCarSnippet: View {
             }
             .accessibilityElement(children: .combine)
         }
+        .padding()
     }
 }
 

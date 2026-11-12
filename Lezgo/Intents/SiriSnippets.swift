@@ -54,10 +54,16 @@ enum SiriSnippets {
         return CarAnswer(answers: answers, card: card)
     }
 
-    /// The leader first, then this phone's car, then the others in the order they joined.
+    /// Cars that are not with the group first, so they always fit on the card; then the leader, this phone's car and
+    /// the others in the order they joined.
     static func Group(_ answers: TripAnswers, on tripMap: TripMapViewModel) -> SiriGroupSnippet {
         let state = answers.state
-        let ordered = state.participants.sorted { Rank($0, answers) < Rank($1, answers) }
+        let ordered = state.participants.sorted { first, second in
+            let firstIsWith = answers.ReasonNotWithGroup(first) == nil
+            let secondIsWith = answers.ReasonNotWithGroup(second) == nil
+            guard firstIsWith == secondIsWith else { return secondIsWith }
+            return Rank(first, answers) < Rank(second, answers)
+        }
         return SiriGroupSnippet(rows: ordered.map { car in
             let isMe = car.id == answers.myParticipantID
             return SiriGroupSnippet.Row(

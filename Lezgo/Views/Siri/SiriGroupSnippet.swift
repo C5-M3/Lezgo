@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// Siri's card for "Is everyone with me" (US-08): a bar of who is with the group, then one row per car with a
-/// symbol and a word, so colour is never the only sign.
+/// Siri's card for "Is everyone with me" (US-08): a bar of who is with the group, then one short row per car with a
+/// symbol, so colour is never the only sign. Siri cards cannot scroll, so at most four cars show and the rest are
+/// counted.
 struct SiriGroupSnippet: View {
     struct Row: Identifiable, Hashable {
         let id: UUID
@@ -21,11 +22,14 @@ struct SiriGroupSnippet: View {
         var reason: TripAnswers.Reason?
     }
 
-    /// The leader first, then this phone's car, then the others, as on the map's car cards.
+    /// The most rows that fit on a Siri card without scrolling.
+    static let maxRows = 4
+
+    /// Cars that are not with the group first, then the leader, this phone's car and the others.
     let rows: [Row]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 ForEach(rows) { row in
                     Capsule()
@@ -34,92 +38,74 @@ struct SiriGroupSnippet: View {
                 }
             }
             .accessibilityHidden(true)
-            ForEach(rows) { row in
-                if row.id != rows.first?.id {
-                    Divider()
-                }
+            ForEach(rows.prefix(Self.maxRows)) { row in
                 SiriGroupRow(row: row)
             }
+            if rows.count > Self.maxRows {
+                Text(.siriMoreCars(rows.count - Self.maxRows))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
+        .padding()
     }
 }
 
-/// One car on the "Is everyone with me" card.
+/// One car on the "Is everyone with me" card: its robot, name, distance and a status symbol with a short word.
 private struct SiriGroupRow: View {
     let row: SiriGroupSnippet.Row
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) {
-                Who(row: row)
-                Spacer(minLength: 8)
-                Status(reason: row.reason)
-            }
-            VStack(alignment: .leading, spacing: 6) {
-                Who(row: row)
-                Status(reason: row.reason)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private struct Who: View {
-        let row: SiriGroupSnippet.Row
-
-        var body: some View {
-            HStack(spacing: 10) {
-                SiriCarAvatar(color: row.color, isLeader: row.isLeader, size: 38)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(row.name)
-                        .font(.headline)
-                    if let subtitle = row.subtitle {
-                        Text(subtitle)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+        HStack(spacing: 10) {
+            SiriCarAvatar(color: row.color, isLeader: row.isLeader, size: 32)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(row.name)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                if let subtitle = row.subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
-        }
-    }
-
-    private struct Status: View {
-        let reason: TripAnswers.Reason?
-
-        var body: some View {
+            Spacer(minLength: 8)
             Label {
                 Text(text)
             } icon: {
                 Image(systemName: symbol)
             }
-            .font(.subheadline.weight(.semibold))
+            .font(.caption.weight(.semibold))
             .foregroundStyle(color)
+            .lineLimit(1)
         }
+        .accessibilityElement(children: .combine)
+    }
 
-        private var text: LocalizedStringResource {
-            switch reason {
-            case nil: .siriStatusWithGroup
-            case .offRoute: .siriStatusOffRoute
-            case .passedCheckpoint: .siriStatusPassedCheckpoint
-            case .passedDestination: .siriStatusPassedDestination
-            case .aheadOfLeader: .siriStatusAheadOfLeader
-            case .offline: .siriStatusOffline
-            }
+    private var text: LocalizedStringResource {
+        switch row.reason {
+        case nil: .siriStatusWithGroup
+        case .offRoute: .siriStatusOffRoute
+        case .passedCheckpoint: .siriStatusPassedCheckpoint
+        case .passedDestination: .siriStatusPassedDestination
+        case .aheadOfLeader: .siriStatusAheadOfLeader
+        case .offline: .siriStatusOffline
         }
+    }
 
-        private var symbol: String {
-            switch reason {
-            case nil: "checkmark.circle.fill"
-            case .offline: "wifi.slash"
-            default: "exclamationmark.triangle.fill"
-            }
+    private var symbol: String {
+        switch row.reason {
+        case nil: "checkmark.circle.fill"
+        case .offline: "wifi.slash"
+        default: "exclamationmark.triangle.fill"
         }
+    }
 
-        private var color: Color {
-            switch reason {
-            case nil: .green
-            case .offline: .secondary
-            default: .orange
-            }
+    private var color: Color {
+        switch row.reason {
+        case nil: .green
+        case .offline: .secondary
+        default: .orange
         }
     }
 }

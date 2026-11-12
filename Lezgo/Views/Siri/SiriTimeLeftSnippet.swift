@@ -56,6 +56,7 @@ struct SiriTimeLeftSnippet: View {
                 .accessibilityElement(children: .combine)
             }
         }
+        .padding()
     }
 
     private struct Marker: View {
