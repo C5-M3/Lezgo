@@ -970,19 +970,21 @@ Each action has more than one phrase; the app's name is always in it. These are 
 - "Agus is 1.2 km ahead, on Ahmad Yani Street." "ahead" or "behind" follows the group's road; "away" when either car is off it. Under 1 km the distance is in metres, rounded to 10 m; from 1 km, in km with one decimal.
 - Within 50 m: "Agus is right next to you."
 - Street not known yet: "Agus is 1.2 km ahead."
-- Location not known yet: "Agus's location isn't known yet."
+- Location not known yet: "Agus's location isn't known yet." This phone's own location not known yet: "Your location isn't known yet."
 - Offline: "Agus is offline. Last seen 3 min ago."
-- The leader asking for the leader: "You're the leader." Anyone asking for themself: "That's you."
+- The leader asking for the leader: "You're the leader." Anyone asking for themself: "That's you." A car that left the trip: "That car isn't on this trip."
+- A car with no name uses its group name ("Car 3"), as on the map.
 
 **Is everyone with me**
-- A car is with the group when it is online and has no formation alert. The leader counts.
-- Everyone with the group: "All 4 cars are with the group."
-- Otherwise: "3 of 4 cars are with the group." and then one sentence for each other car, in the order of the alert banners (US-06): "Budi is off the route.", "Citra is ahead of the leader.", "Dewi is offline.", "Eko has stopped."
-- A car that has arrived (US-07) is with the group.
+- A car is with the group when it is online and has no formation alert. The leader counts. This phone's own car always counts as online.
+- Everyone with the group: "All 4 cars are with the group." Alone in the trip: "You're the only car in the trip."
+- Otherwise: "3 of 4 cars are with the group." and then one sentence for each car that is not, in the order of the alert banners (US-06), offline cars last: "Budi passed the destination.", "Budi is off the route.", "Budi passed a checkpoint.", "Citra is ahead of the leader.", "Dewi is offline." For this phone's own car: "You're off the route." and so on.
+- A car that has arrived (US-07) is with the group, whatever its last alert. A stopped car is still with the group: it is on the road.
 
 **How long left**
-- "14 min to Pantai Parangtritis, 12 km." Without a known distance: "14 min to Pantai Parangtritis."
-- With an unvisited checkpoint first: "6 min to Rest Area KM 57, then 14 min to Pantai Parangtritis." Without guidance yet: "The time left isn't known yet."
+- "14 min to Pantai Parangtritis, 12 km." Without a known distance: "14 min to Pantai Parangtritis." Over an hour: "1 hr, 5 min to Pantai Parangtritis."
+- With an unvisited checkpoint ahead, then: "Next stop: Rest Area KM 57, 4.1 km away." (distance along the group's road). MapKit only gives the time to the destination, so the checkpoint has no time.
+- Without guidance yet: "The time left isn't known yet."
 
 **Mute and unmute**
 - The same switch as the map's Mute button (US-06, "Sound"); the map and CarPlay show the new state at once.
@@ -1037,10 +1039,10 @@ Feature: Ask Siri about the trip
     Then Siri says "2 of 3 cars are with the group. Citra is off the route."
 
   Scenario: Time left with a checkpoint
-    Given the next unvisited checkpoint is "Rest Area KM 57", 6 minutes away
-    And the destination is 14 minutes away
+    Given the next unvisited checkpoint is "Rest Area KM 57", 4.1 km along the road
+    And the destination is 14 minutes and 12 km away
     When "Budi" asks Siri "How long left in Lezgo"
-    Then Siri says "6 min to Rest Area KM 57, then 14 min to Pantai Parangtritis."
+    Then Siri says "14 min to Pantai Parangtritis, 12 km. Next stop: Rest Area KM 57, 4.1 km away."
 
   Scenario: Mute by voice
     When "Budi" asks Siri "Mute Lezgo"
