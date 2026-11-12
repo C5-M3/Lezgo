@@ -574,6 +574,18 @@
         }
       }
     },
+    "siriAlreadyInTrip" : {
+      "comment" : "Siri (US-08), \"Create a trip\": this phone already has a trip (on the road, in the Trip Room or a draft), so nothing opens.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're already in a trip. Open Lezgo to continue it."
+          }
+        }
+      }
+    },
     "siriArrivalFailed" : {
       "comment" : "Siri (US-08): saving \"I've Arrived\" failed, for example with no network.",
       "extractionState" : "manual",
@@ -1218,6 +1230,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Turns and alerts are spoken"
+          }
+        }
+      }
+    },
+    "siriWhereToAgain" : {
+      "comment" : "Siri (US-08), \"Create a trip\": the answer to \"Where to?\" was empty, so Siri asks again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where do you want to go?"
           }
         }
       }

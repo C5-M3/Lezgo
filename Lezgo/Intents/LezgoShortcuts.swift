@@ -82,6 +82,16 @@ struct LezgoShortcuts: AppShortcutsProvider {
             systemImageName: "person.badge.plus"
         )
         AppShortcut(
+            intent: CreateTripIntent(),
+            phrases: [
+                "Create a trip in \(.applicationName)",
+                "Plan a trip in \(.applicationName)",
+                "Start a \(.applicationName) trip"
+            ],
+            shortTitle: "Create a Trip",
+            systemImageName: "map.fill"
+        )
+        AppShortcut(
             intent: ArrivedIntent(),
             phrases: [
                 "I've arrived in \(.applicationName)",
