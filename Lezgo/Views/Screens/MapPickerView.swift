@@ -26,7 +26,7 @@ struct MapPickerView: View {
         .overlay(alignment: .bottomTrailing) {
             Button("Current Location", systemImage: "location.fill", action: viewModel.MoveToUserLocation)
                 .labelStyle(.iconOnly)
-                .buttonStyle(TripMapCameraControls.RoundStyle())
+                .buttonStyle(RoundMapButtonStyle())
                 .padding(.trailing, 16)
                 .padding(.bottom, 8)
         }
@@ -61,9 +61,9 @@ struct MapPickerView: View {
     }
 
     private var topBar: some View {
-        Button("Close", systemImage: "xmark", action: onClose)
+        Button("Back", systemImage: "chevron.left", action: onClose)
             .labelStyle(.iconOnly)
-            .buttonStyle(TripMapCameraControls.RoundStyle())
+            .buttonStyle(RoundMapButtonStyle())
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.top, 4)
@@ -99,6 +99,21 @@ private struct MapPickerPin: View {
         .accessibilityLabel("Selected location")
         .accessibilityValue(street ?? "")
         .allowsHitTesting(false)
+    }
+}
+
+/// A dark round button for the two icons over the map, in the color of the card below. The icon is a map graphic, so
+/// it stops growing before it would leave the circle.
+private struct RoundMapButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.callout.weight(.bold))
+            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+            .foregroundStyle(.white)
+            .frame(width: 40, height: 40)
+            .background(Color(.tripCard), in: .circle)
+            .contentShape(.circle)
+            .pressFeedback(isPressed: configuration.isPressed)
     }
 }
 
@@ -172,24 +187,27 @@ private struct MapPickerCard: View {
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
-                if let address, isLoadingAddress == false {
-                    Text(address.street)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                    if address.area.isEmpty == false {
-                        Text(address.area)
-                            .font(.caption)
-                            .foregroundStyle(Color(white: 0.6))
-                    }
-                } else {
+                // Both lines are always drawn, blank when empty, so the row keeps one height. While the address loads
+                // or is missing, the message sits in the middle of that height instead of on the first line.
+                let shownAddress = isLoadingAddress ? nil : address
+                let area = shownAddress?.area ?? ""
+                Text(verbatim: shownAddress?.street ?? " ")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Text(verbatim: area.isEmpty ? " " : area)
+                    .font(.caption)
+                    .foregroundStyle(Color(white: 0.6))
+                    .accessibilityHidden(area.isEmpty)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .leading) {
+                if address == nil || isLoadingAddress {
                     Text(isLoadingAddress ? "Looking for the address…" : "No address found here")
-                        .font(.subheadline)
+                        .font(.headline)
                         .foregroundStyle(Color(white: 0.6))
                 }
             }
             .opacity(isMoving ? 0.45 : 1)
-
-            Spacer(minLength: 0)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
