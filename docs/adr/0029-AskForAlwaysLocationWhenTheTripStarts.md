@@ -1,6 +1,6 @@
 # 0029. Ask for "Always" location when the trip starts
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-12
 - Deciders: N
 
