@@ -143,7 +143,7 @@ struct TripActivityUpdaterTests {
         let updater = MakeUpdater()
         updater.Apply(Snapshot(State()))
         clock.now += 3
-        updater.Apply(Snapshot(State(turnText: "100 m")))
+        updater.Apply(Snapshot(State(timeText: "48 min")))
         updater.Apply(nil)
         #expect(activity.calls == [.endLeftovers, .start(title: "To Puncak", stage: .driving)])
     }
