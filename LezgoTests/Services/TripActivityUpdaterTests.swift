@@ -51,8 +51,15 @@ struct TripActivityUpdaterTests {
         )
     }
 
-    private func Snapshot(_ state: TripActivityAttributes.ContentState, of tripMap: AnyObject? = nil) -> TripActivityUpdater.Snapshot {
-        TripActivityUpdater.Snapshot(tripMapID: ObjectIdentifier(tripMap ?? self.tripMap), attributes: attributes, state: state)
+    private func Snapshot(
+        _ state: TripActivityAttributes.ContentState,
+        of tripMap: AnyObject? = nil
+    ) -> TripActivityUpdater.Snapshot {
+        TripActivityUpdater.Snapshot(
+            tripMapID: ObjectIdentifier(tripMap ?? self.tripMap),
+            attributes: attributes,
+            state: state
+        )
     }
 
     private var updates: [MockTripLiveActivity.Call] {

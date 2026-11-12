@@ -57,7 +57,9 @@ final class LiveTripLiveActivity: TripLiveActivity {
         }
     }
 
-    private func Content(_ state: TripActivityAttributes.ContentState) -> ActivityContent<TripActivityAttributes.ContentState> {
+    private func Content(
+        _ state: TripActivityAttributes.ContentState
+    ) -> ActivityContent<TripActivityAttributes.ContentState> {
         ActivityContent(state: state, staleDate: Date.now.addingTimeInterval(Self.staleAfter))
     }
 }

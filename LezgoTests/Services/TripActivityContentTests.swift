@@ -169,7 +169,8 @@ struct TripActivityContentTests {
 
     @Test func RobotsPastTheEndStayOnTheRoad() throws {
         let past = Coordinate(latitude: -7.2893, longitude: 112.60)
-        let state = TripActivityContent.State(Self.Input(cars: [Self.Pin(Fixtures.budiID, "Budi", at: past, color: .blue)]))
+        let budi = Self.Pin(Fixtures.budiID, "Budi", at: past, color: .blue)
+        let state = TripActivityContent.State(Self.Input(cars: [budi]))
         let robot = try #require(state.robots.first)
         #expect(robot.progress <= 1)
     }
@@ -232,7 +233,8 @@ struct TripActivityContentTests {
 
     @Test func StateFitsActivityKitsSizeLimit() throws {
         let cars = (0..<20).map {
-            Self.Pin(UUID(), String(repeating: "Bartholomew \($0) ", count: 4), at: Fixtures.startPoint.coordinate, color: .green)
+            let name = String(repeating: "Bartholomew \($0) ", count: 4)
+            return Self.Pin(UUID(), name, at: Fixtures.startPoint.coordinate, color: .green)
         }
         let state = TripActivityContent.State(Self.Input(cars: cars + [Self.budi, Self.agus]))
         let size = try JSONEncoder().encode(state).count

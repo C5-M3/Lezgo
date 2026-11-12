@@ -61,9 +61,8 @@ final class TripActivityUpdater {
             return
         }
         guard isShowing, snapshot.state != sentState else { return }
-        guard IsUrgent(snapshot.state) || clock().timeIntervalSince(sentAt ?? .distantPast) >= Self.minimumInterval else {
-            return
-        }
+        let sinceSent = clock().timeIntervalSince(sentAt ?? .distantPast)
+        guard IsUrgent(snapshot.state) || sinceSent >= Self.minimumInterval else { return }
         Send(snapshot.state)
     }
 

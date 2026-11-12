@@ -38,10 +38,12 @@ enum TripActivityContent {
         let stage = Stage(input)
         let guidance = stage == .driving ? input.guidance : nil
         let onRoute = input.cars.filter { $0.isAlerting == false && $0.isOffline == false }.count
+        let timeLeft = stage == .arrived ? nil : input.guidance?.timeLeft
         return TripActivityAttributes.ContentState(
             stage: stage,
             turn: guidance.map(Turn),
-            timeLeftText: stage == .arrived ? nil : input.guidance?.timeLeft.formatted(TripMapCarStatus.durationStyle),
+            timeLeftText: timeLeft?.formatted(TripMapCarStatus.durationStyle),
+            shortTimeLeftText: timeLeft?.formatted(.time(pattern: .hourMinute)),
             detailText: stage == .arrived ? nil : input.guidance.map { Detail($0, now: input.now) },
             nextStopText: NextStop(input.upcomingWaypoints),
             groupText: isLeader
