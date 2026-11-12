@@ -12,40 +12,29 @@ import WidgetKit
 struct TripLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: TripActivityAttributes.self) { context in
-            TripActivityLockScreenView(title: context.attributes.title, state: context.state)
+            TripActivityLockScreenView(state: context.state)
                 .activityBackgroundTint(Color(.tripCard))
                 .activitySystemActionForegroundColor(.white)
         } dynamicIsland: { context in
             let state = context.state
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Image(state.alert?.color.sticker ?? (state.arrival == nil ? state.myColor.sticker : .mascotCheer))
+                    Image(TripActivitySticker.For(state))
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 52, height: 52)
-                        .rotationEffect(.degrees(-8))
+                        .frame(width: 44, height: 44)
+                        .rotationEffect(.degrees(state.alert == nil ? -8 : 10))
+                        .padding(.leading, 4)
                         .accessibilityHidden(true)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    Text(state.shortTimeLeftText ?? state.arrival?.countText ?? "")
-                        .font(.system(.title2, design: .rounded, weight: .black))
-                        .foregroundStyle(.white)
+                    TripActivityIslandTrailing(state: state)
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    TripActivityIslandCenter(title: context.attributes.title, state: state)
+                    TripActivityIslandCenter(state: state)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 4) {
-                        TripActivityConvoyRoad(robots: state.robots, robotSize: 24)
-                        HStack {
-                            Text(state.nextStopText ?? state.groupText)
-                                .font(.system(.caption, design: .rounded, weight: .heavy))
-                                .foregroundStyle(state.isGroupWarning ? Color(.tripAlertRed) : Color(.brandYellow))
-                                .lineLimit(1)
-                            Spacer()
-                            TripActivityMuteButton(state: state)
-                        }
-                    }
+                    TripActivityIslandBottom(state: state)
                 }
             } compactLeading: {
                 TripActivityCompactLeading(state: state)
@@ -58,38 +47,99 @@ struct TripLiveActivityWidget: Widget {
                     .rotationEffect(.degrees(state.alert == nil ? 0 : 35))
                     .accessibilityHidden(true)
             }
+            // Keeps everything away from the island's rounded corners, which cut it off otherwise.
+            .contentMargins([.leading, .trailing], 20, for: .expanded)
+            .contentMargins(.bottom, 14, for: .expanded)
             .keylineTint(state.alert == nil ? Color(.brandYellow) : Color(.tripAlertRed))
         }
     }
 }
 
-/// The alert, the arrival or the next turn in the middle of the expanded island.
+/// Time left and the arrival time, or the arrival count once arrived.
+private struct TripActivityIslandTrailing: View {
+    let state: TripActivityAttributes.ContentState
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            if let arrival = state.arrival {
+                Text(arrival.countText)
+                    .font(.system(size: 16, weight: .black, design: .rounded))
+                    .foregroundStyle(Color(.tripCard))
+                    .padding(.horizontal, 10)
+                    .frame(height: 28)
+                    .background(Color(.brandYellow), in: .capsule)
+            } else {
+                Text(state.shortTimeLeftText ?? "")
+                    .font(.system(size: 19, weight: .black, design: .rounded))
+                Text(state.arrivalTimeText ?? "")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+        }
+        .padding(.trailing, 4)
+        .lineLimit(1)
+    }
+}
+
+/// The alert, the arrival or the next turn, under the camera.
 private struct TripActivityIslandCenter: View {
-    let title: String
     let state: TripActivityAttributes.ContentState
 
     var body: some View {
         VStack(spacing: 2) {
             if let alert = state.alert {
                 Text(alert.text)
-                    .font(.system(.headline, design: .rounded, weight: .black))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundStyle(Color(.tripAlertRed))
+                Text(alert.detail ?? "")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.8))
             } else if let arrival = state.arrival {
                 Text(arrival.title)
-                    .font(.system(.title3, design: .rounded, weight: .black))
+                    .font(.system(size: 20, weight: .black, design: .rounded))
+                Text(state.headline)
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.6))
             } else if let turn = state.turn {
                 Label(turn.distanceText, systemImage: turn.symbolName)
-                    .font(.system(.title2, design: .rounded, weight: .black))
+                    .font(.system(size: 21, weight: .black, design: .rounded))
                     .foregroundStyle(Color(.brandYellow))
                 Text(turn.instruction)
-                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.85))
             } else {
-                Text(title)
-                    .font(.system(.headline, design: .rounded, weight: .black))
+                Text(state.statusText ?? "")
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.7))
             }
         }
         .lineLimit(1)
-        .multilineTextAlignment(.center)
+        .minimumScaleFactor(0.8)
+    }
+}
+
+/// The convoy road, then the next stop or the group, and Mute.
+private struct TripActivityIslandBottom: View {
+    let state: TripActivityAttributes.ContentState
+
+    private var caption: String {
+        if state.alert != nil || state.arrival != nil { return state.groupText }
+        return state.headline
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            TripActivityConvoyRoad(robots: state.robots, stops: state.stops, robotSize: 22)
+            HStack {
+                Text(caption)
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(state.isGroupWarning ? Color(.tripAlertRed) : Color(.brandYellow))
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                TripActivityMuteButton(state: state)
+            }
+            .padding(.horizontal, 4)
+        }
     }
 }
 
@@ -98,7 +148,7 @@ private struct TripActivityCompactLeading: View {
     let state: TripActivityAttributes.ContentState
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 3) {
             if let alert = state.alert {
                 Image(alert.color.robot)
                     .resizable()
@@ -107,7 +157,7 @@ private struct TripActivityCompactLeading: View {
                     .accessibilityHidden(true)
                 Text(alert.carName)
                     .foregroundStyle(Color(.tripAlertRed))
-            } else if state.stage == .arrived {
+            } else if state.arrival != nil {
                 Image(.mascotCheer)
                     .resizable()
                     .scaledToFit()
@@ -119,26 +169,28 @@ private struct TripActivityCompactLeading: View {
                     .accessibilityHidden(true)
                 if let turn = state.turn {
                     Label(turn.distanceText, systemImage: turn.symbolName)
+                        .labelStyle(.titleAndIcon)
                         .foregroundStyle(Color(.brandYellow))
+                } else if let status = state.statusText {
+                    Text(status)
+                        .foregroundStyle(.white.opacity(0.7))
                 }
             }
         }
-        .font(.system(.footnote, design: .rounded, weight: .black))
+        .font(.system(size: 14, weight: .black, design: .rounded))
         .lineLimit(1)
     }
 }
 
-/// The time left, the arrival count, or a red warning while an alert is on.
+/// The time left, the arrival count, or the alert in a word.
 private struct TripActivityCompactTrailing: View {
     let state: TripActivityAttributes.ContentState
 
     var body: some View {
         Group {
-            if state.alert != nil {
-                // The car's name on the leading side already says who the alert is about.
-                Image(systemName: "exclamationmark.triangle.fill")
+            if let alert = state.alert {
+                Text(alert.shortText)
                     .foregroundStyle(Color(.tripAlertRed))
-                    .accessibilityHidden(true)
             } else if let arrival = state.arrival {
                 Text(arrival.countText)
                     .foregroundStyle(Color(.brandYellow))
@@ -146,7 +198,8 @@ private struct TripActivityCompactTrailing: View {
                 Text(state.shortTimeLeftText ?? "")
             }
         }
-        .font(.system(.footnote, design: .rounded, weight: .black))
+        .font(.system(size: 14, weight: .black, design: .rounded))
+        .lineLimit(1)
     }
 }
 
@@ -154,21 +207,27 @@ private extension TripActivityAttributes.ContentState {
     static let preview = TripActivityAttributes.ContentState(
         stage: .driving,
         turn: TripActivityAttributes.Turn(
-            symbolName: "arrow.turn.up.right", distanceText: "300 m", instruction: "Turn right onto Jl. Raya Puncak"
+            symbolName: "arrow.turn.up.right", distanceText: "240 m", instruction: "Turn right onto Jl. Raya Darmo"
         ),
-        timeLeftText: "1 hr, 20 min",
-        shortTimeLeftText: "1:20",
-        detailText: "64 km · Arrive 11:01",
-        nextStopText: "Next stop: Rest area KM 57",
-        groupText: "Following Budi",
+        headline: "Next stop · Rest area KM 57",
+        statusText: nil,
+        timeLeftText: "33 min",
+        shortTimeLeftText: "33 min",
+        arrivalTimeText: "10.17",
+        detailText: "12 km · Arrive 10.17",
+        groupText: "Following Than",
         isGroupWarning: false,
         alert: nil,
         arrival: nil,
         robots: [
-            PreviewRobot(.green, at: 0.1),
-            PreviewRobot(.pink, at: 0.22),
-            PreviewRobot(.blue, at: 0.36, isMe: true),
-            PreviewRobot(.yellow, at: 0.5, isLeader: true)
+            PreviewRobot(.green, at: 0.08, groupCount: 3),
+            PreviewRobot(.blue, at: 0.26, isMe: true),
+            PreviewRobot(.yellow, at: 0.38, isLeader: true)
+        ],
+        stops: [
+            TripActivityAttributes.Stop(number: 1, progress: 0.22, isVisited: true),
+            TripActivityAttributes.Stop(number: 2, progress: 0.55, isVisited: false),
+            TripActivityAttributes.Stop(number: 3, progress: 0.76, isVisited: false)
         ],
         myColor: .blue,
         isLeader: false,
@@ -180,17 +239,24 @@ private extension TripActivityAttributes.ContentState {
         _ color: TripActivityAttributes.RobotColor,
         at progress: Double,
         isMe: Bool = false,
-        isLeader: Bool = false
+        isLeader: Bool = false,
+        groupCount: Int = 1
     ) -> TripActivityAttributes.Robot {
         TripActivityAttributes.Robot(
-            id: UUID(), color: color, progress: progress, isMe: isMe, isLeader: isLeader, isAlerting: false
+            id: UUID(), color: color, progress: progress, isMe: isMe, isLeader: isLeader, isAlerting: false,
+            groupCount: groupCount
         )
     }
 
     static var previewAlert: Self {
         var state = preview
-        state.alert = TripActivityAttributes.Alert(text: "Citra has gone out of route", color: .pink, carName: "Citra")
-        state.robots[1].isAlerting = true
+        state.alert = TripActivityAttributes.Alert(
+            text: "Than has stopped", shortText: "Stopped", detail: "400 m behind you", color: .pink, carName: "Than"
+        )
+        state.robots[0] = PreviewRobot(.pink, at: 0.08)
+        state.robots[0].isAlerting = true
+        state.isGroupWarning = true
+        state.groupText = "4/5 on route"
         return state
     }
 
@@ -198,12 +264,15 @@ private extension TripActivityAttributes.ContentState {
         var state = preview
         state.stage = .arrived
         state.turn = nil
-        state.arrival = TripActivityAttributes.Arrival(title: "You have arrived", countText: "3/4")
+        state.headline = "Ciputra World Surabaya"
+        state.arrival = TripActivityAttributes.Arrival(
+            title: "You have arrived", countText: "3/4", detail: "Waiting for everyone to arrive"
+        )
         return state
     }
 }
 
-#Preview("Lock Screen", as: .content, using: TripActivityAttributes(title: "To Puncak")) {
+#Preview("Lock Screen", as: .content, using: TripActivityAttributes(title: "To Ciputra World")) {
     TripLiveActivityWidget()
 } contentStates: {
     TripActivityAttributes.ContentState.preview
@@ -211,14 +280,15 @@ private extension TripActivityAttributes.ContentState {
     TripActivityAttributes.ContentState.previewArrived
 }
 
-#Preview("Island expanded", as: .dynamicIsland(.expanded), using: TripActivityAttributes(title: "To Puncak")) {
+#Preview("Island expanded", as: .dynamicIsland(.expanded), using: TripActivityAttributes(title: "To Ciputra")) {
     TripLiveActivityWidget()
 } contentStates: {
     TripActivityAttributes.ContentState.preview
     TripActivityAttributes.ContentState.previewAlert
+    TripActivityAttributes.ContentState.previewArrived
 }
 
-#Preview("Island compact", as: .dynamicIsland(.compact), using: TripActivityAttributes(title: "To Puncak")) {
+#Preview("Island compact", as: .dynamicIsland(.compact), using: TripActivityAttributes(title: "To Ciputra")) {
     TripLiveActivityWidget()
 } contentStates: {
     TripActivityAttributes.ContentState.preview

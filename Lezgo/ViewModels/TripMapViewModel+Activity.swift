@@ -10,13 +10,15 @@ import Foundation
 extension TripMapViewModel {
     /// What the trip's Live Activity shows now (ADR 0027), or `nil` before the trip has loaded and after it closed.
     var activitySnapshot: TripActivityUpdater.Snapshot? {
-        guard closeReason == nil, state != nil, let destinationName else { return nil }
+        guard closeReason == nil, let state, let destinationName else { return nil }
         let input = TripActivityContent.Input(
+            destinationName: destinationName,
             guidance: guidance,
             isRerouting: isRerouting,
             cars: carPins,
             route: route,
-            upcomingWaypoints: upcomingWaypoints,
+            waypoints: waypoints,
+            currentWaypointIndex: state.trip.currentWaypointIndex,
             alertBanner: alertBanner,
             arrivalCard: arrivalCard,
             arrivalProgress: arrivalProgress,
