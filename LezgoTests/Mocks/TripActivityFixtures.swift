@@ -38,8 +38,7 @@ enum TripActivityFixtures {
         color: TripMapCarPin.CarColor,
         isLeader: Bool = false,
         isMe: Bool = false,
-        isOffline: Bool = false,
-        isAlerting: Bool = false
+        isOffline: Bool = false
     ) -> TripMapCarPin {
         TripMapCarPin(
             id: id,
@@ -49,7 +48,6 @@ enum TripActivityFixtures {
             isLeader: isLeader,
             isMe: isMe,
             isOffline: isOffline,
-            isAlerting: isAlerting,
             carColor: color
         )
     }
@@ -60,32 +58,20 @@ enum TripActivityFixtures {
 
     static func Input(
         guidance: TripMapGuidance? = Fixtures.Guidance(minutesLeft: 80),
-        isRerouting: Bool = false,
         cars: [TripMapCarPin] = [agus, budi, citra],
         waypoints: [Waypoint] = waypoints,
         currentWaypointIndex: Int = 1,
-        alertBanner: TripMapAlerts.Banner? = nil,
         arrivalCard: TripMapViewModel.ArrivalCard? = nil,
-        arrivalProgress: TripMapArrivalProgress? = nil,
-        isMuted: Bool = false
+        arrivalProgress: TripMapArrivalProgress? = nil
     ) -> TripActivityContent.Input {
         TripActivityContent.Input(
-            destinationName: "Pakuwon mall",
             guidance: guidance,
-            isRerouting: isRerouting,
             cars: cars,
             route: route,
             waypoints: waypoints,
             currentWaypointIndex: currentWaypointIndex,
-            alertBanner: alertBanner,
             arrivalCard: arrivalCard,
-            arrivalProgress: arrivalProgress,
-            isMuted: isMuted,
-            now: Fixtures.now
+            arrivalProgress: arrivalProgress
         )
-    }
-
-    static func ArrivalClock(minutesLeft: Int) -> String {
-        Fixtures.now.addingTimeInterval(TimeInterval(minutesLeft * 60)).formatted(date: .omitted, time: .shortened)
     }
 }

@@ -28,29 +28,20 @@ struct TripActivityUpdaterTests {
 
     private func State(
         stage: TripActivityAttributes.Stage = .driving,
-        turnText: String = "300 m",
-        alert: TripActivityAttributes.Alert? = nil,
-        isMuted: Bool = false
+        title: String = "To Rest area",
+        timeText: String = "50 min"
     ) -> TripActivityAttributes.ContentState {
         TripActivityAttributes.ContentState(
             stage: stage,
-            turn: TripActivityAttributes.Turn(symbolName: "arrow.up", distanceText: turnText, instruction: "Continue"),
-            headline: "To Puncak",
-            statusText: nil,
-            timeLeftText: "1 hr, 20 min",
-            shortTimeLeftText: "1:20",
-            arrivalTimeText: "11:01",
-            detailText: nil,
-            groupText: "Following Budi",
-            isGroupWarning: false,
-            alert: alert,
-            arrival: nil,
+            title: title,
+            timeText: timeText,
+            shortTimeText: timeText,
+            countText: nil,
+            legStartLabel: "Start",
+            legEndLabel: "Stop 1 of 2",
             robots: [],
-            stops: [],
-            myColor: .blue,
-            isLeader: false,
-            isMuted: isMuted,
-            muteLabel: isMuted ? "Unmute" : "Mute"
+            reached: 0,
+            myColor: .blue
         )
     }
 
@@ -103,30 +94,27 @@ struct TripActivityUpdaterTests {
         let updater = MakeUpdater()
         updater.Apply(Snapshot(State()))
         clock.now += 3
-        updater.Apply(Snapshot(State(turnText: "200 m")))
-        #expect(updates == [.update(State(turnText: "200 m"))])
+        updater.Apply(Snapshot(State(timeText: "49 min")))
+        #expect(updates == [.update(State(timeText: "49 min"))])
     }
 
     @Test func ChangesWithinTwoSecondsWaitForTheNextTick() {
         let updater = MakeUpdater()
         updater.Apply(Snapshot(State()))
         clock.now += 1
-        updater.Apply(Snapshot(State(turnText: "250 m")))
+        updater.Apply(Snapshot(State(timeText: "49 min")))
         #expect(updates.isEmpty)
         clock.now += 1
-        updater.Apply(Snapshot(State(turnText: "250 m")))
-        #expect(updates == [.update(State(turnText: "250 m"))])
+        updater.Apply(Snapshot(State(timeText: "49 min")))
+        #expect(updates == [.update(State(timeText: "49 min"))])
     }
 
-    @Test func NewAlertIsSentAtOnce() {
+    @Test func NextLegIsSentAtOnce() {
         let updater = MakeUpdater()
         updater.Apply(Snapshot(State()))
         clock.now += 0.5
-        let alert = TripActivityAttributes.Alert(
-            text: "Citra has gone out of route", shortText: "Off route", detail: nil, color: .pink, carName: "Citra"
-        )
-        updater.Apply(Snapshot(State(alert: alert)))
-        #expect(updates == [.update(State(alert: alert))])
+        updater.Apply(Snapshot(State(title: "To Pakuwon mall")))
+        #expect(updates == [.update(State(title: "To Pakuwon mall"))])
     }
 
     @Test func ArrivingIsSentAtOnce() {
@@ -135,14 +123,6 @@ struct TripActivityUpdaterTests {
         clock.now += 0.5
         updater.Apply(Snapshot(State(stage: .arrived)))
         #expect(updates.count == 1)
-    }
-
-    @Test func MuteTapIsSentAtOnce() {
-        let updater = MakeUpdater()
-        updater.Apply(Snapshot(State()))
-        clock.now += 0.5
-        updater.Apply(Snapshot(State(isMuted: true)))
-        #expect(updates == [.update(State(isMuted: true))])
     }
 
     @Test func ANewTripMapReplacesTheActivity() {
