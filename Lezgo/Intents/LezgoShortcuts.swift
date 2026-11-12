@@ -73,10 +73,16 @@ struct LezgoShortcuts: AppShortcutsProvider {
         )
         AppShortcut(
             intent: JoinTripIntent(),
+            // Siri phrases cannot hold a free number such as a room code, so Siri asks for it next (US-08).
             phrases: [
                 "Join a trip in \(.applicationName)",
                 "Join a room in \(.applicationName)",
-                "Join a \(.applicationName) trip"
+                "Join trip in \(.applicationName)",
+                "Join room in \(.applicationName)",
+                "Join a \(.applicationName) trip",
+                "Join a \(.applicationName) room",
+                "Join with a code in \(.applicationName)",
+                "Enter a room code in \(.applicationName)"
             ],
             shortTitle: "Join a Trip",
             systemImageName: "person.badge.plus"

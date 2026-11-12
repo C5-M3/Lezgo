@@ -994,14 +994,15 @@ Each action has more than one phrase; the app's name is always in it. These are 
 - "Voice alerts are off. Banners still show on the map." / "Voice alerts are on." Asking for the state it is already in gives the same answer.
 
 **Join a trip**
-- Siri asks "What's the room code?". The driver says the 6 digits, with or without pauses ("245 245"), or as words ("two four five two four five"). Siri may also take the code from the first sentence ("Join 245245 in Lezgo").
+- Siri asks "What's the room code?". The driver says the 6 digits, with or without pauses ("245 245"), or as words ("two four five two four five").
+- The code cannot be said in the first sentence: Apple lets a Siri phrase hold only fixed words or values the app lists in advance, never a free number. "Join 245245 in Lezgo" matches no phrase, so Siri only opens Lezgo. Other ways to start: "Join a room in Lezgo", "Join trip in Lezgo", "Join a Lezgo room", "Enter a room code in Lezgo".
 - Anything that is not 6 digits: Siri asks again, "That isn't a 6-digit room code. What's the room code?"
 - A valid code joins the trip at once, exactly as "Enter" in the join dialog does (US-02), and Lezgo opens the Trip Room (or the map for a trip already on the road). Siri says "You joined room 245245." A misheard code that happens to exist joins that trip; the person leaves it with "Exit Trip" in the Trip Room.
 - A code with no trip, or an ended trip: Siri says the same message as the join dialog ("No trip found with this code.", "This trip has ended.") and nothing opens.
 - With a trip already on the phone: "You're already in a trip. Open Lezgo to continue it." and nothing changes.
 
 **Create a trip**
-- Siri asks "Where to?". Siri may also take the place from the first sentence ("Create a trip to Malang in Lezgo"). Other phrases: "Plan a trip in Lezgo", "Start a Lezgo trip".
+- Siri asks "Where to?". The place cannot be said in the first sentence, for the same reason as a room code. Other phrases: "Plan a trip in Lezgo", "Start a Lezgo trip".
 - An empty answer: Siri asks again, "Where do you want to go?"
 - Lezgo opens Set Route (US-01) with the current location as the start point and the destination search already showing the place ("Malang"). The person picks the right result, checks the route and taps "Next" as usual. Siri never picks a place or creates the trip itself: "Malang" can mean several places, and the route needs a look on the map.
 - With a trip already on the phone (on the road, in the Trip Room or a draft, US-03): "You're already in a trip. Open Lezgo to continue it." and nothing opens. The place is cut to 100 characters.
