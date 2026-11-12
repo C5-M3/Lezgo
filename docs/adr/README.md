@@ -41,4 +41,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0024](0024-VoiceGuidanceAndAlertSounds.md) | Voice guidance and alert sounds on the trip map | Proposed | 2026-11-09 |
 | [0025](0025-OneCustomAlertForTheWholeApp.md) | One custom alert for the whole app | Accepted | 2026-11-09 |
 | [0026](0026-ManualPromotionWorkflow.md) | Manual workflow that promotes trunk branches without a pull request | Proposed | 2026-11-10 |
-| [0027](0027-ChooseOnMapWithNativeMapKit.md) | Choose on map with native SwiftUI Map and MapKit | Proposed | 2026-11-12 |
+| [0027](0027-ChooseOnMapWithNativeMapKit.md) | Choose on map with native SwiftUI Map and MapKit | Accepted | 2026-11-12 |

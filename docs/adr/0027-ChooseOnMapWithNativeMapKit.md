@@ -1,6 +1,6 @@
 # 0027. Choose on map with native SwiftUI Map and MapKit
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-12
 - Deciders: O
 
