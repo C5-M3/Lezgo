@@ -638,6 +638,18 @@
         }
       }
     },
+    "tripActivityToggleMute" : {
+      "comment" : "Name of the Live Activity button that mutes or unmutes voice guidance and alert sounds (ADR 0027).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute or unmute trip sounds"
+          }
+        }
+      }
+    },
     "tripMapAlertAheadOfLeader" : {
       "comment" : "Formation alert banner (US-06): this member has been more than 200 m ahead of the leader for 15 seconds.",
       "extractionState" : "manual",
