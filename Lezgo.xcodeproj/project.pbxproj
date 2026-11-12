@@ -10,20 +10,6 @@
 		D82A0000000000000000200C /* LezgoWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D82A00000000000000002001 /* LezgoWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		D82A0000000000000000200D /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				D82A0000000000000000200C /* LezgoWidgets.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXContainerItemProxy section */
 		D82A00000000000000001006 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -48,13 +34,25 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		D82A0000000000000000200D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			dstPath = "";
+			dstSubfolder = PlugIns;
+			files = (
+				D82A0000000000000000200C /* LezgoWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		D81FC5FE30871E5800EC9E22 /* Lezgo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Lezgo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D82A00000000000000001001 /* LezgoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LezgoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D82A0000000000000000100C /* LezgoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LezgoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D82A00000000000000002001 /* LezgoWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LezgoWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D82A0000000000000000C001 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		D82A0000000000000000C002 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Local.xcconfig.example; sourceTree = "<group>"; };
-		D82A00000000000000002001 /* LezgoWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LezgoWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -244,8 +242,6 @@
 				D82A00000000000000002005 /* Resources */,
 			);
 			buildRules = (
-			);
-			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
 				D82A00000000000000002002 /* LezgoWidgets */,
