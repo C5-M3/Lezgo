@@ -36,6 +36,7 @@ struct TripActivityUpdaterTests {
             title: title,
             timeText: timeText,
             shortTimeText: timeText,
+            distanceText: "12 km",
             countText: nil,
             legStartLabel: "Start",
             legEndLabel: "Stop 1 of 2",

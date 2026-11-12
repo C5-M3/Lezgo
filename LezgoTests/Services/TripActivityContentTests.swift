@@ -64,6 +64,29 @@ struct TripActivityContentTests {
         #expect(state.timeText == text)
     }
 
+    @Test func DistanceToAStopIsMeasuredAlongTheRoad() throws {
+        let state = TripActivityContent.State(Sample.Input())
+        let text = try #require(state.distanceText)
+        #expect(text.hasSuffix(" km"))
+        let kilometres = try #require(Double(text.prefix { $0.isNumber || $0 == "." }))
+        #expect(kilometres > 3 && kilometres < 5)
+    }
+
+    @Test func DistanceOnTheLastLegIsTheDistanceLeft() {
+        var guidance = Fixtures.Guidance(minutesLeft: 80)
+        guidance.distanceLeft = Measurement(value: 64, unit: .kilometers)
+        let state = TripActivityContent.State(Sample.Input(guidance: guidance, currentWaypointIndex: 3))
+        #expect(state.distanceText == "64 km")
+    }
+
+    @Test func ArrivedHasNoDistance() {
+        let progress = TripMapArrivalProgress(robots: [], arrivedCount: 3, totalCount: 4)
+        let state = TripActivityContent.State(
+            Sample.Input(currentWaypointIndex: 3, arrivalCard: .waitingForEveryone, arrivalProgress: progress)
+        )
+        #expect(state.distanceText == nil)
+    }
+
     @Test func NoGuidanceYetIsLoading() {
         let state = TripActivityContent.State(Sample.Input(guidance: nil))
         #expect(state.stage == .loading)
