@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "StickerPurple.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

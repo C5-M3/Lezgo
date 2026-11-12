@@ -4,6 +4,7 @@ included:
   - Lezgo
   - LezgoTests
   - LezgoUITests
+  - LezgoWidgets
 
 excluded:
   - DerivedData

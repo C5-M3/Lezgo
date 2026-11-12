@@ -6,6 +6,24 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D82A0000000000000000200C /* LezgoWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D82A00000000000000002001 /* LezgoWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D82A0000000000000000200D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D82A0000000000000000200C /* LezgoWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXContainerItemProxy section */
 		D82A00000000000000001006 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,6 +39,13 @@
 			remoteGlobalIDString = D81FC5FD30871E5800EC9E22;
 			remoteInfo = Lezgo;
 		};
+		D82A0000000000000000200A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D81FC5F630871E5800EC9E22 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D82A00000000000000002006;
+			remoteInfo = LezgoWidgets;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
@@ -29,6 +54,7 @@
 		D82A0000000000000000100C /* LezgoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LezgoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D82A0000000000000000C001 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		D82A0000000000000000C002 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Local.xcconfig.example; sourceTree = "<group>"; };
+		D82A00000000000000002001 /* LezgoWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LezgoWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -39,6 +65,21 @@
 			);
 			target = D81FC5FD30871E5800EC9E22 /* Lezgo */;
 		};
+		D82A0000000000000000200E /* Exceptions for "Lezgo" folder in "LezgoWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Models/TripActivityAttributes.swift,
+				Services/ToggleTripMuteIntent.swift,
+			);
+			target = D82A00000000000000002006 /* LezgoWidgets */;
+		};
+		D82A0000000000000000200F /* Exceptions for "LezgoWidgets" folder in "LezgoWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D82A00000000000000002006 /* LezgoWidgets */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -46,6 +87,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				D82A000000000000000010F1 /* Exceptions for "Lezgo" folder in "Lezgo" target */,
+				D82A0000000000000000200E /* Exceptions for "Lezgo" folder in "LezgoWidgets" target */,
 			);
 			path = Lezgo;
 			sourceTree = "<group>";
@@ -58,6 +100,14 @@
 		D82A0000000000000000100D /* LezgoUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = LezgoUITests;
+			sourceTree = "<group>";
+		};
+		D82A00000000000000002002 /* LezgoWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D82A0000000000000000200F /* Exceptions for "LezgoWidgets" folder in "LezgoWidgets" target */,
+			);
+			path = LezgoWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -78,6 +128,11 @@
 			files = (
 			);
 		};
+		D82A00000000000000002004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -88,6 +143,7 @@
 				D81FC60030871E5800EC9E22 /* Lezgo */,
 				D82A00000000000000001002 /* LezgoTests */,
 				D82A0000000000000000100D /* LezgoUITests */,
+				D82A00000000000000002002 /* LezgoWidgets */,
 				D81FC5FF30871E5800EC9E22 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -98,6 +154,7 @@
 				D81FC5FE30871E5800EC9E22 /* Lezgo.app */,
 				D82A00000000000000001001 /* LezgoTests.xctest */,
 				D82A0000000000000000100C /* LezgoUITests.xctest */,
+				D82A00000000000000002001 /* LezgoWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,8 +178,12 @@
 				D81FC5FA30871E5800EC9E22 /* Sources */,
 				D81FC5FB30871E5800EC9E22 /* Frameworks */,
 				D81FC5FC30871E5800EC9E22 /* Resources */,
+				D82A0000000000000000200D /* Embed Foundation Extensions */,
 			);
 			buildRules = (
+			);
+			dependencies = (
+				D82A0000000000000000200B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D81FC60030871E5800EC9E22 /* Lezgo */,
@@ -174,6 +235,26 @@
 			productReference = D82A0000000000000000100C /* LezgoUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		D82A00000000000000002006 /* LezgoWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D82A00000000000000002007 /* Build configuration list for PBXNativeTarget "LezgoWidgets" */;
+			buildPhases = (
+				D82A00000000000000002003 /* Sources */,
+				D82A00000000000000002004 /* Frameworks */,
+				D82A00000000000000002005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D82A00000000000000002002 /* LezgoWidgets */,
+			);
+			name = LezgoWidgets;
+			productName = LezgoWidgets;
+			productReference = D82A00000000000000002001 /* LezgoWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -195,6 +276,9 @@
 						CreatedOnToolsVersion = 27.1;
 						TestTargetID = D81FC5FD30871E5800EC9E22;
 					};
+					D82A00000000000000002006 = {
+						CreatedOnToolsVersion = 27.1;
+					};
 				};
 			};
 			buildConfigurationList = D81FC5F930871E5800EC9E22 /* Build configuration list for PBXProject "Lezgo" */;
@@ -214,6 +298,7 @@
 				D81FC5FD30871E5800EC9E22 /* Lezgo */,
 				D82A00000000000000001008 /* LezgoTests */,
 				D82A00000000000000001013 /* LezgoUITests */,
+				D82A00000000000000002006 /* LezgoWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -230,6 +315,11 @@
 			);
 		};
 		D82A00000000000000001010 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		D82A00000000000000002005 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -252,6 +342,11 @@
 			files = (
 			);
 		};
+		D82A00000000000000002003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -264,6 +359,11 @@
 			isa = PBXTargetDependency;
 			target = D81FC5FD30871E5800EC9E22 /* Lezgo */;
 			targetProxy = D82A00000000000000001011 /* PBXContainerItemProxy */;
+		};
+		D82A0000000000000000200B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D82A00000000000000002006 /* LezgoWidgets */;
+			targetProxy = D82A0000000000000000200A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -543,6 +643,62 @@
 			};
 			name = Release;
 		};
+		D82A00000000000000002008 /* Debug configuration for PBXNativeTarget "LezgoWidgets" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = BrandYellow;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LezgoWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lezgo;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER_PREFIX).Lezgo.Widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D82A00000000000000002009 /* Release configuration for PBXNativeTarget "LezgoWidgets" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = BrandYellow;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LezgoWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lezgo;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(BUNDLE_IDENTIFIER_PREFIX).Lezgo.Widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -575,6 +731,14 @@
 			buildConfigurations = (
 				D82A00000000000000001014 /* Debug configuration for PBXNativeTarget "LezgoUITests" */,
 				D82A00000000000000001015 /* Release configuration for PBXNativeTarget "LezgoUITests" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		D82A00000000000000002007 /* Build configuration list for PBXNativeTarget "LezgoWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D82A00000000000000002008 /* Debug configuration for PBXNativeTarget "LezgoWidgets" */,
+				D82A00000000000000002009 /* Release configuration for PBXNativeTarget "LezgoWidgets" */,
 			);
 			defaultConfigurationName = Release;
 		};
