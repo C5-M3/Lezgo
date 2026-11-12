@@ -36,6 +36,12 @@ final class TripMapSound {
         if isMuted { speaker?.Stop() }
     }
 
+    /// Mute or unmute by Siri (US-08): asking for the state it is already in changes nothing.
+    func SetMuted(_ muted: Bool) {
+        guard muted != isMuted else { return }
+        ToggleMute()
+    }
+
     /// Says what is new on the map. The announcer keeps track while muted too, so unmuting does not replay
     /// everything that happened meanwhile.
     func Update(guidance: TripMapGuidance?, banner: TripMapAlerts.Banner?, notice: TripMapNotice?) {
