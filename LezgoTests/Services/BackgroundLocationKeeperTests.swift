@@ -8,8 +8,8 @@
 import Testing
 @testable import Lezgo
 
-/// The background location session behind the Dynamic Island's location arrow (#316): kept only while location
-/// access is allowed, and never left behind by an earlier run of the app.
+/// The background location session behind the Dynamic Island's location arrow (#316): kept only while access is
+/// "While Using the App", and never left behind by an earlier run of the app.
 struct BackgroundLocationKeeperTests {
     /// Counts the sessions made and invalidated, in place of `CLBackgroundActivitySession`.
     private final class SessionLog {
@@ -34,8 +34,8 @@ struct BackgroundLocationKeeperTests {
         let log = SessionLog()
         let keeper = BackgroundLocationKeeper(makeSession: log.Make)
 
-        keeper.Follow(isAccessAllowed: true)
-        keeper.Follow(isAccessAllowed: true)
+        keeper.Follow(needsSession: true)
+        keeper.Follow(needsSession: true)
 
         #expect(log.made.count == 1)
         #expect(log.made.first?.invalidateCount == 0)
@@ -45,9 +45,9 @@ struct BackgroundLocationKeeperTests {
         let log = SessionLog()
         let keeper = BackgroundLocationKeeper(makeSession: log.Make)
 
-        keeper.Follow(isAccessAllowed: true)
-        keeper.Follow(isAccessAllowed: false)
-        keeper.Follow(isAccessAllowed: false)
+        keeper.Follow(needsSession: true)
+        keeper.Follow(needsSession: false)
+        keeper.Follow(needsSession: false)
 
         let session = try #require(log.made.first)
         #expect(log.made.count == 1)
@@ -58,7 +58,7 @@ struct BackgroundLocationKeeperTests {
         let log = SessionLog()
         let keeper = BackgroundLocationKeeper(makeSession: log.Make)
 
-        keeper.Follow(isAccessAllowed: false)
+        keeper.Follow(needsSession: false)
 
         #expect(log.made.isEmpty)
     }
@@ -67,9 +67,9 @@ struct BackgroundLocationKeeperTests {
         let log = SessionLog()
         let keeper = BackgroundLocationKeeper(makeSession: log.Make)
 
-        keeper.Follow(isAccessAllowed: true)
-        keeper.Follow(isAccessAllowed: false)
-        keeper.Follow(isAccessAllowed: true)
+        keeper.Follow(needsSession: true)
+        keeper.Follow(needsSession: false)
+        keeper.Follow(needsSession: true)
 
         #expect(log.made.count == 2)
         #expect(log.made.last?.invalidateCount == 0)
@@ -79,7 +79,7 @@ struct BackgroundLocationKeeperTests {
         let log = SessionLog()
         let keeper = BackgroundLocationKeeper(makeSession: log.Make)
 
-        keeper.Follow(isAccessAllowed: true)
+        keeper.Follow(needsSession: true)
         keeper.Stop()
         keeper.Stop()
 
@@ -97,27 +97,30 @@ struct BackgroundLocationKeeperTests {
         #expect(session.invalidateCount == 1)
     }
 
-    /// The access flags on one location update, and whether the background session may stay.
+    /// The access on one location update, and whether the background session is needed.
     struct AccessFlags: Sendable {
         var denied = false
         var deniedGlobally = false
         var restricted = false
-        var allowed: Bool
+        var isAlways = false
+        var needsSession: Bool
     }
 
     @Test(arguments: [
-        AccessFlags(allowed: true),
-        AccessFlags(denied: true, allowed: false),
-        AccessFlags(deniedGlobally: true, allowed: false),
-        AccessFlags(restricted: true, allowed: false)
+        AccessFlags(needsSession: true),
+        AccessFlags(denied: true, needsSession: false),
+        AccessFlags(deniedGlobally: true, needsSession: false),
+        AccessFlags(restricted: true, needsSession: false),
+        AccessFlags(isAlways: true, needsSession: false)
     ])
-    func AccessIsAllowedOnlyWhenNothingDeniesIt(flags: AccessFlags) {
-        let isAllowed = BackgroundLocationKeeper.IsAccessAllowed(
+    func SessionIsNeededOnlyWithWhenInUseAccess(flags: AccessFlags) {
+        let needsSession = BackgroundLocationKeeper.NeedsSession(
             denied: flags.denied,
             deniedGlobally: flags.deniedGlobally,
-            restricted: flags.restricted
+            restricted: flags.restricted,
+            isAuthorizedAlways: flags.isAlways
         )
 
-        #expect(isAllowed == flags.allowed)
+        #expect(needsSession == flags.needsSession)
     }
 }
