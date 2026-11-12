@@ -17,7 +17,6 @@ struct TripActivityMuteButton: View {
     var body: some View {
         Button(intent: ToggleTripMuteIntent()) {
             Label(state.muteLabel, systemImage: state.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                .labelStyle(.titleAndIcon)
                 .font(.system(.footnote, design: .rounded, weight: .heavy))
                 .modifier(MuteLabelVisibility(showsLabel: showsLabel))
                 .frame(minWidth: 44, minHeight: 44)
@@ -35,7 +34,7 @@ private struct MuteLabelVisibility: ViewModifier {
 
     func body(content: Content) -> some View {
         if showsLabel {
-            content
+            content.labelStyle(.titleAndIcon)
         } else {
             content.labelStyle(.iconOnly)
         }
