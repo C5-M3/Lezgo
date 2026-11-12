@@ -17,8 +17,8 @@ struct SiriArrivedSnippet: View {
         var hasArrived: Bool
     }
 
-    /// At most four cars fit; more are counted.
-    static let maxCars = 4
+    /// At most three cars fit side by side on a narrow card; more are counted.
+    static let maxCars = 3
 
     let cars: [Car]
 
@@ -26,14 +26,16 @@ struct SiriArrivedSnippet: View {
         HStack(alignment: .top, spacing: 8) {
             ForEach(cars.prefix(Self.maxCars)) { car in
                 VStack(spacing: 6) {
-                    SiriCarAvatar(color: car.color, isLeader: car.isLeader, hasArrived: car.hasArrived, size: 56)
+                    SiriCarAvatar(color: car.color, isLeader: car.isLeader, hasArrived: car.hasArrived, size: 44)
                     Text(car.name)
                         .font(.subheadline.weight(.semibold))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                     Text(car.hasArrived ? .siriStatusArrived : .siriStatusOnTheWay)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
                 }
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .combine)
@@ -41,7 +43,7 @@ struct SiriArrivedSnippet: View {
             if cars.count > Self.maxCars {
                 Text(verbatim: "+\(cars.count - Self.maxCars)")
                     .font(.headline)
-                    .frame(width: 56, height: 56)
+                    .frame(width: 44, height: 44)
                     .background(.fill.tertiary, in: .circle)
             }
         }

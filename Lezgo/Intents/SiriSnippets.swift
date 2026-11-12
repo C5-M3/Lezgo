@@ -30,7 +30,10 @@ enum SiriSnippets {
         let activity = String(localized: isOnline
             ? (car.motionState == .driving ? .tripMapCarDriving : .tripMapCarStopped)
             : .siriStatusOffline)
-        let detail = car.IsLeader(in: state.trip) ? String(localized: .tripMapCarLeader) : car.carDescription
+        let name = state.DisplayName(of: car)
+        var detail = car.IsLeader(in: state.trip) ? String(localized: .tripMapCarLeader) : car.carDescription
+        // A leader with no name is called "Leader" already: "Leader · Leader · Driving" says it twice.
+        if detail == name { detail = "" }
         let subtitle = detail.isEmpty ? activity : String(localized: .siriSubtitle(detail, activity))
         var map: SiriMapPicture?
         var gap: String?
@@ -41,7 +44,7 @@ enum SiriSnippets {
         }
         let card = SiriCarSnippet(
             car: .init(
-                name: state.DisplayName(of: car),
+                name: name,
                 color: tripMap.CarColor(of: car, in: state),
                 isLeader: car.IsLeader(in: state.trip),
                 subtitle: subtitle,
@@ -88,10 +91,10 @@ enum SiriSnippets {
         return 2 + (answers.state.participants.firstIndex { $0.id == car.id } ?? 0)
     }
 
-    /// This car, the next checkpoint and the destination.
+    /// The next checkpoint and the destination, then the time left and the arrival time.
     static func TimeLeft(_ answers: TripAnswers) -> SiriTimeLeftSnippet? {
         guard let guidance = answers.guidance, let destination = answers.state.destination else { return nil }
-        var stops = [SiriTimeLeftSnippet.Stop(kind: .me, name: String(localized: .tripMapCarYou))]
+        var stops: [SiriTimeLeftSnippet.Stop] = []
         if let checkpoint = answers.state.nextCheckpoint {
             let distance = answers.DistanceAlongRoad(to: checkpoint.coordinate)
             stops.append(.init(
@@ -104,11 +107,13 @@ enum SiriSnippets {
         stops.append(.init(
             kind: .destination,
             name: destination.name,
-            subtitle: distanceLeft.map { String(localized: .siriDestinationDistance($0)) },
+            subtitle: distanceLeft.map { String(localized: .siriDestinationDistance($0)) }
+        ))
+        return SiriTimeLeftSnippet(
+            stops: stops,
             timeLeft: guidance.timeLeft,
             arrival: answers.now.addingTimeInterval(TimeInterval(guidance.timeLeft.components.seconds))
-        ))
-        return SiriTimeLeftSnippet(stops: stops)
+        )
     }
 
     /// Every car's robot, this phone's car first and counted as arrived.

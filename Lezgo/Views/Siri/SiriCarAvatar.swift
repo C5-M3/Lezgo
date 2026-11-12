@@ -23,8 +23,9 @@ struct SiriCarAvatar: View {
             .background(Color(.tripCard), in: .circle)
             .overlay(alignment: .topTrailing) {
                 if isLeader {
+                    // A fixed size, so the crown stays a badge at large text sizes.
                     Image(systemName: "crown.fill")
-                        .font(.caption)
+                        .font(.system(size: size * 0.3))
                         .foregroundStyle(.yellow)
                         .offset(x: 4, y: -4)
                 }
@@ -32,8 +33,8 @@ struct SiriCarAvatar: View {
             .overlay(alignment: .bottomTrailing) {
                 if hasArrived {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.body)
-                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: size * 0.4))
+                        .symbolRenderingMode(.palette)
                         .foregroundStyle(.white, .green)
                         .offset(x: 3, y: 3)
                 }

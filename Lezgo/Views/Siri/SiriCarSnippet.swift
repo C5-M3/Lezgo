@@ -26,33 +26,37 @@ struct SiriCarSnippet: View {
     var map: SiriMapPicture?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let map {
                 SiriMapView(map: map, colors: [myColor, car.color], label: gap)
             }
-            HStack(spacing: 12) {
-                SiriCarAvatar(color: car.color, isLeader: car.isLeader)
-                VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 10) {
+                SiriCarAvatar(color: car.color, isLeader: car.isLeader, size: 36)
+                VStack(alignment: .leading, spacing: 1) {
                     Text(car.name)
                         .font(.headline)
+                        .lineLimit(1)
                     Text(car.subtitle)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                Spacer(minLength: 8)
-                if let timeLeft = car.timeLeft {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
-                            .font(.title3.bold())
-                            .monospacedDigit()
-                        Text(.siriToDestination)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Spacer(minLength: 0)
             }
-            .accessibilityElement(children: .combine)
+            if let timeLeft = car.timeLeft {
+                Label {
+                    Text(.siriTimeToDestination(timeLeft.formatted(TripMapCarStatus.durationStyle)))
+                } icon: {
+                    Image(systemName: "clock.fill")
+                }
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            }
         }
+        .accessibilityElement(children: .combine)
         .padding()
     }
 }

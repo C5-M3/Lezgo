@@ -1090,6 +1090,18 @@
         }
       }
     },
+    "siriTimeAndArrival" : {
+      "comment" : "Siri card (US-08), \"How long left\": the time left and the arrival time, for example \"40 min left · arrive 6:30 PM\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ left · arrive %2$@"
+          }
+        }
+      }
+    },
     "siriTimeLeft" : {
       "comment" : "Siri (US-08): time and distance left. The placeholders are the time, the destination and the distance, for example \"14 min to Pantai Parangtritis, 12 km.\"",
       "extractionState" : "manual",
@@ -1126,14 +1138,14 @@
         }
       }
     },
-    "siriToDestination" : {
-      "comment" : "Siri card (US-08): under a car's time left, for example \"14 min\" over \"to destination\".",
+    "siriTimeToDestination" : {
+      "comment" : "Siri card (US-08), where a car is: its time left, for example \"40 min to destination\".",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "to destination"
+            "value" : "%@ to destination"
           }
         }
       }

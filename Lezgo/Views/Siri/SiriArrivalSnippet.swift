@@ -22,6 +22,7 @@ struct SiriArrivalSnippet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(confirmation.destinationName)
                     .font(.headline)
+                    .lineLimit(2)
                 Text(.siriFromDestinationPoint(
                     confirmation.distance.formatted(.measurement(width: .abbreviated, usage: .asProvided))
                 ))

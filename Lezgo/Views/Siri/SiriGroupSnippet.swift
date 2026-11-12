@@ -62,7 +62,13 @@ private struct SiriGroupRow: View {
                 Text(row.name)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
-                if let subtitle = row.subtitle {
+                // A car that is not with the group says why; the others say how far they are.
+                if row.reason != nil {
+                    Text(text)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(color)
+                        .lineLimit(1)
+                } else if let subtitle = row.subtitle {
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -70,14 +76,10 @@ private struct SiriGroupRow: View {
                 }
             }
             Spacer(minLength: 8)
-            Label {
-                Text(text)
-            } icon: {
-                Image(systemName: symbol)
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(color)
-            .lineLimit(1)
+            Image(systemName: symbol)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(color)
+                .accessibilityLabel(Text(text))
         }
         .accessibilityElement(children: .combine)
     }
