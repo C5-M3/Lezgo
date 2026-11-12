@@ -192,8 +192,8 @@ enum TripActivityContent {
     }
 
     /// Every car at its place along the route. Cars close together share one robot, which shows this phone's car
-    /// first, then a car with an alert, then the leader. With more groups than fit, this phone's car and the leader
-    /// stay.
+    /// first, then the leader; a car with an alert always keeps its own robot, so the driver sees which one it is.
+    /// With more groups than fit, this phone's car and the leader stay.
     private static func Robots(_ cars: [TripMapCarPin], on road: Road) -> [TripActivityAttributes.Robot] {
         let robots = cars
             .map { car in
@@ -209,22 +209,23 @@ enum TripActivityContent {
             .sorted { $0.progress < $1.progress }
         var groups: [TripActivityAttributes.Robot] = []
         for robot in robots {
-            guard let last = groups.last,
-                  robot.progress - last.progress < TripActivityAttributes.groupDistance else {
+            guard robot.isAlerting == false,
+                  let index = groups.lastIndex(where: { $0.isAlerting == false }),
+                  robot.progress - groups[index].progress < TripActivityAttributes.groupDistance else {
                 groups.append(robot)
                 continue
             }
+            let last = groups[index]
             var group = Priority(robot) > Priority(last) ? robot : last
             group.groupCount = last.groupCount + 1
-            groups[groups.count - 1] = group
+            groups[index] = group
         }
         let kept = groups.filter { $0.isMe || $0.isLeader } + groups.filter { $0.isMe == false && $0.isLeader == false }
         return Array(kept.prefix(TripActivityAttributes.maxRobots)).sorted { $0.progress < $1.progress }
     }
 
     private static func Priority(_ robot: TripActivityAttributes.Robot) -> Int {
-        if robot.isMe { return 3 }
-        if robot.isAlerting { return 2 }
+        if robot.isMe { return 2 }
         return robot.isLeader ? 1 : 0
     }
 
