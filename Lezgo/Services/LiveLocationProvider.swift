@@ -10,8 +10,9 @@ import Foundation
 
 /// This phone's GPS readings from CoreLocation, tuned for driving.
 ///
-/// While the stream is listened to, it keeps a `CLServiceSession` (asks for "When In Use" the first time, and for
-/// precise location while Precise Location is off) and a background session through `BackgroundLocationKeeper`, so
+/// While the stream is listened to, it keeps a `CLServiceSession` (asks for "When In Use" the first time, "Always"
+/// on the trip map, and precise location while Precise Location is off) and, with "While Using the App" access on
+/// the trip map, a background session through `BackgroundLocationKeeper`, so
 /// readings keep coming with the screen locked or another app in front (`UIBackgroundModes` has `location`). The
 /// background session is only kept with "While Using the App" access: "Always" access needs none, and none is kept
 /// while access is off. Readings without a fix or from more than a few seconds ago are skipped; to the sharer that
@@ -32,13 +33,22 @@ final class LiveLocationProvider: LocationProvider {
         self.keepsRunningInBackground = keepsRunningInBackground
     }
 
+    /// The access the stream asks for (ADR 0029). The trip map asks for "Always", so it can share with the screen
+    /// locked without a background session and its location arrow; iOS asks the person only once, and with "While
+    /// Using the App" the map keeps the background session. Other screens never need more than "While Using".
+    static func Authorization(keepsRunningInBackground: Bool) -> CLServiceSession.AuthorizationRequirement {
+        keepsRunningInBackground ? .always : .whenInUse
+    }
+
     func Readings() -> AsyncStream<LocationReading> {
         let keepsRunningInBackground = keepsRunningInBackground
         return AsyncStream { continuation in
             let task = Task {
                 // Without a full-accuracy purpose: asking for precise location "just this once" would ask again on
                 // every launch. Imprecise readings are reported instead, and the screens point to Settings.
-                let session = CLServiceSession(authorization: .whenInUse)
+                let session = CLServiceSession(
+                    authorization: Self.Authorization(keepsRunningInBackground: keepsRunningInBackground)
+                )
                 let background = keepsRunningInBackground ? BackgroundLocationKeeper() : nil
                 // Only reads the access level: the updates come from `liveUpdates`.
                 let authorization = CLLocationManager()
