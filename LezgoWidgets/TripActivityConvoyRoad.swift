@@ -129,6 +129,8 @@ private struct TripActivityConvoyRobot: View {
             .overlay(alignment: .topTrailing) {
                 TripActivityRobotBadge(robot: robot, size: size * 0.55)
             }
+            // A car with an alert drops just off the road, so it stands apart from the cars around it.
+            .offset(y: robot.isAlerting ? size * 0.3 : 0)
     }
 }
 

@@ -71,6 +71,7 @@ private struct TripActivityIslandTrailing: View {
             } else {
                 Text(state.shortTimeLeftText ?? "")
                     .font(.system(size: 19, weight: .black, design: .rounded))
+                    .fixedSize()
                 Text(state.arrivalTimeText ?? "")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white.opacity(0.6))
@@ -91,6 +92,8 @@ private struct TripActivityIslandCenter: View {
                 Text(alert.text)
                     .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundStyle(Color(.tripAlertRed))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(alert.detail ?? "")
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .foregroundStyle(.white.opacity(0.8))
@@ -168,9 +171,10 @@ private struct TripActivityCompactLeading: View {
                     .scaledToFit()
                     .accessibilityHidden(true)
                 if let turn = state.turn {
-                    Label(turn.distanceText, systemImage: turn.symbolName)
-                        .labelStyle(.titleAndIcon)
+                    // No arrow here: beside the camera there is only room for the robot and the distance.
+                    Text(turn.distanceText)
                         .foregroundStyle(Color(.brandYellow))
+                        .fixedSize()
                 } else if let status = state.statusText {
                     Text(status)
                         .foregroundStyle(.white.opacity(0.7))
