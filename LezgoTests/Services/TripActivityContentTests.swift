@@ -15,6 +15,19 @@ struct TripActivityContentTests {
     private static let route = [
         Fixtures.startPoint.coordinate, Fixtures.checkpoint.coordinate, Fixtures.destination.coordinate
     ]
+    /// A second checkpoint half way along the second leg, about three quarters along the route.
+    private static let secondCheckpoint = Waypoint(
+        id: UUID(), tripID: Fixtures.tripID, orderIndex: 2, kind: .checkpoint, name: "Rest area KM 57",
+        coordinate: Coordinate(latitude: -7.2908, longitude: 112.6978)
+    )
+    private static var lastStop: Waypoint {
+        var destination = Fixtures.destination
+        destination.orderIndex = 3
+        return destination
+    }
+    private static let waypoints = [Fixtures.startPoint, Fixtures.checkpoint, secondCheckpoint, lastStop]
+    /// Half way along the first leg, about a quarter along the route.
+    private static let quarterWay = Coordinate(latitude: -7.27715, longitude: 112.7285)
 
     private static func Pin(
         _ id: UUID,
@@ -43,30 +56,37 @@ struct TripActivityContentTests {
         Fixtures.agusID, "Agus", at: Fixtures.checkpoint.coordinate, color: .yellow, isLeader: true
     )
     private static let budi = Pin(Fixtures.budiID, "Budi", at: Fixtures.startPoint.coordinate, color: .blue, isMe: true)
-    private static let citra = Pin(Fixtures.citraID, "Citra", at: Fixtures.startPoint.coordinate, color: .pink)
+    private static let citra = Pin(Fixtures.citraID, "Citra", at: quarterWay, color: .pink)
 
     private static func Input(
         guidance: TripMapGuidance? = Fixtures.Guidance(minutesLeft: 80),
         isRerouting: Bool = false,
         cars: [TripMapCarPin] = [agus, budi, citra],
-        upcomingWaypoints: [Waypoint] = [Fixtures.checkpoint, Fixtures.destination],
+        waypoints: [Waypoint] = waypoints,
+        currentWaypointIndex: Int = 1,
         alertBanner: TripMapAlerts.Banner? = nil,
         arrivalCard: TripMapViewModel.ArrivalCard? = nil,
         arrivalProgress: TripMapArrivalProgress? = nil,
         isMuted: Bool = false
     ) -> TripActivityContent.Input {
         TripActivityContent.Input(
+            destinationName: "Pakuwon mall",
             guidance: guidance,
             isRerouting: isRerouting,
             cars: cars,
             route: route,
-            upcomingWaypoints: upcomingWaypoints,
+            waypoints: waypoints,
+            currentWaypointIndex: currentWaypointIndex,
             alertBanner: alertBanner,
             arrivalCard: arrivalCard,
             arrivalProgress: arrivalProgress,
             isMuted: isMuted,
             now: Fixtures.now
         )
+    }
+
+    private static func ArrivalClock(minutesLeft: Int) -> String {
+        Fixtures.now.addingTimeInterval(TimeInterval(minutesLeft * 60)).formatted(date: .omitted, time: .shortened)
     }
 
     @Test func TitleNamesTheDestination() {
@@ -81,26 +101,25 @@ struct TripActivityContentTests {
         #expect(turn.distanceText == "200 m")
         #expect(turn.instruction == "Turn right")
         #expect(state.timeLeftText == "1 hr, 20 min")
+        #expect(state.arrivalTimeText == Self.ArrivalClock(minutesLeft: 80))
     }
 
     @Test func CompactIslandGetsAShortTime() {
         #expect(TripActivityContent.State(Self.Input()).shortTimeLeftText == "1:20")
-        let soon = TripActivityContent.State(Self.Input(guidance: Fixtures.Guidance(minutesLeft: 9)))
-        #expect(soon.shortTimeLeftText == "0:09")
+        let soon = TripActivityContent.State(Self.Input(guidance: Fixtures.Guidance(minutesLeft: 33)))
+        #expect(soon.shortTimeLeftText == "33 min")
     }
 
-    @Test func DetailShowsDistanceLeftAndArrivalTime() throws {
+    @Test func DetailShowsDistanceLeftAndArrivalTime() {
         var guidance = Fixtures.Guidance(minutesLeft: 80)
         guidance.distanceLeft = Measurement(value: 64, unit: .kilometers)
         let state = TripActivityContent.State(Self.Input(guidance: guidance))
-        let arrival = Fixtures.now.addingTimeInterval(80 * 60).formatted(date: .omitted, time: .shortened)
-        #expect(state.detailText == "64 km · Arrive \(arrival)")
+        #expect(state.detailText == "64 km · Arrive \(Self.ArrivalClock(minutesLeft: 80))")
     }
 
     @Test func DetailWithoutDistanceLeftShowsOnlyTheArrivalTime() {
         let state = TripActivityContent.State(Self.Input())
-        let arrival = Fixtures.now.addingTimeInterval(80 * 60).formatted(date: .omitted, time: .shortened)
-        #expect(state.detailText == "Arrive \(arrival)")
+        #expect(state.detailText == "Arrive \(Self.ArrivalClock(minutesLeft: 80))")
     }
 
     @Test func NoGuidanceYetIsLoading() {
@@ -110,20 +129,39 @@ struct TripActivityContentTests {
         #expect(state.timeLeftText == nil)
     }
 
-    @Test func ReroutingHidesTheTurn() {
+    @Test func ReroutingHidesTheTurnAndSaysSo() {
         let state = TripActivityContent.State(Self.Input(isRerouting: true))
         #expect(state.stage == .rerouting)
         #expect(state.turn == nil)
+        #expect(state.statusText == "Rerouting…")
     }
 
-    @Test func NextStopIsTheFirstCheckpointAhead() {
-        let state = TripActivityContent.State(Self.Input())
-        #expect(state.nextStopText == "Next stop: Ciputra World")
+    @Test func HeadlineNamesTheNextStop() {
+        #expect(TripActivityContent.State(Self.Input()).headline == "Next stop · Ciputra World")
+        let later = TripActivityContent.State(Self.Input(currentWaypointIndex: 2))
+        #expect(later.headline == "Next stop · Rest area KM 57")
     }
 
-    @Test func OnlyTheDestinationLeftHasNoNextStop() {
-        let state = TripActivityContent.State(Self.Input(upcomingWaypoints: [Fixtures.destination]))
-        #expect(state.nextStopText == nil)
+    @Test func HeadlineNamesTheDestinationOnTheLastLeg() {
+        let state = TripActivityContent.State(Self.Input(currentWaypointIndex: 3))
+        #expect(state.headline == "To Pakuwon mall")
+    }
+
+    @Test func EveryCheckpointIsAStopOnTheRoad() throws {
+        let state = TripActivityContent.State(Self.Input(currentWaypointIndex: 2))
+        #expect(state.stops.map(\.number) == [1, 2])
+        let first = try #require(state.stops.first)
+        let second = try #require(state.stops.last)
+        #expect(first.isVisited)
+        #expect(second.isVisited == false)
+        #expect(first.progress > 0.35 && first.progress < 0.6)
+        #expect(second.progress > first.progress && second.progress < 1)
+    }
+
+    @Test func TripWithoutCheckpointsHasNoStops() {
+        let state = TripActivityContent.State(Self.Input(waypoints: [Fixtures.startPoint, Fixtures.destination]))
+        #expect(state.stops.isEmpty)
+        #expect(state.headline == "To Pakuwon mall")
     }
 
     @Test func MemberFollowsTheLeader() {
@@ -162,9 +200,10 @@ struct TripActivityContentTests {
         let agus = try #require(state.robots.first { $0.id == Fixtures.agusID })
         let budi = try #require(state.robots.first { $0.id == Fixtures.budiID })
         #expect(budi.progress == 0)
-        #expect(agus.progress > 0.3 && agus.progress < 0.7)
+        #expect(agus.progress > 0.35 && agus.progress < 0.6)
         #expect(agus.isLeader && agus.color == .yellow)
         #expect(budi.isMe && budi.color == .blue)
+        #expect(state.robots.allSatisfy { $0.groupCount == 1 })
     }
 
     @Test func RobotsPastTheEndStayOnTheRoad() throws {
@@ -175,24 +214,64 @@ struct TripActivityContentTests {
         #expect(robot.progress <= 1)
     }
 
+    @Test func CarsCloseTogetherShareOneRobotThatShowsMeFirst() throws {
+        let dani = Self.Pin(UUID(), "Dani", at: Fixtures.startPoint.coordinate, color: .green)
+        let state = TripActivityContent.State(Self.Input(cars: [dani, Self.budi, Self.agus]))
+        #expect(state.robots.count == 2)
+        let group = try #require(state.robots.first { $0.progress == 0 })
+        #expect(group.isMe)
+        #expect(group.groupCount == 2)
+    }
+
+    @Test func AnAlertingCarIsNotHiddenInAGroup() throws {
+        var citra = Self.citra
+        citra.isAlerting = true
+        let dani = Self.Pin(UUID(), "Dani", at: Self.quarterWay, color: .green)
+        let state = TripActivityContent.State(Self.Input(cars: [dani, citra, Self.budi, Self.agus]))
+        let group = try #require(state.robots.first { $0.groupCount == 2 })
+        #expect(group.id == Fixtures.citraID)
+        #expect(group.isAlerting)
+    }
+
     @Test func ManyCarsKeepMeAndTheLeaderOnTheRoad() {
-        let others = (0..<12).map { Self.Pin(UUID(), "Car \($0)", at: Fixtures.startPoint.coordinate, color: .green) }
+        let others = (1...12).map { index in
+            let fraction = Double(index) / 13
+            let point = Coordinate(
+                latitude: Fixtures.checkpoint.coordinate.latitude,
+                longitude: 112.7190 + (112.6766 - 112.7190) * fraction
+            )
+            return Self.Pin(UUID(), "Car \(index)", at: point, color: .green)
+        }
         let state = TripActivityContent.State(Self.Input(cars: others + [Self.budi, Self.agus]))
-        #expect(state.robots.count == TripActivityAttributes.maxRobots)
+        #expect(state.robots.count <= TripActivityAttributes.maxRobots)
         #expect(state.robots.contains { $0.isMe })
         #expect(state.robots.contains { $0.isLeader })
     }
 
-    @Test func AnotherCarsAlertUsesItsRobotAndTheMapText() throws {
+    @Test func AnotherCarsAlertUsesItsRobotTextAndDistance() throws {
         var citra = Self.citra
         citra.isAlerting = true
         let banner = TripMapAlerts.Banner.otherCar(id: Fixtures.citraID, name: "Citra", alert: .offRoute)
         let state = TripActivityContent.State(Self.Input(cars: [Self.agus, Self.budi, citra], alertBanner: banner))
         let alert = try #require(state.alert)
         #expect(alert.text == "Citra has gone out of route")
+        #expect(alert.shortText == "Off route")
         #expect(alert.color == .pink)
         #expect(alert.carName == "Citra")
+        #expect(alert.detail?.hasSuffix("ahead of you") == true)
         #expect(state.robots.first { $0.id == Fixtures.citraID }?.isAlerting == true)
+    }
+
+    @Test func StoppedCarBehindTheLeaderSaysHowFarBehind() throws {
+        var leader = Self.agus
+        leader.isMe = true
+        var budi = Self.budi
+        budi.isMe = false
+        let banner = TripMapAlerts.Banner.carStopped(id: Fixtures.citraID, name: "Citra")
+        let state = TripActivityContent.State(Self.Input(cars: [leader, budi, Self.citra], alertBanner: banner))
+        let alert = try #require(state.alert)
+        #expect(alert.shortText == "Stopped")
+        #expect(alert.detail?.hasSuffix("behind you") == true)
     }
 
     @Test func MyOwnAlertUsesMyRobot() throws {
@@ -200,17 +279,21 @@ struct TripActivityContentTests {
         let alert = try #require(state.alert)
         #expect(alert.color == .blue)
         #expect(alert.carName == "You")
+        #expect(alert.shortText == "Off route")
+        #expect(alert.detail == nil)
     }
 
-    @Test func ArrivedShowsTheTitleAndCount() throws {
+    @Test func ArrivedShowsTheTitleCountAndWhatIsNext() throws {
         let progress = TripMapArrivalProgress(robots: [], arrivedCount: 3, totalCount: 4)
         let state = TripActivityContent.State(
             Self.Input(arrivalCard: .waitingForEveryone, arrivalProgress: progress)
         )
         #expect(state.stage == .arrived)
+        #expect(state.headline == "Pakuwon mall")
         let arrival = try #require(state.arrival)
         #expect(arrival.title == "You have arrived")
         #expect(arrival.countText == "3/4")
+        #expect(arrival.detail == "Waiting for everyone to arrive")
         #expect(state.turn == nil)
     }
 
@@ -221,14 +304,12 @@ struct TripActivityContentTests {
         #expect(muted.muteLabel == "Unmute")
     }
 
-    @Test func VeryLongNamesAreKeptWhole() {
+    @Test func VeryLongStopNamesAreKeptWhole() {
         let name = "Rest area KM 57 Jalan Tol Jagorawi arah Puncak Bogor Jawa Barat"
-        let stop = Waypoint(
-            id: UUID(), tripID: Fixtures.tripID, orderIndex: 1, kind: .checkpoint, name: name,
-            coordinate: Fixtures.checkpoint.coordinate
-        )
-        let state = TripActivityContent.State(Self.Input(upcomingWaypoints: [stop, Fixtures.destination]))
-        #expect(state.nextStopText == "Next stop: \(name)")
+        var stop = Fixtures.checkpoint
+        stop.name = name
+        let state = TripActivityContent.State(Self.Input(waypoints: [Fixtures.startPoint, stop, Self.lastStop]))
+        #expect(state.headline == "Next stop · \(name)")
     }
 
     @Test func StateFitsActivityKitsSizeLimit() throws {
@@ -236,8 +317,14 @@ struct TripActivityContentTests {
             let name = String(repeating: "Bartholomew \($0) ", count: 4)
             return Self.Pin(UUID(), name, at: Fixtures.startPoint.coordinate, color: .green)
         }
-        let state = TripActivityContent.State(Self.Input(cars: cars + [Self.budi, Self.agus]))
-        let size = try JSONEncoder().encode(state).count
+        let stops = (1...10).map {
+            Waypoint(
+                id: UUID(), tripID: Fixtures.tripID, orderIndex: $0, kind: .checkpoint,
+                name: String(repeating: "Long stop name ", count: 6), coordinate: Fixtures.checkpoint.coordinate
+            )
+        }
+        let input = Self.Input(cars: cars + [Self.budi, Self.agus], waypoints: [Fixtures.startPoint] + stops)
+        let size = try JSONEncoder().encode(TripActivityContent.State(input)).count
         #expect(size < 4_096)
     }
 }

@@ -35,15 +35,18 @@ struct TripActivityUpdaterTests {
         TripActivityAttributes.ContentState(
             stage: stage,
             turn: TripActivityAttributes.Turn(symbolName: "arrow.up", distanceText: turnText, instruction: "Continue"),
+            headline: "To Puncak",
+            statusText: nil,
             timeLeftText: "1 hr, 20 min",
             shortTimeLeftText: "1:20",
+            arrivalTimeText: "11:01",
             detailText: nil,
-            nextStopText: nil,
             groupText: "Following Budi",
             isGroupWarning: false,
             alert: alert,
             arrival: nil,
             robots: [],
+            stops: [],
             myColor: .blue,
             isLeader: false,
             isMuted: isMuted,
@@ -119,7 +122,9 @@ struct TripActivityUpdaterTests {
         let updater = MakeUpdater()
         updater.Apply(Snapshot(State()))
         clock.now += 0.5
-        let alert = TripActivityAttributes.Alert(text: "Citra has gone out of route", color: .pink, carName: "Citra")
+        let alert = TripActivityAttributes.Alert(
+            text: "Citra has gone out of route", shortText: "Off route", detail: nil, color: .pink, carName: "Citra"
+        )
         updater.Apply(Snapshot(State(alert: alert)))
         #expect(updates == [.update(State(alert: alert))])
     }
