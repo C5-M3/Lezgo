@@ -15,6 +15,8 @@ import SwiftUI
 final class MapPickerViewModel {
     /// A move shorter than this keeps the nearby places; the chips would be nearly the same.
     static let nearbyRefreshDistance: CLLocationDistance = 100
+    /// The map reports the same center again when the card changes height; a move this small is not a move.
+    static let sameCenterTolerance: CLLocationDistance = 2
     /// A map that settles this close to a snapped place is still on that place.
     static let snapTolerance: CLLocationDistance = 30
 
@@ -63,6 +65,7 @@ final class MapPickerViewModel {
     /// The map stopped at `coordinate`.
     func CameraMoved(to coordinate: Coordinate) {
         isMoving = false
+        guard center.Distance(to: coordinate) > Self.sameCenterTolerance else { return }
         center = coordinate
         if let snappedPlace, snappedPlace.coordinate.Distance(to: coordinate) <= Self.snapTolerance { return }
         snappedPlace = nil

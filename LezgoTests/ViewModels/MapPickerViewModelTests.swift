@@ -64,6 +64,21 @@ struct MapPickerViewModelTests {
         #expect(viewModel.address == darmo)
     }
 
+    /// The card changes height while the address loads, which makes the map settle again on the same point and
+    /// report the same center; looking up again would cancel the lookup before it ends, so the address never shows.
+    @Test func TheSameCenterReportedAgainIsNotLookedUpAgain() async {
+        let service = MockPlaceLookupService()
+        let viewModel = MakeViewModel(service: service)
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        viewModel.CameraMoved(to: start)
+        await viewModel.lookupTask?.value
+
+        #expect(service.requestedAddresses == [start])
+        #expect(viewModel.address == darmo)
+    }
+
     @Test func OnlyTheLastOfQuickMovesIsLookedUp() async {
         let service = MockPlaceLookupService()
         let viewModel = MakeViewModel(service: service, debounce: .milliseconds(50))
