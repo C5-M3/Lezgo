@@ -79,6 +79,22 @@ struct TripAnswers {
         return Gap(metres: me.Distance(to: car), direction: .away)
     }
 
+    /// "1.2 km ahead", under a car's name on a Siri card; `nil` for this phone's own car or without both positions.
+    func ShortGap(to carID: UUID) -> String? {
+        guard carID != myParticipantID, let myCoordinate,
+              let car = state.participants.first(where: { $0.id == carID }), let coordinate = car.coordinate else {
+            return nil
+        }
+        let gap = MeasureGap(from: myCoordinate, to: coordinate)
+        guard gap.metres > Self.nextToYou else { return String(localized: .siriShortNextToYou) }
+        let distance = Spoken(metres: gap.metres)
+        switch gap.direction {
+        case .ahead: return String(localized: .siriShortAhead(distance))
+        case .behind: return String(localized: .siriShortBehind(distance))
+        case .away: return String(localized: .siriShortAway(distance))
+        }
+    }
+
     private func Sentence(name: String, gap: Gap, street: String?) -> String {
         guard gap.metres > Self.nextToYou else { return String(localized: .siriCarNextToYou(name)) }
         let distance = Spoken(metres: gap.metres)

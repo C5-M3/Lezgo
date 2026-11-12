@@ -802,6 +802,42 @@
         }
       }
     },
+    "siriCheckpointDistance" : {
+      "comment" : "Siri card (US-08), \"How long left\": the next checkpoint and its distance along the road.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checkpoint · %@"
+          }
+        }
+      }
+    },
+    "siriDestinationDistance" : {
+      "comment" : "Siri card (US-08), \"How long left\": the destination and its distance.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination · %@"
+          }
+        }
+      }
+    },
+    "siriFromDestinationPoint" : {
+      "comment" : "Siri card (US-08) while asking \"Arrived at …?\". The placeholder is the distance, for example \"200 m\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ from the destination point"
+          }
+        }
+      }
+    },
     "siriMuted" : {
       "comment" : "Siri (US-08): after \"Mute Lezgo\".",
       "extractionState" : "manual",
@@ -862,6 +898,54 @@
         }
       }
     },
+    "siriShortAhead" : {
+      "comment" : "Siri card (US-08): a short distance under a car's name, for example \"1.2 km ahead\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ahead"
+          }
+        }
+      }
+    },
+    "siriShortAway" : {
+      "comment" : "Siri card (US-08): a short straight-line distance under a car's name, for example \"400 m away\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ away"
+          }
+        }
+      }
+    },
+    "siriShortBehind" : {
+      "comment" : "Siri card (US-08): a short distance under a car's name, for example \"400 m behind\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ behind"
+          }
+        }
+      }
+    },
+    "siriShortNextToYou" : {
+      "comment" : "Siri card (US-08): the car is within 50 m.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next to you"
+          }
+        }
+      }
+    },
     "siriSomeWithGroup" : {
       "comment" : "Siri (US-08): some cars are offline or have an alert. The placeholders are how many are with the group and how many cars there are.",
       "extractionState" : "manual",
@@ -870,6 +954,114 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld of %2$lld cars are with the group."
+          }
+        }
+      }
+    },
+    "siriStatusAheadOfLeader" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": this car has the ahead-of-leader alert.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ahead of the leader"
+          }
+        }
+      }
+    },
+    "siriStatusArrived" : {
+      "comment" : "Siri card (US-08), after \"I've Arrived\": this car has arrived.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrived"
+          }
+        }
+      }
+    },
+    "siriStatusOffline" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": this car sent no position for 2 minutes.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
+          }
+        }
+      }
+    },
+    "siriStatusOffRoute" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": this car has the off-route alert.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off the route"
+          }
+        }
+      }
+    },
+    "siriStatusOnTheWay" : {
+      "comment" : "Siri card (US-08), after \"I've Arrived\": this car has not arrived yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the way"
+          }
+        }
+      }
+    },
+    "siriStatusPassedCheckpoint" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": this car has the passed-checkpoint alert.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passed a checkpoint"
+          }
+        }
+      }
+    },
+    "siriStatusPassedDestination" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": this car has the passed-destination alert.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passed the destination"
+          }
+        }
+      }
+    },
+    "siriStatusWithGroup" : {
+      "comment" : "Siri card (US-08), \"Is everyone with me\": this car is online with no alert.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "With the group"
+          }
+        }
+      }
+    },
+    "siriSubtitle" : {
+      "comment" : "Siri card (US-08): two short facts under a car's name, for example \"Leader · Driving\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
           }
         }
       }
@@ -922,6 +1114,18 @@
         }
       }
     },
+    "siriToDestination" : {
+      "comment" : "Siri card (US-08): under a car's time left, for example \"14 min\" over \"to destination\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to destination"
+          }
+        }
+      }
+    },
     "siriUnmuted" : {
       "comment" : "Siri (US-08): after \"Unmute Lezgo\".",
       "extractionState" : "manual",
@@ -930,6 +1134,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Voice alerts are on."
+          }
+        }
+      }
+    },
+    "siriVoiceAlertsOff" : {
+      "comment" : "Siri card (US-08) after \"Mute Lezgo\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice alerts off"
+          }
+        }
+      }
+    },
+    "siriVoiceAlertsOffDetail" : {
+      "comment" : "Siri card (US-08) after \"Mute Lezgo\", under \"Voice alerts off\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns and alerts are silent"
+          }
+        }
+      }
+    },
+    "siriVoiceAlertsOn" : {
+      "comment" : "Siri card (US-08) after \"Unmute Lezgo\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voice alerts on"
+          }
+        }
+      }
+    },
+    "siriVoiceAlertsOnDetail" : {
+      "comment" : "Siri card (US-08) after \"Unmute Lezgo\", under \"Voice alerts on\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turns and alerts are spoken"
           }
         }
       }

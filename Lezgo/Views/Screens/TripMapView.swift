@@ -107,6 +107,11 @@ struct TripMapView: View {
         .onDisappear {
             activeTripMap.Hide(viewModel)
             viewModel.sound.Stop()
+            LezgoShortcuts.RefreshCarNames()
+        }
+        // Siri learns the cars' names, so "Where's Budi in Lezgo" works (US-08).
+        .onChange(of: viewModel.siriCarNames, initial: true) {
+            LezgoShortcuts.RefreshCarNames()
         }
         .task { await PlayStartIntro() }
         .task(id: viewModel.selectedCarID) { await viewModel.TrackSelectedCar() }

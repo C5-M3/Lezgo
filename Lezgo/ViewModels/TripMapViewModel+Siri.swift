@@ -23,6 +23,12 @@ extension TripMapViewModel {
         )
     }
 
+    /// The names Siri knows the cars by; the map tells Siri again when one changes.
+    var siriCarNames: [String] {
+        guard let state else { return [] }
+        return state.participants.map { state.DisplayName(of: $0) }
+    }
+
     /// "Mute Lezgo" / "Unmute Lezgo": the same switch as the map's Mute button, so the map and CarPlay follow it.
     func SetMuted(_ muted: Bool) {
         sound.SetMuted(muted)
