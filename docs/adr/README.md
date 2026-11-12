@@ -43,3 +43,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0026](0026-ManualPromotionWorkflow.md) | Manual workflow that promotes trunk branches without a pull request | Proposed | 2026-11-10 |
 | [0027](0027-ChooseOnMapWithNativeMapKit.md) | Choose on map with native SwiftUI Map and MapKit | Accepted | 2026-11-12 |
 | [0028](0028-LiveActivityInAWidgetExtension.md) | Live Activity for the trip in a widget extension | Proposed | 2026-11-12 |
+| [0029](0029-AskForAlwaysLocationWhenTheTripStarts.md) | Ask for "Always" location when the trip starts | Proposed | 2026-11-12 |
