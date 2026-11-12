@@ -15,6 +15,12 @@ struct LezgoApp: App {
     /// Mirrors the open trip map on the Lock Screen and in the Dynamic Island (ADR 0028).
     private let tripActivityUpdater = TripActivityUpdater(activity: LiveTripLiveActivity())
 
+    init() {
+        // Runs before any screen, also when iOS starts the app in the background to carry on a session left open
+        // when it was closed during a trip; without this the location arrow stays until the phone restarts (#316).
+        BackgroundLocationKeeper.EndLeftover()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
