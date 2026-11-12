@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Where every Siri intent finds the trip (ADR 0028): the trip map open on this phone, the same one CarPlay mirrors.
+/// Where every Siri intent finds the trip (ADR 0030): the trip map open on this phone, the same one CarPlay mirrors.
 struct SiriTripMap {
     let tripMap: TripMapViewModel
     let answers: TripAnswers

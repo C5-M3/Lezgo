@@ -943,7 +943,7 @@ Feature: Arrive, continue, leave and end
 <a id="us-08"></a>
 ## US-08 — As a leader or member, I want to ask Siri about the trip so that I know where the group is without looking at the phone.
 
-**Lo-fi:** none; Siri draws its own screens. Mockup: the Siri screens in the feature proposal shared with the team. Decision record: [ADR 0028](../docs/adr/0028-SiriWithAppIntents.md).
+**Lo-fi:** none; Siri draws its own screens. Mockup: the Siri screens in the feature proposal shared with the team. Decision record: [ADR 0030](../docs/adr/0030-SiriWithAppIntents.md).
 
 ### Rules
 

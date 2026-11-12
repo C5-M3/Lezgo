@@ -7,7 +7,7 @@
 
 import AppIntents
 
-/// The Siri phrases of US-08 (ADR 0028). They work as soon as the app is installed, and show in the Shortcuts app and
+/// The Siri phrases of US-08 (ADR 0030). They work as soon as the app is installed, and show in the Shortcuts app and
 /// Spotlight. Every phrase names the app, as Apple requires.
 struct LezgoShortcuts: AppShortcutsProvider {
     static let shortcutTileColor: ShortcutTileColor = .yellow

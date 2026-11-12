@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// What Siri says about the trip on the road (`specs/UserStories.md` → US-08, ADR 0028).
+/// What Siri says about the trip on the road (`specs/UserStories.md` → US-08, ADR 0030).
 ///
 /// The Siri intents stay thin: they take the open trip map, build one of these from what it shows, and speak the
 /// sentence. Every rule and every word lives here, so it is tested like any other logic.
