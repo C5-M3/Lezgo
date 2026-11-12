@@ -17,6 +17,8 @@ struct HomeView: View {
     @State private var isJoinTripPresented: Bool = false
     @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
+    /// Links Siri hands over inside the app (US-08).
+    private let incomingLinks = IncomingLinks.shared
 
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
 
@@ -141,6 +143,12 @@ struct HomeView: View {
             viewModel.OpenInviteLink(url)
             // "Create a trip" from Siri arrives as `lezgo://plan?to=…` (US-08).
             viewModel.OpenPlanLink(url)
+        }
+        // "Join a trip" and "Create a trip" from Siri hand their link over here (US-08); a cold start finds it waiting.
+        .onChange(of: incomingLinks.pending, initial: true) {
+            guard let link = incomingLinks.Take() else { return }
+            viewModel.OpenInviteLink(link)
+            viewModel.OpenPlanLink(link)
         }
         .onChange(of: viewModel.plannedDestination) { _, destination in
             guard let destination else { return }

@@ -13,6 +13,8 @@ import Foundation
 struct CreateTripIntent: AppIntent {
     static let title: LocalizedStringResource = "Create a Trip"
     static let description = IntentDescription("Opens Lezgo to plan a trip, searching for the place you say.")
+    /// The app comes to the front before `perform` runs, so Set Route opens when Siri finishes.
+    static let supportedModes: IntentModes = .foreground(.immediate)
 
     @Parameter(title: "Destination", requestValueDialog: "Where to?")
     var destination: String
@@ -32,12 +34,15 @@ struct CreateTripIntent: AppIntent {
     }
 
     @MainActor
-    func perform() async throws -> some IntentResult & OpensIntent {
+    func perform() async throws -> some IntentResult & ProvidesDialog {
         guard Self.HasTripOnThisPhone() == false else { throw Refusal.alreadyInTrip }
-        guard let link = PlanLink.Make(destination: destination) else {
+        guard let link = PlanLink.Make(destination: destination),
+              let place = PlanLink.Destination(from: link) else {
             throw $destination.needsValueError(IntentDialog(stringLiteral: String(localized: .siriWhereToAgain)))
         }
-        return .result(opensIntent: OpenURLIntent(link))
+        // Siri cannot open the app's own `lezgo://` links, so Home takes it inside the app.
+        IncomingLinks.shared.Open(link)
+        return .result(dialog: IntentDialog(stringLiteral: String(localized: .siriPlanningTrip(place))))
     }
 
     /// A trip on the road, in the Trip Room or a draft (US-03): Home keeps it, so Siri says so instead of opening.

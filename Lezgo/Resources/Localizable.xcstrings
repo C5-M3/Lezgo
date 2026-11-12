@@ -922,6 +922,30 @@
         }
       }
     },
+    "siriOpeningRoom" : {
+      "comment" : "Siri (US-08), \"Join a trip\": Lezgo opens the join dialog with this room code filled in.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opening room %@ in Lezgo. Tap Join to join."
+          }
+        }
+      }
+    },
+    "siriPlanningTrip" : {
+      "comment" : "Siri (US-08), \"Create a trip\": Lezgo opens Set Route searching for this place.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Planning a trip to %@ in Lezgo. Pick the place to continue."
+          }
+        }
+      }
+    },
     "siriRoomCodeInvalid" : {
       "comment" : "Siri (US-08), \"Join a trip\": what was said is not six digits, so Siri asks again.",
       "extractionState" : "manual",
