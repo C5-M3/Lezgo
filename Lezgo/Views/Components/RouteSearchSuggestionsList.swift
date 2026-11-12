@@ -53,23 +53,38 @@ struct RouteSearchSuggestionsList: View {
     }
 
     private var currentLocationRow: some View {
-        Button(action: onSelectCurrentLocation) {
+        quickOptionRow(
+            systemImage: "location.fill",
+            title: "Current Location",
+            subtitle: "Use GPS position",
+            action: onSelectCurrentLocation
+        )
+    }
+
+    /// A row that picks a place without typing: a yellow icon in a gray circle, a title and one short line.
+    private func quickOptionRow(
+        systemImage: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
             HStack(spacing: 14) {
                 Circle()
                     .fill(Color(white: 0.18))
                     .frame(width: 42, height: 42)
                     .overlay(
-                        Image(systemName: "location.fill")
+                        Image(systemName: systemImage)
                             .font(.callout)
                             .foregroundStyle(Color(.brandYellow))
                             .accessibilityHidden(true)
                     )
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Current Location")
+                    Text(title)
                         .font(.headline)
                         .foregroundStyle(.white)
-                    Text("Use GPS position")
+                    Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(Color(white: 0.6))
                 }
