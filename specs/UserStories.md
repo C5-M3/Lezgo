@@ -951,8 +951,8 @@ Feature: Arrive, continue, leave and end
 - Siri answers while the trip map is open on this phone, also with the screen locked, another app in front, or on CarPlay. It never opens the app.
 - Otherwise (no trip, the Trip Room, or the app was closed) every phrase answers "No trip is on the road. Open Lezgo to start or join one."
 - Every answer is spoken. On the phone, Siri also shows it as a small card; on CarPlay it is spoken only.
-- Siri cannot end, exit or plan a trip, remove a participant or hand over the lead. Those stay on the screen with their confirmation (US-05, US-07).
-- "Join a trip" is the one phrase that works without a trip on the road: it opens Lezgo with the room code filled in, like an invite link.
+- Siri cannot end or exit a trip, remove a participant or hand over the lead. Those stay on the screen with their confirmation (US-05, US-07).
+- "Join a trip" and "Create a trip" work without a trip on the road: they open Lezgo with the code or the destination filled in, and the person finishes on the screen.
 
 **Phrases**
 
@@ -967,6 +967,7 @@ Each action has more than one phrase; the app's name is always in it. These are 
 | "Mute Lezgo" / "Unmute Lezgo" | Everyone | Turns voice guidance and chimes off or on |
 | "I've arrived in Lezgo" | Everyone | "I've Arrived" (US-07), after a question |
 | "Join a trip in Lezgo" | Anyone | Asks for the room code, then opens the join dialog with it filled in |
+| "Create a trip in Lezgo" | Anyone | Asks "Where to?", then opens Set Route searching for that place |
 
 **Where a car is** (the leader, or a car by name)
 - "Agus is 1.2 km ahead, on Ahmad Yani Street." "ahead" or "behind" follows the group's road; "away" when either car is off it. Under 1 km the distance is in metres, rounded to 10 m; from 1 km, in km with one decimal.
@@ -996,6 +997,12 @@ Each action has more than one phrase; the app's name is always in it. These are 
 - Siri asks "What's the room code?". The driver says the 6 digits, with or without pauses ("245 245"), or as words ("two four five two four five"). Siri may also take the code from the first sentence ("Join 245245 in Lezgo").
 - Anything that is not 6 digits: Siri asks again, "That isn't a 6-digit room code. What's the room code?"
 - A valid code opens Lezgo with the join dialog filled in, exactly as an invite link does (US-02). The person taps "Join" there; Siri never joins on its own, so a misheard code cannot add the car to the wrong trip.
+
+**Create a trip**
+- Siri asks "Where to?". Siri may also take the place from the first sentence ("Create a trip to Malang in Lezgo"). Other phrases: "Plan a trip in Lezgo", "Start a Lezgo trip".
+- An empty answer: Siri asks again, "Where do you want to go?"
+- Lezgo opens Set Route (US-01) with the current location as the start point and the destination search already showing the place ("Malang"). The person picks the right result, checks the route and taps "Next" as usual. Siri never picks a place or creates the trip itself: "Malang" can mean several places, and the route needs a look on the map.
+- With a trip already on the phone (on the road, in the Trip Room or a draft, US-03): "You're already in a trip. Open Lezgo to continue it." and nothing opens. The place is cut to 100 characters.
 
 **I've arrived**
 - Follows the "I've Arrived" rules (US-07): only within 1 km of the destination, and only before the car has arrived.
@@ -1085,6 +1092,18 @@ Feature: Ask Siri about the trip
   Scenario: Join with a wrong code
     When "Dewi" asks Siri "Join a trip in Lezgo" and answers "89765"
     Then Siri says "That isn't a 6-digit room code. What's the room code?"
+
+  Scenario: Create a trip by voice
+    Given "Dewi" has no trip
+    When "Dewi" asks Siri "Create a trip in Lezgo"
+    Then Siri asks "Where to?"
+    When "Dewi" answers "Malang"
+    Then Lezgo opens Set Route with the destination search showing "Malang"
+
+  Scenario: Create a trip while already in one
+    Given "Budi" is in trip "897654"
+    When "Budi" asks Siri "Create a trip in Lezgo" and answers "Malang"
+    Then Siri says "You're already in a trip. Open Lezgo to continue it."
 
   Scenario: Siri cannot end the trip
     When "Agus" asks Siri "End my trip in Lezgo"
