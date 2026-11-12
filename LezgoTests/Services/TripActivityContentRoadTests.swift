@@ -60,14 +60,18 @@ struct TripActivityContentRoadTests {
         #expect(group.groupCount == 2)
     }
 
-    @Test func AnAlertingCarIsNotHiddenInAGroup() throws {
+    /// The driver must see which car the alert is about, even when it is right next to their own car.
+    @Test func AnAlertingCarAlwaysHasItsOwnRobot() throws {
         var citra = Sample.citra
+        citra.coordinate = Fixtures.startPoint.coordinate
         citra.isAlerting = true
-        let dani = Sample.Pin(UUID(), "Dani", at: Sample.quarterWay, color: .green)
+        let dani = Sample.Pin(UUID(), "Dani", at: Fixtures.startPoint.coordinate, color: .green)
         let state = TripActivityContent.State(Sample.Input(cars: [dani, citra, Sample.budi, Sample.agus]))
-        let group = try #require(state.robots.first { $0.groupCount == 2 })
-        #expect(group.id == Fixtures.citraID)
-        #expect(group.isAlerting)
+        let alerting = try #require(state.robots.first { $0.id == Fixtures.citraID })
+        #expect(alerting.isAlerting)
+        #expect(alerting.groupCount == 1)
+        let mine = try #require(state.robots.first { $0.isMe })
+        #expect(mine.groupCount == 2)
     }
 
     @Test func ManyCarsKeepMeAndTheLeaderOnTheRoad() {
