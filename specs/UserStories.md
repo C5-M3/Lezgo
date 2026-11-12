@@ -951,7 +951,8 @@ Feature: Arrive, continue, leave and end
 - Siri answers while the trip map is open on this phone, also with the screen locked, another app in front, or on CarPlay. It never opens the app.
 - Otherwise (no trip, the Trip Room, or the app was closed) every phrase answers "No trip is on the road. Open Lezgo to start or join one."
 - Every answer is spoken. On the phone, Siri also shows it as a small card; on CarPlay it is spoken only.
-- Siri cannot end, exit, join or plan a trip, remove a participant or hand over the lead. Those stay on the screen with their confirmation (US-05, US-07).
+- Siri cannot end, exit or plan a trip, remove a participant or hand over the lead. Those stay on the screen with their confirmation (US-05, US-07).
+- "Join a trip" is the one phrase that works without a trip on the road: it opens Lezgo with the room code filled in, like an invite link.
 
 **Phrases**
 
@@ -965,6 +966,7 @@ Each action has more than one phrase; the app's name is always in it. These are 
 | "How long left in Lezgo" | Everyone | Time and distance to the destination |
 | "Mute Lezgo" / "Unmute Lezgo" | Everyone | Turns voice guidance and chimes off or on |
 | "I've arrived in Lezgo" | Everyone | "I've Arrived" (US-07), after a question |
+| "Join a trip in Lezgo" | Anyone | Asks for the room code, then opens the join dialog with it filled in |
 
 **Where a car is** (the leader, or a car by name)
 - "Agus is 1.2 km ahead, on Ahmad Yani Street." "ahead" or "behind" follows the group's road; "away" when either car is off it. Under 1 km the distance is in metres, rounded to 10 m; from 1 km, in km with one decimal.
@@ -989,6 +991,11 @@ Each action has more than one phrase; the app's name is always in it. These are 
 **Mute and unmute**
 - The same switch as the map's Mute button (US-06, "Sound"); the map and CarPlay show the new state at once.
 - "Voice alerts are off. Banners still show on the map." / "Voice alerts are on." Asking for the state it is already in gives the same answer.
+
+**Join a trip**
+- Siri asks "What's the room code?". The driver says the 6 digits, with or without pauses ("245 245"), or as words ("two four five two four five"). Siri may also take the code from the first sentence ("Join 245245 in Lezgo").
+- Anything that is not 6 digits: Siri asks again, "That isn't a 6-digit room code. What's the room code?"
+- A valid code opens Lezgo with the join dialog filled in, exactly as an invite link does (US-02). The person taps "Join" there; Siri never joins on its own, so a misheard code cannot add the car to the wrong trip.
 
 **I've arrived**
 - Follows the "I've Arrived" rules (US-07): only within 1 km of the destination, and only before the car has arrived.
@@ -1067,6 +1074,17 @@ Feature: Ask Siri about the trip
     Given no trip map is open on the phone
     When anyone asks Siri "Where's the leader in Lezgo"
     Then Siri says "No trip is on the road. Open Lezgo to start or join one."
+
+  Scenario: Join a trip by voice
+    Given "Dewi" has no trip
+    When "Dewi" asks Siri "Join a trip in Lezgo"
+    Then Siri asks "What's the room code?"
+    When "Dewi" answers "897 654"
+    Then Lezgo opens with the join dialog showing the code "897654"
+
+  Scenario: Join with a wrong code
+    When "Dewi" asks Siri "Join a trip in Lezgo" and answers "89765"
+    Then Siri says "That isn't a 6-digit room code. What's the room code?"
 
   Scenario: Siri cannot end the trip
     When "Agus" asks Siri "End my trip in Lezgo"

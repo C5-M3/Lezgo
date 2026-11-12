@@ -32,7 +32,10 @@ run two safe actions (mute and "I've Arrived"), as specified in US-08.
   mute or unmute, and "I've Arrived". Each is an `AppIntent` with `supportedModes = .background`, so it answers
   without opening the app, and returns a spoken `IntentDialog`; on the phone it also shows a small snippet view.
 - **No destructive intents:** End Trip, Exit Trip, removing a participant and handing over the lead stay on the
-  screen with the shared confirmation. Joining and planning a trip need typing, so they stay in the app too.
+  screen with the shared confirmation. Planning a trip needs a map, so it stays in the app.
+- **Join by voice:** "Join a trip in Lezgo" asks for the room code and opens the app with the join dialog filled in,
+  through the same `lezgo://join?code=` link as an invite (ADR 0020). The person still taps "Join", so a misheard
+  code never adds the car to the wrong trip.
 - **Where the answers come from:** the intents read the open trip map through `ActiveTripMap.shared`, the same
   object CarPlay reads. With no trip map open (no trip, Trip Room, or the app was closed), every intent answers
   "No trip is on the road. Open Lezgo to start or join one."
