@@ -1,5 +1,5 @@
 //
-//  CreateTripIntentTests.swift
+//  SiriTripMapTests.swift
 //  LezgoTests
 //
 //  Created by Nathan Sudiara on 12/11/26.
@@ -8,11 +8,12 @@
 import Testing
 @testable import Lezgo
 
-/// "Create a trip" from Siri opens nothing while this phone already has a trip (`specs/UserStories.md` → US-08).
+/// "Join a trip" and "Create a trip" from Siri change nothing while this phone already has a trip
+/// (`specs/UserStories.md` → US-08).
 @MainActor
-struct CreateTripIntentTests {
+struct SiriTripMapTests {
     @Test func NoTripOnThePhoneLetsSiriPlanOne() {
-        #expect(CreateTripIntent.HasTripOnThisPhone(
+        #expect(SiriTripMap.HasTripOnThisPhone(
             activeTripMap: ActiveTripMap(),
             storage: FakeActiveTripStorage()
         ) == false)
@@ -22,7 +23,7 @@ struct CreateTripIntentTests {
         let session = TripSession(myParticipantID: TripFixtures.budiID, state: TripMapFixtures.State())
         let storage = FakeActiveTripStorage(initial: .From(session: session))
 
-        #expect(CreateTripIntent.HasTripOnThisPhone(activeTripMap: ActiveTripMap(), storage: storage))
+        #expect(SiriTripMap.HasTripOnThisPhone(activeTripMap: ActiveTripMap(), storage: storage))
     }
 
     @Test func OpenTripMapCounts() {
@@ -35,6 +36,6 @@ struct CreateTripIntentTests {
             streetNameService: MockStreetNameService()
         ))
 
-        #expect(CreateTripIntent.HasTripOnThisPhone(activeTripMap: activeTripMap, storage: FakeActiveTripStorage()))
+        #expect(SiriTripMap.HasTripOnThisPhone(activeTripMap: activeTripMap, storage: FakeActiveTripStorage()))
     }
 }
