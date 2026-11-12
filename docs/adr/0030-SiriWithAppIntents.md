@@ -36,6 +36,9 @@ run two safe actions (mute and "I've Arrived"), as specified in US-08.
 - **Join by voice:** "Join a trip in Lezgo" asks for the room code and opens the app with the join dialog filled in,
   through the same `lezgo://join?code=` link as an invite (ADR 0020). The person still taps "Join", so a misheard
   code never adds the car to the wrong trip.
+- **Handing links to the app:** Siri's `OpenURLIntent` refuses the app's own `lezgo://` scheme ("URL scheme is
+  unsupported; launch is prohibited"), so join and create run with `supportedModes = .foreground(.immediate)` and
+  leave their link in `IncomingLinks.shared`, which Home reads like a link from `onOpenURL`.
 - **Create by voice:** "Create a trip in Lezgo" asks "Where to?" and opens Set Route with the destination search
   showing that place, through a new `lezgo://plan?to=` link that Home reads. Siri never picks the place or creates
   the trip: a name like "Malang" matches several places, and the route needs a look on the map. Agreed with R (Home)
