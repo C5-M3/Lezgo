@@ -39,6 +39,17 @@ struct TripRoomHeader: View {
                 .frame(height: mapHeight / 2)
                 .allowsHitTesting(false)
         }
+        .visualEffect { content, proxy in
+            let pull = proxy.frame(in: .scrollView).minY
+            return content.scaleEffect(Self.PullZoom(pull: pull, mapHeight: mapHeight), anchor: .bottom)
+        }
+    }
+
+    /// Pulling the page down moves the map down with it and would show black above it. Zooming the map around its
+    /// bottom edge by the pulled distance keeps its top at the top of the screen and its bottom where the page has it.
+    /// At rest, or when scrolled up, the map keeps its own size.
+    static func PullZoom(pull: CGFloat, mapHeight: CGFloat) -> CGFloat {
+        1 + max(0, pull) / mapHeight
     }
 
     private var title: some View {
