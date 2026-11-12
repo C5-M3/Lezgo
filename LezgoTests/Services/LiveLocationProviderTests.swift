@@ -88,4 +88,13 @@ struct LiveLocationProviderTests {
     @Test func NoFixIsSkipped() {
         #expect(LiveLocationProvider.Reading(from: nil) == nil)
     }
+
+    /// ADR 0029: only the trip map, which shares with the screen locked, asks for "Always".
+    @Test func TripMapAsksForAlwaysAccess() {
+        #expect(LiveLocationProvider.Authorization(keepsRunningInBackground: true) == .always)
+    }
+
+    @Test func OtherScreensAskOnlyWhileUsingTheApp() {
+        #expect(LiveLocationProvider.Authorization(keepsRunningInBackground: false) == .whenInUse)
+    }
 }
