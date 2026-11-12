@@ -9,7 +9,7 @@ import ActivityKit
 import Foundation
 
 /// The trip's Live Activity on the Lock Screen, in the Dynamic Island, on the CarPlay dashboard, on Apple Watch and
-/// on a Mac (ADR 0027).
+/// on a Mac (ADR 0028).
 ///
 /// It shows only the current leg: from the last stop (or the start) to the next stop, with every car on the way.
 /// Alerts and turns stay in the app. Shared by the app, which fills it from the open trip map, and the

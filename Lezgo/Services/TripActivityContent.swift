@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Turns what the trip map shows into the trip's Live Activity (ADR 0027).
+/// Turns what the trip map shows into the trip's Live Activity (ADR 0028).
 ///
 /// The activity shows only the current leg, the part of the route from the last stop (or the start) to the next
 /// stop, and moves on when the leader passes a stop. Pure, so every rule is unit tested;

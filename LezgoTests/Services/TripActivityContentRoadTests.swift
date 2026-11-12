@@ -9,7 +9,7 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// The robots on the Live Activity's road, which covers only the current leg (ADR 0027).
+/// The robots on the Live Activity's road, which covers only the current leg (ADR 0028).
 @MainActor
 struct TripActivityContentRoadTests {
     private typealias Fixtures = TripMapFixtures

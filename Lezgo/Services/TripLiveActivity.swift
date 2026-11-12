@@ -8,7 +8,7 @@
 import ActivityKit
 import Foundation
 
-/// Shows the trip's Live Activity (ADR 0027). `LiveTripLiveActivity` uses ActivityKit; tests use a mock.
+/// Shows the trip's Live Activity (ADR 0028). `LiveTripLiveActivity` uses ActivityKit; tests use a mock.
 protocol TripLiveActivity: AnyObject {
     /// Shows a new activity. `false` when iOS refused, for example because Live Activities are off for Lezgo.
     func Start(_ attributes: TripActivityAttributes, state: TripActivityAttributes.ContentState) -> Bool
@@ -19,7 +19,7 @@ protocol TripLiveActivity: AnyObject {
     func EndLeftovers()
 }
 
-/// The real Live Activity, updated from the phone itself: there is no push server (ADR 0027).
+/// The real Live Activity, updated from the phone itself: there is no push server (ADR 0028).
 final class LiveTripLiveActivity: TripLiveActivity {
     /// iOS greys the activity out when the app has not updated it for this long, as a car counts as offline then.
     private static let staleAfter = Participant.offlineAfter

@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Keeps the trip's Live Activity in step with the trip map open on the phone (ADR 0027).
+/// Keeps the trip's Live Activity in step with the trip map open on the phone (ADR 0028).
 ///
 /// Like CarPlay, it owns no trip: it reads the map in `ActiveTripMap` once a second. The activity starts when a map
 /// opens and ends when it closes. Changes go out at most every 2 seconds, so ActivityKit does not throttle the app,

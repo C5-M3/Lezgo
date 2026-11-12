@@ -9,7 +9,7 @@ import SwiftUI
 import WidgetKit
 
 /// The trip's Live Activity on the Lock Screen, in the Dynamic Island, on a Mac, on the CarPlay dashboard and on
-/// Apple Watch (ADR 0027).
+/// Apple Watch (ADR 0028).
 struct TripLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: TripActivityAttributes.self) { context in

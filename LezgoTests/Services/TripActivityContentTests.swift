@@ -9,7 +9,7 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// What the trip's Live Activity says: the current leg, its time and its ends (ADR 0027).
+/// What the trip's Live Activity says: the current leg, its time and its ends (ADR 0028).
 @MainActor
 struct TripActivityContentTests {
     private typealias Fixtures = TripMapFixtures

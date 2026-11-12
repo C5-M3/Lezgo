@@ -8,7 +8,7 @@
 import SwiftUI
 import WidgetKit
 
-/// Lezgo's widget extension: only the trip's Live Activity (ADR 0027).
+/// Lezgo's widget extension: only the trip's Live Activity (ADR 0028).
 @main
 struct LezgoWidgetsBundle: WidgetBundle {
     var body: some Widget {

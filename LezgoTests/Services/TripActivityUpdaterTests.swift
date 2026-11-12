@@ -9,7 +9,7 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// When the trip's Live Activity starts, changes and ends (ADR 0027).
+/// When the trip's Live Activity starts, changes and ends (ADR 0028).
 @MainActor
 struct TripActivityUpdaterTests {
     private final class Clock {

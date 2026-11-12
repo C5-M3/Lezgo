@@ -12,7 +12,7 @@ struct LezgoApp: App {
     /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017). Trips sync through CloudKit
     /// (ADR 0014); previews and tests use `InMemoryTripService` instead.
     private let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
-    /// Mirrors the open trip map on the Lock Screen and in the Dynamic Island (ADR 0027).
+    /// Mirrors the open trip map on the Lock Screen and in the Dynamic Island (ADR 0028).
     private let tripActivityUpdater = TripActivityUpdater(activity: LiveTripLiveActivity())
 
     var body: some Scene {
