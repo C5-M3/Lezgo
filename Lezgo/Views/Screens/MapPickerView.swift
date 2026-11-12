@@ -68,6 +68,7 @@ struct MapPickerView: View {
                 Text(viewModel.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
             }
             .padding(.horizontal, 16)
             .frame(minHeight: 44)
@@ -77,6 +78,8 @@ struct MapPickerView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 4)
+        // The buttons at the top are chrome over the map; at the largest sizes they would cover the pin.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
     }
 
     private func Snap(to place: NearbyPlace) {
@@ -91,7 +94,8 @@ private struct MapPickerPin: View {
     let isLifted: Bool
     let street: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric private var pinHeight: CGFloat = 44
+    /// A map marker is a drawing, not text, so it keeps its size at every text size.
+    private let pinHeight: CGFloat = 44
 
     var body: some View {
         ZStack {
@@ -145,11 +149,13 @@ private struct MapPickerCard: View {
     let nearbyPlaces: [NearbyPlace]
     let onSnap: (NearbyPlace) -> Void
     let onConfirm: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             addressRow
-            if nearbyPlaces.isEmpty == false { nearbySection }
+            // At the largest text sizes the card keeps the address and the button; the chips would hide the map.
+            if nearbyPlaces.isEmpty == false, dynamicTypeSize.isAccessibilitySize == false { nearbySection }
             Button("Confirm Location", action: onConfirm)
                 .buttonStyle(.yellowCapsule(minHeight: 52))
         }
@@ -173,7 +179,6 @@ private struct MapPickerCard: View {
                     Text(address.street)
                         .font(.headline)
                         .foregroundStyle(.white)
-                        .lineLimit(2)
                     if address.area.isEmpty == false {
                         Text(address.area)
                             .font(.caption)
