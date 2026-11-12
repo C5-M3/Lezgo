@@ -85,6 +85,15 @@ struct SetRouteView: View {
 
                     routePlanCardView
                 }
+                .fullScreenCover(isPresented: isShowingMapPicker) {
+                    if let picker = viewModel.mapPicker {
+                        MapPickerView(
+                            viewModel: picker,
+                            onConfirm: viewModel.ConfirmMapPick,
+                            onClose: viewModel.CancelMapPick
+                        )
+                    }
+                }
                 .onGeometryChange(for: CGFloat.self) { proxy in
                     proxy.frame(in: .global).maxY
                 } action: { bottom in
@@ -147,6 +156,14 @@ struct SetRouteView: View {
 // MARK: - Subviews
 
 private extension SetRouteView {
+    /// The map picker opens over the search; closing it any way, even by swiping, leaves the route as it was.
+    var isShowingMapPicker: Binding<Bool> {
+        Binding(
+            get: { viewModel.mapPicker != nil },
+            set: { if !$0 { viewModel.CancelMapPick() } }
+        )
+    }
+
     var topNavigationBar: some View {
         HStack {
             Button(action: HandleBackButtonTapped) {
@@ -240,6 +257,9 @@ private extension SetRouteView {
             userLocation: viewModel.locationService.userLocation,
             onSelectCurrentLocation: {
                 viewModel.selectCurrentLocationAsStart()
+            },
+            onChooseOnMap: {
+                viewModel.StartPickingOnMap()
             },
             onSelectResult: { result in
                 viewModel.selectSearchResult(result)
