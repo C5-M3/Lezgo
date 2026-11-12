@@ -97,15 +97,21 @@ struct BackgroundLocationKeeperTests {
         #expect(session.invalidateCount == 1)
     }
 
+    /// The access flags on one location update, and whether the background session may stay.
+    struct AccessFlags: Sendable {
+        var denied = false
+        var deniedGlobally = false
+        var restricted = false
+        var allowed: Bool
+    }
+
     @Test(arguments: [
-        (denied: false, deniedGlobally: false, restricted: false, allowed: true),
-        (denied: true, deniedGlobally: false, restricted: false, allowed: false),
-        (denied: false, deniedGlobally: true, restricted: false, allowed: false),
-        (denied: false, deniedGlobally: false, restricted: true, allowed: false)
+        AccessFlags(allowed: true),
+        AccessFlags(denied: true, allowed: false),
+        AccessFlags(deniedGlobally: true, allowed: false),
+        AccessFlags(restricted: true, allowed: false)
     ])
-    func AccessIsAllowedOnlyWhenNothingDeniesIt(
-        flags: (denied: Bool, deniedGlobally: Bool, restricted: Bool, allowed: Bool)
-    ) {
+    func AccessIsAllowedOnlyWhenNothingDeniesIt(flags: AccessFlags) {
         let isAllowed = BackgroundLocationKeeper.IsAccessAllowed(
             denied: flags.denied,
             deniedGlobally: flags.deniedGlobally,
