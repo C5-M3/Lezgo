@@ -5,6 +5,8 @@
 
 import CoreLocation
 import Foundation
+import MapKit
+import SwiftUI
 import Testing
 @testable import Lezgo
 
@@ -194,9 +196,12 @@ struct MapPickerViewModelTests {
         #expect(point.name == String(localized: "Pinned location"))
     }
 
-    @Test func TheTitleFollowsTheSelection() {
-        #expect(MakeViewModel(selection: .start).title == "Starting Point")
-        #expect(MakeViewModel(selection: .destination(index: 0)).title == "Destination")
-        #expect(MakeViewModel(selection: .destination(index: 1)).title == "Stop 2")
+    @Test func MovingToTheUserLocationMakesTheCameraFollowIt() {
+        let viewModel = MakeViewModel()
+        #expect(viewModel.cameraPosition.followsUserLocation == false)
+
+        viewModel.MoveToUserLocation()
+
+        #expect(viewModel.cameraPosition.followsUserLocation)
     }
 }

@@ -38,8 +38,6 @@ final class MapPickerViewModel {
     private var nearbyCenter: Coordinate?
     private var snappedPlace: NearbyPlace?
 
-    var title: String { selection.title }
-
     init(
         selection: ActivePointSelection,
         startingAt start: Coordinate,
@@ -81,6 +79,11 @@ final class MapPickerViewModel {
         isLoadingAddress = false
         addressNotFound = false
         cameraPosition = MapViewModel.CloseUp(of: place.coordinate.locationCoordinate)
+    }
+
+    /// Moves the map to where the person is. Without location access the map stays where it is.
+    func MoveToUserLocation() {
+        cameraPosition = .userLocation(fallback: cameraPosition)
     }
 
     /// The point to put in the route: the address when there is one, a plain name when there is not.

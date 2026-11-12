@@ -66,7 +66,11 @@ struct SetRouteView: View {
 
     var body: some View {
         ZStack {
-            mapSection
+            // The map only fills the screen. Its safe area padding follows the cards, which can add up to more than
+            // the space above the keyboard; as a sibling it made the screen that tall and it slid up under the
+            // status bar.
+            Color.clear
+                .overlay { mapSection }
                 .ignoresSafeArea()
 
             if viewModel.isSearching {
