@@ -39,9 +39,21 @@ extension MapViewModel {
                     self.routeLegs = []
                     self.routedPoints = []
                     self.isLoadingRoute = false
-                    self.errorMessage = "Failed to calculate multi-stop route."
+                    self.errorMessage = Self.RouteFailureMessage(for: error)
+                }
+                // MapKit will answer again after its minute is over; ask then, unless the stops changed meanwhile
+                // (a change cancels this task, and asks on its own).
+                if case RoutingError.throttled(let retryAfter) = error {
+                    try? await Task.sleep(for: .seconds(retryAfter))
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run { self.findRoute() }
                 }
             }
         }
+    }
+
+    static func RouteFailureMessage(for error: any Error) -> String {
+        if case RoutingError.throttled = error { return "Too many route requests. Trying again in a moment." }
+        return "Failed to calculate multi-stop route."
     }
 }
