@@ -264,6 +264,12 @@ extension TripMapViewModel {
         return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
     }
 
+    /// Looks up the tapped car's street and time left (see `LookUpCar`).
+    func RefreshSelectedCarStatus() async {
+        guard let car = SelectedCar() else { return }
+        await LookUpCar(car.id)
+    }
+
     /// The tapped car, while it is still in the trip with a position on the map.
     func SelectedCar() -> Participant? {
         guard let selectedCarID else { return nil }

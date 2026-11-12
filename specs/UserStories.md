@@ -18,6 +18,7 @@ Each story becomes one parent issue in the GitHub Project; its tasks become sub-
 | [US-05](#us-05) | As a leader, I want to manage the group and start the trip for everyone so that the right cars leave together. |
 | [US-06](#us-06) | As a leader or member, I want to see the shared route, every car and alerts on one map so that we stay together on the road. |
 | [US-07](#us-07) | As a leader or member, I want to arrive, continue, leave or end the trip clearly so that nobody is ever stuck in a trip. |
+| [US-08](#us-08) | As a leader or member, I want to ask Siri about the trip so that I know where the group is without looking at the phone. |
 
 ---
 
@@ -936,3 +937,194 @@ Feature: Arrive, continue, leave and end
 | Member exits | `Participant` | delete own record |
 | Leader exits or ends | `Trip` | `status: CANCELLED` (LOBBY) or `ENDED` (IN_TRIP), `endedAt: now` |
 | Every phone | Device | stop location updates, clear `activeTripID` |
+
+---
+
+<a id="us-08"></a>
+## US-08 — As a leader or member, I want to ask Siri about the trip so that I know where the group is without looking at the phone.
+
+**Lo-fi:** none; Siri draws its own screens. Mockup: the Siri screens in the feature proposal shared with the team. Decision record: [ADR 0030](../docs/adr/0030-SiriWithAppIntents.md).
+
+### Rules
+
+**When Siri can answer**
+- Siri answers while the trip map is open on this phone, also with the screen locked, another app in front, or on CarPlay. It never opens the app.
+- Otherwise (no trip, the Trip Room, or the app was closed) every phrase answers "No trip is on the road. Open Lezgo to start or join one."
+- Every answer is spoken. On the phone, Siri also shows it as a small card; on CarPlay it is spoken only.
+- Siri cannot end or exit a trip, remove a participant or hand over the lead. Those stay on the screen with their confirmation (US-05, US-07).
+- "Join a trip" and "Create a trip" work without a trip on the road. "Join a trip" joins right away and opens the Trip Room; "Create a trip" opens Set Route with the destination filled in, and the person finishes on the screen.
+
+**Phrases**
+
+Each action has more than one phrase; the app's name is always in it. These are the main ones.
+
+| Phrase | Who | Answer |
+| --- | --- | --- |
+| "Where's the leader in Lezgo" | Member | Where the leader is |
+| "Where's [name] in Lezgo" | Everyone | Where that car is. Siri asks "Which car?" when the name is unclear |
+| "Is everyone with me in Lezgo" | Everyone | Which cars are with the group |
+| "How long left in Lezgo" | Everyone | Time and distance to the destination |
+| "Mute Lezgo" / "Unmute Lezgo" | Everyone | Turns voice guidance and chimes off or on |
+| "I've arrived in Lezgo" | Everyone | "I've Arrived" (US-07), after a question |
+| "Join a trip in Lezgo" | Anyone | Asks for the room code, joins the trip, then opens the Trip Room |
+| "Create a trip in Lezgo" | Anyone | Asks "Where to?", then opens Set Route searching for that place |
+
+**Where a car is** (the leader, or a car by name)
+- "Agus is 1.2 km ahead, on Ahmad Yani Street." "ahead" or "behind" follows the group's road; "away" when either car is off it. Under 1 km the distance is in metres, rounded to 10 m; from 1 km, in km with one decimal.
+- Within 50 m: "Agus is right next to you."
+- Street not known yet: "Agus is 1.2 km ahead."
+- Location not known yet: "Agus's location isn't known yet." This phone's own location not known yet: "Your location isn't known yet."
+- Offline: "Agus is offline. Last seen 3 min ago."
+- The leader asking for the leader: "You're the leader." Anyone asking for themself: "That's you." A car that left the trip: "That car isn't on this trip."
+- A car with no name uses its group name ("Car 3"), as on the map.
+
+**Is everyone with me**
+- A car is with the group when it is online and has no formation alert. The leader counts. This phone's own car always counts as online.
+- Everyone with the group: "All 4 cars are with the group." Alone in the trip: "You're the only car in the trip."
+- Otherwise: "3 of 4 cars are with the group." and then one sentence for each car that is not, in the order of the alert banners (US-06), offline cars last: "Budi passed the destination.", "Budi is off the route.", "Budi passed a checkpoint.", "Citra is ahead of the leader.", "Dewi is offline." For this phone's own car: "You're off the route." and so on.
+- A car that has arrived (US-07) is with the group, whatever its last alert. A stopped car is still with the group: it is on the road.
+
+**How long left**
+- "14 min to Pantai Parangtritis, 12 km." Without a known distance: "14 min to Pantai Parangtritis." Over an hour: "1 hr, 5 min to Pantai Parangtritis."
+- With an unvisited checkpoint ahead, then: "Next stop: Rest Area KM 57, 4.1 km away." (distance along the group's road). MapKit only gives the time to the destination, so the checkpoint has no time.
+- Without guidance yet: "The time left isn't known yet."
+
+**Mute and unmute**
+- The same switch as the map's Mute button (US-06, "Sound"); the map and CarPlay show the new state at once.
+- "Voice alerts are off. Banners still show on the map." / "Voice alerts are on." Asking for the state it is already in gives the same answer.
+
+**Join a trip**
+- Siri asks "What's the room code?". The driver says the 6 digits, with or without pauses ("245 245"), or as words ("two four five two four five").
+- The code cannot be said in the first sentence: Apple lets a Siri phrase hold only fixed words or values the app lists in advance, never a free number. "Join 245245 in Lezgo" matches no phrase, so Siri only opens Lezgo. Other ways to start: "Join a room in Lezgo", "Join trip in Lezgo", "Join a Lezgo room", "Enter a room code in Lezgo".
+- Anything that is not 6 digits: Siri asks again, "That isn't a 6-digit room code. What's the room code?"
+- A valid code joins the trip at once, exactly as "Enter" in the join dialog does (US-02), and Lezgo opens the Trip Room (or the map for a trip already on the road). Siri says "You joined room 245245." A misheard code that happens to exist joins that trip; the person leaves it with "Exit Trip" in the Trip Room.
+- A code with no trip, or an ended trip: Siri says the same message as the join dialog ("No trip found with this code.", "This trip has ended.") and nothing opens.
+- With a trip already on the phone: "You're already in a trip. Open Lezgo to continue it." and nothing changes.
+
+**Create a trip**
+- Siri asks "Where to?". The place cannot be said in the first sentence, for the same reason as a room code. Other phrases: "Plan a trip in Lezgo", "Start a Lezgo trip".
+- An empty answer: Siri asks again, "Where do you want to go?"
+- Lezgo opens Set Route (US-01) with the current location as the start point and the destination search already showing the place ("Malang"). The person picks the right result, checks the route and taps "Next" as usual. Siri never picks a place or creates the trip itself: "Malang" can mean several places, and the route needs a look on the map.
+- With a trip already on the phone (on the road, in the Trip Room or a draft, US-03): "You're already in a trip. Open Lezgo to continue it." and nothing opens. The place is cut to 100 characters.
+
+**I've arrived**
+- Follows the "I've Arrived" rules (US-07): only within 1 km of the destination, and only before the car has arrived.
+- Siri asks first: "Arrived at Pantai Parangtritis?" The driver answers "Yes" or "No", or taps on the phone.
+- Yes: "You've arrived. Waiting for everyone to arrive.", or "Everyone has arrived!" when this car was the last.
+- Further than 1 km: "You're 5.2 km from Pantai Parangtritis. Say it again when you're closer."
+- Already arrived: "You've already arrived."
+- Saving fails: "Couldn't save your arrival. Check your connection and try again."
+
+### Acceptance criteria
+
+```gherkin
+Feature: Ask Siri about the trip
+
+  Background:
+    Given trip "897654" is IN_TRIP with leader "Agus" and members "Budi" and "Citra"
+    And the destination is "Pantai Parangtritis"
+    And the trip map is open on "Budi"'s phone, with the screen locked
+
+  Scenario: Where is the leader
+    Given "Agus" is 1.2 km ahead of "Budi" on "Ahmad Yani Street"
+    When "Budi" asks Siri "Where's the leader in Lezgo"
+    Then Siri says "Agus is 1.2 km ahead, on Ahmad Yani Street."
+    And the app does not open
+
+  Scenario: Leader is offline
+    Given "Agus" was last seen 3 minutes ago
+    When "Budi" asks Siri "Where's the leader in Lezgo"
+    Then Siri says "Agus is offline. Last seen 3 min ago."
+
+  Scenario: Leader asks for the leader
+    When "Agus" asks Siri "Where's the leader in Lezgo"
+    Then Siri says "You're the leader."
+
+  Scenario: Where is a car by name
+    Given "Citra" is 400 m behind "Budi" on "Jalan Malioboro"
+    When "Budi" asks Siri "Where's Citra in Lezgo"
+    Then Siri says "Citra is 400 m behind, on Jalan Malioboro."
+
+  Scenario: Everyone is with the group
+    Given no car has an alert and every car is online
+    When "Agus" asks Siri "Is everyone with me in Lezgo"
+    Then Siri says "All 3 cars are with the group."
+
+  Scenario: A car is off the route
+    Given "Citra" is off the route
+    When "Agus" asks Siri "Is everyone with me in Lezgo"
+    Then Siri says "2 of 3 cars are with the group. Citra is off the route."
+
+  Scenario: Time left with a checkpoint
+    Given the next unvisited checkpoint is "Rest Area KM 57", 4.1 km along the road
+    And the destination is 14 minutes and 12 km away
+    When "Budi" asks Siri "How long left in Lezgo"
+    Then Siri says "14 min to Pantai Parangtritis, 12 km. Next stop: Rest Area KM 57, 4.1 km away."
+
+  Scenario: Mute by voice
+    When "Budi" asks Siri "Mute Lezgo"
+    Then Siri says "Voice alerts are off. Banners still show on the map."
+    And the trip map and CarPlay show "Unmute"
+
+  Scenario: Arrive by voice
+    Given "Budi" is parked 200 m from the destination's point
+    When "Budi" asks Siri "I've arrived in Lezgo"
+    Then Siri asks "Arrived at Pantai Parangtritis?"
+    When "Budi" answers "Yes"
+    Then every phone counts "Budi" as arrived
+    And Siri says "You've arrived. Waiting for everyone to arrive."
+
+  Scenario: Arrive by voice too far away
+    Given "Budi" is 5.2 km from the destination
+    When "Budi" asks Siri "I've arrived in Lezgo"
+    Then Siri says "You're 5.2 km from Pantai Parangtritis. Say it again when you're closer."
+    And nothing changes
+
+  Scenario: No trip on the road
+    Given no trip map is open on the phone
+    When anyone asks Siri "Where's the leader in Lezgo"
+    Then Siri says "No trip is on the road. Open Lezgo to start or join one."
+
+  Scenario: Join a trip by voice
+    Given "Dewi" has no trip
+    When "Dewi" asks Siri "Join a trip in Lezgo"
+    Then Siri asks "What's the room code?"
+    When "Dewi" answers "897 654"
+    Then "Dewi" joins trip "897654"
+    And Siri says "You joined room 897654."
+    And Lezgo opens the Trip Room
+
+  Scenario: Join a trip that does not exist
+    Given there is no trip "111111"
+    When "Dewi" asks Siri "Join a trip in Lezgo" and answers "111111"
+    Then Siri says the join dialog's not-found message
+    And "Dewi" has no trip
+
+  Scenario: Join with a wrong code
+    When "Dewi" asks Siri "Join a trip in Lezgo" and answers "89765"
+    Then Siri says "That isn't a 6-digit room code. What's the room code?"
+
+  Scenario: Create a trip by voice
+    Given "Dewi" has no trip
+    When "Dewi" asks Siri "Create a trip in Lezgo"
+    Then Siri asks "Where to?"
+    When "Dewi" answers "Malang"
+    Then Lezgo opens Set Route with the destination search showing "Malang"
+
+  Scenario: Create a trip while already in one
+    Given "Budi" is in trip "897654"
+    When "Budi" asks Siri "Create a trip in Lezgo" and answers "Malang"
+    Then Siri says "You're already in a trip. Open Lezgo to continue it."
+
+  Scenario: Siri cannot end the trip
+    When "Agus" asks Siri "End my trip in Lezgo"
+    Then Lezgo offers no action for it and the trip continues
+```
+
+### Data
+
+| Action | Entity | Effect |
+| --- | --- | --- |
+| Questions | Derived | read from the open trip map; nothing is saved |
+| Mute / Unmute | Device | the trip map's mute setting (ADR 0024) |
+| I've arrived | `Participant` | `arrivedAtWaypointID: destination.id`, as in US-07 |

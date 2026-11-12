@@ -44,3 +44,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0027](0027-ChooseOnMapWithNativeMapKit.md) | Choose on map with native SwiftUI Map and MapKit | Accepted | 2026-11-12 |
 | [0028](0028-LiveActivityInAWidgetExtension.md) | Live Activity for the trip in a widget extension | Proposed | 2026-11-12 |
 | [0029](0029-AskForAlwaysLocationWhenTheTripStarts.md) | Ask for "Always" location when the trip starts | Accepted | 2026-11-12 |
+| [0030](0030-SiriWithAppIntents.md) | Siri questions about the trip with App Intents | Proposed | 2026-11-12 |

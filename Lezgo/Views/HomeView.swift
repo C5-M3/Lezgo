@@ -17,6 +17,8 @@ struct HomeView: View {
     @State private var isJoinTripPresented: Bool = false
     @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
+    /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
+    private let siriHandoff = SiriHandoff.shared
 
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
 
@@ -137,7 +139,28 @@ struct HomeView: View {
         .modifier(Prompts(viewModel: viewModel))
         .onAppear { viewModel.onAppear() }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
-        .onOpenURL { url in viewModel.OpenInviteLink(url) }
+        .onOpenURL { url in
+            viewModel.OpenInviteLink(url)
+            // "Create a trip" from Siri arrives as `lezgo://plan?to=…` (US-08).
+            viewModel.OpenPlanLink(url)
+        }
+        // "Create a trip" from Siri hands its link over here (US-08); a cold start finds it waiting.
+        .onChange(of: siriHandoff.pendingLink, initial: true) {
+            guard let link = siriHandoff.TakeLink() else { return }
+            viewModel.OpenPlanLink(link)
+        }
+        // "Join a trip" from Siri has already joined: open its Trip Room (US-08).
+        .onChange(of: siriHandoff.pendingJoin, initial: true) {
+            guard let session = siriHandoff.TakeJoin() else { return }
+            SiriLog.Note("Join a trip: Home opens the joined trip")
+            viewModel.onTripJoined(session)
+        }
+        .onChange(of: viewModel.plannedDestination) { _, destination in
+            guard let destination else { return }
+            mapViewModel.onAppear(searchingFor: destination)
+            isSetRoutePresented = true
+            viewModel.plannedDestination = nil
+        }
         .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
             guard roomCode != nil else { return }
             isJoinTripPresented = true

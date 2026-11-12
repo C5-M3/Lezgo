@@ -67,7 +67,7 @@ final class TripMapViewModel {
     private let activeTripStorage: (any ActiveTripStorage)?
     /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews).
     let reroute: TripMapReroute?
-    private let clock: () -> Date
+    let clock: () -> Date
     /// Whether the map opens with the "Lez Go!" animation, because the trip has only just started.
     let showsStartIntro: Bool
 
@@ -232,12 +232,12 @@ final class TripMapViewModel {
         }
     }
 
-    /// Looks up the tapped car's street and time left, at most every 30 seconds per car, because both need the
-    /// network and Apple limits how often an app may ask. A failed lookup keeps what was known before. An offline
-    /// car is not looked up: its position is out of date.
-    func RefreshSelectedCarStatus() async {
-        guard let state, let updatedAt, let car = SelectedCar(), let coordinate = car.coordinate,
-              car.IsOnline(at: updatedAt) else { return }
+    /// Looks up a car's street and time left, for its card or for Siri (US-08), at most every 30 seconds per car,
+    /// because both need the network and Apple limits how often an app may ask. A failed lookup keeps what was known
+    /// before. An offline car is not looked up: its position is out of date.
+    func LookUpCar(_ carID: UUID) async {
+        guard let state, let updatedAt, let car = state.participants.first(where: { $0.id == carID }),
+              let coordinate = car.coordinate, car.IsOnline(at: updatedAt) else { return }
         let now = clock()
         if let lookedUpAt = carLookups[car.id]?.lookedUpAt, now.timeIntervalSince(lookedUpAt) < Self.carLookupInterval {
             return
