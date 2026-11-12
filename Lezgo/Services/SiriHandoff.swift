@@ -8,7 +8,7 @@
 import Foundation
 import Observation
 
-/// What a Siri intent hands to Home inside the app (US-08, ADR 0029): the trip "Join a trip" joined, or the plan
+/// What a Siri intent hands to Home inside the app (US-08, ADR 0030): the trip "Join a trip" joined, or the plan
 /// link "Create a trip" made. Siri's `OpenURLIntent` refuses the app's own `lezgo://` links ("URL scheme is
 /// unsupported"), so the intents bring the app to the front and leave their result here; Home takes it once.
 @Observable

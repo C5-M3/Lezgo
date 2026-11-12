@@ -10,7 +10,7 @@ import SwiftUI
 @main
 struct LezgoApp: App {
     /// Every screen reads this through `@Environment(\.tripService)` (ADR 0017), and "Join a trip" from Siri uses it
-    /// directly (ADR 0029). Trips sync through CloudKit (ADR 0014); previews and tests use `InMemoryTripService`.
+    /// directly (ADR 0030). Trips sync through CloudKit (ADR 0014); previews and tests use `InMemoryTripService`.
     static let tripService: any TripService = LiveTripService(database: LiveCloudDatabase())
     /// Mirrors the open trip map on the Lock Screen and in the Dynamic Island (ADR 0028).
     private let tripActivityUpdater = TripActivityUpdater(activity: LiveTripLiveActivity())
