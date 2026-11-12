@@ -910,6 +910,18 @@
         }
       }
     },
+    "siriRoomCodeInvalid" : {
+      "comment" : "Siri (US-08), \"Join a trip\": what was said is not six digits, so Siri asks again.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That isn't a 6-digit room code. What's the room code?"
+          }
+        }
+      }
+    },
     "siriShortAhead" : {
       "comment" : "Siri card (US-08): a short distance under a car's name, for example \"1.2 km ahead\".",
       "extractionState" : "manual",

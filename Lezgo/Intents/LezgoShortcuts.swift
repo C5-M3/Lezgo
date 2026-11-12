@@ -72,6 +72,16 @@ struct LezgoShortcuts: AppShortcutsProvider {
             systemImageName: "speaker.wave.2.fill"
         )
         AppShortcut(
+            intent: JoinTripIntent(),
+            phrases: [
+                "Join a trip in \(.applicationName)",
+                "Join a room in \(.applicationName)",
+                "Join a \(.applicationName) trip"
+            ],
+            shortTitle: "Join a Trip",
+            systemImageName: "person.badge.plus"
+        )
+        AppShortcut(
             intent: ArrivedIntent(),
             phrases: [
                 "I've arrived in \(.applicationName)",
