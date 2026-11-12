@@ -58,7 +58,8 @@ struct TripAnswersTests {
             myCoordinate: myCoordinate,
             guidance: guidance,
             streets: streets,
-            now: Fixtures.now
+            now: Fixtures.now,
+            locale: Locale(identifier: "en_US")
         )
     }
 
@@ -146,8 +147,9 @@ struct TripAnswersTests {
             state.participants[3].alert = .passedCheckpoint
         }
 
-        #expect(answers.EveryoneWithMe()
-            == "1 of 4 cars are with the group. Dewi passed a checkpoint. Budi is ahead of the leader. Citra is offline.")
+        let expected = "1 of 4 cars are with the group. "
+            + "Dewi passed a checkpoint. Budi is ahead of the leader. Citra is offline."
+        #expect(answers.EveryoneWithMe() == expected)
     }
 
     @Test func MyOwnAlertIsAboutMe() {
