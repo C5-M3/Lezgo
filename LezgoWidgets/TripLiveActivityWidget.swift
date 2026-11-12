@@ -20,24 +20,32 @@ struct TripLiveActivityWidget: Widget {
             let state = context.state
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    TripActivityRobotHead(color: state.myColor, size: 36)
-                        .padding(.leading, 4)
+                    Text(state.distanceText ?? "")
+                        .font(.system(size: 24, weight: .bold))
+                        .fixedSize()
+                        .padding(.leading, 6)
+                        .padding(.top, 4)
                 }
                 DynamicIslandExpandedRegion(.trailing) {
                     TripActivityTime(state: state, size: 24)
-                        .padding(.trailing, 4)
+                        .padding(.trailing, 6)
+                        .padding(.top, 4)
                 }
-                DynamicIslandExpandedRegion(.center) {
-                    Text(state.title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .lineLimit(1)
-                }
+                // The bottom spans the whole width under the camera, so a long stop name is not squeezed.
                 DynamicIslandExpandedRegion(.bottom) {
-                    VStack(spacing: 6) {
+                    VStack(spacing: 8) {
+                        Text(state.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         TripActivityLegRoad(state: state, robotSize: 28)
+                        // Pulled in from the island's rounded bottom corners, which cut the labels off.
                         TripActivityLegLabels(state: state)
+                            .padding(.horizontal, 10)
                     }
-                    .padding(.horizontal, 4)
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 4)
                 }
             } compactLeading: {
                 TripActivityRobotHead(color: state.myColor, size: 24)
@@ -48,7 +56,7 @@ struct TripLiveActivityWidget: Widget {
             }
             // Keeps everything away from the island's rounded corners, which cut it off otherwise.
             .contentMargins([.leading, .trailing], 20, for: .expanded)
-            .contentMargins(.bottom, 14, for: .expanded)
+            .contentMargins(.bottom, 18, for: .expanded)
             .keylineTint(Color(.brandYellow))
         }
         // CarPlay's dashboard and Apple Watch's Smart Stack show the small tile instead of the Lock Screen card.
@@ -80,6 +88,7 @@ private extension TripActivityAttributes.ContentState {
         title: "To Rest Area KM 57",
         timeText: "50 min",
         shortTimeText: "50 min",
+        distanceText: "12 km",
         countText: nil,
         legStartLabel: "Start",
         legEndLabel: "Stop 1 of 2",
@@ -119,6 +128,7 @@ private extension TripActivityAttributes.ContentState {
         state.title = "You have arrived"
         state.timeText = nil
         state.shortTimeText = nil
+        state.distanceText = nil
         state.countText = "3/4"
         state.legStartLabel = "Waiting for everyone to arrive"
         state.reached = 1

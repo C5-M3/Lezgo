@@ -45,6 +45,7 @@ enum TripActivityContent {
             title: Title(input, leg: leg),
             timeText: timeToStop?.formatted(TripMapCarStatus.durationStyle),
             shortTimeText: timeToStop.map(ShortTime),
+            distanceText: stage == .driving ? DistanceToStop(input, leg: leg, on: road) : nil,
             countText: stage == .arrived ? input.arrivalProgress?.countText : nil,
             legStartLabel: LegStartLabel(input, leg: leg),
             legEndLabel: LegEndLabel(leg),
@@ -104,6 +105,17 @@ enum TripActivityContent {
         let share = min(max(toStop / toEnd, 0), 1)
         let seconds = Double(guidance.timeLeft.components.seconds) * share
         return .seconds((seconds / 60).rounded(.up) * 60)
+    }
+
+    /// "12 km" along the road to the next stop; on the last leg, the routing service's distance left when it has one.
+    private static func DistanceToStop(_ input: Input, leg: Leg, on road: Road) -> String? {
+        guard let me = input.cars.first(where: { $0.isMe }), let stop = leg.to else { return nil }
+        if leg.stopNumber == nil, let distanceLeft = input.guidance?.distanceLeft {
+            return distanceLeft.formatted(.measurement(width: .abbreviated, usage: .road))
+        }
+        let metres = max(road.Along(stop.coordinate) - road.Along(me.coordinate), 0)
+        return Measurement(value: metres, unit: UnitLength.meters)
+            .formatted(.measurement(width: .abbreviated, usage: .road))
     }
 
     /// "33 min" within the hour, "1:20" above, so it fits beside the camera.

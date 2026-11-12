@@ -27,6 +27,8 @@ nonisolated struct TripActivityAttributes: ActivityAttributes {
         var timeText: String?
         /// "50 min" or "1:20", for the compact Dynamic Island.
         var shortTimeText: String?
+        /// "12 km" to the next stop; `nil` until it is known and once arrived.
+        var distanceText: String?
         /// "3/4" once arrived.
         var countText: String?
         /// Under the start of the road: "Start", the stop just passed, or "Waiting for everyone to arrive".
