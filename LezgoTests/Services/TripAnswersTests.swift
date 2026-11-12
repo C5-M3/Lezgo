@@ -127,6 +127,23 @@ struct TripAnswersTests {
         #expect(answers.WhereIs(carID: Fixtures.citraID) == "Car 3 is 400 m behind.")
     }
 
+    // MARK: Short distance for the Siri cards
+
+    @Test func ShortGapSaysDistanceAndWay() {
+        let answers = Self.Answers(budi: Self.OnRoute(0.5), citra: Self.OnRoute(0.4))
+
+        #expect(answers.ShortGap(to: Fixtures.citraID) == "400 m behind")
+        #expect(Self.Answers().ShortGap(to: Fixtures.agusID) == "1.2 km ahead")
+    }
+
+    @Test func ShortGapIsEmptyForMeNearbyOrWithoutAPosition() {
+        let near = Self.Answers(budi: Self.OnRoute(0.2), citra: Self.OnRoute(0.205))
+
+        #expect(near.ShortGap(to: Fixtures.citraID) == "Next to you")
+        #expect(near.ShortGap(to: Fixtures.budiID) == nil)
+        #expect(Self.Answers(agus: nil).ShortGap(to: Fixtures.agusID) == nil)
+    }
+
     // MARK: Is everyone with me
 
     @Test func EveryoneOnlineWithoutAlertsIsWithTheGroup() {
