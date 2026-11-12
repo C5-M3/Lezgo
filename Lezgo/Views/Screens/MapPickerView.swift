@@ -21,6 +21,15 @@ struct MapPickerView: View {
             MapPickerPin(isLifted: viewModel.isMoving, street: viewModel.address?.street)
         }
         .overlay(alignment: .top) { topBar }
+        // Above the card, level with the Apple Maps logo on the other side. The overlay sits inside the safe area
+        // inset below, so the card never covers it.
+        .overlay(alignment: .bottomTrailing) {
+            Button("Current Location", systemImage: "location.fill", action: viewModel.MoveToUserLocation)
+                .labelStyle(.iconOnly)
+                .buttonStyle(TripMapCameraControls.RoundStyle())
+                .padding(.trailing, 16)
+                .padding(.bottom, 8)
+        }
         // The card is a safe area inset, so the map centers its camera above it, where the pin is drawn.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             MapPickerCard(
@@ -42,7 +51,6 @@ struct MapPickerView: View {
             UserAnnotation()
         }
         .mapStyle(.lezgo)
-        .mapControls { MapUserLocationButton() }
         .onMapCameraChange(frequency: .continuous) { _ in
             viewModel.CameraIsMoving()
         }
@@ -53,33 +61,12 @@ struct MapPickerView: View {
     }
 
     private var topBar: some View {
-        HStack(spacing: 12) {
-            Button("Close", systemImage: "xmark", action: onClose)
-                .labelStyle(.iconOnly)
-                .font(.callout.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(Color(.routeCard), in: .circle)
-
-            HStack(spacing: 8) {
-                Image(systemName: "mappin.and.ellipse")
-                    .foregroundStyle(Color(.brandYellow))
-                    .accessibilityHidden(true)
-                Text(viewModel.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-            }
+        Button("Close", systemImage: "xmark", action: onClose)
+            .labelStyle(.iconOnly)
+            .buttonStyle(TripMapCameraControls.RoundStyle())
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
-            .frame(minHeight: 44)
-            .background(Color(.routeCard), in: .capsule)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 4)
-        // The buttons at the top are chrome over the map; at the largest sizes they would cover the pin.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .padding(.top, 4)
     }
 
     private func Snap(to place: NearbyPlace) {
@@ -103,15 +90,7 @@ private struct MapPickerPin: View {
                 .fill(.black.opacity(0.4))
                 .frame(width: isLifted ? 8 : 14, height: 5)
 
-            PinShape()
-                .fill(Color(.brandYellow))
-                .overlay(alignment: .top) {
-                    Circle()
-                        .fill(.black)
-                        .frame(width: pinHeight * 0.28, height: pinHeight * 0.28)
-                        .padding(.top, pinHeight * 0.23)
-                }
-                .frame(width: pinHeight * 0.75, height: pinHeight)
+            PinIcon(height: pinHeight)
                 .shadow(color: .black.opacity(0.35), radius: 3, y: 2)
                 .offset(y: -pinHeight / 2 - (isLifted ? 10 : 0))
         }
@@ -120,6 +99,23 @@ private struct MapPickerPin: View {
         .accessibilityLabel("Selected location")
         .accessibilityValue(street ?? "")
         .allowsHitTesting(false)
+    }
+}
+
+/// The yellow map pin with a black dot, drawn at any size: on the map and in the card.
+private struct PinIcon: View {
+    let height: CGFloat
+
+    var body: some View {
+        PinShape()
+            .fill(Color(.brandYellow))
+            .overlay(alignment: .top) {
+                Circle()
+                    .fill(.black)
+                    .frame(width: height * 0.28, height: height * 0.28)
+                    .padding(.top, height * 0.23)
+            }
+            .frame(width: height * 0.75, height: height)
     }
 }
 
@@ -150,6 +146,9 @@ private struct MapPickerCard: View {
     let onSnap: (NearbyPlace) -> Void
     let onConfirm: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var pinHeight: CGFloat = 22
+    /// The chips are in a scroll view that keeps its offset when the places change; a new list starts at the left.
+    @State private var nearbyPosition = ScrollPosition(edge: .leading)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -161,7 +160,7 @@ private struct MapPickerCard: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
-        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(.routeCard)))
+        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(.tripCard)))
         .shadow(color: .black.opacity(0.3), radius: 14, x: 0, y: 6)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -169,9 +168,7 @@ private struct MapPickerCard: View {
 
     private var addressRow: some View {
         HStack(spacing: 12) {
-            Image(systemName: "mappin.circle.fill")
-                .font(.title3)
-                .foregroundStyle(Color(.brandYellow))
+            PinIcon(height: pinHeight)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -211,24 +208,23 @@ private struct MapPickerCard: View {
                 HStack(spacing: 8) {
                     ForEach(nearbyPlaces) { place in
                         Button { onSnap(place) } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "mappin.circle.fill")
-                                    .foregroundStyle(Color(.brandYellow))
-                                    .accessibilityHidden(true)
-                                Text(place.name)
-                                    .lineLimit(1)
-                            }
-                            .font(.subheadline)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 44)
-                            .background(Color(white: 0.18), in: .capsule)
+                            Text(place.name)
+                                .lineLimit(1)
+                                .font(.subheadline)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .frame(minHeight: 44)
+                                .background(Color(white: 0.18), in: .capsule)
                         }
                         .buttonStyle(.plain)
                     }
                 }
             }
             .scrollIndicators(.hidden)
+            .scrollPosition($nearbyPosition)
+            .onChange(of: nearbyPlaces) {
+                nearbyPosition.scrollTo(edge: .leading)
+            }
         }
     }
 }
