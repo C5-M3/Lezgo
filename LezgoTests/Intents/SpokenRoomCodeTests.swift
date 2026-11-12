@@ -18,7 +18,10 @@ struct SpokenRoomCodeTests {
         ("two four five two four five", "245245"),
         ("Two four five, 245", "245245"),
         ("zero oh nine eight seven six", "009876"),
-        ("Join 897654", "897654")
+        ("Join 897654", "897654"),
+        ("066335", "066335"),
+        ("066 335", "066335"),
+        ("zero six six three three five", "066335")
     ])
     func SixDigitsAreACode(spoken: String, code: String) {
         #expect(SpokenRoomCode.Parse(spoken) == code)
