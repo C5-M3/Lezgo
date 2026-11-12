@@ -25,32 +25,15 @@ struct CreateTripIntent: AppIntent {
         self.destination = destination
     }
 
-    /// What Siri says instead of opening Lezgo.
-    enum Refusal: Error, CustomLocalizedStringResourceConvertible {
-        /// "You're already in a trip. Open Lezgo to continue it."
-        case alreadyInTrip
-
-        var localizedStringResource: LocalizedStringResource { .siriAlreadyInTrip }
-    }
-
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        guard Self.HasTripOnThisPhone() == false else { throw Refusal.alreadyInTrip }
+        guard SiriTripMap.HasTripOnThisPhone() == false else { throw SiriRefusal.alreadyInTrip }
         guard let link = PlanLink.Make(destination: destination),
               let place = PlanLink.Destination(from: link) else {
             throw $destination.needsValueError(IntentDialog(stringLiteral: String(localized: .siriWhereToAgain)))
         }
         // Siri cannot open the app's own `lezgo://` links, so Home takes it inside the app.
-        IncomingLinks.shared.Open(link)
+        SiriHandoff.shared.Open(link)
         return .result(dialog: IntentDialog(stringLiteral: String(localized: .siriPlanningTrip(place))))
-    }
-
-    /// A trip on the road, in the Trip Room or a draft (US-03): Home keeps it, so Siri says so instead of opening.
-    @MainActor
-    static func HasTripOnThisPhone(
-        activeTripMap: ActiveTripMap = .shared,
-        storage: any ActiveTripStorage = UserDefaultsActiveTripStorage()
-    ) -> Bool {
-        activeTripMap.tripMap != nil || storage.LoadActiveTrip() != nil
     }
 }

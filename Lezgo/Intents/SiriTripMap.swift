@@ -17,4 +17,13 @@ struct SiriTripMap {
         guard let tripMap = activeTripMap.tripMap, let answers = tripMap.SiriAnswers() else { return nil }
         return SiriTripMap(tripMap: tripMap, answers: answers)
     }
+
+    /// A trip on the road, in the Trip Room or a draft (US-03): "Join a trip" and "Create a trip" leave it alone.
+    @MainActor
+    static func HasTripOnThisPhone(
+        activeTripMap: ActiveTripMap = .shared,
+        storage: any ActiveTripStorage = UserDefaultsActiveTripStorage()
+    ) -> Bool {
+        activeTripMap.tripMap != nil || storage.LoadActiveTrip() != nil
+    }
 }

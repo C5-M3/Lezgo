@@ -5,6 +5,7 @@
 //  Created by Nathan Sudiara on 13/11/26.
 //
 
+import Foundation
 import Testing
 @testable import Lezgo
 
@@ -31,7 +32,7 @@ struct JoinTripIntentJoinTests {
             return
         }
         #expect(session.state.trip.id == created.state.trip.id)
-        #expect(session.state.participants.contains { $0.displayName == "Budi" })
+        #expect(session.state.participants.contains { $0.id == session.myParticipantID })
         #expect(storage.storedSummary?.roomCode == created.state.trip.roomCode)
     }
 

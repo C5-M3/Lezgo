@@ -850,6 +850,30 @@
         }
       }
     },
+    "siriJoinedRoom" : {
+      "comment" : "Siri (US-08), \"Join a trip\": the car joined the trip with this room code and the Trip Room opens.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You joined room %@."
+          }
+        }
+      }
+    },
+    "siriJoinFailed" : {
+      "comment" : "Siri (US-08), \"Join a trip\": joining failed without a message from the join dialog.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't join the trip. Try again."
+          }
+        }
+      }
+    },
     "siriMoreCars" : {
       "comment" : "Siri card (US-08), \"Is everyone with me\": cars that did not fit on the card. Only cars with the group are left out, because cars that are not come first.",
       "extractionState" : "manual",
@@ -918,18 +942,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "You're the only car in the trip."
-          }
-        }
-      }
-    },
-    "siriOpeningRoom" : {
-      "comment" : "Siri (US-08), \"Join a trip\": Lezgo opens the join dialog with this room code filled in.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Opening room %@ in Lezgo. Tap Join to join."
           }
         }
       }

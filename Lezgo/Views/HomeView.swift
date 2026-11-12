@@ -17,8 +17,8 @@ struct HomeView: View {
     @State private var isJoinTripPresented: Bool = false
     @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
-    /// Links Siri hands over inside the app (US-08).
-    private let incomingLinks = IncomingLinks.shared
+    /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
+    private let siriHandoff = SiriHandoff.shared
 
     private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
 
@@ -144,11 +144,15 @@ struct HomeView: View {
             // "Create a trip" from Siri arrives as `lezgo://plan?to=…` (US-08).
             viewModel.OpenPlanLink(url)
         }
-        // "Join a trip" and "Create a trip" from Siri hand their link over here (US-08); a cold start finds it waiting.
-        .onChange(of: incomingLinks.pending, initial: true) {
-            guard let link = incomingLinks.Take() else { return }
-            viewModel.OpenInviteLink(link)
+        // "Create a trip" from Siri hands its link over here (US-08); a cold start finds it waiting.
+        .onChange(of: siriHandoff.pendingLink, initial: true) {
+            guard let link = siriHandoff.TakeLink() else { return }
             viewModel.OpenPlanLink(link)
+        }
+        // "Join a trip" from Siri has already joined: open its Trip Room (US-08).
+        .onChange(of: siriHandoff.pendingJoin, initial: true) {
+            guard let session = siriHandoff.TakeJoin() else { return }
+            viewModel.onTripJoined(session)
         }
         .onChange(of: viewModel.plannedDestination) { _, destination in
             guard let destination else { return }
