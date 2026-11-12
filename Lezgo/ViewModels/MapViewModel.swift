@@ -30,6 +30,8 @@ final class MapViewModel {
     var activeTripStorage: any ActiveTripStorage
     /// Names the place where the trip starts when the start point is the leader's position.
     let streetNameService: any StreetNameService
+    /// Names the pinned place and finds the places around it on the "Choose on Map" screen.
+    let placeLookupService: any PlaceLookupService
     /// My name and car, shown to the group as the leader.
     let profileStorage: any ProfileStorage
 
@@ -93,6 +95,8 @@ final class MapViewModel {
     // MARK: - Modal Search Presentation State
     var activeSelectionSheet: ActivePointSelection?
     var searchQuery: String = ""
+    /// The "Choose on Map" screen while it is open. It opens over the search, which stays as it was.
+    var mapPicker: MapPickerViewModel?
 
     var isSearching: Bool {
         activeSelectionSheet != nil
@@ -104,7 +108,8 @@ final class MapViewModel {
         tripService: (any TripService)? = nil,
         activeTripStorage: (any ActiveTripStorage)? = nil,
         profileStorage: (any ProfileStorage)? = nil,
-        streetNameService: (any StreetNameService)? = nil
+        streetNameService: (any StreetNameService)? = nil,
+        placeLookupService: (any PlaceLookupService)? = nil
     ) {
         self.routingService = routingService ?? RoutingService()
         self.tilePreloader = tilePreloader ?? LiveTilePreloader()
@@ -112,6 +117,7 @@ final class MapViewModel {
         self.activeTripStorage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.profileStorage = profileStorage ?? UserDefaultsProfileStorage()
         self.streetNameService = streetNameService ?? LiveStreetNameService()
+        self.placeLookupService = placeLookupService ?? LivePlaceLookupService()
 
         // Automatically default the start point to the first GPS fix
         locationService.onFirstLocationFound = { [weak self] coord in
