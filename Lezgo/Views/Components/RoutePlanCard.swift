@@ -27,6 +27,11 @@ struct RoutePlanCard: View {
     @State private var contentHeight: CGFloat = 56
     /// The first measurement sets the height at once; only later changes (stops opening, closing, added) move.
     @State private var hasMeasuredHeight = false
+    /// How many rows stood for stops when `contentHeight` was measured. Opening or closing the stops changes that
+    /// number at once, so the card can move in the same animation as the button instead of after the list.
+    @State private var measuredStopRowCount: Int?
+    /// One stop's row with its list insets, measured from the rows on screen so it follows the text size.
+    @State var stopRowHeight: CGFloat = 56
     /// About five rows; more stops scroll inside the card so the map stays visible.
     private static let maximumHeight: CGFloat = 392
     /// The stops open smoothly and close faster; the rows come in one after another (`StaggeredReveal`).
@@ -57,6 +62,7 @@ struct RoutePlanCard: View {
                 let destinationBottom: CGFloat = canAddDestination ? 6 : 14
                 let destinationInsets = EdgeInsets(top: 6, leading: 16, bottom: destinationBottom, trailing: 16)
                 destinationRow
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { MeasureStopRow(height: $0) }
                     .listRowInsets(destinationInsets)
                     .listRowBackground(ConnectorLine(reachesUp: true, reachesDown: false, insets: destinationInsets))
                     .listRowSeparator(.hidden)
@@ -76,14 +82,18 @@ struct RoutePlanCard: View {
         .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, height in
             // The list reports no rows before it has laid them out; keeping that would hide them for good.
             guard height > 0 else { return }
-            // The measurement arrives after the button's own animation ended, so the card moves with the rows here.
-            let moving = height < contentHeight ? Self.closesStops : Self.opensStops
+            // The list reports its size only after its own row animation, long after the stops were tapped. The card
+            // already moved with them (`expectedContentHeight`); this measurement only corrects a small difference.
+            let moving = height < expectedContentHeight ? Self.closesStops : Self.opensStops
             let animation = hasMeasuredHeight ? moving.Respecting(reduceMotion: reduceMotion) : nil
-            withAnimation(animation) { contentHeight = height }
+            withAnimation(animation) {
+                contentHeight = height
+                measuredStopRowCount = stopRowCount
+            }
             hasMeasuredHeight = true
         }
-        .scrollDisabled(contentHeight <= Self.maximumHeight)
-        .frame(height: min(contentHeight, Self.maximumHeight))
+        .scrollDisabled(expectedContentHeight <= Self.maximumHeight)
+        .frame(height: min(expectedContentHeight, Self.maximumHeight))
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color(.routeCard))
@@ -112,6 +122,24 @@ struct RoutePlanCard: View {
 extension RoutePlanCard {
     var canAddDestination: Bool {
         !destinations.isEmpty && activeSelection == nil
+    }
+
+    /// The rows that stand for a stop or the destination: the opened stops, or the one destination row.
+    var stopRowCount: Int {
+        listedRows.count + (showsDestinationRow ? 1 : 0)
+    }
+
+    /// The measured height of the list, moved by the rows that opened or closed since it was measured.
+    var expectedContentHeight: CGFloat {
+        guard let measuredStopRowCount else { return contentHeight }
+        return contentHeight + CGFloat(stopRowCount - measuredStopRowCount) * stopRowHeight
+    }
+
+    /// Keeps the height of one stop's row, from a row that is drawn as a plain stop (not while searching).
+    func MeasureStopRow(height: CGFloat) {
+        let insets: CGFloat = 12
+        guard activeSelection == nil, height > 0 else { return }
+        stopRowHeight = height + insets
     }
 
     var isAddingNewDestination: Bool {
@@ -236,6 +264,7 @@ extension RoutePlanCard {
             let bottomInset: CGFloat = (isLast && !showsDestinationRow && !canAddDestination) ? 14 : 6
             let insets = EdgeInsets(top: 6, leading: 16, bottom: bottomInset, trailing: 16)
             stopRow(index: index, stop: stop)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { MeasureStopRow(height: $0) }
                 .modifier(StaggeredReveal(index: index))
                 .listRowInsets(insets)
                 .listRowBackground(
