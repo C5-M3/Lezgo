@@ -17,7 +17,9 @@ final class MockPlaceLookupService: PlaceLookupService {
 
     /// Each address call returns the next result; the last one repeats when the list runs out.
     init(
-        addressResults: [Result<PlaceAddress?, LookupFailed>] = [.success(PlaceAddress(street: "Jl. Raya Darmo", area: "Surabaya"))],
+        addressResults: [Result<PlaceAddress?, LookupFailed>] = [
+            .success(PlaceAddress(street: "Jl. Raya Darmo", area: "Surabaya"))
+        ],
         nearbyResult: Result<[NearbyPlace], LookupFailed> = .success([])
     ) {
         self.addressResults = addressResults
@@ -26,7 +28,8 @@ final class MockPlaceLookupService: PlaceLookupService {
 
     func Address(at coordinate: Coordinate) async throws -> PlaceAddress? {
         requestedAddresses.append(coordinate)
-        let result = addressResults.count > 1 ? addressResults.removeFirst() : addressResults.first ?? .failure(LookupFailed())
+        let isLastResult = addressResults.count <= 1
+        let result = isLastResult ? addressResults.first ?? .failure(LookupFailed()) : addressResults.removeFirst()
         return try result.get()
     }
 
