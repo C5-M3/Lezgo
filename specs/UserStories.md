@@ -952,7 +952,7 @@ Feature: Arrive, continue, leave and end
 - Otherwise (no trip, the Trip Room, or the app was closed) every phrase answers "No trip is on the road. Open Lezgo to start or join one."
 - Every answer is spoken. On the phone, Siri also shows it as a small card; on CarPlay it is spoken only.
 - Siri cannot end or exit a trip, remove a participant or hand over the lead. Those stay on the screen with their confirmation (US-05, US-07).
-- "Join a trip" and "Create a trip" work without a trip on the road: they open Lezgo with the code or the destination filled in, and the person finishes on the screen.
+- "Join a trip" and "Create a trip" work without a trip on the road. "Join a trip" joins right away and opens the Trip Room; "Create a trip" opens Set Route with the destination filled in, and the person finishes on the screen.
 
 **Phrases**
 
@@ -966,7 +966,7 @@ Each action has more than one phrase; the app's name is always in it. These are 
 | "How long left in Lezgo" | Everyone | Time and distance to the destination |
 | "Mute Lezgo" / "Unmute Lezgo" | Everyone | Turns voice guidance and chimes off or on |
 | "I've arrived in Lezgo" | Everyone | "I've Arrived" (US-07), after a question |
-| "Join a trip in Lezgo" | Anyone | Asks for the room code, then opens the join dialog with it filled in |
+| "Join a trip in Lezgo" | Anyone | Asks for the room code, joins the trip, then opens the Trip Room |
 | "Create a trip in Lezgo" | Anyone | Asks "Where to?", then opens Set Route searching for that place |
 
 **Where a car is** (the leader, or a car by name)
@@ -996,7 +996,9 @@ Each action has more than one phrase; the app's name is always in it. These are 
 **Join a trip**
 - Siri asks "What's the room code?". The driver says the 6 digits, with or without pauses ("245 245"), or as words ("two four five two four five"). Siri may also take the code from the first sentence ("Join 245245 in Lezgo").
 - Anything that is not 6 digits: Siri asks again, "That isn't a 6-digit room code. What's the room code?"
-- A valid code opens Lezgo with the join dialog filled in, exactly as an invite link does (US-02). The person taps "Join" there; Siri never joins on its own, so a misheard code cannot add the car to the wrong trip.
+- A valid code joins the trip at once, exactly as "Enter" in the join dialog does (US-02), and Lezgo opens the Trip Room (or the map for a trip already on the road). Siri says "You joined room 245245." A misheard code that happens to exist joins that trip; the person leaves it with "Exit Trip" in the Trip Room.
+- A code with no trip, or an ended trip: Siri says the same message as the join dialog ("No trip found with this code.", "This trip has ended.") and nothing opens.
+- With a trip already on the phone: "You're already in a trip. Open Lezgo to continue it." and nothing changes.
 
 **Create a trip**
 - Siri asks "Where to?". Siri may also take the place from the first sentence ("Create a trip to Malang in Lezgo"). Other phrases: "Plan a trip in Lezgo", "Start a Lezgo trip".
@@ -1087,7 +1089,15 @@ Feature: Ask Siri about the trip
     When "Dewi" asks Siri "Join a trip in Lezgo"
     Then Siri asks "What's the room code?"
     When "Dewi" answers "897 654"
-    Then Lezgo opens with the join dialog showing the code "897654"
+    Then "Dewi" joins trip "897654"
+    And Siri says "You joined room 897654."
+    And Lezgo opens the Trip Room
+
+  Scenario: Join a trip that does not exist
+    Given there is no trip "111111"
+    When "Dewi" asks Siri "Join a trip in Lezgo" and answers "111111"
+    Then Siri says the join dialog's not-found message
+    And "Dewi" has no trip
 
   Scenario: Join with a wrong code
     When "Dewi" asks Siri "Join a trip in Lezgo" and answers "89765"
