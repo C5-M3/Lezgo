@@ -15,10 +15,6 @@ struct LezgoApp: App {
     /// Mirrors the open trip map on the Lock Screen and in the Dynamic Island (ADR 0027).
     private let tripActivityUpdater = TripActivityUpdater(activity: LiveTripLiveActivity())
 
-    init() {
-        ToggleTripMuteIntent.toggle = { ActiveTripMap.shared.tripMap?.sound.ToggleMute() }
-    }
-
     var body: some Scene {
         WindowGroup {
             RootView()

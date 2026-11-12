@@ -87,11 +87,9 @@ final class TripActivityUpdater {
         sentAt = nil
     }
 
-    /// A new alert, an arrival or a mute tap goes out at once.
+    /// A new leg or an arrival goes out at once.
     private func IsUrgent(_ state: TripActivityAttributes.ContentState) -> Bool {
         guard let sentState else { return true }
-        return (state.alert != nil && state.alert != sentState.alert)
-            || state.stage != sentState.stage
-            || state.isMuted != sentState.isMuted
+        return state.title != sentState.title || state.stage != sentState.stage
     }
 }

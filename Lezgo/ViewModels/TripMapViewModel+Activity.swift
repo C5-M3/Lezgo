@@ -12,18 +12,13 @@ extension TripMapViewModel {
     var activitySnapshot: TripActivityUpdater.Snapshot? {
         guard closeReason == nil, let state, let destinationName else { return nil }
         let input = TripActivityContent.Input(
-            destinationName: destinationName,
             guidance: guidance,
-            isRerouting: isRerouting,
             cars: carPins,
             route: route,
             waypoints: waypoints,
             currentWaypointIndex: state.trip.currentWaypointIndex,
-            alertBanner: alertBanner,
             arrivalCard: arrivalCard,
-            arrivalProgress: arrivalProgress,
-            isMuted: sound.isMuted,
-            now: updatedAt ?? .now
+            arrivalProgress: arrivalProgress
         )
         return TripActivityUpdater.Snapshot(
             tripMapID: ObjectIdentifier(self),

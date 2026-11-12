@@ -67,7 +67,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/TripActivityAttributes.swift,
-				Services/ToggleTripMuteIntent.swift,
 			);
 			target = D82A00000000000000002006 /* LezgoWidgets */;
 		};
