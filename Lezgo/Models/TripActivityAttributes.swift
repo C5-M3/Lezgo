@@ -22,6 +22,8 @@ nonisolated struct TripActivityAttributes: ActivityAttributes {
         var turn: Turn?
         /// "1 hr, 20 min"
         var timeLeftText: String?
+        /// "1:20", for the compact Dynamic Island.
+        var shortTimeLeftText: String?
         /// "64 km · Arrive 11:01"
         var detailText: String?
         /// "Next stop: Rest area KM 57"; `nil` when only the destination is left.

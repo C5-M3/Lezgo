@@ -36,6 +36,7 @@ struct TripActivityUpdaterTests {
             stage: stage,
             turn: TripActivityAttributes.Turn(symbolName: "arrow.up", distanceText: turnText, instruction: "Continue"),
             timeLeftText: "1 hr, 20 min",
+            shortTimeLeftText: "1:20",
             detailText: nil,
             nextStopText: nil,
             groupText: "Following Budi",

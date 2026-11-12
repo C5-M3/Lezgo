@@ -83,6 +83,12 @@ struct TripActivityContentTests {
         #expect(state.timeLeftText == "1 hr, 20 min")
     }
 
+    @Test func CompactIslandGetsAShortTime() {
+        #expect(TripActivityContent.State(Self.Input()).shortTimeLeftText == "1:20")
+        let soon = TripActivityContent.State(Self.Input(guidance: Fixtures.Guidance(minutesLeft: 9)))
+        #expect(soon.shortTimeLeftText == "0:09")
+    }
+
     @Test func DetailShowsDistanceLeftAndArrivalTime() throws {
         var guidance = Fixtures.Guidance(minutesLeft: 80)
         guidance.distanceLeft = Measurement(value: 64, unit: .kilometers)
