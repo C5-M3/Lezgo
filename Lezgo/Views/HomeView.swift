@@ -137,7 +137,17 @@ struct HomeView: View {
         .modifier(Prompts(viewModel: viewModel))
         .onAppear { viewModel.onAppear() }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
-        .onOpenURL { url in viewModel.OpenInviteLink(url) }
+        .onOpenURL { url in
+            viewModel.OpenInviteLink(url)
+            // "Create a trip" from Siri arrives as `lezgo://plan?to=…` (US-08).
+            viewModel.OpenPlanLink(url)
+        }
+        .onChange(of: viewModel.plannedDestination) { _, destination in
+            guard let destination else { return }
+            mapViewModel.onAppear(searchingFor: destination)
+            isSetRoutePresented = true
+            viewModel.plannedDestination = nil
+        }
         .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
             guard roomCode != nil else { return }
             isJoinTripPresented = true

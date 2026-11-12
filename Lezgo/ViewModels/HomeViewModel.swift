@@ -69,6 +69,8 @@ final class HomeViewModel {
     private static let draftTripFetchAttempts = 3
     /// The room code from the last invite link that opened the app; "Enter room code" opens with it filled in.
     var inviteRoomCode: String?
+    /// The place from the last plan link that "Create a trip" from Siri opened; Set Route opens searching for it.
+    var plannedDestination: String?
 
     // MARK: - Computed Properties
     var suggestions: [MKLocalSearchCompletion] {
@@ -243,6 +245,14 @@ final class HomeViewModel {
             self.activeTripSession = session
             self.isReturningToTripRoom = false
         }
+    }
+
+    /// Reads the place from a plan link that "Create a trip" from Siri opened (US-08). A trip already on this phone
+    /// keeps it: the link is ignored rather than replacing that trip.
+    func OpenPlanLink(_ url: URL) {
+        guard activeTripSession == nil, activeMapSession == nil, activeDraftTrip == nil,
+              let destination = PlanLink.Destination(from: url) else { return }
+        plannedDestination = destination
     }
 
     /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
