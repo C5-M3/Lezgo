@@ -22,10 +22,14 @@ extension CLBackgroundActivitySession: BackgroundLocationSession {
 
 /// Holds the background location session for `LiveLocationProvider` and makes sure it ends (#316).
 ///
+/// The session is what lets "While Using the App" access go on with the screen locked, and iOS shows the location
+/// arrow in the Dynamic Island while it is open, next to the trip's own Live Activity. "Always" access needs no
+/// session, so the arrow is left out then.
+///
 /// iOS keeps a background session open until the app invalidates it. It does not end it when location access is
 /// turned off, when the app is closed, or even when the app is deleted, so the location arrow stayed in the
-/// Dynamic Island until the phone was restarted. The keeper therefore ends the session as soon as access is lost,
-/// and `EndLeftover` ends one an earlier run of the app left open.
+/// Dynamic Island until the phone was restarted. The keeper therefore ends the session as soon as it is not
+/// needed, and `EndLeftover` ends one an earlier run of the app left open.
 final class BackgroundLocationKeeper {
     private let makeSession: () -> any BackgroundLocationSession
     private var session: (any BackgroundLocationSession)?
@@ -34,10 +38,10 @@ final class BackgroundLocationKeeper {
         self.makeSession = makeSession
     }
 
-    /// Opens the session while access is allowed and ends it when access is lost. A new session can only start
-    /// with the app on screen, which is where the person turns access back on.
-    func Follow(isAccessAllowed: Bool) {
-        if isAccessAllowed {
+    /// Opens the session while it is needed and ends it when it is not. A new session can only start with the app
+    /// on screen, which is where the person comes back to from Settings.
+    func Follow(needsSession: Bool) {
+        if needsSession {
             guard session == nil else { return }
             session = makeSession()
         } else {
@@ -59,8 +63,9 @@ final class BackgroundLocationKeeper {
         makeSession().Invalidate()
     }
 
-    /// `false` when an update says location access is off for Lezgo, off for the whole phone, or restricted.
-    static func IsAccessAllowed(denied: Bool, deniedGlobally: Bool, restricted: Bool) -> Bool {
-        denied == false && deniedGlobally == false && restricted == false
+    /// `true` only with "While Using the App" access: not when location access is off for Lezgo, off for the whole
+    /// phone or restricted, and not with "Always" access, which keeps the updates coming without a session.
+    static func NeedsSession(denied: Bool, deniedGlobally: Bool, restricted: Bool, isAuthorizedAlways: Bool) -> Bool {
+        denied == false && deniedGlobally == false && restricted == false && isAuthorizedAlways == false
     }
 }

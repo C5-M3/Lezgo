@@ -13,9 +13,9 @@ import Foundation
 /// While the stream is listened to, it keeps a `CLServiceSession` (asks for "When In Use" the first time, and for
 /// precise location while Precise Location is off) and a background session through `BackgroundLocationKeeper`, so
 /// readings keep coming with the screen locked or another app in front (`UIBackgroundModes` has `location`). The
-/// background session ends while location access is off. Readings without a fix or from
-/// more than a few seconds ago are skipped; to the sharer that is the same as no signal. Rough readings are marked
-/// imprecise, so the screens can say why this car is not shared.
+/// background session is only kept with "While Using the App" access: "Always" access needs none, and none is kept
+/// while access is off. Readings without a fix or from more than a few seconds ago are skipped; to the sharer that
+/// is the same as no signal. Rough readings are marked imprecise, so the screens can say why this car is not shared.
 final class LiveLocationProvider: LocationProvider {
     /// Readings less accurate than this (metres) are imprecise: a car drawn 100 m off sits on the wrong street.
     static let worstPreciseAccuracy: CLLocationAccuracy = 50
@@ -40,21 +40,32 @@ final class LiveLocationProvider: LocationProvider {
                 // every launch. Imprecise readings are reported instead, and the screens point to Settings.
                 let session = CLServiceSession(authorization: .whenInUse)
                 let background = keepsRunningInBackground ? BackgroundLocationKeeper() : nil
-                // Opened now, while the map is on screen: iOS starts a background session only in the foreground.
-                background?.Follow(isAccessAllowed: true)
+                // Only reads the access level: the updates come from `liveUpdates`.
+                let authorization = CLLocationManager()
+                // Decided now, while the map is on screen: iOS starts a background session only in the foreground.
+                let status = authorization.authorizationStatus
+                background?.Follow(
+                    needsSession: BackgroundLocationKeeper.NeedsSession(
+                        denied: status == .denied,
+                        deniedGlobally: false,
+                        restricted: status == .restricted,
+                        isAuthorizedAlways: status == .authorizedAlways
+                    )
+                )
                 defer {
                     background?.Stop()
                     session.invalidate()
                 }
                 do {
                     for try await update in CLLocationUpdate.liveUpdates(.automotiveNavigation) {
-                        // With access turned off the updates keep coming, marked denied; the location arrow must
-                        // not stay meanwhile (#316).
+                        // With access turned off the updates keep coming, marked denied, and access can change to
+                        // "Always" mid-trip; the location arrow must not stay meanwhile (#316).
                         background?.Follow(
-                            isAccessAllowed: BackgroundLocationKeeper.IsAccessAllowed(
+                            needsSession: BackgroundLocationKeeper.NeedsSession(
                                 denied: update.authorizationDenied,
                                 deniedGlobally: update.authorizationDeniedGlobally,
-                                restricted: update.authorizationRestricted
+                                restricted: update.authorizationRestricted,
+                                isAuthorizedAlways: authorization.authorizationStatus == .authorizedAlways
                             )
                         )
                         guard let reading = Self.Reading(from: update.location) else { continue }
