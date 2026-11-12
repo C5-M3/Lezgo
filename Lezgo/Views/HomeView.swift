@@ -152,6 +152,7 @@ struct HomeView: View {
         // "Join a trip" from Siri has already joined: open its Trip Room (US-08).
         .onChange(of: siriHandoff.pendingJoin, initial: true) {
             guard let session = siriHandoff.TakeJoin() else { return }
+            SiriLog.Note("Join a trip: Home opens the joined trip")
             viewModel.onTripJoined(session)
         }
         .onChange(of: viewModel.plannedDestination) { _, destination in

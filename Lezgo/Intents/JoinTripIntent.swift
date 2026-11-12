@@ -13,12 +13,15 @@ import Foundation
 struct JoinTripIntent: AppIntent {
     static let title: LocalizedStringResource = "Join a Trip"
     static let description = IntentDescription("Joins a Lezgo trip with its room code and opens the Trip Room.")
-    /// The app comes to the front before `perform` runs, so the Trip Room opens when Siri finishes.
-    static let supportedModes: IntentModes = .foreground(.immediate)
+    /// Joins in the background, so Siri keeps the conversation and speaks a wrong code; then brings the app to the
+    /// front for the Trip Room. Coming to the front first cut Siri off on a real phone, and nothing was joined.
+    static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
+    /// A text field, not a number pad: Shortcuts reads a number pad's entry as a number and drops a leading zero, so
+    /// "066335" became "66335". The code is text, and `SpokenRoomCode` keeps only its digits.
     @Parameter(
         title: "Room Code",
-        inputOptions: String.IntentInputOptions(keyboardType: .numberPad),
+        inputOptions: String.IntentInputOptions(keyboardType: .asciiCapable, autocorrect: false),
         requestValueDialog: "What's the room code?"
     )
     var code: String
@@ -38,16 +41,39 @@ struct JoinTripIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
+        SiriLog.Note("Join a trip: heard \(code)")
         guard let roomCode = SpokenRoomCode.Parse(code) else {
+            SiriLog.Note("Join a trip: not a 6-digit code, asking again")
             throw $code.needsValueError(IntentDialog(stringLiteral: String(localized: .siriRoomCodeInvalid)))
         }
-        guard SiriTripMap.HasTripOnThisPhone() == false else { throw SiriRefusal.alreadyInTrip }
+        guard SiriTripMap.HasTripOnThisPhone() == false else {
+            SiriLog.Note("Join a trip: refused, a trip is already on this phone")
+            throw SiriRefusal.alreadyInTrip
+        }
         switch await Self.Join(roomCode: roomCode, tripService: LezgoApp.tripService) {
         case .failed(let message):
+            SiriLog.Note("Join a trip: failed with \(message)")
             throw SiriRefusal.saying(message)
         case .joined(let session):
+            SiriLog.Note("Join a trip: joined \(roomCode), handing over to Home")
             SiriHandoff.shared.Joined(session)
+            await Self.OpenApp(from: self)
             return .result(dialog: IntentDialog(stringLiteral: String(localized: .siriJoinedRoom(roomCode))))
+        }
+    }
+
+    /// Brings Lezgo to the front for the Trip Room or Set Route. Where iOS does not allow it (a locked phone, CarPlay),
+    /// the work is done anyway and Home opens the trip the next time Lezgo opens.
+    @MainActor
+    static func OpenApp(from intent: some AppIntent) async {
+        guard intent.systemContext.currentMode.canContinueInForeground else {
+            SiriLog.Note("Siri: cannot open Lezgo now, Home takes over when it opens")
+            return
+        }
+        do {
+            try await intent.continueInForeground(nil, alwaysConfirm: false)
+        } catch {
+            SiriLog.Note("Siri: opening Lezgo failed: \(error.localizedDescription)")
         }
     }
 

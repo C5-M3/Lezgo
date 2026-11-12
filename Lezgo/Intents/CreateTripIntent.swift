@@ -13,8 +13,8 @@ import Foundation
 struct CreateTripIntent: AppIntent {
     static let title: LocalizedStringResource = "Create a Trip"
     static let description = IntentDescription("Opens Lezgo to plan a trip, searching for the place you say.")
-    /// The app comes to the front before `perform` runs, so Set Route opens when Siri finishes.
-    static let supportedModes: IntentModes = .foreground(.immediate)
+    /// Checks in the background, so Siri keeps the conversation, then brings the app to the front for Set Route.
+    static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
     @Parameter(title: "Destination", requestValueDialog: "Where to?")
     var destination: String
@@ -34,6 +34,7 @@ struct CreateTripIntent: AppIntent {
         }
         // Siri cannot open the app's own `lezgo://` links, so Home takes it inside the app.
         SiriHandoff.shared.Open(link)
+        await JoinTripIntent.OpenApp(from: self)
         return .result(dialog: IntentDialog(stringLiteral: String(localized: .siriPlanningTrip(place))))
     }
 }
