@@ -32,6 +32,70 @@ struct MapPickerViewModelTests {
         MapPickerViewModel(selection: selection, startingAt: start, lookupService: service, debounce: debounce)
     }
 
+    @Test func TheStartIsPickedUnderTheStartingPointTitleAndTheHouse() {
+        let viewModel = MakeViewModel(selection: .start)
+
+        #expect(String(localized: viewModel.title) == "Set Starting Point")
+        #expect(viewModel.pointSymbol == "house.fill")
+    }
+
+    @Test(arguments: [0, 2])
+    func ACheckpointOrTheDestinationIsPickedUnderTheDestinationTitleAndTheFlag(index: Int) {
+        let viewModel = MakeViewModel(selection: .destination(index: index))
+
+        #expect(String(localized: viewModel.title) == "Set Destination")
+        #expect(viewModel.pointSymbol == "flag.checkered")
+    }
+
+    @Test func TheCardShowsThePlaceNameWhenThereIsOne() async {
+        let royalPlaza = PlaceAddress(street: "Jl. Yos Sudarso No. 1", area: "Surabaya", placeName: "Royal Plaza")
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(royalPlaza)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.shownName == "Royal Plaza")
+    }
+
+    @Test func TheCardShowsTheStreetWithoutAPlaceName() async {
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(darmo)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.shownName == "Jl. Raya Darmo")
+    }
+
+    @Test func TheCardShowsNoNameWhenNoAddressIsFound() async {
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(nil)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.shownName == nil)
+    }
+
+    @Test func TheCardShowsTheNameOfASnappedPlace() {
+        let viewModel = MakeViewModel()
+
+        viewModel.Snap(to: tunjungan)
+
+        #expect(viewModel.shownName == "Tunjungan Plaza")
+    }
+
+    /// The card shows the place name, but the route keeps the street and the area as before.
+    @Test func ThePointForTheRouteKeepsTheStreetAndTheArea() async {
+        let royalPlaza = PlaceAddress(street: "Jl. Yos Sudarso No. 1", area: "Surabaya", placeName: "Royal Plaza")
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(royalPlaza)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+        let point = viewModel.MakePoint()
+
+        #expect(point.name == "Jl. Yos Sudarso No. 1")
+        #expect(point.subtitle == "Surabaya")
+    }
+
     @Test func StartLooksUpTheAddressAndNearbyPlacesAtTheStartingPoint() async {
         let service = MockPlaceLookupService(nearbyResult: .success([tunjungan]))
         let viewModel = MakeViewModel(service: service)
