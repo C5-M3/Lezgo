@@ -35,9 +35,15 @@ struct MapPickerView: View {
             .padding(.horizontal, 16)
             .padding(.top, 4)
             .padding(.bottom, 8)
+            .background { MapPickerTopFade() }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            MapPickerCard(nearbyPlaces: viewModel.nearbyPlaces, onSnap: Snap, onConfirm: onConfirm)
+            MapPickerCard(
+                nearbyPlaces: viewModel.nearbyPlaces,
+                isLoadingNearby: viewModel.isLoadingNearby,
+                onSnap: Snap,
+                onConfirm: onConfirm
+            )
         }
         .sensoryFeedback(.impact(flexibility: .soft), trigger: viewModel.isMoving) { wasMoving, isMoving in
             wasMoving && !isMoving
@@ -71,7 +77,6 @@ struct MapPickerView: View {
                 .font(.body.weight(.bold))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
-                .shadow(color: .black.opacity(0.6), radius: 4)
                 .accessibilityAddTraits(.isHeader)
 
             Spacer()
@@ -114,8 +119,8 @@ private struct MapPickerPin: View {
     }
 }
 
-/// A dark round button for the back icon over the map, in the color of the cards. The icon is a map graphic, so
-/// it stops growing before it would leave the circle.
+/// A dark round button for the back icon over the map, in the color of the address card, so it stands out from the
+/// top fade. The icon is a map graphic, so it stops growing before it would leave the circle.
 private struct RoundMapButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -123,7 +128,7 @@ private struct RoundMapButtonStyle: ButtonStyle {
             .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             .foregroundStyle(.white)
             .frame(width: 40, height: 40)
-            .background(Color(.tripCard), in: .circle)
+            .background(Color(.routeCard), in: .circle)
             .contentShape(.circle)
             .pressFeedback(isPressed: configuration.isPressed)
     }
@@ -161,6 +166,29 @@ private struct PinShape: Shape {
         path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
         path.closeSubpath()
         return path
+    }
+}
+
+/// The dark fade at the top of the map from the hi-fi ("Top fade"): it starts under the status bar and runs a little
+/// past the address card, so the title stays readable over any map.
+private struct MapPickerTopFade: View {
+    /// How far the fade runs past the address card, as in the design.
+    private let overhang: CGFloat = 150
+
+    var body: some View {
+        LinearGradient(
+            stops: [
+                .init(color: Color(.tripCard).opacity(0.95), location: 0),
+                .init(color: Color(.tripCard).opacity(0.7), location: 0.55),
+                .init(color: Color(.tripCard).opacity(0), location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .padding(.bottom, -overhang)
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -203,7 +231,7 @@ private struct MapPickerAddressCard: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
-        .background(Color(.tripCard), in: .rect(cornerRadius: 20))
+        .background(Color(.routeCard), in: .rect(cornerRadius: 20))
         .accessibilityElement(children: .combine)
     }
 }
@@ -211,61 +239,117 @@ private struct MapPickerAddressCard: View {
 /// The bottom card: the question, places nearby, and the confirm button.
 private struct MapPickerCard: View {
     let nearbyPlaces: [NearbyPlace]
+    let isLoadingNearby: Bool
     let onSnap: (NearbyPlace) -> Void
     let onConfirm: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The chips are in a scroll view that keeps its offset when the places change; a new list starts at the left.
     @State private var nearbyPosition = ScrollPosition(edge: .leading)
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Is this the right spot?")
-                .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
-                .accessibilityAddTraits(.isHeader)
-            // At the largest text sizes the card keeps the question and the button; the chips would hide the map.
-            if nearbyPlaces.isEmpty == false, dynamicTypeSize.isAccessibilitySize == false { nearbySection }
-            Button("Confirm", action: onConfirm)
-                .buttonStyle(.yellowCapsule(minHeight: 52))
-                .accessibilityLabel("Confirm Location")
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(.tripCard)))
-        .shadow(color: .black.opacity(0.3), radius: 14, x: 0, y: 6)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+    /// A chip is drawn 30 points tall, as in the design, but takes taps 44 points tall; the gaps around the chips
+    /// subtract the difference so the card keeps the design's spacing.
+    private let chipTapOverhang: CGFloat = 7
+
+    /// At the largest text sizes the card keeps the question and the button; the chips would hide the map.
+    private var showsNearby: Bool {
+        (nearbyPlaces.isEmpty == false || isLoadingNearby) && dynamicTypeSize.isAccessibilitySize == false
     }
 
-    private var nearbySection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Other areas around here...")
-                .font(.caption)
-                .foregroundStyle(Color(white: 0.6))
-
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(nearbyPlaces) { place in
-                        Button { onSnap(place) } label: {
-                            Text(place.name)
-                                .lineLimit(1)
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 14)
-                                .frame(minHeight: 44)
-                                .background(Color(white: 0.18), in: .capsule)
-                        }
-                        .buttonStyle(.plain)
-                    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Is this the right spot?")
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(.white)
+                    .accessibilityAddTraits(.isHeader)
+                if showsNearby {
+                    Text("Other areas around here...")
+                        .font(.caption)
+                        .foregroundStyle(Color(white: 0.6))
                 }
             }
-            .scrollIndicators(.hidden)
-            .scrollPosition($nearbyPosition)
-            .onChange(of: nearbyPlaces) {
-                nearbyPosition.scrollTo(edge: .leading)
+            .padding(.horizontal, 10)
+
+            if showsNearby {
+                Group {
+                    if isLoadingNearby {
+                        NearbyPlaceholderChips()
+                    } else {
+                        nearbyChips
+                    }
+                }
+                .padding(.top, 10 - chipTapOverhang)
             }
+
+            Button("Confirm", action: onConfirm)
+                .buttonStyle(.yellowCapsule(minHeight: 54))
+                .accessibilityLabel("Confirm Location")
+                .padding(.top, showsNearby ? 11 - chipTapOverhang : 11)
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 21)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 32, style: .continuous).fill(Color(.tripCard)))
+        .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: 8)
+        .padding(.horizontal, 12)
+    }
+
+    private var nearbyChips: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(nearbyPlaces) { place in
+                    Button { onSnap(place) } label: {
+                        Text(place.name)
+                            .lineLimit(1)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 30)
+                            .background(Color(white: 0.18), in: .capsule)
+                            .frame(minHeight: 30 + chipTapOverhang * 2)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 3)
+        }
+        .scrollIndicators(.hidden)
+        .scrollPosition($nearbyPosition)
+        .onChange(of: nearbyPlaces) {
+            nearbyPosition.scrollTo(edge: .leading)
+        }
+    }
+}
+
+/// Gray chips that stand in for the nearby places while they are fetched. They pulse, unless Reduce Motion is on.
+private struct NearbyPlaceholderChips: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isDimmed = false
+    /// The height of a real chip with its tap overhang, so the card does not change height when the places arrive.
+    private let rowHeight: CGFloat = 44
+    private let chipWidths: [CGFloat] = [140, 96, 120]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(chipWidths, id: \.self) { width in
+                Capsule()
+                    .fill(Color(white: 0.18))
+                    .frame(width: width, height: 30)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 3)
+        .frame(height: rowHeight)
+        .opacity(isDimmed ? 0.45 : 1)
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+            value: isDimmed
+        )
+        .onAppear { isDimmed = true }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Looking for places nearby…")
     }
 }
 
