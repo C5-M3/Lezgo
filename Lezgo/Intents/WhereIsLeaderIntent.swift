@@ -12,7 +12,6 @@ import SwiftUI
 struct WhereIsLeaderIntent: AppIntent {
     static let title: LocalizedStringResource = "Where's the Leader"
     static let description = IntentDescription("Says how far the leader's car is and on which street.")
-    static let supportedModes: IntentModes = .background
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {

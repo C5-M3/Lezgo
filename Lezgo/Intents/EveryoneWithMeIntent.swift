@@ -12,7 +12,6 @@ import SwiftUI
 struct EveryoneWithMeIntent: AppIntent {
     static let title: LocalizedStringResource = "Is Everyone With Me"
     static let description = IntentDescription("Says which cars are with the group, and which are not.")
-    static let supportedModes: IntentModes = .background
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {

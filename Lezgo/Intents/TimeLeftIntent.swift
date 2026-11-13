@@ -12,7 +12,6 @@ import SwiftUI
 struct TimeLeftIntent: AppIntent {
     static let title: LocalizedStringResource = "How Long Left"
     static let description = IntentDescription("Says the time and distance left to the destination.")
-    static let supportedModes: IntentModes = .background
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {

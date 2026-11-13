@@ -12,7 +12,6 @@ import SwiftUI
 struct WhereIsCarIntent: AppIntent {
     static let title: LocalizedStringResource = "Where's a Car"
     static let description = IntentDescription("Says how far a car of your trip is and on which street.")
-    static let supportedModes: IntentModes = .background
 
     @Parameter(title: "Car", requestValueDialog: "Which car?")
     var car: TripCarEntity

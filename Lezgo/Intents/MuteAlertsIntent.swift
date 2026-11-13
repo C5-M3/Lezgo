@@ -13,7 +13,6 @@ import SwiftUI
 struct MuteAlertsIntent: AppIntent {
     static let title: LocalizedStringResource = "Mute Voice Alerts"
     static let description = IntentDescription("Turns Lezgo's spoken turns and alert sounds off or on.")
-    static let supportedModes: IntentModes = .background
 
     @Parameter(title: "Muted", default: true)
     var muted: Bool

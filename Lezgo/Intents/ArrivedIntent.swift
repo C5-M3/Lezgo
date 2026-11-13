@@ -12,7 +12,6 @@ import SwiftUI
 struct ArrivedIntent: AppIntent {
     static let title: LocalizedStringResource = "I've Arrived"
     static let description = IntentDescription("Tells your group you've arrived near the destination.")
-    static let supportedModes: IntentModes = .background
 
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetView {
