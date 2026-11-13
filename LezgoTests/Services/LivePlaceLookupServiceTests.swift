@@ -13,10 +13,29 @@ struct LivePlaceLookupServiceTests {
     @Test func StreetAndAreaAreSplitAtTheFirstComma() {
         let address = LivePlaceLookupService.MakeAddress(
             shortAddress: "Jl Raya Darmo No. 52, Wonokromo, Surabaya",
-            name: "Some Building"
+            name: nil
         )
 
         #expect(address == PlaceAddress(street: "Jl Raya Darmo No. 52", area: "Wonokromo, Surabaya"))
+    }
+
+    @Test func ThePlaceNameIsKeptNextToTheStreet() {
+        let address = LivePlaceLookupService.MakeAddress(
+            shortAddress: "Jl. Yos Sudarso No. 1, Embong Kaliasin, Surabaya",
+            name: "Royal Plaza"
+        )
+
+        #expect(address == PlaceAddress(
+            street: "Jl. Yos Sudarso No. 1",
+            area: "Embong Kaliasin, Surabaya",
+            placeName: "Royal Plaza"
+        ))
+    }
+
+    @Test func AnEmptyNameIsNoPlaceName() {
+        let address = LivePlaceLookupService.MakeAddress(shortAddress: "Jl Raya Darmo", name: "")
+
+        #expect(address?.placeName == nil)
     }
 
     @Test func AddressWithoutAnAreaHasAnEmptyArea() {
@@ -28,7 +47,7 @@ struct LivePlaceLookupServiceTests {
     @Test func NameIsUsedWithoutAShortAddress() {
         let address = LivePlaceLookupService.MakeAddress(shortAddress: nil, name: "Taman Bungkul")
 
-        #expect(address == PlaceAddress(street: "Taman Bungkul", area: ""))
+        #expect(address == PlaceAddress(street: "Taman Bungkul", area: "", placeName: "Taman Bungkul"))
     }
 
     @Test func NothingIsKnownWithoutAShortAddressOrAName() {

@@ -32,6 +32,111 @@ struct MapPickerViewModelTests {
         MapPickerViewModel(selection: selection, startingAt: start, lookupService: service, debounce: debounce)
     }
 
+    @Test func TheStartIsPickedUnderTheStartingPointTitleAndTheHouse() {
+        let viewModel = MakeViewModel(selection: .start)
+
+        #expect(String(localized: viewModel.title) == "Set Starting Point")
+        #expect(viewModel.pointSymbol == "house.fill")
+    }
+
+    @Test(arguments: [0, 2])
+    func ACheckpointOrTheDestinationIsPickedUnderTheDestinationTitleAndTheFlag(index: Int) {
+        let viewModel = MakeViewModel(selection: .destination(index: index))
+
+        #expect(String(localized: viewModel.title) == "Set Destination")
+        #expect(viewModel.pointSymbol == "flag.checkered")
+    }
+
+    @Test func TheCardShowsThePlaceNameWhenThereIsOne() async {
+        let royalPlaza = PlaceAddress(street: "Jl. Yos Sudarso No. 1", area: "Surabaya", placeName: "Royal Plaza")
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(royalPlaza)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.shownName == "Royal Plaza")
+    }
+
+    @Test func TheCardShowsTheStreetWithoutAPlaceName() async {
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(darmo)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.shownName == "Jl. Raya Darmo")
+    }
+
+    @Test func TheCardShowsNoNameWhenNoAddressIsFound() async {
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(nil)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.shownName == nil)
+    }
+
+    @Test func TheCardShowsTheNameOfASnappedPlace() {
+        let viewModel = MakeViewModel()
+
+        viewModel.Snap(to: tunjungan)
+
+        #expect(viewModel.shownName == "Tunjungan Plaza")
+    }
+
+    /// The card shows the place name, but the route keeps the street and the area as before.
+    @Test func ThePointForTheRouteKeepsTheStreetAndTheArea() async {
+        let royalPlaza = PlaceAddress(street: "Jl. Yos Sudarso No. 1", area: "Surabaya", placeName: "Royal Plaza")
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(addressResults: [.success(royalPlaza)]))
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+        let point = viewModel.MakePoint()
+
+        #expect(point.name == "Jl. Yos Sudarso No. 1")
+        #expect(point.subtitle == "Surabaya")
+    }
+
+    @Test func NearbyPlacesAreLoadingUntilTheSearchEnds() async {
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(nearbyResult: .success([tunjungan])))
+
+        viewModel.Start()
+        #expect(viewModel.isLoadingNearby)
+
+        await viewModel.lookupTask?.value
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    @Test func AFailedNearbySearchStopsLoading() async {
+        let service = MockPlaceLookupService(nearbyResult: .failure(MockPlaceLookupService.LookupFailed()))
+        let viewModel = MakeViewModel(service: service)
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    /// A short move keeps the nearby places, so nothing is loading.
+    @Test func ASmallMoveDoesNotLoadNearbyPlaces() async {
+        let viewModel = MakeViewModel()
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        viewModel.CameraMoved(to: nearStart)
+
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    @Test func ChoosingANearbyPlaceStopsLoading() {
+        let viewModel = MakeViewModel(debounce: .seconds(10))
+        viewModel.CameraMoved(to: farFromStart)
+        #expect(viewModel.isLoadingNearby)
+
+        viewModel.Snap(to: tunjungan)
+
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
     @Test func StartLooksUpTheAddressAndNearbyPlacesAtTheStartingPoint() async {
         let service = MockPlaceLookupService(nearbyResult: .success([tunjungan]))
         let viewModel = MakeViewModel(service: service)
@@ -194,14 +299,5 @@ struct MapPickerViewModelTests {
         let point = viewModel.MakePoint()
 
         #expect(point.name == String(localized: "Pinned location"))
-    }
-
-    @Test func MovingToTheUserLocationMakesTheCameraFollowIt() {
-        let viewModel = MakeViewModel()
-        #expect(viewModel.cameraPosition.followsUserLocation == false)
-
-        viewModel.MoveToUserLocation()
-
-        #expect(viewModel.cameraPosition.followsUserLocation)
     }
 }

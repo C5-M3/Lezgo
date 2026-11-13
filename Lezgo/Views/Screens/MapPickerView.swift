@@ -18,25 +18,29 @@ struct MapPickerView: View {
     var body: some View {
         ZStack {
             map
-            MapPickerPin(isLifted: viewModel.isMoving, street: viewModel.address?.street)
+            MapPickerPin(isLifted: viewModel.isMoving, street: viewModel.shownName)
         }
-        .overlay(alignment: .top) { topBar }
-        // Above the card, level with the Apple Maps logo on the other side. The overlay sits inside the safe area
-        // inset below, so the card never covers it.
-        .overlay(alignment: .bottomTrailing) {
-            Button("Current Location", systemImage: "location.fill", action: viewModel.MoveToUserLocation)
-                .labelStyle(.iconOnly)
-                .buttonStyle(RoundMapButtonStyle())
-                .padding(.trailing, 16)
-                .padding(.bottom, 8)
+        // Both cards are safe area insets, so the map centers its camera between them, where the pin is drawn, and
+        // the pin stays in sight even when large text makes the cards tall.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 12) {
+                header
+                MapPickerAddressCard(
+                    symbol: viewModel.pointSymbol,
+                    name: viewModel.shownName,
+                    isLoadingAddress: viewModel.isLoadingAddress,
+                    isMoving: viewModel.isMoving
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 8)
+            .background { MapPickerTopFade() }
         }
-        // The card is a safe area inset, so the map centers its camera above it, where the pin is drawn.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             MapPickerCard(
-                address: viewModel.address,
-                isLoadingAddress: viewModel.isLoadingAddress,
-                isMoving: viewModel.isMoving,
                 nearbyPlaces: viewModel.nearbyPlaces,
+                isLoadingNearby: viewModel.isLoadingNearby,
                 onSnap: Snap,
                 onConfirm: onConfirm
             )
@@ -50,7 +54,7 @@ struct MapPickerView: View {
         Map(position: $viewModel.cameraPosition, interactionModes: [.pan, .zoom]) {
             UserAnnotation()
         }
-        .mapStyle(.lezgo)
+        .mapStyle(.mapPicker)
         .onMapCameraChange(frequency: .continuous) { _ in
             viewModel.CameraIsMoving()
         }
@@ -60,13 +64,26 @@ struct MapPickerView: View {
         }
     }
 
-    private var topBar: some View {
-        Button("Back", systemImage: "chevron.left", action: onClose)
-            .labelStyle(.iconOnly)
-            .buttonStyle(RoundMapButtonStyle())
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
+    /// The back button and the title of the point being picked, like the Route Plan header.
+    private var header: some View {
+        HStack {
+            Button("Back", systemImage: "chevron.left", action: onClose)
+                .labelStyle(.iconOnly)
+                .buttonStyle(RoundMapButtonStyle())
+
+            Spacer()
+
+            Text(viewModel.title)
+                .font(.body.weight(.bold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .accessibilityAddTraits(.isHeader)
+
+            Spacer()
+
+            Color.clear
+                .frame(width: 40, height: 40)
+        }
     }
 
     private func Snap(to place: NearbyPlace) {
@@ -102,8 +119,8 @@ private struct MapPickerPin: View {
     }
 }
 
-/// A dark round button for the two icons over the map, in the color of the card below. The icon is a map graphic, so
-/// it stops growing before it would leave the circle.
+/// A dark round button for the back icon over the map, in the color of the address card, so it stands out from the
+/// top fade. The icon is a map graphic, so it stops growing before it would leave the circle.
 private struct RoundMapButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -111,13 +128,13 @@ private struct RoundMapButtonStyle: ButtonStyle {
             .dynamicTypeSize(...DynamicTypeSize.xxLarge)
             .foregroundStyle(.white)
             .frame(width: 40, height: 40)
-            .background(Color(.tripCard), in: .circle)
+            .background(Color(.routeCard), in: .circle)
             .contentShape(.circle)
             .pressFeedback(isPressed: configuration.isPressed)
     }
 }
 
-/// The yellow map pin with a black dot, drawn at any size: on the map and in the card.
+/// The yellow map pin with a black dot, drawn at any size.
 private struct PinIcon: View {
     let height: CGFloat
 
@@ -152,99 +169,198 @@ private struct PinShape: Shape {
     }
 }
 
-/// The bottom card: the address under the pin, places nearby, and the confirm button.
-private struct MapPickerCard: View {
-    let address: PlaceAddress?
-    let isLoadingAddress: Bool
-    let isMoving: Bool
-    let nearbyPlaces: [NearbyPlace]
-    let onSnap: (NearbyPlace) -> Void
-    let onConfirm: () -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var pinHeight: CGFloat = 22
-    /// The chips are in a scroll view that keeps its offset when the places change; a new list starts at the left.
-    @State private var nearbyPosition = ScrollPosition(edge: .leading)
+/// The dark fade at the top of the map from the hi-fi ("Top fade"): it starts under the status bar and runs a little
+/// past the address card, so the title stays readable over any map.
+private struct MapPickerTopFade: View {
+    /// How far the fade runs past the address card, as in the design.
+    private let overhang: CGFloat = 150
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            addressRow
-            // At the largest text sizes the card keeps the address and the button; the chips would hide the map.
-            if nearbyPlaces.isEmpty == false, dynamicTypeSize.isAccessibilitySize == false { nearbySection }
-            Button("Confirm Location", action: onConfirm)
-                .buttonStyle(.yellowCapsule(minHeight: 52))
+        LinearGradient(
+            stops: [
+                .init(color: Color(.tripCard).opacity(0.95), location: 0),
+                .init(color: Color(.tripCard).opacity(0.7), location: 0.55),
+                .init(color: Color(.tripCard).opacity(0), location: 1)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .padding(.bottom, -overhang)
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The card under the header: the icon of the point being picked and the name of the place under the pin.
+private struct MapPickerAddressCard: View {
+    let symbol: String
+    let name: String?
+    let isLoadingAddress: Bool
+    let isMoving: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // The icon is a map graphic, so it stops growing before it would run into the name.
+            Image(systemName: symbol)
+                .font(.callout)
+                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+                .foregroundStyle(Color(.brandYellow))
+                .frame(width: 24)
+                .accessibilityHidden(true)
+
+            // The line is always drawn, blank when empty, so the card does not shrink while the address loads. While it
+            // loads or is missing, the message takes its place.
+            let shownName = isLoadingAddress ? nil : name
+            Text(verbatim: shownName ?? " ")
+                .font(.body)
+                // Large text needs a third line for a long street; the card stays short enough to leave the pin in
+                // sight.
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .leading) {
+                    if shownName == nil {
+                        Text(isLoadingAddress ? "Looking for the address…" : "No address found here")
+                            .font(.body)
+                            .foregroundStyle(Color(white: 0.6))
+                    }
+                }
+                .opacity(isMoving ? 0.45 : 1)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
-        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color(.tripCard)))
-        .shadow(color: .black.opacity(0.3), radius: 14, x: 0, y: 6)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .background(Color(.routeCard), in: .rect(cornerRadius: 20))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The bottom card: the question, places nearby, and the confirm button.
+private struct MapPickerCard: View {
+    let nearbyPlaces: [NearbyPlace]
+    let isLoadingNearby: Bool
+    let onSnap: (NearbyPlace) -> Void
+    let onConfirm: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The chips are in a scroll view that keeps its offset when the places change; a new list starts at the left.
+    @State private var nearbyPosition = ScrollPosition(edge: .leading)
+
+    /// A chip is drawn 30 points tall, as in the design, but takes taps 44 points tall; the gaps around the chips
+    /// subtract the difference so the card keeps the design's spacing.
+    private let chipTapOverhang: CGFloat = 7
+
+    /// At the largest text sizes the card keeps the question and the button; the chips would hide the map.
+    private var showsNearby: Bool {
+        (nearbyPlaces.isEmpty == false || isLoadingNearby) && dynamicTypeSize.isAccessibilitySize == false
     }
 
-    private var addressRow: some View {
-        HStack(spacing: 12) {
-            PinIcon(height: pinHeight)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 2) {
-                // Both lines are always drawn, blank when empty, so the row keeps one height. While the address loads
-                // or is missing, the message sits in the middle of that height instead of on the first line.
-                let shownAddress = isLoadingAddress ? nil : address
-                let area = shownAddress?.area ?? ""
-                Text(verbatim: shownAddress?.street ?? " ")
-                    .font(.headline)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Is this the right spot?")
+                    .font(.title3.weight(.bold))
                     .foregroundStyle(.white)
-                Text(verbatim: area.isEmpty ? " " : area)
-                    .font(.caption)
-                    .foregroundStyle(Color(white: 0.6))
-                    .accessibilityHidden(area.isEmpty)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .leading) {
-                if address == nil || isLoadingAddress {
-                    Text(isLoadingAddress ? "Looking for the address…" : "No address found here")
-                        .font(.headline)
+                    .accessibilityAddTraits(.isHeader)
+                if showsNearby {
+                    Text("Other areas around here...")
+                        .font(.caption)
                         .foregroundStyle(Color(white: 0.6))
                 }
             }
-            .opacity(isMoving ? 0.45 : 1)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(white: 0.18), in: .rect(cornerRadius: 14))
-        .accessibilityElement(children: .combine)
-    }
+            .padding(.horizontal, 10)
 
-    private var nearbySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Nearby")
-                .font(.caption.weight(.semibold))
-                .textCase(.uppercase)
-                .foregroundStyle(Color(white: 0.6))
-
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(nearbyPlaces) { place in
-                        Button { onSnap(place) } label: {
-                            Text(place.name)
-                                .lineLimit(1)
-                                .font(.subheadline)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 14)
-                                .frame(minHeight: 44)
-                                .background(Color(white: 0.18), in: .capsule)
-                        }
-                        .buttonStyle(.plain)
+            if showsNearby {
+                Group {
+                    if isLoadingNearby {
+                        NearbyPlaceholderChips()
+                    } else {
+                        nearbyChips
                     }
                 }
+                .padding(.top, 10 - chipTapOverhang)
             }
-            .scrollIndicators(.hidden)
-            .scrollPosition($nearbyPosition)
-            .onChange(of: nearbyPlaces) {
-                nearbyPosition.scrollTo(edge: .leading)
+
+            Button("Confirm", action: onConfirm)
+                .buttonStyle(.yellowCapsule(minHeight: 54))
+                .accessibilityLabel("Confirm Location")
+                .padding(.top, showsNearby ? 11 - chipTapOverhang : 11)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 21)
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 32, style: .continuous).fill(Color(.tripCard)))
+        .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: 8)
+        .padding(.horizontal, 12)
+    }
+
+    private var nearbyChips: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(nearbyPlaces) { place in
+                    Button { onSnap(place) } label: {
+                        Text(place.name)
+                            .lineLimit(1)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 30)
+                            .background(Color(white: 0.18), in: .capsule)
+                            .frame(minHeight: 30 + chipTapOverhang * 2)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding(.horizontal, 3)
+        }
+        .scrollIndicators(.hidden)
+        .scrollPosition($nearbyPosition)
+        .onChange(of: nearbyPlaces) {
+            nearbyPosition.scrollTo(edge: .leading)
         }
     }
+}
+
+/// Gray chips that stand in for the nearby places while they are fetched. They pulse, unless Reduce Motion is on.
+private struct NearbyPlaceholderChips: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isDimmed = false
+    /// The height of a real chip with its tap overhang, so the card does not change height when the places arrive.
+    private let rowHeight: CGFloat = 44
+    private let chipWidths: [CGFloat] = [140, 96, 120]
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(chipWidths, id: \.self) { width in
+                    Capsule()
+                        .fill(Color(white: 0.18))
+                        .frame(width: width, height: 30)
+                }
+            }
+            .padding(.horizontal, 3)
+            .frame(height: rowHeight)
+        }
+        .scrollIndicators(.hidden)
+        .scrollDisabled(true)
+        .allowsHitTesting(false)
+        .opacity(isDimmed ? 0.45 : 1)
+        .animation(
+            reduceMotion ? nil : .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+            value: isDimmed
+        )
+        .onAppear { isDimmed = true }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Looking for places nearby…")
+    }
+}
+
+private extension MapStyle {
+    /// The Lezgo map with points of interest, so the person can tell where the pin is. Only this screen shows them:
+    /// it is used while planning, not while driving.
+    static let mapPicker = MapStyle.standard(emphasis: .muted, pointsOfInterest: .all)
 }
 
 #if DEBUG

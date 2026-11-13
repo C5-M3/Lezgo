@@ -28,10 +28,28 @@ final class MapPickerViewModel {
     /// `true` when the last lookup found nothing or failed, so the card says so instead of showing an old address.
     private(set) var addressNotFound = false
     private(set) var nearbyPlaces: [NearbyPlace] = []
+    /// `true` while nearby places are being fetched, so the card can show placeholders instead of an empty gap.
+    private(set) var isLoadingNearby = false
     /// `true` while the map moves, so the pin lifts.
     private(set) var isMoving = false
     /// The latest lookup; an older one is cancelled so it cannot answer for a place the pin has left.
     private(set) var lookupTask: Task<Void, Never>?
+
+    /// The screen's title: the start has its own, a checkpoint and the destination share one.
+    var title: LocalizedStringResource {
+        selection == .start ? "Set Starting Point" : "Set Destination"
+    }
+
+    /// The icon of the point being picked, the same as in Route Plan.
+    var pointSymbol: String {
+        selection == .start ? "house.fill" : "flag.checkered"
+    }
+
+    /// What the card names under the pin: the place's own name, or the street when there is none.
+    var shownName: String? {
+        guard let address else { return nil }
+        return address.placeName ?? address.street
+    }
 
     private let lookupService: any PlaceLookupService
     private let debounce: Duration
@@ -74,16 +92,12 @@ final class MapPickerViewModel {
     func Snap(to place: NearbyPlace) {
         lookupTask?.cancel()
         snappedPlace = place
+        isLoadingNearby = false
         center = place.coordinate
         address = PlaceAddress(street: place.name, area: place.subtitle)
         isLoadingAddress = false
         addressNotFound = false
         cameraPosition = MapViewModel.CloseUp(of: place.coordinate.locationCoordinate)
-    }
-
-    /// Moves the map to where the person is. Without location access the map stays where it is.
-    func MoveToUserLocation() {
-        cameraPosition = .userLocation(fallback: cameraPosition)
     }
 
     /// The point to put in the route: the address when there is one, a plain name when there is not.
@@ -100,6 +114,7 @@ final class MapPickerViewModel {
         isLoadingAddress = true
         addressNotFound = false
         let wantsNearby = nearbyCenter.map { $0.Distance(to: coordinate) >= Self.nearbyRefreshDistance } ?? true
+        isLoadingNearby = wantsNearby
         lookupTask = Task {
             if delay > .zero { try? await Task.sleep(for: delay) }
             guard Task.isCancelled == false else { return }
@@ -122,9 +137,11 @@ final class MapPickerViewModel {
     }
 
     private func FindNearbyPlaces(around coordinate: Coordinate) async {
-        guard let places = try? await lookupService.NearbyPlaces(around: coordinate) else { return }
+        let found = try? await lookupService.NearbyPlaces(around: coordinate)
         guard Task.isCancelled == false else { return }
-        nearbyPlaces = places
+        isLoadingNearby = false
+        guard let found else { return }
+        nearbyPlaces = found
         nearbyCenter = coordinate
     }
 }
