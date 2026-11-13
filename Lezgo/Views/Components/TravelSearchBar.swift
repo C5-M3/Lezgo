@@ -9,23 +9,23 @@ import MapKit
 import SwiftUI
 
 /// Komponen bilah pencarian mengambang bergaya Apple Maps.
-/// - iOS 18 ke atas: Menggunakan sistem Liquid Glass (HIG) dengan `glassEffect` dan `buttonStyle(.glass)`.
-/// - Di bawah iOS 18: Menggunakan Material standar Apple HIG (`.ultraThinMaterial` / `.regularMaterial`).
+/// - iOS 26 ke atas: Menggunakan sistem Liquid Glass (HIG) dengan `glassEffect` dan `buttonStyle(.glass)`.
+/// - Di bawah iOS 26: Menggunakan Material standar Apple HIG (`.ultraThinMaterial` / `.regularMaterial`).
 struct TravelSearchBar: View {
     var placeholder: String = "Where do you want to travel ?"
     var onTap: (() -> Void)?
 
     var body: some View {
-        if #available(iOS 18.0, *) {
+        if #available(iOS 26.0, *) {
             liquidGlassSearchBar
         } else {
             legacyMaterialSearchBar
         }
     }
 
-    // MARK: - iOS 18+ Liquid Glass Implementation
+    // MARK: - iOS 26+ Liquid Glass Implementation
 
-    @available(iOS 18.0, *)
+    @available(iOS 26.0, *)
     private var liquidGlassSearchBar: some View {
         HStack(spacing: 8) {
             // Kolom teks pencarian dengan Liquid Glass
@@ -59,7 +59,7 @@ struct TravelSearchBar: View {
         .accessibilityAddTraits(.isButton)
     }
 
-    // MARK: - Pre-iOS 18 Standard Material Implementation
+    // MARK: - Pre-iOS 26 Standard Material Implementation
 
     private var legacyMaterialSearchBar: some View {
         HStack(spacing: 8) {
@@ -120,12 +120,12 @@ struct TravelSearchBar: View {
 }
 
 /// Tombol aksi mengambang berbentuk lingkaran untuk kontrol peta (seperti tombol pintu/keluar).
-/// Menggunakan Liquid Glass pada iOS 18+ dan Material standar pada iOS di bawahnya.
+/// Menggunakan Liquid Glass pada iOS 26+ dan Material standar pada iOS di bawahnya.
 struct MapDoorButton: View {
     var action: () -> Void = {}
 
     var body: some View {
-        if #available(iOS 18.0, *) {
+        if #available(iOS 26.0, *) {
             Button(action: action) {
                 Image(systemName: "door.left.hand.closed")
                     .font(.title3.weight(.medium))
@@ -177,7 +177,7 @@ struct TravelMapControlsView: View {
     }
 
     var body: some View {
-        if #available(iOS 18.0, *) {
+        if #available(iOS 26.0, *) {
             GlassEffectContainer(spacing: 14) {
                 controlsStack
             }
