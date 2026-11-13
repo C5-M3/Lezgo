@@ -96,6 +96,47 @@ struct MapPickerViewModelTests {
         #expect(point.subtitle == "Surabaya")
     }
 
+    @Test func NearbyPlacesAreLoadingUntilTheSearchEnds() async {
+        let viewModel = MakeViewModel(service: MockPlaceLookupService(nearbyResult: .success([tunjungan])))
+
+        viewModel.Start()
+        #expect(viewModel.isLoadingNearby)
+
+        await viewModel.lookupTask?.value
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    @Test func AFailedNearbySearchStopsLoading() async {
+        let service = MockPlaceLookupService(nearbyResult: .failure(MockPlaceLookupService.LookupFailed()))
+        let viewModel = MakeViewModel(service: service)
+
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    /// A short move keeps the nearby places, so nothing is loading.
+    @Test func ASmallMoveDoesNotLoadNearbyPlaces() async {
+        let viewModel = MakeViewModel()
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        viewModel.CameraMoved(to: nearStart)
+
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    @Test func ChoosingANearbyPlaceStopsLoading() {
+        let viewModel = MakeViewModel(debounce: .seconds(10))
+        viewModel.CameraMoved(to: farFromStart)
+        #expect(viewModel.isLoadingNearby)
+
+        viewModel.Snap(to: tunjungan)
+
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
     @Test func StartLooksUpTheAddressAndNearbyPlacesAtTheStartingPoint() async {
         let service = MockPlaceLookupService(nearbyResult: .success([tunjungan]))
         let viewModel = MakeViewModel(service: service)
