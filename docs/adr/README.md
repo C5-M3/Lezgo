@@ -16,7 +16,7 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | ADR | Title | Status | Date |
 | --- | --- | --- | --- |
 | [0001](0001-RecordArchitectureDecisions.md) | Record architecture decisions | Accepted | 2026-10-23 |
-| [0002](0002-SwiftUIAndSwiftDataOnIOS27.md) | SwiftUI and SwiftData on iOS 27 | Accepted | 2026-10-22 |
+| [0002](0002-SwiftUIAndSwiftDataOnIOS27.md) | SwiftUI and SwiftData on iOS 27 | Superseded by 0031 | 2026-10-22 |
 | [0003](0003-MvvmLayerFirst.md) | MVVM with layer-first folders | Accepted | 2026-10-22 |
 | [0004](0004-PascalCaseFunctionNames.md) | PascalCase function names | Accepted | 2026-10-22 |
 | [0005](0005-TrunkBranchesAndConventionalBranch.md) | Trunk branches and Conventional Branch names | Accepted | 2026-10-22 |
@@ -45,4 +45,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0028](0028-LiveActivityInAWidgetExtension.md) | Live Activity for the trip in a widget extension | Proposed | 2026-11-12 |
 | [0029](0029-AskForAlwaysLocationWhenTheTripStarts.md) | Ask for "Always" location when the trip starts | Accepted | 2026-11-12 |
 | [0030](0030-SiriWithAppIntents.md) | Siri questions about the trip with App Intents | Proposed | 2026-11-12 |
-| [0031](0031-MinimumIOS18WithNewerFeaturesBehindAvailability.md) | Minimum iOS 18, with newer features behind availability checks | Proposed | 2026-11-13 |
+| [0031](0031-MinimumIOS18WithNewerFeaturesBehindAvailability.md) | Minimum iOS 18, with newer features behind availability checks | Accepted | 2026-11-13 |

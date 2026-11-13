@@ -1,6 +1,6 @@
 # 0002. SwiftUI and SwiftData on iOS 27
 
-- Status: Accepted
+- Status: Superseded by 0031
 - Date: 2026-10-22
 - Deciders: Nathan Sudiara
 

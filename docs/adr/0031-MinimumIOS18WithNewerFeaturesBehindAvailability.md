@@ -1,8 +1,8 @@
 # 0031. Minimum iOS 18, with newer features behind availability checks
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-13
-- Deciders: Oky Faishal (proposed), the team (to approve)
+- Deciders: Oky Faishal, the team
 
 ## Context
 
@@ -37,7 +37,15 @@ What Apple's documentation and our checks say about each fallback:
   - An intent that does not set `supportedModes` gets the same value in the metadata as one that sets `.background`. `MuteSnippetIntent`, which sets nothing, is stored as `1`, exactly like the six `.background` intents.
   - A `static let supportedModes` marked `@available(iOS 26.0, *)` builds for iOS 18 and is still stored as `[.background, .foreground(.dynamic)]` (`9`).
   - `openAppWhenRun` is deprecated in favour of `supportedModes`.
-- **Siri card:** Apple calls a snippet that runs an intent from a button an interactive snippet. Interactive snippets are made with `SnippetIntent`, which is iOS 26 only. Before iOS 26 an intent can show only a static `ShowsSnippetView` card.
+- **Opening the app from Siri:**
+  - `ForegroundContinuableIntent` and its `requestToContinueInForeground(_:continuation:)` are available from iOS 16.4. They are deprecated from iOS 26 in favour of `.foreground(.dynamic)` in `supportedModes`.
+  - Conforming `JoinTripIntent` and `CreateTripIntent` to it builds for iOS 18. Their App Intents metadata stays the same as on `dev`; only the order of some lists changes.
+- **Siri card:**
+  - Apple calls a snippet that runs an intent from a button an interactive snippet. Interactive snippets are made with `SnippetIntent` and `ShowsSnippetIntent`, which are iOS 26 only. Before iOS 26 an intent can show only a static `ShowsSnippetView` card.
+  - A function returning `some P` may return a different type in each branch of `if #available` (Swift's opaque result types), so one `perform()` can return a different result on each iOS version. Each branch may hold only one `return`.
+  - The App Intents metadata is built from the result type written in `perform()`. It records 4 for `ProvidesDialog`, 2 for `ShowsSnippetView` and 32 for `ShowsSnippetIntent`. One signature cannot name both snippet kinds; the compiler rejects it.
+  - On iOS 18.1, App Intents stops the app when `perform()` returns a kind of result its signature does not name ("Fatal error: perform() returned types not declared in method signature"). In a test build, a static card on iOS 18 under a `ProvidesDialog` signature crashed this way.
+  - The same test build with a `some IntentResult & ProvidesDialog` signature showed the interactive card on iOS 27, and spoke only the sentence on iOS 18.1 without crashing. Both were run from the Shortcuts app in the simulator.
 - **Siri phrases:** `AppShortcutsProvider` does not allow `if #available` in its builder ("closure containing control flow statement cannot be used with result builder 'AppShortcutsBuilder'"). One Siri phrase cannot point to a different intent on each iOS version.
 - **Look of the app:** an app linked against the newest SDK uses the design of the OS it runs on, unless `UIDesignRequiresCompatibility` is set. Lezgo does not set it, so lowering the deployment target does not take Liquid Glass away from iOS 26 users.
 - **Tests:** Swift Testing reports a test marked `@available(iOS 26.0, *)` as skipped on an older iOS.
@@ -49,12 +57,13 @@ We will set the minimum iOS version to 18.0 and keep every feature that needs a 
 - **Map items:** making a map item from a coordinate and reading its coordinate go through a small extension on `MKMapItem` in `Extensions/`. It uses `MKMapItem(location:address:)` and `location` on iOS 26, and `MKPlacemark` before that. Views, view models and services call the extension, not `#available`.
 - **Reverse geocoding:** the version check stays inside `LiveStreetNameService` and `LivePlaceLookupService`, which already sit behind the `StreetNameService` and `PlaceLookupService` protocols. Before iOS 26 they use a new `CLGeocoder` for each request. They turn its `CLPlacemark` into the same "Street, Area, City" text that `MKAddress.shortAddress` gives. The existing `StreetName(shortAddress:name:)` and `MakeAddress(shortAddress:name:)` functions and their tests then work for both versions. The callers keep deciding how often to ask, as they do now.
 - **Intent modes:** the six `.background` intents stop setting `supportedModes`, because the default is the same. `JoinTripIntent` and `CreateTripIntent` keep it as a `static let` marked `@available(iOS 26.0, *)`.
-- **Opening the app from Siri:** before iOS 26, `JoinTripIntent.OpenApp` returns without opening Lezgo. "Join a trip" and "Create a trip" do their work in the background, and Home opens the trip the next time Lezgo opens. This is the path these intents already take on a locked phone or in CarPlay. We do not set `openAppWhenRun`: it is deprecated, and opening Lezgo before the work cut Siri off on a real phone, and nothing was joined.
+- **Opening the app from Siri:** `JoinTripIntent` and `CreateTripIntent` also conform to `ForegroundContinuableIntent`. On iOS 26, `JoinTripIntent.OpenApp` keeps calling `continueInForeground`. Before iOS 26, it calls `requestToContinueInForeground()` after the work is done. Where iOS does not allow it, the work is still done and Home opens the trip the next time Lezgo opens, as today. We do not set `openAppWhenRun`: it is deprecated, and opening Lezgo before the work cut Siri off on a real phone, and nothing was joined.
+- **Mute card:** `MuteAlertsIntent.perform()` declares `some IntentResult & ProvidesDialog`. Inside `if #available(iOS 26.0, *)` it returns the dialog with the interactive `MuteSnippetIntent`, which is marked `@available(iOS 26.0, *)`. Before iOS 26 it returns the dialog alone. With no trip it throws `SiriRefusal.saying(TripAnswers.noTrip)` before the check, like the other refusals.
 - **Liquid Glass:** we use it only inside `if #available(iOS 26.0, *)`, with a material on older versions. System controls follow the running OS on their own.
 - **Tests:** a test of an iOS 26 path is marked `@available(iOS 26.0, *)`. A test of a fallback path calls the fallback directly, so it runs on every version.
 - **iOS 27 features:** the CarPlay map panels ([0023](0023-CarPlayMirrorsTheTripMap.md)) keep their checks.
 
-When this record is accepted, 0002's status becomes `Superseded by 0031`, and 0027's line about the deployment target no longer holds.
+This record supersedes 0002. 0027's line about the deployment target no longer holds.
 
 ## Alternatives considered
 
@@ -65,16 +74,22 @@ When this record is accepted, 0002's status becomes `Superseded by 0031`, and 00
 - **Availability checks at every call site:** no helper to write, but the same `#available` would repeat in 8 files and drift apart.
 - **`supportedModes` as a computed `static var`:** this also builds, but the stored `static let` is the form whose value we checked in the App Intents metadata.
 - **`openAppWhenRun = true` before iOS 26:** it is deprecated, and it brings Lezgo to the front before the join is done, which already failed on a real phone.
+- **Not opening the app from Siri before iOS 26:** simpler, but `requestToContinueInForeground()` is Apple's API for exactly this on iOS 16.4 to 25.
+- **A static Mute card before iOS 26:** the iOS 18.1 test crashed, because the signature cannot name a static card next to the interactive one.
+- **A static Mute card on every version:** it works everywhere, but it takes the button away from iOS 26 users.
+- **A second, iOS 26-only Mute intent:** no Siri phrase can reach it, because phrases cannot change per version.
 
 ## Consequences
 
 - Phones on iOS 18 to iOS 25 can install Lezgo. Route planning, the Trip Room, the trip map, alerts, CarPlay, CloudKit sync and the Live Activity on the Lock Screen and in the Dynamic Island work there as on iOS 26.
 - Before iOS 26, these features are reduced:
-  - Siri "Join a trip" and "Create a trip" do not open Lezgo; the Trip Room appears when the user opens the app.
-  - Siri "Mute Lezgo" still mutes and unmutes, but its card cannot have a button to flip it back. Siri phrases cannot change per version, so `MuteAlertsIntent` has two options. It can show a static card on every version, which also takes the button away from iOS 26 users. Or it can keep a second, iOS 26-only intent for the interactive card, which no phrase can reach. The team decides in the implementation pull request.
+  - Siri "Join a trip" and "Create a trip" may ask the user to confirm before Lezgo opens. How iOS 18 shows this through Siri has to be checked on a real phone.
+  - Siri "Mute Lezgo" still mutes and unmutes and says so, but shows no card.
   - The system controls use the look from before Liquid Glass, and the CarPlay dashboard shows no Live Activity.
   - Addresses come from `CLGeocoder`. Its street and area names can differ from `MKAddress` for the same place, so Set Route, Choose on Map and the car card's street must be checked on both versions.
+- On iOS 26 and later, the Mute card relies on App Intents accepting an interactive snippet that the signature does not name. This worked on iOS 27, but Apple does not document it, so it is checked again on each new iOS.
 - New code that uses an API newer than iOS 18 needs an availability check and a fallback. The compiler enforces the check; review enforces the fallback.
+- An App Intent whose result differs per iOS version must declare only what every version returns. Otherwise it crashes on iOS 18.
 - Tests run on an iOS 18 simulator as well as an iOS 27 one, so every developer installs an iOS 18 runtime.
   - The test command in AGENTS.md and the simulator note in `README.md` change to match.
   - The Xcode Cloud workflow, which is set up outside this repository, gains an iOS 18 test destination.
