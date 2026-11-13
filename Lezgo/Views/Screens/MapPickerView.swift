@@ -332,16 +332,20 @@ private struct NearbyPlaceholderChips: View {
     private let chipWidths: [CGFloat] = [140, 96, 120]
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(chipWidths, id: \.self) { width in
-                Capsule()
-                    .fill(Color(white: 0.18))
-                    .frame(width: width, height: 30)
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(chipWidths, id: \.self) { width in
+                    Capsule()
+                        .fill(Color(white: 0.18))
+                        .frame(width: width, height: 30)
+                }
             }
-            Spacer(minLength: 0)
+            .padding(.horizontal, 3)
+            .frame(height: rowHeight)
         }
-        .padding(.horizontal, 3)
-        .frame(height: rowHeight)
+        .scrollIndicators(.hidden)
+        .scrollDisabled(true)
+        .allowsHitTesting(false)
         .opacity(isDimmed ? 0.45 : 1)
         .animation(
             reduceMotion ? nil : .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
