@@ -16,9 +16,14 @@ struct LivePlaceLookupService: PlaceLookupService {
 
     func Address(at coordinate: Coordinate) async throws -> PlaceAddress? {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
-        let item = try await request.mapItems.first
-        return Self.MakeAddress(shortAddress: item?.address?.shortAddress, name: item?.name)
+        if #available(iOS 26.0, *) {
+            guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
+            let item = try await request.mapItems.first
+            return Self.MakeAddress(shortAddress: item?.shortAddressText, name: item?.name)
+        }
+        // Before iOS 26 (ADR 0031). A geocoder handles one request only, so each lookup makes its own.
+        let placemark = try await CLGeocoder().reverseGeocodeLocation(location).first
+        return Self.MakeAddress(shortAddress: placemark?.shortAddress, name: placemark?.name)
     }
 
     func NearbyPlaces(around coordinate: Coordinate) async throws -> [NearbyPlace] {
@@ -26,7 +31,7 @@ struct LivePlaceLookupService: PlaceLookupService {
         let response = try await MKLocalSearch(request: request).start()
         let candidates = response.mapItems.compactMap { item -> NearbyPlace? in
             guard let name = item.name, name.isEmpty == false else { return nil }
-            let subtitle = Self.MakeAddress(shortAddress: item.address?.shortAddress, name: nil)?.street ?? ""
+            let subtitle = Self.MakeAddress(shortAddress: item.shortAddressText, name: nil)?.street ?? ""
             return NearbyPlace(
                 name: name,
                 subtitle: subtitle,

@@ -15,9 +15,14 @@ import MapKit
 struct LiveStreetNameService: StreetNameService {
     func StreetName(at coordinate: Coordinate) async throws -> String? {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
-        let item = try await request.mapItems.first
-        return Self.StreetName(shortAddress: item?.address?.shortAddress, name: item?.name)
+        if #available(iOS 26.0, *) {
+            guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
+            let item = try await request.mapItems.first
+            return Self.StreetName(shortAddress: item?.shortAddressText, name: item?.name)
+        }
+        // Before iOS 26 (ADR 0031). A geocoder handles one request only, so each lookup makes its own.
+        let placemark = try await CLGeocoder().reverseGeocodeLocation(location).first
+        return Self.StreetName(shortAddress: placemark?.shortAddress, name: placemark?.name)
     }
 
     /// The name to show on the card, from what MapKit returned.

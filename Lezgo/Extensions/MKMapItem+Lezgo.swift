@@ -27,4 +27,12 @@ extension MKMapItem {
         }
         return placemark.coordinate
     }
+
+    /// The item's "Place, City" address: MapKit's `MKAddress` on iOS 26, its placemark before that.
+    nonisolated var shortAddressText: String? {
+        if #available(iOS 26.0, *) {
+            return address?.shortAddress
+        }
+        return placemark.shortAddress
+    }
 }
