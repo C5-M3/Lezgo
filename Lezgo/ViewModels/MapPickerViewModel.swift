@@ -33,6 +33,22 @@ final class MapPickerViewModel {
     /// The latest lookup; an older one is cancelled so it cannot answer for a place the pin has left.
     private(set) var lookupTask: Task<Void, Never>?
 
+    /// The screen's title: the start has its own, a checkpoint and the destination share one.
+    var title: LocalizedStringResource {
+        selection == .start ? "Set Starting Point" : "Set Destination"
+    }
+
+    /// The icon of the point being picked, the same as in Route Plan.
+    var pointSymbol: String {
+        selection == .start ? "house.fill" : "flag.checkered"
+    }
+
+    /// What the card names under the pin: the place's own name, or the street when there is none.
+    var shownName: String? {
+        guard let address else { return nil }
+        return address.placeName ?? address.street
+    }
+
     private let lookupService: any PlaceLookupService
     private let debounce: Duration
     private var nearbyCenter: Coordinate?

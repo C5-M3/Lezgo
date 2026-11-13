@@ -39,15 +39,16 @@ struct LivePlaceLookupService: PlaceLookupService {
         return Self.Closest(from: candidates, around: coordinate, limit: Self.nearbyLimit)
     }
 
-    /// The street and area from what MapKit returned. The short address reads "Street, Area, City"; the street is the
-    /// part before the first comma. Without a short address the place's name stands in for the street.
+    /// The street, area and place name from what MapKit returned. The short address reads "Street, Area, City"; the
+    /// street is the part before the first comma. Without a short address the place's name stands in for the street.
     static func MakeAddress(shortAddress: String?, name: String?) -> PlaceAddress? {
+        let placeName = name?.isEmpty == false ? name : nil
         let parts = shortAddress?.split(separator: ",", maxSplits: 1).map { $0.trimmingCharacters(in: .whitespaces) }
         if let street = parts?.first, street.isEmpty == false {
-            return PlaceAddress(street: street, area: parts?.dropFirst().first ?? "")
+            return PlaceAddress(street: street, area: parts?.dropFirst().first ?? "", placeName: placeName)
         }
-        guard let name, name.isEmpty == false else { return nil }
-        return PlaceAddress(street: name, area: "")
+        guard let placeName else { return nil }
+        return PlaceAddress(street: placeName, area: "", placeName: placeName)
     }
 
     /// The places nearest to `center`, each name once, at most `limit` of them.
