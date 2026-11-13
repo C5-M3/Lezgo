@@ -259,13 +259,4 @@ struct MapPickerViewModelTests {
 
         #expect(point.name == String(localized: "Pinned location"))
     }
-
-    @Test func MovingToTheUserLocationMakesTheCameraFollowIt() {
-        let viewModel = MakeViewModel()
-        #expect(viewModel.cameraPosition.followsUserLocation == false)
-
-        viewModel.MoveToUserLocation()
-
-        #expect(viewModel.cameraPosition.followsUserLocation)
-    }
 }
