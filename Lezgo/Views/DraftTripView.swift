@@ -195,10 +195,8 @@ struct DraftTripView: View {
               let dest = viewModel.destinationCoordinate?.locationCoordinate else { return }
 
         let request = MKDirections.Request()
-        let sourceLocation = CLLocation(latitude: start.latitude, longitude: start.longitude)
-        request.source = MKMapItem(location: sourceLocation, address: nil)
-        let destLocation = CLLocation(latitude: dest.latitude, longitude: dest.longitude)
-        request.destination = MKMapItem(location: destLocation, address: nil)
+        request.source = MKMapItem.Make(at: start)
+        request.destination = MKMapItem.Make(at: dest)
         request.transportType = .automobile
 
         do {
@@ -225,10 +223,8 @@ struct DraftTripView: View {
               let dest = viewModel.destinationCoordinate?.locationCoordinate else { return }
 
         let request = MKDirections.Request()
-        let sourceLocation = CLLocation(latitude: start.latitude, longitude: start.longitude)
-        request.source = MKMapItem(location: sourceLocation, address: nil)
-        let destLocation = CLLocation(latitude: dest.latitude, longitude: dest.longitude)
-        request.destination = MKMapItem(location: destLocation, address: nil)
+        request.source = MKMapItem.Make(at: start)
+        request.destination = MKMapItem.Make(at: dest)
         request.transportType = .automobile
 
         do {

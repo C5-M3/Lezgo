@@ -177,7 +177,7 @@ extension CarPlayTripMapTemplate {
         let coordinate = viewModel.destinationCoordinate
         // Without a destination stop yet, the trip still needs an end; CarPlay only shows its name then.
         let destination = coordinate.map {
-            MKMapItem(location: CLLocation(latitude: $0.latitude, longitude: $0.longitude), address: nil)
+            MKMapItem.Make(at: $0.locationCoordinate)
         } ?? MKMapItem.forCurrentLocation()
         destination.name = viewModel.destinationName
         let routeChoice = CPRouteChoice(

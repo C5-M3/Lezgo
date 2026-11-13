@@ -294,7 +294,7 @@ final class HomeViewModel {
             withAnimation {
                 cameraPosition = .region(
                     MKCoordinateRegion(
-                        center: first.location.coordinate,
+                        center: first.placeCoordinate,
                         latitudinalMeters: 2_000,
                         longitudinalMeters: 2_000
                     )
@@ -315,7 +315,7 @@ final class HomeViewModel {
             withAnimation {
                 cameraPosition = .region(
                     MKCoordinateRegion(
-                        center: item.location.coordinate,
+                        center: item.placeCoordinate,
                         latitudinalMeters: 1_500,
                         longitudinalMeters: 1_500
                     )

@@ -31,8 +31,8 @@ struct LivePlaceLookupService: PlaceLookupService {
                 name: name,
                 subtitle: subtitle,
                 coordinate: Coordinate(
-                    latitude: item.location.coordinate.latitude,
-                    longitude: item.location.coordinate.longitude
+                    latitude: item.placeCoordinate.latitude,
+                    longitude: item.placeCoordinate.longitude
                 )
             )
         }

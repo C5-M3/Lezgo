@@ -85,8 +85,7 @@ final class MockLocationSearchService: NSObject, LocationSearchServiceProtocol {
 
 @MainActor
 private func createMockMapItem(name: String, latitude: Double, longitude: Double) -> MKMapItem {
-    let location = CLLocation(latitude: latitude, longitude: longitude)
-    let mapItem = MKMapItem(location: location, address: nil)
+    let mapItem = MKMapItem.Make(at: CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
     mapItem.name = name
     return mapItem
 }
@@ -252,7 +251,7 @@ struct HomeViewModelTest {
         viewModel.searchResults = [item]
         viewModel.cameraPosition = .region(
             MKCoordinateRegion(
-                center: item.location.coordinate,
+                center: item.placeCoordinate,
                 latitudinalMeters: 1000,
                 longitudinalMeters: 1000
             )

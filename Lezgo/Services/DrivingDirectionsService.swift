@@ -36,14 +36,8 @@ struct LiveDrivingDirectionsService: DrivingDirectionsService {
 
     private func FastestRoute(from source: Coordinate, to destination: Coordinate) async throws -> MKRoute {
         let request = MKDirections.Request()
-        request.source = MKMapItem(
-            location: CLLocation(latitude: source.latitude, longitude: source.longitude),
-            address: nil
-        )
-        request.destination = MKMapItem(
-            location: CLLocation(latitude: destination.latitude, longitude: destination.longitude),
-            address: nil
-        )
+        request.source = MKMapItem.Make(at: source.locationCoordinate)
+        request.destination = MKMapItem.Make(at: destination.locationCoordinate)
         request.transportType = .automobile
         let response = try await MKDirections(request: request).calculate()
         guard let route = response.routes.min(by: { $0.expectedTravelTime < $1.expectedTravelTime }) else {
