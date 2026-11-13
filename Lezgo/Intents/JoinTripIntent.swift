@@ -10,11 +10,13 @@ import Foundation
 
 /// "Join a trip in Lezgo" (US-08): asks for the room code, joins right away like "Enter" in the join dialog, and
 /// opens the Trip Room. A wrong code is spoken with the join dialog's own message.
-struct JoinTripIntent: AppIntent {
+struct JoinTripIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Join a Trip"
     static let description = IntentDescription("Joins a Lezgo trip with its room code and opens the Trip Room.")
     /// Joins in the background, so Siri keeps the conversation and speaks a wrong code; then brings the app to the
     /// front for the Trip Room. Coming to the front first cut Siri off on a real phone, and nothing was joined.
+    /// Before iOS 26 `ForegroundContinuableIntent` does the same (ADR 0031).
+    @available(iOS 26.0, *)
     static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
     /// A text field, not a number pad: Shortcuts reads a number pad's entry as a number and drops a leading zero, so
@@ -63,9 +65,18 @@ struct JoinTripIntent: AppIntent {
     }
 
     /// Brings Lezgo to the front for the Trip Room or Set Route. Where iOS does not allow it (a locked phone, CarPlay),
-    /// the work is done anyway and Home opens the trip the next time Lezgo opens.
+    /// the work is done anyway and Home opens the trip the next time Lezgo opens. Before iOS 26 Siri first asks the
+    /// person to continue in the app (ADR 0031).
     @MainActor
-    static func OpenApp(from intent: some AppIntent) async {
+    static func OpenApp(from intent: some ForegroundContinuableIntent) async {
+        guard #available(iOS 26.0, *) else {
+            do {
+                try await intent.requestToContinueInForeground()
+            } catch {
+                SiriLog.Note("Siri: opening Lezgo failed: \(error.localizedDescription)")
+            }
+            return
+        }
         guard intent.systemContext.currentMode.canContinueInForeground else {
             SiriLog.Note("Siri: cannot open Lezgo now, Home takes over when it opens")
             return

@@ -10,10 +10,12 @@ import Foundation
 
 /// "Create a trip in Lezgo" (US-08): asks "Where to?" and opens Set Route searching for that place. Siri never picks
 /// the place or creates the trip: "Malang" matches several places, and the route needs a look on the map.
-struct CreateTripIntent: AppIntent {
+struct CreateTripIntent: AppIntent, ForegroundContinuableIntent {
     static let title: LocalizedStringResource = "Create a Trip"
     static let description = IntentDescription("Opens Lezgo to plan a trip, searching for the place you say.")
     /// Checks in the background, so Siri keeps the conversation, then brings the app to the front for Set Route.
+    /// Before iOS 26 `ForegroundContinuableIntent` does the same (ADR 0031).
+    @available(iOS 26.0, *)
     static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
 
     @Parameter(title: "Destination", requestValueDialog: "Where to?")
