@@ -45,7 +45,7 @@ The team splits the work by screen, not by the tasks in the GitHub Project. The 
 
 | Item | Value |
 | --- | --- |
-| Platform | iOS 26.0+, Xcode 27.1 |
+| Platform | iOS 18.0+ ([0031](docs/adr/0031-MinimumIOS18WithNewerFeaturesBehindAvailability.md)), Xcode 27.1 |
 | UI | SwiftUI (no UIKit unless asked) |
 | Persistence | SwiftData |
 | Concurrency | Default actor isolation `MainActor`, approachable concurrency on |
@@ -265,13 +265,14 @@ Rules:
 - Use in-memory SwiftData containers and mock services in tests. Tests never touch the network or real user data.
 - A bug fix starts with a test that reproduces the bug.
 
-Run tests from the command line:
+Run tests from the command line, on the oldest supported iOS and on the newest:
 
 ```bash
+xcodebuild test -project Lezgo.xcodeproj -scheme Lezgo -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1'
 xcodebuild test -project Lezgo.xcodeproj -scheme Lezgo -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.0'
 ```
 
-Unit tests go in `LezgoTests/`, mirroring the app folder of the code under test (`LezgoTests/ViewModels/ProfileViewModelTests.swift`). UI tests go in `LezgoUITests/`. The shared `Lezgo` scheme runs both. If no iOS 27 simulator exists, create one in Xcode (Window > Devices and Simulators).
+Unit tests go in `LezgoTests/`, mirroring the app folder of the code under test (`LezgoTests/ViewModels/ProfileViewModelTests.swift`). UI tests go in `LezgoUITests/`. The shared `Lezgo` scheme runs both. If the iOS 18.1 or iOS 27 simulator is missing, add its platform in Xcode (Settings > Components), then create the device in Window > Devices and Simulators. A test of an iOS 26-only path is marked `@available(iOS 26.0, *)`, so it is skipped on iOS 18.
 
 
 ## Swift and SwiftUI rules
@@ -284,6 +285,7 @@ Swift:
 - Filter user text with `localizedStandardContains()`.
 - Prefer value types. Mark classes `final` unless they are designed for subclassing.
 - Handle errors where they can be handled; show the user a clear message, never a silent failure.
+- The app runs on iOS 18.0 and later ([0031](docs/adr/0031-MinimumIOS18WithNewerFeaturesBehindAvailability.md)). An API newer than iOS 18 goes behind `if #available` or `@available` with a working fallback, in one place (an extension or the `Live` service), never repeated at each call site. An App Intent whose result differs per version declares in `perform()` only what every version returns.
 
 SwiftUI:
 

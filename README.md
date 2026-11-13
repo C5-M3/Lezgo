@@ -10,7 +10,7 @@
 ## Requirements
 
 - macOS and Xcode 27.1 or later (update both first if an update is available)
-- An iOS 27 simulator (Xcode > Settings > Components)
+- An iOS 18.1 simulator and an iOS 27 simulator (Xcode > Settings > Components). The app supports iOS 18.0 and later, so tests run on both.
 - [GitHub CLI](https://cli.github.com) (`brew install gh`), optional but used in the commands below
 
 
