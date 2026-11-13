@@ -28,6 +28,8 @@ final class MapPickerViewModel {
     /// `true` when the last lookup found nothing or failed, so the card says so instead of showing an old address.
     private(set) var addressNotFound = false
     private(set) var nearbyPlaces: [NearbyPlace] = []
+    /// `true` while nearby places are being fetched, so the card can show placeholders instead of an empty gap.
+    private(set) var isLoadingNearby = false
     /// `true` while the map moves, so the pin lifts.
     private(set) var isMoving = false
     /// The latest lookup; an older one is cancelled so it cannot answer for a place the pin has left.
@@ -90,6 +92,7 @@ final class MapPickerViewModel {
     func Snap(to place: NearbyPlace) {
         lookupTask?.cancel()
         snappedPlace = place
+        isLoadingNearby = false
         center = place.coordinate
         address = PlaceAddress(street: place.name, area: place.subtitle)
         isLoadingAddress = false
@@ -111,6 +114,7 @@ final class MapPickerViewModel {
         isLoadingAddress = true
         addressNotFound = false
         let wantsNearby = nearbyCenter.map { $0.Distance(to: coordinate) >= Self.nearbyRefreshDistance } ?? true
+        isLoadingNearby = wantsNearby
         lookupTask = Task {
             if delay > .zero { try? await Task.sleep(for: delay) }
             guard Task.isCancelled == false else { return }
@@ -133,9 +137,11 @@ final class MapPickerViewModel {
     }
 
     private func FindNearbyPlaces(around coordinate: Coordinate) async {
-        guard let places = try? await lookupService.NearbyPlaces(around: coordinate) else { return }
+        let found = try? await lookupService.NearbyPlaces(around: coordinate)
         guard Task.isCancelled == false else { return }
-        nearbyPlaces = places
+        isLoadingNearby = false
+        guard let found else { return }
+        nearbyPlaces = found
         nearbyCenter = coordinate
     }
 }
