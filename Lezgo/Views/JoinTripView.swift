@@ -53,7 +53,7 @@ struct JoinTripView: View {
     @Binding var isPresented: Bool
     @State private var viewModel: JoinTripViewModel
     @State private var enteredCode: String = ""
-    @FocusState private var isFieldFocused: Bool
+    @FocusState var isFieldFocused: Bool
     @Environment(\.tripService) private var tripService
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -67,6 +67,9 @@ struct JoinTripView: View {
     var onBack: (() -> Void)?
     var onEnter: ((String) -> Void)?
     var onNavigateToTripRoom: ((TripSession) -> Void)?
+    /// Set when "Enter room code" fills the screen, as on the split-screen Home (issue #329): it then shows a round
+    /// Back button at the top left that calls this, instead of being a sheet that is pulled down.
+    var onClose: (() -> Void)?
 
     private let boxBackground = Color(red: 32/255, green: 32/255, blue: 34/255)
     private let sheetBackground = Color(red: 24/255, green: 24/255, blue: 26/255)
@@ -80,9 +83,11 @@ struct JoinTripView: View {
         incomingRoomCode: String? = nil,
         onBack: (() -> Void)? = nil,
         onEnter: ((String) -> Void)? = nil,
-        onNavigateToTripRoom: ((TripSession) -> Void)? = nil
+        onNavigateToTripRoom: ((TripSession) -> Void)? = nil,
+        onClose: (() -> Void)? = nil
     ) {
         self._isPresented = isPresented
+        self.onClose = onClose
         self.incomingRoomCode = incomingRoomCode
         let vm = viewModel ?? JoinTripViewModel()
         self._viewModel = State(initialValue: vm)
@@ -96,7 +101,11 @@ struct JoinTripView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            headerSection
+            if isFullScreen {
+                fullScreenHeader
+            } else {
+                headerSection
+            }
 
             VStack(alignment: .leading, spacing: 12) {
                 codeBoxesSection
@@ -121,9 +130,10 @@ struct JoinTripView: View {
             enterButton
         }
         .padding(.horizontal, 20)
-        .padding(.top, 30)
+        .padding(.top, isFullScreen ? 4 : 30)
         .padding(.bottom, 16)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: isFullScreen ? .infinity : nil, alignment: .top)
+        .background(isFullScreen ? Color(.tripCard) : .clear, ignoresSafeAreaEdges: .all)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { newHeight in
             sheetHeight = newHeight
         }
@@ -162,7 +172,7 @@ struct JoinTripView: View {
 
     // MARK: - Header Section
 
-    private var headerSection: some View {
+    var headerSection: some View {
         VStack(alignment: .center, spacing: 4) {
             Text("Enter room code")
                 .font(.title3.weight(.bold))
