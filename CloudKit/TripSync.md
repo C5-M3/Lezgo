@@ -86,7 +86,7 @@ Files: `Lezgo/Models/`. All models are plain `Hashable`, `Codable` structs. They
 | Field | Meaning |
 | --- | --- |
 | `id`, `tripID` | The record name and its trip |
-| `userRecordID` | The iCloud user. Joining again with the same account returns this participant, never a second car |
+| `userRecordID` | The iCloud user. Joining the same trip again with the same account, from any of its phones, returns this participant, never a second car. An account is in one open trip at a time (see "The account's seat") |
 | `displayName`, `carDescription` | Name and car |
 | `coordinate?` | Last position; `nil` until the first one is sent |
 | `speedKmh`, `motionState` | Speed, and `.driving` or `.stopped` |
@@ -100,6 +100,8 @@ Rules: `IsLeader(in:)`; `IsOnline(at:)`, where a phone is offline when `lastSeen
 **`Route`**: `id`, `tripID`, `version` (matches `Trip.routeVersion`), `polyline: [Coordinate]`.
 
 **Footprint** (`TripState.trail: [Coordinate]`): the road the leader has driven, oldest point first, empty until the leader's phone saves it. `TripState.groupPath` joins it with the leader's position and the route ahead of the leader; members, their alerts and their map follow that road (`specs/UserStories.md` → US-06, "Footprint"). Stored as one `Trail` record per trip.
+
+**The account's seat** (ADR 0031): which open trip an iCloud account is in, and which of its phones holds that place. One record per account, a `Trail` record named `<sha256 of the iCloud user record name>-seat`, so the schema does not change. Its `polyline` bytes hold three UUIDs: the trip, the participant and a session that is new each time a phone joins. It is only ever read and written by ID, never queried, and it is saved with `.ifServerRecordUnchanged`, so when two phones claim it at the same moment only one wins. A seat whose trip is not open, or whose participant has left, counts as no seat. Anyone who adds a `Trail` query must skip the names that end in `-seat`.
 
 ### 2.2 Inputs and outputs
 
@@ -123,8 +125,12 @@ File: `Lezgo/Services/TripService.swift`. Every operation is `async`. All but `T
 
 | Operation | Who | Effect | Typical errors |
 | --- | --- | --- | --- |
-| `CreateTrip(plan:profile:)` | Leader | A trip in `LOBBY` with a unique 6-digit room code, route version 1, and the caller as leader | `notAllowed` (invalid plan), `notSignedInToICloud` |
-| `JoinTrip(roomCode:profile:)` | Member | Joins as a member; joining again returns the same participant | `notFound` (wrong code), `tripEnded` |
+| `CreateTrip(plan:profile:)` | Leader | A trip in `LOBBY` with a unique 6-digit room code, route version 1, and the caller as leader | `notAllowed` (invalid plan), `notSignedInToICloud`, `alreadyInTrip` |
+| `JoinTrip(roomCode:profile:)` | Member | Joins as a member; joining again, even from another phone of the account, returns the same participant and takes the account's place over | `notFound` (wrong code), `tripEnded`, `alreadyInTrip` |
+| `MyTrip()` | Anyone | The open trip this iCloud account is in, with its participant; `nil` for none. Decides Home or Draft Trip when the app opens | `notSignedInToICloud` |
+| `ResumeTrip(tripID:participantID:)` | Member or leader | "Continue" on Draft Trip: takes the account's place back without adding a car | `notFound` (trip gone or removed), `tripEnded`, `alreadyInTrip` |
+| `SeatTakenOver(tripID:)` | Anyone | **Suspends** until another phone of the account took this phone's place; the Trip Room and the map listen to it | never throws |
+| `AccountID()` | Anyone | A hash of the iCloud user, to tell whose trip a saved summary is | `notSignedInToICloud` |
 | `FetchTrip(tripID:)` | Anyone | The trip as it is now (for example to resume) | `notFound` |
 | `TripUpdates(tripID:)` | Anyone | **A stream:** the trip right away, then on every change | never throws |
 | `StartTrip(tripID:by:)` | Leader | `LOBBY` → `IN_TRIP`, `currentWaypointIndex = 1` | `notAllowed` |
@@ -268,8 +274,9 @@ File: `LiveTripService.swift`. Every operation runs inside `Run { … }`, which 
 
 | Operation | In CloudKit |
 | --- | --- |
-| `CreateTrip` | iCloud user → a room code no open trip uses (query, up to 20 tries) → save the `Trip`, every `Waypoint`, the leader's `Participant` and the `Route` in one call |
-| `JoinTrip` | Query `Trip` by `roomCode` → pick the open one → query `Participant` by `tripID` and my `userRecordID`; reuse it, or save a new one |
+| `CreateTrip` | iCloud user → fetch the account's seat (a live seat: `alreadyInTrip`) → a room code no open trip uses (query, up to 20 tries) → save the `Trip`, every `Waypoint`, the leader's `Participant` and the `Route` in one call → claim the seat with `.ifServerRecordUnchanged` (refused: delete what was saved, `alreadyInTrip`) |
+| `JoinTrip` | Query `Trip` by `roomCode` → pick the open one → fetch the seat (a live seat for another trip: `alreadyInTrip`; for this trip: take it over and keep its participant) → otherwise query `Participant` by `tripID` and my `userRecordID` (a member from before seats existed) or save a new one → claim the seat |
+| `MyTrip`, `ResumeTrip`, `SeatTakenOver` | Fetch the seat by ID, then the `Trip` and `Participant` it names in one request; `ResumeTrip` also claims the seat; `SeatTakenOver` fetches the seat every 3rd poll and returns when its session is not this phone's |
 | `FetchTrip` | `TripRecordReader.LoadState` |
 | `TripUpdates` | Polls every second (section 9) |
 | `StartTrip`, `AdvanceCheckpoint`, `EndTrip` | Fetch the `Trip` → check it is open and the caller leads → change → save with `.changedKeys` |
