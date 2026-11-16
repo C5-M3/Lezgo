@@ -134,7 +134,7 @@ enum SampleTrip {
         )
     }
 
-    private static func UserRecordID(of participantID: UUID) -> String {
+    static func UserRecordID(of participantID: UUID) -> String {
         "_sample-\(participantID.uuidString)"
     }
 }
