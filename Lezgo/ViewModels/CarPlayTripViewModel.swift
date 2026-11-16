@@ -115,11 +115,7 @@ final class CarPlayTripViewModel {
         guard let closed = activeTripMap.tripMap, closeMessageDismissedFor != ObjectIdentifier(closed) else {
             return nil
         }
-        switch closed.closeReason {
-        case .endedByLeader: return String(localized: .tripMapLeaderEndedTrip)
-        case .removed: return String(localized: .tripMapRemovedFromTrip)
-        case .backToTripRoom, .exited, .ended, nil: return nil
-        }
+        return closed.closedElsewhereMessage.map { String(localized: $0) }
     }
 
     func DismissCloseMessage() {

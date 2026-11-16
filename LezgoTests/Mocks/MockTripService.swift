@@ -104,6 +104,44 @@ final class MockTripService: TripService {
         throw TripServiceError.notAllowed
     }
 
+    /// What `MyTrip` answers; `nil` acts like an account that is in no trip.
+    var myTrip: TripSession?
+    /// When set, `MyTrip` throws it.
+    var myTripFailure: TripServiceError?
+    /// Set to `true` to act like another phone took this phone's place: `SeatTakenOver` then returns.
+    var isSeatTaken = false
+
+    /// Runs while `MyTrip` is on its way, before it answers.
+    var whileFindingMyTrip: (() async -> Void)?
+
+    func MyTrip() async throws -> TripSession? {
+        await whileFindingMyTrip?()
+        if let myTripFailure { throw myTripFailure }
+        return myTrip
+    }
+
+    /// The trips `ResumeTrip` was asked for.
+    private(set) var resumedTripIDs: [UUID] = []
+    /// When set, `ResumeTrip` throws it.
+    var resumeFailure: TripServiceError?
+
+    func ResumeTrip(tripID: UUID, participantID: UUID) async throws -> TripSession {
+        resumedTripIDs.append(tripID)
+        if let resumeFailure { throw resumeFailure }
+        guard let state = states.last else { throw TripServiceError.notFound }
+        return TripSession(myParticipantID: participantID, state: state)
+    }
+
+    func AccountID() async throws -> String {
+        "mock-account"
+    }
+
+    func SeatTakenOver(tripID: UUID) async {
+        while isSeatTaken == false, Task.isCancelled == false {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
     func FetchTrip(tripID: UUID) async throws -> TripState {
         guard let last = states.last else { throw TripServiceError.notFound }
         return last

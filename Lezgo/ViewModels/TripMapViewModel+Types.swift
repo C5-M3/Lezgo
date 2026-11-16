@@ -52,6 +52,8 @@ extension TripMapViewModel {
         case endedByLeader
         /// The leader removed this member: "You were removed from the trip."
         case removed
+        /// Another phone of this iCloud account joined the trip and took this phone's place (ADR 0031).
+        case takenOver
     }
 
     /// What the bottom card shows once this phone's car has arrived (`specs/UserStories.md` → US-07, "Arrive").

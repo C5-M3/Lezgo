@@ -113,6 +113,7 @@ Trip recap, trip history, SOS button, prolonged-stop alerts, vibration, "Cancel 
 ### Rules
 
 - Whoever creates the trip becomes its leader.
+- One iCloud account is in one trip at a time (US-03). With an open trip already, I cannot create another: "You are already in a trip. Leave it first, or continue it from Home."
 - The planner opens from the search bar on Home ("Where do you want to travel?").
 - The start point is the current location by default and can be changed by search. The planner says "Current Location", but the trip saves the real place (a street or place name from the map), because "Current Location" means nothing to a member in the Trip Room. A place the map has no name for is saved as "Leader's starting point".
 - Search uses MapKit suggestions with distance. A picked result stores its name and coordinate.
@@ -180,7 +181,8 @@ Feature: Plan a route
 - No form, and the app never asks for a name. iOS does not tell apps the iCloud account's name, so a car whose driver typed no name is called "Leader" (the leader) or "Car 2", "Car 3", … (members, in the order they joined; the leader counts as car 1). A name typed in "Edit my name and car" (US-04) is shown instead and saved on the phone for every later trip I create or join.
 - `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
 - `ENDED` or `CANCELLED` → join is rejected.
-- Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car.
+- Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car. This holds from any phone of the account: the phone that joins last takes the trip over, and the phone that was in it is told (US-03).
+- One iCloud account is in one trip at a time. Joining a different trip while in an open one is refused: "You are already in a trip. Leave it first, or continue it from Home."
 - If my saved name is already used by another car in the trip, I still join: my name is left empty, so I am shown as "Car 2", "Car 3", …, and my car and avatar are kept. I can then change my name in Edit Profile (US-04), where the name is checked as usual.
 
 ### Acceptance criteria
@@ -250,8 +252,9 @@ Feature: Join a trip
 
 ### Rules
 
-- After the splash screen the app checks the device for an active trip. If there is none, Home opens.
-- If there is one, the card "You have a trip in progress" shows the start point, destination and people in the trip, with "New Trip" and "Continue Trip". It appears at once from the saved summary; the server status is checked in the background.
+- After the splash screen the app checks the trip of my iCloud account, so every phone of the account gives the same answer. If the account is in no open trip, Home opens.
+- If it is in one, the card "You have a trip in progress" shows the start point, destination and people in the trip, with "New Trip" and "Continue Trip". It appears at once from the summary saved on the phone, when there is one; iCloud is asked in the background and decides. A summary of another iCloud account is dropped. With no connection the saved summary stays.
+- One iCloud account is in one trip at a time. When I join the trip on a second phone, the first phone stops sharing its location, tells me "You joined this trip on another device." and goes back to Home, which offers the trip again. Continuing on a phone that did not save the trip asks "Continue this trip here?" first ("Your other device will be disconnected from this trip."). Continue never adds a car, and a member who was removed cannot continue.
 - "Continue Trip" opens the Trip Room (`LOBBY`) or the map (`IN_TRIP`).
 - "New Trip" asks first, leaves the old trip like Exit (US-07), then opens the planner:
   - Member: "Create a new trip?"
@@ -287,6 +290,19 @@ Feature: Resume an unfinished trip
   Scenario: Cancel
     When I tap "New Trip" and then "Cancel"
     Then nothing changes
+
+  Scenario: Another phone of my account is in the trip
+    Given my iCloud account is in trip "897654" on another phone
+    When I open the app on this phone
+    Then I see "You have a trip in progress"
+    When I tap "Continue Trip" and confirm "Continue here"
+    Then the trip opens on this phone
+    And the other phone says "You joined this trip on another device." and returns to Home
+
+  Scenario: Create or join a second trip
+    Given my iCloud account is in trip "897654"
+    When I try to create a trip or join another one
+    Then I see "You are already in a trip. Leave it first, or continue it from Home."
 
   Scenario: Saved trip has ended
     Given my device has trip "897654" saved but it is ENDED

@@ -12,6 +12,8 @@ extension HomeView {
     /// stays under SwiftLint's 400-line limit.
     struct Prompts: ViewModifier {
         let viewModel: HomeViewModel
+        /// Takes the trip over after the person said yes to "Continue here?".
+        let onConfirmContinue: () -> Void
 
         func body(content: Content) -> some View {
             content
@@ -24,6 +26,17 @@ extension HomeView {
                     cancelTitle: nil,
                     confirmTitle: "OK",
                     onConfirm: viewModel.DismissDraftTripError
+                )
+                .confirmDialog(
+                    isPresented: Binding(
+                        get: { viewModel.isConfirmingContinue },
+                        set: { viewModel.isConfirmingContinue = $0 }
+                    ),
+                    title: Text(.homeContinueHereQuestion),
+                    message: Text(.homeContinueHereMessage),
+                    cancelTitle: .tripRoomCancel,
+                    confirmTitle: .homeContinueHere,
+                    onConfirm: onConfirmContinue
                 )
         }
     }
