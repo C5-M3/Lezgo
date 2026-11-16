@@ -1723,6 +1723,18 @@
         }
       }
     },
+    "tripMapCarStatusLabel" : {
+      "comment" : "Car status card (US-06): the line under the car. The placeholder is what the car is doing, for example \"Status: Driving\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status: %@"
+          }
+        }
+      }
+    },
     "tripMapCarStopped" : {
       "comment" : "VoiceOver status of a car pin: the car has had speed 0 for 30 seconds.",
       "extractionState" : "manual",
@@ -1743,6 +1755,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Stopped at %@"
+          }
+        }
+      }
+    },
+    "tripMapCarTo" : {
+      "comment" : "Car status card (US-06): where the car is heading, beside its time left. The placeholder is the next checkpoint or the destination, for example \"To Tunjungan Plaza\".",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To %@"
           }
         }
       }

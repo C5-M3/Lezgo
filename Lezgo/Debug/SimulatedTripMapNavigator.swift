@@ -47,6 +47,10 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
         )
     }
 
+    func TimeLeft(from position: Coordinate, to point: Coordinate) async throws -> Duration {
+        .seconds(Int(position.Distance(to: point) / Self.averageMetresPerSecond))
+    }
+
     /// The first route point from `start` where the road bends by more than the threshold, or the destination.
     private func NextTurn(in route: [Coordinate], after start: Int) -> (Int, TripMapGuidance.TurnDirection) {
         guard start >= 1 else { return (route.count - 1, .straight) }

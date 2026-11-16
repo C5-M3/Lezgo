@@ -81,6 +81,8 @@ extension TripMapViewModel {
     struct CarLookup {
         var street: String?
         var timeLeft: Duration?
+        /// The time to the car's next stop, the next checkpoint or else the destination; what the card shows.
+        var timeToNextStop: Duration?
         var lookedUpAt: Date
     }
 }
