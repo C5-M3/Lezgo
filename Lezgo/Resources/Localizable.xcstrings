@@ -2527,6 +2527,18 @@
         }
       }
     },
+    "tripSeatTakenOver" : {
+      "comment" : "Shown on a phone when the same iCloud account joined this trip on another phone; OK returns to Home, which offers the trip again (ADR 0031). Copy not in the user stories yet; needs a copy check.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You joined this trip on another device."
+          }
+        }
+      }
+    },
     "tripServiceErrorAlreadyInTrip" : {
       "comment" : "Error when this iCloud account is already in another open trip (ADR 0031). Copy not in the user stories yet; needs a copy check.",
       "extractionState" : "manual",
