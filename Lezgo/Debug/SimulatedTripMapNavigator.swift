@@ -83,8 +83,13 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
         case .left: "Turn left"
         case .right: "Turn right"
         case .straight: "Continue to the destination"
-        case .roundabout: "At the roundabout, take the exit"
-        case .uTurn: "Make a U-turn"
+        case .slightLeft: "Bear left"
+        case .slightRight: "Bear right"
+        case .keepLeft: "Keep left"
+        case .keepRight: "Keep right"
+        case .mergeLeft: "Bear left to merge"
+        case .mergeRight: "Bear right to merge"
+        case .uTurnLeft, .uTurnRight: "Make a U-turn"
         }
     }
 }

@@ -116,11 +116,8 @@ private struct KeptDirections {
     let path: [Coordinate]
     /// Metres along `path` from start to end, measured like `RoutePosition` measures the car.
     let length: Double
-    /// Every step after the first, which only says to start driving.
+    /// Every step after the first, which is only the start point.
     let turns: [Turn]
-
-    /// A bend sharper than this, in degrees, shows a left or right arrow.
-    private static let turnThresholdDegrees = 20.0
 
     struct Turn {
         let instruction: String
@@ -128,12 +125,23 @@ private struct KeptDirections {
         let distanceAlongRoute: Double
     }
 
+    /// MapKit's words for each kind of maneuver, in English and Indonesian, as MapKit wrote them on real routes
+    /// (#331). Matched in this order, so "Keep right to merge onto …" is a merge, not a keep.
+    private static let arrivalWords = ["destination", "tujuan"]
+    private static let roundaboutWords = ["roundabout", "bundaran"]
+    private static let uTurnWords = ["u-turn", "putar balik"]
+    private static let mergeWords = ["merge", "untuk masuk"]
+    private static let keepWords = ["keep", "tetap di"]
+    private static let slightWords = ["bear", "sedikit"]
+
+    /// A step's line runs from the previous maneuver up to its own, so each turn sits at the end of its step's line
+    /// (checked against real MapKit routes, #331).
     init?(_ directions: DrivingDirections, for state: TripState, fetchedAt: Date) {
         var path: [Coordinate] = []
-        var stepStarts: [Int] = []
+        var stepEnds: [Int] = []
         for step in directions.steps {
-            stepStarts.append(step.path.first == path.last ? max(path.count - 1, 0) : path.count)
             path.append(contentsOf: step.path.first == path.last ? step.path.dropFirst() : step.path[...])
+            stepEnds.append(max(path.count - 1, 0))
         }
         guard path.isEmpty == false else { return nil }
         let lengths = PathTurns.LengthsAlong(path)
@@ -144,16 +152,12 @@ private struct KeptDirections {
         expectedTravelTime = directions.expectedTravelTime
         self.path = path
         length = lengths.last ?? 0
-        turns = zip(directions.steps, stepStarts).dropFirst().map { step, start in
-            Turn(
+        turns = zip(directions.steps.dropFirst(), zip(stepEnds, stepEnds.dropFirst())).map { step, ends in
+            let (start, end) = (ends.0, ends.1)
+            return Turn(
                 instruction: step.instruction,
-                direction: Self.Direction(saying: step.instruction) ?? PathTurns.Direction(
-                    in: path,
-                    lengths: lengths,
-                    at: start,
-                    threshold: Self.turnThresholdDegrees
-                ),
-                distanceAlongRoute: lengths[start]
+                direction: Self.Direction(for: step.instruction, in: path, lengths: lengths, from: start, to: end),
+                distanceAlongRoute: lengths[end]
             )
         }
     }
@@ -162,16 +166,43 @@ private struct KeptDirections {
         routeVersion == state.trip.routeVersion && currentWaypointIndex == state.trip.currentWaypointIndex
     }
 
-    /// The arrow MapKit's own instruction asks for, in English or Indonesian, or `nil` when it names no direction.
-    /// A roundabout or a U-turn wins; otherwise the first "left" or "right" counts, so a street name later in the
-    /// sentence ("… onto Jalan Kiri") cannot change it.
-    private static func Direction(saying instruction: String) -> TripMapGuidance.TurnDirection? {
+    /// The arrow for the maneuver at `end`, the end of a step whose line starts at `start`. MapKit's own words win
+    /// where they name the maneuver or its side, because MapKit knows the junction; the shape of the road decides the
+    /// rest. The first "left" or "right" word counts, so a street name later in the sentence ("… onto Jalan Kiri")
+    /// cannot change it.
+    private static func Direction(
+        for instruction: String,
+        in path: [Coordinate],
+        lengths: [Double],
+        from start: Int,
+        to end: Int
+    ) -> TripMapGuidance.TurnDirection {
         let text = instruction.lowercased()
-        if text.contains("roundabout") || text.contains("bundaran") { return .roundabout }
-        if text.contains("u-turn") || text.contains("putar balik") { return .uTurn }
+        let says = { (words: [String]) in words.contains { text.contains($0) } }
+        let bend = PathTurns.Bend(in: path, lengths: lengths, at: end)
+        if says(arrivalWords) { return .straight }
+        if says(roundaboutWords) {
+            let exitBend = PathTurns.ExitBend(in: path, lengths: lengths, from: start, exit: end) ?? bend ?? 0
+            return TripMapGuidance.TurnDirection(bend: exitBend)
+        }
+        // Indonesia drives on the left, so a U-turn turns right unless the road clearly turns back to the left.
+        if says(uTurnWords) {
+            return (bend ?? 0) < -TripMapGuidance.TurnDirection.uTurnDegrees ? .uTurnLeft : .uTurnRight
+        }
+        let saysLeft = SaysLeft(text)
+        let isLeft = saysLeft ?? ((bend ?? 0) < 0)
+        if says(mergeWords) { return isLeft ? .mergeLeft : .mergeRight }
+        if says(keepWords) { return isLeft ? .keepLeft : .keepRight }
+        if says(slightWords) { return isLeft ? .slightLeft : .slightRight }
+        if let saysLeft { return saysLeft ? .left : .right }
+        return TripMapGuidance.TurnDirection(bend: bend ?? 0)
+    }
+
+    /// `true` when the first side word is "left" or "kiri", `false` for "right" or "kanan", `nil` without one.
+    private static func SaysLeft(_ text: String) -> Bool? {
         for word in text.split(whereSeparator: { $0.isLetter == false }) {
-            if word == "left" || word == "kiri" { return .left }
-            if word == "right" || word == "kanan" { return .right }
+            if word == "left" || word == "kiri" { return true }
+            if word == "right" || word == "kanan" { return false }
         }
         return nil
     }
