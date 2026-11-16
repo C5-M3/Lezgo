@@ -170,20 +170,8 @@ private extension SetRouteView {
 
     var topNavigationBar: some View {
         HStack {
-            Button(action: HandleBackButtonTapped) {
-                Circle()
-                    .fill(Color(white: 0.16).opacity(0.92))
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: "chevron.left")
-                            .font(.callout.weight(.bold))
-                            .foregroundStyle(.white)
-                            .accessibilityHidden(true)
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(isBackDisabled)
-            .accessibilityLabel("Back")
+            RoundBackButton(action: HandleBackButtonTapped)
+                .disabled(isBackDisabled)
 
             Spacer()
 
@@ -194,9 +182,9 @@ private extension SetRouteView {
             Spacer()
 
             Color.clear
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
         .padding(.top, 4)
     }
 
