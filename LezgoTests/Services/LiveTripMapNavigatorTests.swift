@@ -10,19 +10,16 @@ import Testing
 @testable import Lezgo
 
 /// The road in these tests: 1 km north from `start` to `corner`, then 1 km east (a right turn) to `end`.
+///
+/// The steps have MapKit's real shape: the first step is only the start point, and every other step's line runs from
+/// the previous maneuver up to its own, so a step's maneuver sits at the end of its line (checked against real routes
+/// in Jakarta and Surabaya, #331).
 struct LiveTripMapNavigatorTests {
     private static let start = Coordinate(latitude: -7.2700, longitude: 112.7300)
     private static let corner = Offset(start, north: 1_000)
     private static let end = Offset(corner, east: 1_000)
 
-    private static let rightTurn = DrivingDirections(
-        steps: [
-            DrivingDirections.Step(instruction: "", path: [start, corner]),
-            DrivingDirections.Step(instruction: "Turn right onto Jalan Darmo", path: [corner, end]),
-            DrivingDirections.Step(instruction: "Arrive at the destination", path: [end])
-        ],
-        expectedTravelTime: 240
-    )
+    private static let rightTurn = Directions(turning: "Turn right onto Jalan Darmo", towards: end)
 
     /// A `TripMapNavigator` with a clock the test moves forward.
     private final class Setup {
@@ -74,8 +71,38 @@ struct LiveTripMapNavigatorTests {
         )
 
         #expect(guidance.direction == .straight)
-        #expect(guidance.instruction == "Arrive at the destination")
+        #expect(guidance.instruction == "The destination is on your left")
         #expect(abs(guidance.distanceToTurn.converted(to: .meters).value - 500) < 10)
+    }
+
+    @Test func StartingOffTheTurnIsAtTheEndOfItsStep() async throws {
+        let setup = Setup()
+
+        let guidance = try await setup.navigator.Guidance(
+            from: Self.Offset(Self.start, north: 200),
+            along: TripMapFixtures.State()
+        )
+
+        #expect(guidance.instruction == "Turn right onto Jalan Darmo")
+        #expect(guidance.direction == .right)
+        #expect(abs(guidance.distanceToTurn.converted(to: .meters).value - 800) < 10)
+    }
+
+    @Test(arguments: ["The destination is on your right", "Tujuan di sebelah kiri Anda", "Arrive at the destination"])
+    func ArrivingShowsTheStraightArrow(instruction: String) async throws {
+        // The last step names the side of the road the stop is on; that is not a turn.
+        let setup = Setup([.success(DrivingDirections(
+            steps: [
+                DrivingDirections.Step(instruction: "", path: [Self.start]),
+                DrivingDirections.Step(instruction: instruction, path: [Self.start, Self.corner])
+            ],
+            expectedTravelTime: 120
+        ))])
+
+        let guidance = try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
+
+        #expect(guidance.direction == .straight)
+        #expect(guidance.instruction == instruction)
     }
 
     @Test func CarOffThePathAsksAgain() async throws {
@@ -139,13 +166,7 @@ struct LiveTripMapNavigatorTests {
 
     @Test func BendToTheWestIsALeftTurn() async throws {
         let west = Self.Offset(Self.corner, east: -1_000)
-        let setup = Setup([.success(DrivingDirections(
-            steps: [
-                DrivingDirections.Step(instruction: "", path: [Self.start, Self.corner]),
-                DrivingDirections.Step(instruction: "Turn left", path: [Self.corner, west])
-            ],
-            expectedTravelTime: 240
-        ))])
+        let setup = Setup([.success(Self.Directions(turning: "Turn left", towards: west))])
 
         let guidance = try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
 
@@ -171,8 +192,9 @@ struct LiveTripMapNavigatorTests {
         let northEast = Self.Offset(Self.corner, north: 700, east: 700)
         let setup = Setup([.success(DrivingDirections(
             steps: [
+                DrivingDirections.Step(instruction: "", path: [Self.start]),
                 DrivingDirections.Step(instruction: "", path: [Self.start, kink, Self.corner]),
-                DrivingDirections.Step(instruction: "", path: [Self.corner, northEast])
+                DrivingDirections.Step(instruction: "Arrive at the destination", path: [Self.corner, northEast])
             ],
             expectedTravelTime: 240
         ))])
@@ -182,32 +204,91 @@ struct LiveTripMapNavigatorTests {
         #expect(guidance.direction == .right)
     }
 
+    /// The wording is MapKit's own, collected from real routes in English and Indonesian (#331).
     @Test(arguments: [
-        ("At the roundabout, turn left onto Jalan Citra Raya Niaga", TripMapGuidance.TurnDirection.roundabout),
-        ("Di bundaran, ambil jalan keluar ke-2", .roundabout),
-        ("Make a U-turn", .uTurn),
-        ("Putar balik", .uTurn),
+        ("Make a U-turn", TripMapGuidance.TurnDirection.uTurnRight),
+        ("Putar balik", .uTurnRight),
         ("Turn left onto Jalan Darmo", .left),
-        ("Keep left", .left),
         ("Belok kiri ke Jalan Darmo", .left),
-        ("Belok kanan ke Jalan Darmo", .right)
+        ("Belok kanan ke Jalan Darmo", .right),
+        ("Keep left onto Jalan Darmo", .keepLeft),
+        ("Tetap di kiri ke Jalan Darmo", .keepLeft),
+        ("Keep right to merge onto Jalan Tol Dalam Kota", .mergeRight),
+        ("Tetap di kanan untuk masuk Jalan Tol Dalam Kota", .mergeRight),
+        ("Bear left onto Jalan Darmo", .slightLeft),
+        ("Belok kiri sedikit ke Jalan Darmo", .slightLeft),
+        ("Turn right onto Jalan Kiri", .right)
     ])
     func InstructionDecidesTheArrowOverTheShapeOfTheRoad(
         instruction: String,
         direction: TripMapGuidance.TurnDirection
     ) async throws {
         // The road bends right; MapKit's own words still win, because it knows the junction.
+        let setup = Setup([.success(Self.Directions(turning: instruction, towards: Self.end))])
+
+        let guidance = try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
+
+        #expect(guidance.direction == direction)
+    }
+
+    @Test func InstructionWithoutASideFollowsTheRoad() async throws {
+        // "Take exit 10 towards Srengseng" names no side; the road bends right.
+        let setup = Setup([.success(Self.Directions(turning: "Take exit 10 towards Srengseng", towards: Self.end))])
+
+        let guidance = try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
+
+        #expect(guidance.direction == .right)
+    }
+
+    @Test(arguments: [
+        (30.0, TripMapGuidance.TurnDirection.slightRight),
+        (-30, .slightLeft),
+        (90, .right),
+        (-90, .left),
+        (10, .straight),
+        (170, .uTurnRight),
+        (-170, .uTurnLeft)
+    ])
+    func ShapeOfTheRoadPicksTheArrow(degrees: Double, direction: TripMapGuidance.TurnDirection) async throws {
+        let radians = degrees * .pi / 180
+        let away = Self.Offset(Self.corner, north: 1_000 * cos(radians), east: 1_000 * sin(radians))
+        let setup = Setup([.success(Self.Directions(turning: "", towards: away))])
+
+        let guidance = try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
+
+        #expect(guidance.direction == direction)
+    }
+
+    @Test func RoundaboutShowsTheWayOut() async throws {
+        // Driving north into a roundabout and leaving it to the east is a right turn. Clockwise round the ring, the
+        // road already heads east-south-east before the exit, so the bend at the exit alone would look straight on.
+        let entry = Self.corner
+        let ring = [
+            Self.Offset(entry, north: 15, east: -15),
+            Self.Offset(entry, north: 40, east: -5),
+            Self.Offset(entry, north: 45, east: 20),
+            Self.Offset(entry, north: 30, east: 40)
+        ]
+        let exit = ring[3]
         let setup = Setup([.success(DrivingDirections(
             steps: [
-                DrivingDirections.Step(instruction: "", path: [Self.start, Self.corner]),
-                DrivingDirections.Step(instruction: instruction, path: [Self.corner, Self.end])
+                DrivingDirections.Step(instruction: "", path: [Self.start]),
+                DrivingDirections.Step(
+                    instruction: "At the roundabout, take the second exit onto Jalan Darmo",
+                    path: [Self.start, entry] + ring
+                ),
+                DrivingDirections.Step(
+                    instruction: "The destination is on your left",
+                    path: [exit, Self.Offset(exit, east: 1_000)]
+                )
             ],
             expectedTravelTime: 240
         ))])
 
         let guidance = try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
 
-        #expect(guidance.direction == direction)
+        #expect(guidance.instruction == "At the roundabout, take the second exit onto Jalan Darmo")
+        #expect(guidance.direction == .right)
     }
 
     @Test func DirectionsWithoutStepsThrow() async {
@@ -216,6 +297,19 @@ struct LiveTripMapNavigatorTests {
         await #expect(throws: (any Error).self) {
             try await setup.navigator.Guidance(from: Self.start, along: TripMapFixtures.State())
         }
+    }
+
+    /// MapKit's shape for one maneuver at `corner`: the start point, the step up to the maneuver, then the step from
+    /// it to `destination`.
+    private static func Directions(turning instruction: String, towards destination: Coordinate) -> DrivingDirections {
+        DrivingDirections(
+            steps: [
+                DrivingDirections.Step(instruction: "", path: [start]),
+                DrivingDirections.Step(instruction: instruction, path: [start, corner]),
+                DrivingDirections.Step(instruction: "The destination is on your left", path: [corner, destination])
+            ],
+            expectedTravelTime: 240
+        )
     }
 
     /// `coordinate` moved `north` and `east` metres.

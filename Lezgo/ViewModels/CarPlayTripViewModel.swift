@@ -55,7 +55,7 @@ final class CarPlayTripViewModel {
         return Maneuver(
             instructionVariants: [instruction],
             distance: guidance.distanceToTurn,
-            symbolName: guidance.direction.symbolName
+            direction: guidance.direction
         )
     }
 
@@ -313,7 +313,7 @@ extension CarPlayTripViewModel {
         /// Longest first, as CarPlay picks the longest that fits.
         var instructionVariants: [String]
         var distance: Measurement<UnitLength>
-        var symbolName: String
+        var direction: TripMapGuidance.TurnDirection
     }
 
     struct TripEstimate: Hashable {
