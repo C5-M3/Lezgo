@@ -62,6 +62,14 @@ enum HomeSplitMotion {
         let height: Double
     }
 
+    /// How the design sits on a screen: one scale both ways, so it is never stretched, and centred across the width,
+    /// as on a phone held sideways.
+    struct Fit: Equatable {
+        let scale: Double
+        /// How far the design's left edge is from the screen's.
+        let left: Double
+    }
+
     /// Everything on screen at one moment.
     struct Frame: Equatable {
         /// The lower edge of the yellow LEAD half.
@@ -105,6 +113,11 @@ enum HomeSplitMotion {
     private static let destinationTilt = 90.0
     /// The front of the pile pops up first.
     private static let crewPopOrder = [4, 3, 2, 1, 0]
+
+    static func FitOn(width: Double, height: Double) -> Fit {
+        let scale = min(width / canvasWidth, height / canvasHeight)
+        return Fit(scale: scale, left: (width - canvasWidth * scale) / 2)
+    }
 
     /// How long the whole motion takes, in seconds.
     static func TotalDuration(of flow: Flow) -> Double {

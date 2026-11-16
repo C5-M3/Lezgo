@@ -26,7 +26,8 @@ struct HomeSplitHalf: View {
 
     private var isYellow: Bool { look != .dark }
     private var ink: Color { isYellow ? Color(.tripCard) : Color(.brandYellow) }
-    private var scale: Double { canvas.width / HomeSplitMotion.canvasWidth }
+    private var fit: HomeSplitMotion.Fit { HomeSplitMotion.FitOn(width: canvas.width, height: canvas.height) }
+    private var scale: Double { fit.scale }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -38,7 +39,7 @@ struct HomeSplitHalf: View {
                 .scaledToFit()
                 .foregroundStyle(isYellow ? Color(.tripCard) : .white)
                 .frame(height: 21 * scale)
-                .offset(x: 22 * scale, y: 92 * canvas.height / HomeSplitMotion.canvasHeight)
+                .offset(x: fit.left + 22 * scale, y: 92 * scale)
 
             if look == .yellowLead {
                 let slot = HomeSplitMotion.mascotSlot

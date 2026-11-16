@@ -31,14 +31,13 @@ struct HomeSplitPlacement: ViewModifier, Animatable {
 
     func body(content: Content) -> some View {
         let frame = HomeSplitMotion.FrameAt(flow, progress: progress)
-        let scaleX = canvas.width / HomeSplitMotion.canvasWidth
-        let scaleY = canvas.height / HomeSplitMotion.canvasHeight
+        let fit = HomeSplitMotion.FitOn(width: canvas.width, height: canvas.height)
 
         switch element {
         case .leadWord:
-            Word(content, frame.leadWord, scaleX: scaleX, scaleY: scaleY)
+            Word(content, frame.leadWord, fit: fit)
         case .joinWord:
-            Word(content, frame.joinWord, scaleX: scaleX, scaleY: scaleY)
+            Word(content, frame.joinWord, fit: fit)
         case .mascot:
             let slot = HomeSplitMotion.mascotSlot
             // The squash and tilt pivot near its feet, so it pushes off the ground.
@@ -46,25 +45,24 @@ struct HomeSplitPlacement: ViewModifier, Animatable {
             content
                 .scaleEffect(x: frame.mascot.scaleX, y: frame.mascot.scaleY, anchor: pivot)
                 .rotationEffect(.degrees(frame.mascot.rotation), anchor: pivot)
-                .offset(x: slot.x * scaleX, y: (slot.y + frame.mascot.offset) * scaleY)
+                .offset(x: fit.left + slot.x * fit.scale, y: (slot.y + frame.mascot.offset) * fit.scale)
         case .crew(let index):
             let slot = HomeSplitMotion.crewSlots[index]
             let pose = frame.crew[index]
             content
                 .scaleEffect(pose.scale, anchor: .topLeading)
-                .offset(x: slot.x * scaleX, y: (slot.y + pose.offset) * scaleY)
+                .offset(x: fit.left + slot.x * fit.scale, y: (slot.y + pose.offset) * fit.scale)
         }
     }
 
     private func Word(
         _ content: Content,
         _ placement: HomeSplitMotion.Placement,
-        scaleX: Double,
-        scaleY: Double
+        fit: HomeSplitMotion.Fit
     ) -> some View {
         content
             .scaleEffect(placement.scale, anchor: .topLeading)
-            .offset(x: placement.x * scaleX, y: placement.y * scaleY)
+            .offset(x: fit.left + placement.x * fit.scale, y: placement.y * fit.scale)
             .opacity(placement.opacity)
     }
 }

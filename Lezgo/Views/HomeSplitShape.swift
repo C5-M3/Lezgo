@@ -78,7 +78,7 @@ struct HomeSplitShape: Shape {
 
     /// The edge's heights on this screen. Kept inside the screen so the shape never folds over itself.
     private func Heights(of edge: HomeSplitMotion.Edge, in rect: CGRect) -> (left: Double, right: Double) {
-        let scale = rect.height / HomeSplitMotion.canvasHeight
+        let scale = HomeSplitMotion.FitOn(width: rect.width, height: rect.height).scale
         let top = rect.minY - rect.height
         let bottom = rect.maxY + rect.height
         let left = min(max(rect.minY + edge.left * scale, top), bottom)
