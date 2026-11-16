@@ -116,6 +116,11 @@ struct HomeSplitMotionTests {
         #expect(fit.left == 19)
     }
 
+    @Test func TheMascotsStillPeekInFromTheRightEdgeWhenTheScreenIsSideways() {
+        let fit = Motion.FitOn(width: 956, height: 437)
+        #expect(fit.rightPinnedLeft + Motion.canvasWidth * fit.scale == 956)
+    }
+
     @Test func TheDesignFitsTheHeightAndIsCentredWhenTheScreenIsSideways() {
         let fit = Motion.FitOn(width: 956, height: 437)
         #expect(fit.scale == 0.5)
