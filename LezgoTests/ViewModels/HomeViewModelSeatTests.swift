@@ -144,7 +144,7 @@ struct HomeViewModelSeatTests {
 
     @Test func ContinueResumesTheTripSoThisPhoneHoldsTheSeat() async throws {
         let service = MockTripService(states: [TripMapFixtures.State()])
-        let draft = Summary(tripID: TripMapFixtures.tripID)
+        let draft = Summary(of: TripMapFixtures.tripID)
         let viewModel = MakeViewModel(storage: FakeActiveTripStorage(initial: draft))
 
         await viewModel.continueDraftTrip(tripService: service)

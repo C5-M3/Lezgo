@@ -102,6 +102,7 @@ struct HomeView: View {
             onDismiss: {
                 viewModel.activeTripSession = nil
                 viewModel.CheckActiveDraftTrip()
+                Task { await viewModel.RefreshActiveTrip(tripService: tripService) }
             },
             content: { session in
                 TripRoomView(
@@ -136,8 +137,9 @@ struct HomeView: View {
                 )
             }
         )
-        .modifier(Prompts(viewModel: viewModel))
+        .modifier(Prompts(viewModel: viewModel, onConfirmContinue: ContinueDraftTrip))
         .onAppear { viewModel.onAppear() }
+        .task { await viewModel.RefreshActiveTrip(tripService: tripService) }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
         .onOpenURL { url in
             viewModel.OpenInviteLink(url)
@@ -352,9 +354,8 @@ private extension HomeView {
                     storage: viewModel.activeTripStorage
                 ),
                 onContinueTrip: {
-                    Task {
-                        await viewModel.continueDraftTrip(tripService: tripService)
-                    }
+                    viewModel.RequestContinue()
+                    if viewModel.isConfirmingContinue == false { ContinueDraftTrip() }
                 },
                 onNewTrip: {
                     withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
@@ -369,6 +370,13 @@ private extension HomeView {
             )
             .transition(.opacity)
             .zIndex(200)
+        }
+    }
+
+    /// Takes the saved trip over on this phone (ADR 0031).
+    func ContinueDraftTrip() {
+        Task {
+            await viewModel.continueDraftTrip(tripService: tripService)
         }
     }
 
