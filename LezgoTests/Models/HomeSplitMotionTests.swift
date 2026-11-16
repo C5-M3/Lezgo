@@ -34,24 +34,24 @@ struct HomeSplitMotionTests {
         let lead = Motion.FrameAt(.lead, progress: Motion.RevealStart(of: .lead))
         let join = Motion.FrameAt(.join, progress: Motion.RevealStart(of: .join))
 
-        #expect(lead.destination.left <= 0)
-        #expect(join.destination.right >= Motion.canvasHeight)
+        #expect(lead.leadDestination.left <= 0)
+        #expect(join.joinDestination.right >= Motion.canvasHeight)
     }
 
     @Test func LeadEndsWithSetRouteCoveringTheScreen() {
         let frame = Motion.FrameAt(.lead, progress: 1)
 
         // Set Route comes in from the top, so its lower edge must be past the bottom on both sides.
-        #expect(frame.destination.right >= Motion.canvasHeight)
-        #expect(frame.destination.left >= Motion.canvasHeight)
+        #expect(frame.leadDestination.right >= Motion.canvasHeight)
+        #expect(frame.leadDestination.left >= Motion.canvasHeight)
     }
 
     @Test func JoinEndsWithRoomCodeCoveringTheScreen() {
         let frame = Motion.FrameAt(.join, progress: 1)
 
         // Enter room code comes in from the bottom, so its upper edge must be past the top on both sides.
-        #expect(frame.destination.left <= 0)
-        #expect(frame.destination.right <= 0)
+        #expect(frame.joinDestination.left <= 0)
+        #expect(frame.joinDestination.right <= 0)
     }
 
     @Test func JoinHomeMatchesTheDesign() {
