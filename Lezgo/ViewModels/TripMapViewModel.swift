@@ -19,9 +19,9 @@ final class TripMapViewModel {
     private(set) var guidance: TripMapGuidance?
     private(set) var camera = TripMapCamera()
     /// The confirmation to show before leaving, or `nil`.
-    private(set) var leaveConfirmation: LeaveConfirmation?
+    var leaveConfirmation: LeaveConfirmation?
     /// Set once the map should close and the phone return to Home; sharing stops at the same time.
-    private(set) var closeReason: CloseReason?
+    var closeReason: CloseReason?
     /// Why leaving failed, for example no network; the map stays open so the person can try again.
     private(set) var leaveErrorMessage: String?
     /// `true` while an exit or end request is on its way; the card's buttons are disabled meanwhile.
@@ -58,13 +58,13 @@ final class TripMapViewModel {
 
     /// The participant who uses this phone.
     let myParticipantID: UUID
-    private let tripID: UUID
-    private let tripService: any TripService
+    let tripID: UUID
+    let tripService: any TripService
     let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     let locationSharer: LocationSharer?
-    private let activeTripStorage: (any ActiveTripStorage)?
+    let activeTripStorage: (any ActiveTripStorage)?
     /// Reroutes the group when this phone's leader leaves the route; `nil` without a directions service (previews).
     let reroute: TripMapReroute?
     let clock: () -> Date
@@ -113,23 +113,11 @@ final class TripMapViewModel {
             } else {
                 echo.finish()
             }
-            group.addTask { await self.FollowTrip() }
-            group.addTask { await self.FollowSeat() }
+            group.addTask { await self.FollowTripAndSeat() }
             // The trip stream ends when the trip closes on this phone; then sharing stops too.
             await group.next()
             group.cancelAll()
         }
-    }
-
-    /// When another phone takes this phone's place, this phone stops moving the car at once and forgets the trip; the
-    /// other phone is the one in it now (ADR 0031).
-    private func FollowSeat() async {
-        await tripService.SeatTakenOver(tripID: tripID)
-        guard Task.isCancelled == false, closeReason == nil else { return }
-        locationSharer?.Stop()
-        activeTripStorage?.ClearActiveTrip()
-        leaveConfirmation = nil
-        closeReason = .takenOver
     }
 
     /// The leader ended the trip, removed this member or planned a New Destination, from another phone or this one.
@@ -349,7 +337,7 @@ extension TripMapViewModel {
     ///
     /// The reroute runs beside the trip updates, so a slow directions request never holds back the cars, alerts
     /// and guidance on the map.
-    private func FollowTrip() async {
+    func FollowTrip() async {
         let (rerouteStates, rerouteInput) = AsyncStream.makeStream(of: TripState.self)
         await withTaskGroup(of: Void.self) { group in
             if let reroute {

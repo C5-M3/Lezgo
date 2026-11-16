@@ -175,7 +175,10 @@ final class HomeViewModel {
         for attempt in 1...Self.draftTripFetchAttempts {
             do {
                 // Resuming also takes this account's place in the trip, so another phone of the account is told.
-                let session = try await tripService.ResumeTrip(tripID: draft.tripID, participantID: draft.myParticipantID)
+                let session = try await tripService.ResumeTrip(
+                    tripID: draft.tripID,
+                    participantID: draft.myParticipantID
+                )
                 guard session.state.trip.status.isOpen else {
                     handleDraftTripEnded()
                     return

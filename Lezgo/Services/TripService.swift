@@ -33,8 +33,9 @@ protocol TripService {
     ///   when this account is in another open trip.
     func JoinTrip(roomCode: String, profile: ParticipantProfile?) async throws -> TripSession
 
-    /// The open trip this iCloud account is in, with this account's participant, or `nil` when it is in none (ADR 0031).
-    /// Every phone of the account gets the same answer, so the app can open on Home or Draft Trip after a restart.
+    /// The open trip this iCloud account is in, with this account's participant, or `nil` when it is in none
+    /// (ADR 0031). Every phone of the account gets the same answer, so the app can open on Home or Draft Trip after
+    /// a restart.
     func MyTrip() async throws -> TripSession?
 
     /// Takes this account's place in the trip back on this phone, for "Continue" on Draft Trip (ADR 0031). Unlike

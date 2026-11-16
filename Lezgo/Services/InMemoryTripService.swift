@@ -19,12 +19,12 @@ final class InMemoryTripService: TripService {
     /// When set, every call except `TripUpdates` throws this error, so previews and tests can show error states.
     var simulatedFailure: TripServiceError?
 
-    private let store: InMemoryTripStore
-    private let userRecordID: String
+    let store: InMemoryTripStore
+    let userRecordID: String
     private let clock: () -> Date
     private let makeRoomCode: () -> String
     /// The session this phone holds in each trip it joined, to tell when another phone takes the seat (ADR 0031).
-    private var heldSessions: [UUID: UUID] = [:]
+    var heldSessions: [UUID: UUID] = [:]
 
     /// - Parameters:
     ///   - store: the trips; share one store between services to act as several phones.
@@ -102,50 +102,6 @@ final class InMemoryTripService: TripService {
         store.Save(state)
         ClaimSeat(tripID: state.trip.id, participantID: member.id)
         return TripSession(myParticipantID: member.id, state: state)
-    }
-
-    func MyTrip() async throws -> TripSession? {
-        try ThrowSimulatedFailure()
-        guard let seat = store.LiveSeat(forAccount: userRecordID), let state = store.trips[seat.tripID] else {
-            return nil
-        }
-        return TripSession(myParticipantID: seat.participantID, state: state)
-    }
-
-    func ResumeTrip(tripID: UUID, participantID: UUID) async throws -> TripSession {
-        try ThrowSimulatedFailure()
-        guard let state = store.trips[tripID] else { throw TripServiceError.notFound }
-        guard state.trip.status.isOpen else { throw TripServiceError.tripEnded }
-        guard state.participants.contains(where: { $0.id == participantID }) else { throw TripServiceError.notFound }
-        if let seat = store.LiveSeat(forAccount: userRecordID), seat.tripID != tripID {
-            throw TripServiceError.alreadyInTrip
-        }
-        ClaimSeat(tripID: tripID, participantID: participantID)
-        return TripSession(myParticipantID: participantID, state: state)
-    }
-
-    func AccountID() async throws -> String {
-        try ThrowSimulatedFailure()
-        return TripSeat.AccountToken(forAccount: userRecordID)
-    }
-
-    func SeatTakenOver(tripID: UUID) async {
-        guard let mine = heldSessions[tripID] else {
-            // This phone did not join the trip: there is no seat of its own to lose.
-            while Task.isCancelled == false { try? await Task.sleep(for: .seconds(1)) }
-            return
-        }
-        for await seat in store.ListenToSeat(forAccount: userRecordID) where seat.sessionID != mine {
-            heldSessions[tripID] = nil
-            return
-        }
-    }
-
-    /// Takes the account's seat for this trip with a new session (the caller has checked it is free or this trip's).
-    private func ClaimSeat(tripID: UUID, participantID: UUID) {
-        let seat = TripSeat(tripID: tripID, participantID: participantID, sessionID: UUID())
-        store.SaveSeat(seat, forAccount: userRecordID)
-        heldSessions[tripID] = seat.sessionID
     }
 
     func FetchTrip(tripID: UUID) async throws -> TripState {
@@ -296,7 +252,7 @@ final class InMemoryTripService: TripService {
 
     // MARK: Helpers
 
-    private func ThrowSimulatedFailure() throws {
+    func ThrowSimulatedFailure() throws {
         if let simulatedFailure { throw simulatedFailure }
     }
 

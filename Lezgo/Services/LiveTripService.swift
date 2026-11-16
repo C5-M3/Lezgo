@@ -89,19 +89,11 @@ final class LiveTripService: TripService {
 
             let seat = try await LiveSeat()
             if let seat, seat.tripID != trip.id { throw TripServiceError.alreadyInTrip }
-            if let seat {
-                // Another phone of this account is in this trip: take its place and keep its car.
-                try await ClaimSeat(tripID: trip.id, participantID: seat.participantID)
-                return TripSession(myParticipantID: seat.participantID, state: try await reader.LoadState(tripID: trip.id))
-            }
-            let existing = try await database.Query(
-                recordType: TripRecordMapper.participantType,
-                matching: ["tripID": TripRecordMapper.TripReference(trip.id), "userRecordID": me]
-            )
-            if let record = existing.first, let participant = try? TripRecordMapper.MakeParticipant(from: record) {
-                // A member of a trip from before seats existed: the seat is made now.
-                try await ClaimSeat(tripID: trip.id, participantID: participant.id)
-                return TripSession(myParticipantID: participant.id, state: try await reader.LoadState(tripID: trip.id))
+            // Another phone of this account is in this trip, or this is a member from before seats existed:
+            // keep that car and take the seat.
+            if let known = try await ExistingParticipantID(of: me, in: trip.id, seat: seat) {
+                try await ClaimSeat(tripID: trip.id, participantID: known)
+                return TripSession(myParticipantID: known, state: try await reader.LoadState(tripID: trip.id))
             }
             let taken = try await Run { try await reader.LoadState(tripID: trip.id) }
             let member = Participant.Joining(

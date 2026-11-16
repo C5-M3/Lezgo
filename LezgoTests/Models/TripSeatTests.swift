@@ -44,6 +44,8 @@ struct TripSeatTests {
     }
 
     @Test func AccountTokenIsTheRecordNameWithoutTheSuffix() {
-        #expect(TripSeat.RecordName(forAccount: "_agus0001") == TripSeat.AccountToken(forAccount: "_agus0001") + "-seat")
+        let token = TripSeat.AccountToken(forAccount: "_agus0001")
+
+        #expect(TripSeat.RecordName(forAccount: "_agus0001") == token + "-seat")
     }
 }

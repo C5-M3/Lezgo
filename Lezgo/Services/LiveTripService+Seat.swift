@@ -25,7 +25,9 @@ extension LiveTripService {
         try await Run {
             let state = try await reader.LoadState(tripID: tripID)
             guard state.trip.status.isOpen else { throw TripServiceError.tripEnded }
-            guard state.participants.contains(where: { $0.id == participantID }) else { throw TripServiceError.notFound }
+            guard state.participants.contains(where: { $0.id == participantID }) else {
+                throw TripServiceError.notFound
+            }
             try await ClaimSeat(tripID: tripID, participantID: participantID)
             return TripSession(myParticipantID: participantID, state: state)
         }
@@ -46,6 +48,17 @@ extension LiveTripService {
             heldSessions[tripID] = nil
             return
         }
+    }
+
+    /// The participant this account already has in the trip: the one in its seat, or one found by query (a member of
+    /// a trip from before seats existed).
+    func ExistingParticipantID(of account: String, in tripID: UUID, seat: TripSeat?) async throws -> UUID? {
+        if let seat { return seat.participantID }
+        let records = try await database.Query(
+            recordType: TripRecordMapper.participantType,
+            matching: ["tripID": TripRecordMapper.TripReference(tripID), "userRecordID": account]
+        )
+        return records.first.flatMap { try? TripRecordMapper.MakeParticipant(from: $0) }?.id
     }
 
     /// The account's seat when it is live: its trip is open and its participant is still in it. A seat that is not

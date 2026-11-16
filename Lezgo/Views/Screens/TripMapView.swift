@@ -296,7 +296,7 @@ extension TripMapView {
                 viewModel.manualArrival.confirmation != nil,
                 viewModel.manualArrival.errorMessage != nil,
                 viewModel.leaveErrorMessage != nil,
-                IsClosedElsewhere
+                viewModel.closedElsewhereMessage != nil
             ]
         }
 
@@ -319,21 +319,8 @@ extension TripMapView {
                 Message(Text(verbatim: error), onOK: viewModel.manualArrival.DismissError)
             } else if let error = viewModel.leaveErrorMessage {
                 Message(Text(verbatim: error), onOK: viewModel.DismissLeaveError)
-            } else if IsClosedElsewhere {
-                Message(ClosedElsewhereTitle, onOK: close)
-            }
-        }
-
-        /// The trip closed on this phone because of something another phone did.
-        private var IsClosedElsewhere: Bool {
-            [.endedByLeader, .removed, .takenOver].contains(viewModel.closeReason)
-        }
-
-        private var ClosedElsewhereTitle: Text {
-            switch viewModel.closeReason {
-            case .removed: Text(.tripMapRemovedFromTrip)
-            case .takenOver: Text(.tripSeatTakenOver)
-            default: Text(.tripMapLeaderEndedTrip)
+            } else if let message = viewModel.closedElsewhereMessage {
+                Message(Text(message), onOK: close)
             }
         }
 
