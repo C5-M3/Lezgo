@@ -12,19 +12,31 @@ import SwiftUI
 extension JoinTripView {
     var isFullScreen: Bool { onClose != nil }
 
-    /// The title between a round Back button on the left and an empty space of the same width on the right.
+    /// The title between a round Back button on the left and an empty space of the same width on the right. At
+    /// accessibility text sizes the title needs the full width, so the Back button sits on its own row above it.
+    @ViewBuilder
     var fullScreenHeader: some View {
-        HStack(alignment: .top) {
-            RoundBackButton(action: Close)
+        if textSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 12) {
+                RoundBackButton(action: Close)
+                    .padding(.horizontal, -6)
 
-            headerSection
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
+                headerSection
+                    .frame(maxWidth: .infinity)
+            }
+        } else {
+            HStack(alignment: .top) {
+                RoundBackButton(action: Close)
 
-            Color.clear
-                .frame(width: 44, height: 44)
+                headerSection
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+
+                Color.clear
+                    .frame(width: 44, height: 44)
+            }
+            .padding(.horizontal, -6)
         }
-        .padding(.horizontal, -6)
     }
 
     func Close() {
@@ -36,4 +48,9 @@ extension JoinTripView {
 
 #Preview("Full screen") {
     JoinTripView(isPresented: .constant(true), onClose: {})
+}
+
+#Preview("Full screen, largest text") {
+    JoinTripView(isPresented: .constant(true), onClose: {})
+        .dynamicTypeSize(.accessibility5)
 }

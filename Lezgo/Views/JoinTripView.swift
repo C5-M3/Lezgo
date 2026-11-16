@@ -56,6 +56,7 @@ struct JoinTripView: View {
     @FocusState var isFieldFocused: Bool
     @Environment(\.tripService) private var tripService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) var textSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var sheetHeight: CGFloat = 290
