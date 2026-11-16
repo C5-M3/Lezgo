@@ -68,6 +68,9 @@ enum HomeSplitMotion {
         let scale: Double
         /// How far the design's left edge is from the screen's.
         let left: Double
+        /// Where the design's left edge goes when its right edge is pinned to the screen's. The mascots are drawn
+        /// peeking in from that edge, so on a wide screen they stay there instead of showing where they are cut.
+        var rightPinnedLeft: Double { left * 2 }
     }
 
     /// Everything on screen at one moment.
