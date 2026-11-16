@@ -14,6 +14,8 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
     let progress: Double
     /// The screen that covers part or all of Home, if any.
     let destination: HomeSplitMotion.Flow?
+    /// `true` while the motion runs; Home must stay drawn then, even under a screen that covers it.
+    let isMoving: Bool
     let onLead: () -> Void
     let onJoin: () -> Void
     let leadScreen: LeadScreen
@@ -26,6 +28,7 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         flow: HomeSplitMotion.Flow,
         progress: Double,
         destination: HomeSplitMotion.Flow?,
+        isMoving: Bool = false,
         onLead: @escaping () -> Void,
         onJoin: @escaping () -> Void,
         @ViewBuilder leadScreen: () -> LeadScreen,
@@ -34,10 +37,15 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         self.flow = flow
         self.progress = progress
         self.destination = destination
+        self.isMoving = isMoving
         self.onLead = onLead
         self.onJoin = onJoin
         self.leadScreen = leadScreen()
         self.joinScreen = joinScreen()
+    }
+
+    private var isCovered: Bool {
+        destination != nil && !isMoving
     }
 
     /// On the JOIN home the split line sits higher, so the tap areas follow it.
@@ -52,7 +60,20 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         // up under the clock.
         destinations
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background { home }
+            // The whole screen, which the design is drawn on: the safe area plus its insets. The keyboard only moves
+            // space from the one to the other, so Home keeps its size while it shows.
+            .onGeometryChange(for: CGSize.self) { proxy in
+                let insets = proxy.safeAreaInsets
+                return CGSize(
+                    width: proxy.size.width + insets.leading + insets.trailing,
+                    height: proxy.size.height + insets.top + insets.bottom
+                )
+            } action: { canvas = $0 }
+            .background(alignment: .topLeading) {
+                // Hidden once a screen covers it: the keyboard is see-through and would show Home under Enter room
+                // code. The change never animates, so it cannot fade Home in or out during the motion.
+                home.animation(nil) { $0.opacity(isCovered ? 0 : 1) }
+            }
     }
 
     private var home: some View {
@@ -84,13 +105,7 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         .transaction(value: progress) { transaction in
             if reduceMotion { transaction.animation = nil }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background {
-            // Measured over the whole screen, the safe area included, which the design is drawn on.
-            Color.clear
-                .ignoresSafeArea()
-                .onGeometryChange(for: CGSize.self) { $0.size } action: { canvas = $0 }
-        }
+        .frame(width: canvas.width, height: canvas.height, alignment: .topLeading)
         .ignoresSafeArea()
     }
 

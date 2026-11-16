@@ -48,10 +48,12 @@ struct HomeSplitShape: Shape {
 
     private func Above(_ edge: HomeSplitMotion.Edge, in rect: CGRect) -> Path {
         let (left, right) = Heights(of: edge, in: rect)
+        // When the edge is above the screen the shape is empty, rather than turned inside out.
+        let top = min(rect.minY, left, right)
         return Path { path in
             path.addLines([
-                CGPoint(x: rect.minX, y: rect.minY),
-                CGPoint(x: rect.maxX, y: rect.minY),
+                CGPoint(x: rect.minX, y: top),
+                CGPoint(x: rect.maxX, y: top),
                 CGPoint(x: rect.maxX, y: right),
                 CGPoint(x: rect.minX, y: left)
             ])
@@ -61,12 +63,14 @@ struct HomeSplitShape: Shape {
 
     private func Below(_ edge: HomeSplitMotion.Edge, in rect: CGRect) -> Path {
         let (left, right) = Heights(of: edge, in: rect)
+        // When the edge is below the screen the shape is empty, rather than turned inside out.
+        let bottom = max(rect.maxY, left, right)
         return Path { path in
             path.addLines([
                 CGPoint(x: rect.minX, y: left),
                 CGPoint(x: rect.maxX, y: right),
-                CGPoint(x: rect.maxX, y: rect.maxY),
-                CGPoint(x: rect.minX, y: rect.maxY)
+                CGPoint(x: rect.maxX, y: bottom),
+                CGPoint(x: rect.minX, y: bottom)
             ])
             path.closeSubpath()
         }

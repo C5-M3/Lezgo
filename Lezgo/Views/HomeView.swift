@@ -29,6 +29,7 @@ struct HomeView: View {
             flow: viewModel.splitFlow,
             progress: viewModel.splitProgress,
             destination: viewModel.splitDestination,
+            isMoving: viewModel.isSplitMoving,
             onLead: OpenSetRoute,
             onJoin: { RunSplit(viewModel.JoinTapped()) },
             leadScreen: { setRouteScreen },
