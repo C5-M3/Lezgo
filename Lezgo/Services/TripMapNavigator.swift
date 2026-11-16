@@ -13,4 +13,8 @@ import Foundation
 /// use `MockTripMapNavigator`.
 protocol TripMapNavigator {
     func Guidance(from position: Coordinate, along state: TripState) async throws -> TripMapGuidance
+
+    /// The driving time from `position` to one point, such as the next checkpoint. Unlike `Guidance` it follows no
+    /// route and keeps nothing for the next call.
+    func TimeLeft(from position: Coordinate, to point: Coordinate) async throws -> Duration
 }

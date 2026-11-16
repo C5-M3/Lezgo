@@ -60,7 +60,7 @@ final class TripMapViewModel {
     let myParticipantID: UUID
     private let tripID: UUID
     private let tripService: any TripService
-    private let navigator: any TripMapNavigator
+    let navigator: any TripMapNavigator
     private let streetNameService: any StreetNameService
     /// Sends this phone's position while the map is open; `nil` in previews and with the simulated drive.
     let locationSharer: LocationSharer?
@@ -244,13 +244,14 @@ final class TripMapViewModel {
         }
         let street = try? await streetNameService.StreetName(at: coordinate)
         let timeLeft = try? await navigator.Guidance(from: coordinate, along: state).timeLeft
+        let timeToNextStop = await TimeToNextStop(from: coordinate, in: state, timeToDestination: timeLeft)
         // A lookup cancelled by tapping another car is not saved, so tapping this car again looks it up at once.
         guard Task.isCancelled == false else { return }
         let previous = carLookups[car.id]
         carLookups[car.id] = CarLookup(
             street: street ?? previous?.street,
             timeLeft: timeLeft ?? previous?.timeLeft,
-            lookedUpAt: now
+            timeToNextStop: timeToNextStop ?? previous?.timeToNextStop, lookedUpAt: now
         )
     }
 

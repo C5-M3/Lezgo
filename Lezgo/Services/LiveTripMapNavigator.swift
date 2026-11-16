@@ -52,6 +52,11 @@ final class LiveTripMapNavigator: TripMapNavigator {
         return Guidance(at: located, on: directions)
     }
 
+    func TimeLeft(from position: Coordinate, to point: Coordinate) async throws -> Duration {
+        let directions = try await directionsService.Directions(through: [position, point])
+        return .seconds(Int(directions.expectedTravelTime.rounded()))
+    }
+
     // MARK: Asking MapKit
 
     private func Fetch(from position: Coordinate, along state: TripState, at now: Date) async throws -> KeptDirections {

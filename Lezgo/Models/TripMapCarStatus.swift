@@ -18,6 +18,9 @@ struct TripMapCarStatus: Identifiable, Hashable {
     var activity: Activity
     /// `nil` until the travel time is known, and for an offline car, whose last position is out of date.
     var timeLeft: Duration?
+    /// The name of the checkpoint the car heads for, or the destination once every checkpoint is visited; the card
+    /// shows it beside the time left.
+    var nextStopName: String?
     /// "Black Brio"; empty when the driver has not typed one.
     var carDescription = ""
     var carColor = TripMapCarPin.CarColor.yellow
@@ -32,6 +35,28 @@ struct TripMapCarStatus: Identifiable, Hashable {
         case .offline(let lastSeen):
             String(localized: .tripMapCarLastSeen(lastSeen.formatted(Self.durationStyle)))
         }
+    }
+
+    /// "Status: Driving", the line the card shows under the car, as in the hi-fi.
+    var cardStatusLine: String {
+        let title = switch activity {
+        case .driving: String(localized: .tripMapCarDriving)
+        case .stopped: String(localized: .tripMapCarStopped)
+        case .offline: String(localized: .tripMapCarOffline)
+        }
+        return String(localized: .tripMapCarStatusLabel(title))
+    }
+
+    /// "To Tunjungan Plaza"; `nil` for an offline car, whose last position is out of date, and without a name.
+    var nextStopLine: String? {
+        guard timeLeft != nil, let nextStopName else { return nil }
+        return String(localized: .tripMapCarTo(nextStopName))
+    }
+
+    /// "Last seen 3 min ago" for an offline car, which the status line alone does not say.
+    var lastSeenLine: String? {
+        guard case .offline = activity else { return nil }
+        return statusLine
     }
 
     /// What the car is doing.

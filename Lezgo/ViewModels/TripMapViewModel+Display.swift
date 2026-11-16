@@ -229,10 +229,21 @@ extension TripMapViewModel {
             id: car.id,
             displayName: displayName,
             activity: activity,
-            timeLeft: lookup?.timeLeft,
+            timeLeft: lookup?.timeToNextStop,
+            nextStopName: (state.nextCheckpoint ?? state.destination)?.name,
             carDescription: car.carDescription,
             carColor: CarColor(of: car, in: state)
         )
+    }
+
+    /// The time to the next checkpoint when one is left, otherwise the time to the destination.
+    func TimeToNextStop(
+        from coordinate: Coordinate,
+        in state: TripState,
+        timeToDestination: Duration?
+    ) async -> Duration? {
+        guard let checkpoint = state.nextCheckpoint else { return timeToDestination }
+        return try? await navigator.TimeLeft(from: coordinate, to: checkpoint.coordinate)
     }
 
     /// The one formation alert banner under the turn card, or `nil` when there is none to show.

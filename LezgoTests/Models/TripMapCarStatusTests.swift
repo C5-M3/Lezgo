@@ -24,6 +24,51 @@ struct TripMapCarStatusTests {
         #expect(status.statusLine == expected)
     }
 
+    /// The hi-fi's card: "Status: Driving" under the car, with no street.
+    @Test(arguments: [
+        (TripMapCarStatus.Activity.driving(street: "Ahmad Yani Street"), "Status: Driving"),
+        (.driving(street: nil), "Status: Driving"),
+        (.stopped(street: "Ahmad Yani Street"), "Status: Stopped"),
+        (.offline(lastSeen: .seconds(180)), "Status: Offline")
+    ])
+    func CardStatusLineNamesTheStatusWithoutTheStreet(activity: TripMapCarStatus.Activity, expected: String) {
+        let status = TripMapCarStatus(id: UUID(), displayName: "Budi", activity: activity, timeLeft: nil)
+
+        #expect(status.cardStatusLine == expected)
+    }
+
+    @Test func OnlyAnOfflineCarSaysWhenItWasLastSeen() {
+        let offline = TripMapCarStatus(id: UUID(), displayName: "Budi", activity: .offline(lastSeen: .seconds(180)))
+        let driving = TripMapCarStatus(id: UUID(), displayName: "Budi", activity: .driving(street: "Ahmad Yani Street"))
+
+        #expect(offline.lastSeenLine == "Last seen 3 min ago")
+        #expect(driving.lastSeenLine == nil)
+    }
+
+    @Test func NextStopLineNamesWhereTheCarIsHeadingBesideTheTimeLeft() {
+        let status = TripMapCarStatus(
+            id: UUID(),
+            displayName: "Budi",
+            activity: .driving(street: nil),
+            timeLeft: .seconds(3_600),
+            nextStopName: "Tunjungan Plaza"
+        )
+
+        #expect(status.nextStopLine == "To Tunjungan Plaza")
+    }
+
+    @Test func NextStopLineIsEmptyWithoutATimeLeftOrAName() {
+        let withoutTime = TripMapCarStatus(
+            id: UUID(), displayName: "Budi", activity: .driving(street: nil), nextStopName: "Tunjungan Plaza"
+        )
+        let withoutName = TripMapCarStatus(
+            id: UUID(), displayName: "Budi", activity: .driving(street: nil), timeLeft: .seconds(60)
+        )
+
+        #expect(withoutTime.nextStopLine == nil)
+        #expect(withoutName.nextStopLine == nil)
+    }
+
     @Test func VeryLongStreetNameIsKeptWhole() {
         let street = "Jalan Raya Prapen Indah Blok A No. 12, Panjang Jiwo, Tenggilis Mejoyo, Surabaya"
         let status = TripMapCarStatus(

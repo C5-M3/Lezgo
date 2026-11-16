@@ -610,7 +610,8 @@ Feature: Manage the group and start
 - Location runs in the background (screen locked, another app in front) only on the trip map. Home, Set Route and the Trip Room stop using it when the app leaves the screen, and closing the app stops it.
 
 **Car status**
-- Tap a car → card with name, status and street ("Driving at Ahmad Yani Street"), and ETA to the destination ("50 min").
+- Tap a car → card with the name, the car, "Status: Driving" (yellow; "Status: Stopped" and "Status: Offline" in grey) and the time left with where the car is heading ("50 min  To Tunjungan Plaza"). The card shows no street (the hi-fi has none); CarPlay still says "Driving at Ahmad Yani Street".
+- The time and the name are for the car's next stop: the next checkpoint it has not passed, or the destination once every checkpoint is visited.
 - The camera moves to the tapped car and follows it while its card is open. Closing the card takes the camera back to where it was (following this car or showing the whole route); a map moved by hand meanwhile stays where it is.
 - "Driving" while moving; "Stopped" after speed 0 for 30 seconds, shown on the pin by colour **and** icon, without sound.
 - Offline cars are faded at their last position and show "Last seen 3 min ago".
@@ -687,9 +688,9 @@ Feature: Drive together
     Then "Ciputra World" stays not visited
 
   Scenario: Tap a car
-    Given "Budi" is driving on "Ahmad Yani Street", 50 minutes from the destination
+    Given "Budi" is driving, 50 minutes from the destination, with every checkpoint visited
     When "Agus" taps the car of "Budi"
-    Then "Agus" sees "Budi", "Driving at Ahmad Yani Street" and "50 min"
+    Then "Agus" sees "Budi", "Status: Driving" and "50 min" next to "To Pakuwon mall"
     And the map moves to the car of "Budi" and follows it
 
   Scenario: Close a car's card

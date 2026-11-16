@@ -140,8 +140,9 @@ final class MapPickerViewModel {
         let found = try? await lookupService.NearbyPlaces(around: coordinate)
         guard Task.isCancelled == false else { return }
         isLoadingNearby = false
-        guard let found else { return }
-        nearbyPlaces = found
-        nearbyCenter = coordinate
+        // MapKit throws when nothing is found, so a failure must not keep the chips of the previous place. The
+        // center is forgotten too, so the next move asks again.
+        nearbyPlaces = found ?? []
+        nearbyCenter = found == nil ? nil : coordinate
     }
 }
