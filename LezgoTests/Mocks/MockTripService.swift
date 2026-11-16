@@ -111,7 +111,11 @@ final class MockTripService: TripService {
     /// Set to `true` to act like another phone took this phone's place: `SeatTakenOver` then returns.
     var isSeatTaken = false
 
+    /// Runs while `MyTrip` is on its way, before it answers.
+    var whileFindingMyTrip: (() async -> Void)?
+
     func MyTrip() async throws -> TripSession? {
+        await whileFindingMyTrip?()
         if let myTripFailure { throw myTripFailure }
         return myTrip
     }
