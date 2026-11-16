@@ -13,12 +13,14 @@ import Foundation
 /// It follows the same rules as `InMemoryTripService`; the `TripService*Tests` suites run against both. Every
 /// error reaches the caller as a `TripServiceError`.
 final class LiveTripService: TripService {
-    private let database: any CloudDatabase
-    private let reader: TripRecordReader
+    let database: any CloudDatabase
+    let reader: TripRecordReader
     private let clock: () -> Date
-    private let pollInterval: Duration
+    let pollInterval: Duration
     private let makeRoomCode: () -> String
     private var userRecordName: String?
+    /// The session this phone holds in each trip it joined, to tell when another phone takes the seat (ADR 0031).
+    var heldSessions: [UUID: UUID] = [:]
 
     /// - Parameters:
     ///   - database: the public database; `LiveCloudDatabase()` in the app, a fake in tests.
@@ -43,6 +45,8 @@ final class LiveTripService: TripService {
     func CreateTrip(plan: TripPlan, profile: ParticipantProfile?) async throws -> TripSession {
         try await Run {
             guard plan.isValid else { throw TripServiceError.notAllowed }
+            // Looking first refuses the usual case without writing anything; the claim below settles a race.
+            guard try await LiveSeat() == nil else { throw TripServiceError.alreadyInTrip }
             let tripID = UUID()
             let leader = Participant.Joining(
                 tripID: tripID,
@@ -68,6 +72,7 @@ final class LiveTripService: TripService {
                 + waypoints.map { TripRecordMapper.MakeRecord($0) }
                 + [TripRecordMapper.MakeRecord(leader), TripRecordMapper.MakeRecord(route)]
             try await database.Save(records, savePolicy: .allKeys)
+            try await ClaimSeat(tripID: tripID, participantID: leader.id, undoingWith: records)
             let state = TripState(trip: trip, waypoints: waypoints, participants: [leader], route: route)
             return TripSession(myParticipantID: leader.id, state: state)
         }
@@ -82,11 +87,20 @@ final class LiveTripService: TripService {
             guard trips.isEmpty == false else { throw TripServiceError.notFound }
             guard let trip = trips.first(where: { $0.status.isOpen }) else { throw TripServiceError.tripEnded }
 
+            let seat = try await LiveSeat()
+            if let seat, seat.tripID != trip.id { throw TripServiceError.alreadyInTrip }
+            if let seat {
+                // Another phone of this account is in this trip: take its place and keep its car.
+                try await ClaimSeat(tripID: trip.id, participantID: seat.participantID)
+                return TripSession(myParticipantID: seat.participantID, state: try await reader.LoadState(tripID: trip.id))
+            }
             let existing = try await database.Query(
                 recordType: TripRecordMapper.participantType,
                 matching: ["tripID": TripRecordMapper.TripReference(trip.id), "userRecordID": me]
             )
             if let record = existing.first, let participant = try? TripRecordMapper.MakeParticipant(from: record) {
+                // A member of a trip from before seats existed: the seat is made now.
+                try await ClaimSeat(tripID: trip.id, participantID: participant.id)
                 return TripSession(myParticipantID: participant.id, state: try await reader.LoadState(tripID: trip.id))
             }
             let taken = try await Run { try await reader.LoadState(tripID: trip.id) }
@@ -94,7 +108,9 @@ final class LiveTripService: TripService {
                 tripID: trip.id, userRecordID: me, profile: profile.map { taken.WithoutTakenName($0) },
                 isLeader: false, at: clock()
             )
-            try await database.Save([TripRecordMapper.MakeRecord(member)], savePolicy: .allKeys)
+            let memberRecord = TripRecordMapper.MakeRecord(member)
+            try await database.Save([memberRecord], savePolicy: .allKeys)
+            try await ClaimSeat(tripID: trip.id, participantID: member.id, undoingWith: [memberRecord])
             return TripSession(myParticipantID: member.id, state: try await reader.LoadState(tripID: trip.id))
         }
     }
@@ -272,7 +288,7 @@ final class LiveTripService: TripService {
     // MARK: Helpers
 
     /// Runs one operation and turns any CloudKit or network error into a `TripServiceError`.
-    private func Run<Result>(_ work: () async throws -> Result) async throws -> Result {
+    func Run<Result>(_ work: () async throws -> Result) async throws -> Result {
         do {
             return try await work()
         } catch {
@@ -280,7 +296,7 @@ final class LiveTripService: TripService {
         }
     }
 
-    private func UserRecordName() async throws -> String {
+    func UserRecordName() async throws -> String {
         if let userRecordName { return userRecordName }
         let name = try await database.CurrentUserRecordName()
         userRecordName = name

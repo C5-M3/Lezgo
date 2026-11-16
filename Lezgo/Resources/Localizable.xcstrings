@@ -2527,6 +2527,18 @@
         }
       }
     },
+    "tripServiceErrorAlreadyInTrip" : {
+      "comment" : "Error when this iCloud account is already in another open trip (ADR 0031). Copy not in the user stories yet; needs a copy check.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are already in a trip. Leave it first, or continue it from Home."
+          }
+        }
+      }
+    },
     "tripServiceErrorConflict" : {
       "comment" : "Error when two phones change the same thing at once, for example picking a new leader. Copy not in the user stories yet; needs a copy check.",
       "extractionState" : "manual",

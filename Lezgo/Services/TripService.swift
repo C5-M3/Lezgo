@@ -20,14 +20,31 @@ protocol TripService {
     // MARK: Create, join and read
 
     /// Creates a trip in `LOBBY` with a new 6-digit room code, the plan as route version 1, and the caller as leader.
+    /// - Throws: `.alreadyInTrip` when this iCloud account is in another open trip (ADR 0031).
     /// - Parameter profile: the leader's name and car; `nil` uses "Member" plus the end of the iCloud user ID.
     func CreateTrip(plan: TripPlan, profile: ParticipantProfile?) async throws -> TripSession
 
     /// Joins the trip with this room code as a member. Joining again with the same iCloud account returns the
     /// existing participant instead of adding a second car.
     /// - Parameter profile: the member's name and car; `nil` uses "Member" plus the end of the iCloud user ID.
-    /// - Throws: `.notFound` for an unknown code, `.tripEnded` for an `ENDED` or `CANCELLED` trip.
+    /// Joining the trip this account is already in from another phone takes the account's place over: the other phone
+    /// is told through `SeatTakenOver` (ADR 0031).
+    /// - Throws: `.notFound` for an unknown code, `.tripEnded` for an `ENDED` or `CANCELLED` trip, `.alreadyInTrip`
+    ///   when this account is in another open trip.
     func JoinTrip(roomCode: String, profile: ParticipantProfile?) async throws -> TripSession
+
+    /// The open trip this iCloud account is in, with this account's participant, or `nil` when it is in none (ADR 0031).
+    /// Every phone of the account gets the same answer, so the app can open on Home or Draft Trip after a restart.
+    func MyTrip() async throws -> TripSession?
+
+    /// Returns when another phone of this account has taken this phone's place in the trip, and never returns while
+    /// this phone still holds it. Cancel the task to stop listening. Call it after `CreateTrip` or `JoinTrip` on this
+    /// service; for a trip this service did not join it waits until cancelled (ADR 0031).
+    func SeatTakenOver(tripID: UUID) async
+
+    /// A short, stable name for this iCloud account that does not show the account, to tell whose trip a saved
+    /// summary is (ADR 0031).
+    func AccountID() async throws -> String
 
     /// The trip as it is now, for example to check a saved trip when the app opens (US-03).
     func FetchTrip(tripID: UUID) async throws -> TripState
