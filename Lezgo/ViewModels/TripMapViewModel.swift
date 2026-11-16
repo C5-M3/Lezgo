@@ -114,10 +114,22 @@ final class TripMapViewModel {
                 echo.finish()
             }
             group.addTask { await self.FollowTrip() }
+            group.addTask { await self.FollowSeat() }
             // The trip stream ends when the trip closes on this phone; then sharing stops too.
             await group.next()
             group.cancelAll()
         }
+    }
+
+    /// When another phone takes this phone's place, this phone stops moving the car at once and forgets the trip; the
+    /// other phone is the one in it now (ADR 0031).
+    private func FollowSeat() async {
+        await tripService.SeatTakenOver(tripID: tripID)
+        guard Task.isCancelled == false, closeReason == nil else { return }
+        locationSharer?.Stop()
+        activeTripStorage?.ClearActiveTrip()
+        leaveConfirmation = nil
+        closeReason = .takenOver
     }
 
     /// The leader ended the trip, removed this member or planned a New Destination, from another phone or this one.

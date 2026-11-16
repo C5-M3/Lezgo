@@ -118,6 +118,7 @@ final class CarPlayTripViewModel {
         switch closed.closeReason {
         case .endedByLeader: return String(localized: .tripMapLeaderEndedTrip)
         case .removed: return String(localized: .tripMapRemovedFromTrip)
+        case .takenOver: return String(localized: .tripSeatTakenOver)
         case .backToTripRoom, .exited, .ended, nil: return nil
         }
     }

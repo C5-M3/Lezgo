@@ -23,6 +23,8 @@ struct TripMapViewModelSeatTests {
         let first = MakePhone()
         let second = MakePhone()
         let session = try await first.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        // The map is for a trip on the road; in the lobby it would go back to the Trip Room.
+        try await first.StartTrip(tripID: session.state.trip.id, by: session.myParticipantID)
         let storage = FakeActiveTripStorage(initial: ActiveTripSummary.From(session: session))
         let sharer = LocationSharer(
             tripService: first,
@@ -55,6 +57,7 @@ struct TripMapViewModelSeatTests {
     @Test func MapKeepsRunningWhenNobodyTakesThePlace() async throws {
         let first = MakePhone()
         let session = try await first.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        try await first.StartTrip(tripID: session.state.trip.id, by: session.myParticipantID)
         let viewModel = TripMapViewModel(
             tripID: session.state.trip.id,
             myParticipantID: session.myParticipantID,
