@@ -104,4 +104,21 @@ struct HomeSplitMotionTests {
         #expect(IsClose(back, (1 - Motion.joinHome) * Motion.TotalDuration(of: .join), within: 0.0001))
         #expect(Motion.Duration(of: .lead, from: 0.5, to: 0.5) == 0)
     }
+
+    @Test func TheDesignFillsAPortraitPhone() {
+        let fit = Motion.FitOn(width: 402, height: 874)
+        #expect(fit == Motion.Fit(scale: 1, left: 0))
+    }
+
+    @Test func TheDesignIsNeverStretchedOnAWiderPhone() {
+        let fit = Motion.FitOn(width: 440, height: 874)
+        #expect(fit.scale == 1)
+        #expect(fit.left == 19)
+    }
+
+    @Test func TheDesignFitsTheHeightAndIsCentredWhenTheScreenIsSideways() {
+        let fit = Motion.FitOn(width: 956, height: 437)
+        #expect(fit.scale == 0.5)
+        #expect(fit.left == 377.5)
+    }
 }
