@@ -22,6 +22,9 @@ final class LocationSharer {
     /// kilometres off would mislead the group more than a car that stands still.
     private(set) var isLocationImprecise = false
 
+    /// `true` once `Stop()` was called: the sharer keeps reading the GPS but sends nothing.
+    private(set) var isStopped = false
+
     private var latest: LocationReading?
     private var detector = MotionStateDetector()
 
@@ -58,6 +61,12 @@ final class LocationSharer {
         }
     }
 
+    /// Stops sending at once, while the screen is still open. Another phone of this account took this phone's place
+    /// in the trip (ADR 0031), so this phone must no longer move the car.
+    func Stop() {
+        isStopped = true
+    }
+
     /// Keeps the latest reading and the motion state up to date as readings arrive.
     private func ReadGPS(echoingTo echo: AsyncStream<LocationReading>.Continuation?) async {
         for await reading in locationProvider.Readings() {
@@ -83,7 +92,7 @@ final class LocationSharer {
     }
 
     private func SendLatest() async {
-        guard let latest else { return }
+        guard isStopped == false, let latest else { return }
         let update = LocationUpdate(
             coordinate: latest.coordinate,
             speedKmh: latest.speedKmh,
