@@ -112,6 +112,18 @@ final class InMemoryTripService: TripService {
         return TripSession(myParticipantID: seat.participantID, state: state)
     }
 
+    func ResumeTrip(tripID: UUID, participantID: UUID) async throws -> TripSession {
+        try ThrowSimulatedFailure()
+        guard let state = store.trips[tripID] else { throw TripServiceError.notFound }
+        guard state.trip.status.isOpen else { throw TripServiceError.tripEnded }
+        guard state.participants.contains(where: { $0.id == participantID }) else { throw TripServiceError.notFound }
+        if let seat = store.LiveSeat(forAccount: userRecordID), seat.tripID != tripID {
+            throw TripServiceError.alreadyInTrip
+        }
+        ClaimSeat(tripID: tripID, participantID: participantID)
+        return TripSession(myParticipantID: participantID, state: state)
+    }
+
     func AccountID() async throws -> String {
         try ThrowSimulatedFailure()
         return TripSeat.AccountToken(forAccount: userRecordID)

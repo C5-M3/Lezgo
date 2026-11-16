@@ -21,6 +21,16 @@ extension LiveTripService {
         }
     }
 
+    func ResumeTrip(tripID: UUID, participantID: UUID) async throws -> TripSession {
+        try await Run {
+            let state = try await reader.LoadState(tripID: tripID)
+            guard state.trip.status.isOpen else { throw TripServiceError.tripEnded }
+            guard state.participants.contains(where: { $0.id == participantID }) else { throw TripServiceError.notFound }
+            try await ClaimSeat(tripID: tripID, participantID: participantID)
+            return TripSession(myParticipantID: participantID, state: state)
+        }
+    }
+
     func AccountID() async throws -> String {
         try await Run { TripSeat.AccountToken(forAccount: try await UserRecordName()) }
     }

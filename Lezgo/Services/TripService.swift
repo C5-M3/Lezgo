@@ -37,6 +37,12 @@ protocol TripService {
     /// Every phone of the account gets the same answer, so the app can open on Home or Draft Trip after a restart.
     func MyTrip() async throws -> TripSession?
 
+    /// Takes this account's place in the trip back on this phone, for "Continue" on Draft Trip (ADR 0031). Unlike
+    /// `JoinTrip` it never adds a car: a member who was removed is refused, so Continue cannot undo a removal.
+    /// - Throws: `.notFound` when the trip or this participant is gone, `.tripEnded` for an `ENDED` or `CANCELLED`
+    ///   trip, `.alreadyInTrip` when this account's seat is for another trip.
+    func ResumeTrip(tripID: UUID, participantID: UUID) async throws -> TripSession
+
     /// Returns when another phone of this account has taken this phone's place in the trip, and never returns while
     /// this phone still holds it. Cancel the task to stop listening. Call it after `CreateTrip` or `JoinTrip` on this
     /// service; for a trip this service did not join it waits until cancelled (ADR 0031).

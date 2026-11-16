@@ -116,6 +116,18 @@ final class MockTripService: TripService {
         return myTrip
     }
 
+    /// The trips `ResumeTrip` was asked for.
+    private(set) var resumedTripIDs: [UUID] = []
+    /// When set, `ResumeTrip` throws it.
+    var resumeFailure: TripServiceError?
+
+    func ResumeTrip(tripID: UUID, participantID: UUID) async throws -> TripSession {
+        resumedTripIDs.append(tripID)
+        if let resumeFailure { throw resumeFailure }
+        guard let state = states.last else { throw TripServiceError.notFound }
+        return TripSession(myParticipantID: participantID, state: state)
+    }
+
     func AccountID() async throws -> String {
         "mock-account"
     }
