@@ -93,11 +93,11 @@ enum HomeSplitMotion {
     static let mascotSlot = Slot(x: 102, y: 263, width: 308, height: 333.5)
     /// Green, pink, blue, purple and yellow, from the back of the pile to the front.
     static let crewSlots = [
-        Slot(x: 207.3, y: 563.7, width: 117, height: 95),
-        Slot(x: 294.4, y: 630.9, width: 108, height: 126.5),
-        Slot(x: 165.9, y: 661.2, width: 131.4, height: 134),
-        Slot(x: 89.2, y: 746.2, width: 178.4, height: 157.8),
-        Slot(x: 183.6, y: 698, width: 220.5, height: 172)
+        Slot(x: 211.3, y: 563.7, width: 109, height: 95),
+        Slot(x: 294.4, y: 630.9, width: 107.7, height: 126),
+        Slot(x: 159.1, y: 659.8, width: 145, height: 136.7),
+        Slot(x: 86.7, y: 746.2, width: 183.3, height: 128),
+        Slot(x: 183.6, y: 698, width: 220.3, height: 172)
     ]
     static let crewCount = crewSlots.count
 
