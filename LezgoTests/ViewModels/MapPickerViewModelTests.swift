@@ -236,6 +236,35 @@ struct MapPickerViewModelTests {
         #expect(service.requestedNearby.count == 2)
     }
 
+    /// MapKit reports "nothing found" as an error, so an empty place and a failed search look the same to the caller.
+    @Test func AFailedNearbySearchAtANewPlaceClearsThePlacesOfThePreviousOne() async {
+        let service = MockPlaceLookupService(nearbyResult: .success([tunjungan]))
+        let viewModel = MakeViewModel(service: service)
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+        #expect(viewModel.nearbyPlaces == [tunjungan])
+
+        service.nearbyResult = .failure(MockPlaceLookupService.LookupFailed())
+        viewModel.CameraMoved(to: farFromStart)
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.nearbyPlaces.isEmpty)
+        #expect(viewModel.isLoadingNearby == false)
+    }
+
+    @Test func ANewPlaceWithNothingAroundItClearsThePlacesOfThePreviousOne() async {
+        let service = MockPlaceLookupService(nearbyResult: .success([tunjungan]))
+        let viewModel = MakeViewModel(service: service)
+        viewModel.Start()
+        await viewModel.lookupTask?.value
+
+        service.nearbyResult = .success([])
+        viewModel.CameraMoved(to: farFromStart)
+        await viewModel.lookupTask?.value
+
+        #expect(viewModel.nearbyPlaces.isEmpty)
+    }
+
     @Test func ChoosingANearbyPlaceMovesThePinToItAndKeepsItsName() {
         let viewModel = MakeViewModel()
 
