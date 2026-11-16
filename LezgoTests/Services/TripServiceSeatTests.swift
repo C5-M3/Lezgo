@@ -170,6 +170,50 @@ struct TripServiceSeatTests {
         #expect(await wasTold.value)
     }
 
+    // MARK: Resuming from Draft Trip
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func ResumingTakesTheSeatBackWithoutAddingACar(kind: TripPhones.Kind) async throws {
+        let phones = SeatPhones(kind)
+        let created = try await phones.first.CreateTrip(plan: plan, profile: nil)
+        let tripID = created.state.trip.id
+        _ = try await phones.second.JoinTrip(roomCode: created.state.trip.roomCode, profile: nil)
+        let second = phones.second
+
+        let wasTold = Task { @MainActor in await Finishes { await second.SeatTakenOver(tripID: tripID) } }
+        try await Task.sleep(for: .milliseconds(50))
+        let resumed = try await phones.first.ResumeTrip(tripID: tripID, participantID: created.myParticipantID)
+
+        #expect(resumed.myParticipantID == created.myParticipantID)
+        #expect(resumed.state.participants.count == 1)
+        #expect(await wasTold.value)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func RemovedMemberCannotResumeTheTrip(kind: TripPhones.Kind) async throws {
+        let phones = SeatPhones(kind)
+        let created = try await phones.other.CreateTrip(plan: plan, profile: nil)
+        let tripID = created.state.trip.id
+        let joined = try await phones.first.JoinTrip(roomCode: created.state.trip.roomCode, profile: nil)
+        try await phones.other.RemoveParticipants([joined.myParticipantID], tripID: tripID, by: created.myParticipantID)
+
+        await #expect(throws: TripServiceError.notFound) {
+            try await phones.first.ResumeTrip(tripID: tripID, participantID: joined.myParticipantID)
+        }
+        #expect(try await phones.other.FetchTrip(tripID: tripID).participants.count == 1)
+    }
+
+    @Test(arguments: TripPhones.Kind.allCases)
+    func EndedTripCannotBeResumed(kind: TripPhones.Kind) async throws {
+        let phones = SeatPhones(kind)
+        let created = try await phones.first.CreateTrip(plan: plan, profile: nil)
+        try await phones.first.EndTrip(tripID: created.state.trip.id, by: created.myParticipantID)
+
+        await #expect(throws: TripServiceError.tripEnded) {
+            try await phones.second.ResumeTrip(tripID: created.state.trip.id, participantID: created.myParticipantID)
+        }
+    }
+
     // MARK: Stale seats
 
     @Test(arguments: TripPhones.Kind.allCases)
