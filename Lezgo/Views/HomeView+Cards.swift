@@ -62,7 +62,7 @@ struct LeadTripCard: View {
             }
             .frame(maxWidth: .infinity)
             .background(Color.brandYellow)
-            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: LezgoRadius.card, style: .continuous))
         }
         .buttonStyle(.pressable)
     }
@@ -72,7 +72,7 @@ struct JoinTripCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let onJoinTrip: () -> Void
 
-    private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
+    private let cardDarkBackground = Color(LezgoSurface.level1.color)
 
     var body: some View {
         Button(action: onJoinTrip) {
@@ -104,7 +104,7 @@ struct JoinTripCard: View {
 
                         Image(systemName: "arrow.up.right")
                             .font(.title3.weight(.bold))
-                            .foregroundStyle(Color(white: 0.6))
+                            .foregroundStyle(Color(.tripCardSubtext))
                             .accessibilityHidden(true)
                     }
 
@@ -115,7 +115,7 @@ struct JoinTripCard: View {
 
                         Text("Got a room code from friend leader? Join the room now!")
                             .font(.subheadline)
-                            .foregroundStyle(Color(white: 0.6))
+                            .foregroundStyle(Color(.tripCardSubtext))
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                             .minimumScaleFactor(0.8)
                     }
@@ -125,7 +125,8 @@ struct JoinTripCard: View {
             }
             .frame(maxWidth: .infinity)
             .background(cardDarkBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: LezgoRadius.card, style: .continuous))
+            .lezgoCardEdge()
         }
         .buttonStyle(.pressable)
     }

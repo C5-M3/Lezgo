@@ -239,21 +239,12 @@ private extension HomeView {
             VStack {
                 HStack {
                     Spacer()
-                    Button {
+                    Button("Trip History", systemImage: "clock.arrow.circlepath") {
                         isTripHistoryPresented = true
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Color(white: 0.16).opacity(0.92))
-                                .frame(width: 44, height: 44)
-
-                            Image(systemName: "clock.arrow.circlepath")
-                                .font(.callout.weight(.bold))
-                                .foregroundStyle(.white)
-                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Trip History"))
+                    .labelStyle(.iconOnly)
+                    .font(.callout.weight(.bold))
+                    .lezgoGlassButton(.roundOnYellow)
                     .padding(.trailing, 24)
                     .padding(.top, 16)
                 }

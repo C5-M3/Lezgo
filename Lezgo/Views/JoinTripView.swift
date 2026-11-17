@@ -74,10 +74,6 @@ struct JoinTripView: View {
     /// Back button at the top left that calls this, instead of being a sheet that is pulled down.
     var onClose: (() -> Void)?
 
-    private let boxBackground = Color(red: 32/255, green: 32/255, blue: 34/255)
-    private let sheetBackground = Color(red: 24/255, green: 24/255, blue: 26/255)
-    private let disabledButtonBackground = Color(red: 36/255, green: 36/255, blue: 38/255)
-
     // MARK: - Initializer
 
     init(
@@ -142,9 +138,7 @@ struct JoinTripView: View {
             sheetHeight = newHeight
         }
         .presentationDetents([.height(sheetHeight)])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(32)
-        .presentationBackground(sheetBackground)
+        .lezgoSheet()
         .presentationSizing(.page)
         .presentationCompactAdaptation(.sheet)
         .preferredColorScheme(.dark)
@@ -177,11 +171,11 @@ struct JoinTripView: View {
         VStack(alignment: .center, spacing: 4) {
             Text("Enter room code")
                 .font(.title3.weight(.bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(Color(.tripCardText))
 
             Text("Ask the leader for the 6 digits")
                 .font(.subheadline)
-                .foregroundStyle(Color(white: 0.6))
+                .foregroundStyle(Color(.tripCardSubtext))
         }
     }
 
@@ -244,10 +238,10 @@ struct JoinTripView: View {
         }()
 
         ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(boxBackground)
+            RoundedRectangle(cornerRadius: LezgoRadius.small, style: .continuous)
+                .fill(Color(LezgoSurface.level1.color))
 
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: LezgoRadius.small, style: .continuous)
                 .stroke(
                     hasError ? Color(.tripAlertRed) : (isCurrentSlot ? Color(.brandYellow) : Color.clear),
                     lineWidth: 2
@@ -260,7 +254,7 @@ struct JoinTripView: View {
             if hasDigit {
                 Text(charString)
                     .font(.system(.title2, design: .rounded, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color(.tripCardText))
                     .contentTransition(.identity)
                     .transaction { $0.animation = nil }
             }
@@ -275,29 +269,14 @@ struct JoinTripView: View {
         Button {
             submitRoomCode()
         } label: {
-            Group {
-                if viewModel.isSubmitting {
-                    ProgressView()
-                        .tint(Color.brandYellow)
-                } else {
-                    Text("Enter")
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(viewModel.isValidCode ? .black : Color(white: 0.45))
-                }
+            if viewModel.isSubmitting {
+                ProgressView()
+            } else {
+                Text("Enter")
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(
-                Capsule()
-                    .fill(
-                        viewModel.isValidCode && !viewModel.isSubmitting
-                            ? Color(.brandYellow)
-                            : disabledButtonBackground
-                    )
-            )
         }
         .disabled(!viewModel.isValidCode || viewModel.isSubmitting)
-        .buttonStyle(.plain)
+        .lezgoGlassButton(.main)
         .accessibilityLabel("Enter")
     }
 
