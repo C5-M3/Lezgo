@@ -85,15 +85,9 @@ struct CarPlayTripViewModelGuidanceTests {
 
     /// Above 50 pt wide, CarPlay treats the arrow as a wide image and puts it on top of the distance alone, which
     /// makes the turn card tall on small (@2x) CarPlay screens.
-    @Test(arguments: [
-        "arrow.up",
-        "arrow.turn.up.left",
-        "arrow.turn.up.right",
-        "arrow.uturn.down",
-        "flag.checkered"
-    ])
-    func ManeuverSymbolFitsBesideTheDistanceOnSmallScreens(symbolName: String) throws {
-        let symbol = try #require(CarPlayTripMapTemplate.ManeuverSymbol(symbolName, scale: 2))
+    @Test(arguments: TripMapGuidance.TurnDirection.allCases)
+    func ManeuverSymbolFitsBesideTheDistanceOnSmallScreens(direction: TripMapGuidance.TurnDirection) throws {
+        let symbol = try #require(CarPlayTripMapTemplate.ManeuverSymbol(direction, scale: 2))
         let cgImage = try #require(symbol.cgImage)
         let widthOnSmallScreen = CGFloat(cgImage.width) / 2
 

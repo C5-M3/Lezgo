@@ -20,6 +20,8 @@ struct RoutePlanCard: View {
     let onRemoveDestination: (Int) -> Void
     let onMoveDestination: ((IndexSet, Int) -> Void)?
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    /// `false` while Set Route is built ahead or still wiping in over the split Home; the search waits for it.
+    @Environment(\.canRaiseKeyboard) private var canRaiseKeyboard
 
     @FocusState var isFieldFocused: Bool
     /// The height of the rows, measured by the list. It starts at one row's height: a list with no height lays out
@@ -102,7 +104,7 @@ struct RoutePlanCard: View {
         .shadow(color: .black.opacity(0.35), radius: 14, x: 0, y: 6)
         .padding(.horizontal, 16)
         .onChange(of: activeSelection) { _, newActive in
-            if newActive != nil {
+            if newActive != nil, canRaiseKeyboard {
                 isFieldFocused = true
             }
         }
@@ -110,9 +112,14 @@ struct RoutePlanCard: View {
         // in is dropped. Ask again once it has settled, so the keyboard is up without a tap.
         .task {
             try? await Task.sleep(for: .milliseconds(600))
-            if !Task.isCancelled, activeSelection != nil {
+            if !Task.isCancelled, activeSelection != nil, canRaiseKeyboard {
                 isFieldFocused = true
             }
+        }
+        // On the split Home, Set Route is built hidden and wipes in: the keyboard rises once it has landed, and drops
+        // as soon as it starts to wipe away.
+        .onChange(of: canRaiseKeyboard) { _, canRaise in
+            isFieldFocused = canRaise && activeSelection != nil
         }
     }
 }

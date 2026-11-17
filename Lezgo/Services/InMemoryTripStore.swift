@@ -13,6 +13,8 @@ import Foundation
 final class InMemoryTripStore {
     private(set) var trips: [UUID: TripState] = [:]
     private var listeners: [UUID: [UUID: AsyncStream<TripState>.Continuation]] = [:]
+    private var seats: [String: TripSeat] = [:]
+    private var seatListeners: [String: [UUID: AsyncStream<TripSeat>.Continuation]] = [:]
 
     init(trips: [TripState] = []) {
         for state in trips {
@@ -43,5 +45,43 @@ final class InMemoryTripStore {
             continuation.yield(state)
         }
         return stream
+    }
+
+    // MARK: Seats (ADR 0031)
+
+    /// The account's seat when it is live: its trip is open and its participant is still in it.
+    func LiveSeat(forAccount account: String) -> TripSeat? {
+        guard let seat = seats[account],
+              let state = trips[seat.tripID], state.trip.status.isOpen,
+              state.participants.contains(where: { $0.id == seat.participantID }) else { return nil }
+        return seat
+    }
+
+    func SaveSeat(_ seat: TripSeat, forAccount account: String) {
+        seats[account] = seat
+        for continuation in seatListeners[account, default: [:]].values {
+            continuation.yield(seat)
+        }
+    }
+
+    /// The account's seat right away (when there is one), then again after every `SaveSeat`, until the listener stops.
+    func ListenToSeat(forAccount account: String) -> AsyncStream<TripSeat> {
+        let (stream, continuation) = AsyncStream.makeStream(of: TripSeat.self)
+        let listenerID = UUID()
+        seatListeners[account, default: [:]][listenerID] = continuation
+        let stopListening: @MainActor () -> Void = { [weak self] in
+            self?.seatListeners[account]?[listenerID] = nil
+        }
+        continuation.onTermination = { _ in
+            Task { @MainActor in stopListening() }
+        }
+        if let seat = seats[account] {
+            continuation.yield(seat)
+        }
+        return stream
+    }
+
+    func RemoveSeat(forAccount account: String) {
+        seats[account] = nil
     }
 }

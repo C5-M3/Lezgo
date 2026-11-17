@@ -55,7 +55,7 @@ final class CarPlayTripViewModel {
         return Maneuver(
             instructionVariants: [instruction],
             distance: guidance.distanceToTurn,
-            symbolName: guidance.direction.symbolName
+            direction: guidance.direction
         )
     }
 
@@ -115,11 +115,7 @@ final class CarPlayTripViewModel {
         guard let closed = activeTripMap.tripMap, closeMessageDismissedFor != ObjectIdentifier(closed) else {
             return nil
         }
-        switch closed.closeReason {
-        case .endedByLeader: return String(localized: .tripMapLeaderEndedTrip)
-        case .removed: return String(localized: .tripMapRemovedFromTrip)
-        case .backToTripRoom, .exited, .ended, nil: return nil
-        }
+        return closed.closedElsewhereMessage.map { String(localized: $0) }
     }
 
     func DismissCloseMessage() {
@@ -313,7 +309,7 @@ extension CarPlayTripViewModel {
         /// Longest first, as CarPlay picks the longest that fits.
         var instructionVariants: [String]
         var distance: Measurement<UnitLength>
-        var symbolName: String
+        var direction: TripMapGuidance.TurnDirection
     }
 
     struct TripEstimate: Hashable {

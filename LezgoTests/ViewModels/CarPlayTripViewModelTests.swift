@@ -53,7 +53,7 @@ struct CarPlayTripViewModelTests {
         #expect(viewModel.screen == .onTheWay)
         #expect(maneuver.instructionVariants == ["Turn right"])
         #expect(maneuver.distance == Measurement(value: 200, unit: .meters))
-        #expect(maneuver.symbolName == "arrow.turn.up.right")
+        #expect(maneuver.direction == .right)
     }
 
     /// MapKit often gives the first step no text; CarPlay needs at least one instruction.

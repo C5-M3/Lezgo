@@ -60,9 +60,23 @@ final class HomeViewModel {
     var activeTripSession: TripSession?
     var activeMapSession: TripSession?
     var isTransitioningToTripMap: Bool = false
+    /// The split-screen Home (issue #329): which half's motion is on screen and how far it has played.
+    var splitFlow: HomeSplitMotion.Flow = .lead
+    var splitProgress: Double = 0
+    /// Where the running step started, so a screen that comes in with it starts its wipe from there.
+    var splitStepStart: Double = 0
+    /// The screen that covers part or all of Home: Set Route (`.lead`) or Enter room code (`.join`).
+    var splitDestination: HomeSplitMotion.Flow?
+    /// `true` while the split moves, so a second tap cannot start another motion halfway.
+    var isSplitMoving = false
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
+    /// `true` when the trip on Draft Trip was found in iCloud, not saved by this phone: another phone of this account
+    /// is in it, so "Continue" takes the trip over from that phone and asks first (ADR 0031).
+    var isDraftTripFromAnotherPhone = false
+    /// `true` while "Continue" asks whether to take the trip over from the other phone.
+    var isConfirmingContinue = false
     /// Why the saved trip could not be opened; the draft stays so the person can try again.
     var draftTripErrorMessage: String?
     /// How many times Continue tries to load the saved trip before saying it could not.
@@ -169,17 +183,19 @@ final class HomeViewModel {
 
         for attempt in 1...Self.draftTripFetchAttempts {
             do {
-                let state = try await tripService.FetchTrip(tripID: draft.tripID)
-                guard state.trip.status.isOpen else {
+                // Resuming also takes this account's place in the trip, so another phone of the account is told.
+                let session = try await tripService.ResumeTrip(
+                    tripID: draft.tripID,
+                    participantID: draft.myParticipantID
+                )
+                guard session.state.trip.status.isOpen else {
                     handleDraftTripEnded()
                     return
                 }
-                applyActiveSession(
-                    TripSession(myParticipantID: draft.myParticipantID, state: state),
-                    isInTrip: state.trip.status == .inTrip
-                )
+                isDraftTripFromAnotherPhone = false
+                applyActiveSession(session, isInTrip: session.state.trip.status == .inTrip)
                 return
-            } catch let error as TripServiceError where error == .notFound || error == .tripEnded {
+            } catch let error as TripServiceError where [.notFound, .tripEnded, .alreadyInTrip].contains(error) {
                 handleDraftTripEnded()
                 return
             } catch {

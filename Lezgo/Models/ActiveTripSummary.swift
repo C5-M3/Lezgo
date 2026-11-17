@@ -25,6 +25,9 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
     var destinationCoordinate: Coordinate?
     var routeCoordinates: [Coordinate]?
     var estimatedDuration: TimeInterval?
+    /// Which iCloud account saved this trip (`TripService.AccountID()`), so a phone that signs in to another account
+    /// does not offer the first account's trip (ADR 0031). `nil` for a summary saved before this was kept.
+    var accountID: String?
 
     enum CodingKeys: String, CodingKey {
         case tripID
@@ -40,6 +43,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         case destinationCoordinate
         case routeCoordinates
         case estimatedDuration
+        case accountID
     }
 
     init(
@@ -55,7 +59,8 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         startCoordinate: Coordinate? = nil,
         destinationCoordinate: Coordinate? = nil,
         routeCoordinates: [Coordinate]? = nil,
-        estimatedDuration: TimeInterval? = nil
+        estimatedDuration: TimeInterval? = nil,
+        accountID: String? = nil
     ) {
         self.tripID = tripID
         self.myParticipantID = myParticipantID
@@ -70,6 +75,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         self.destinationCoordinate = destinationCoordinate
         self.routeCoordinates = routeCoordinates
         self.estimatedDuration = estimatedDuration
+        self.accountID = accountID
     }
 
     init(from decoder: Decoder) throws {
@@ -87,6 +93,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         destinationCoordinate = try container.decodeIfPresent(Coordinate.self, forKey: .destinationCoordinate)
         routeCoordinates = try container.decodeIfPresent([Coordinate].self, forKey: .routeCoordinates)
         estimatedDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .estimatedDuration)
+        accountID = try container.decodeIfPresent(String.self, forKey: .accountID)
     }
 
     /// Creates an active trip summary from a live or simulated trip session.

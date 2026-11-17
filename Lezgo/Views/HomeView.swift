@@ -11,17 +11,13 @@ import SwiftUI
 struct HomeView: View {
     @Environment(\.tripService) private var tripService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
-    @State private var isJoinTripPresented: Bool = false
     @State private var pendingJoinedSession: TripSession?
-    @State private var isSetRoutePresented: Bool = false
-    @State private var isTripHistoryPresented: Bool = false
+    /// Set Route is built once Home has settled, hidden, so its map is ready before LEAD runs into it.
+    @State private var isSetRoutePrepared = false
     /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
     private let siriHandoff = SiriHandoff.shared
-
-    private let cardDarkBackground = Color(red: 28/255, green: 28/255, blue: 30/255)
 
     private var shouldHideHomeControls: Bool {
         viewModel.isTransitioningToTripMap || viewModel.isReturningToTripRoom
@@ -31,26 +27,18 @@ struct HomeView: View {
     var body: some View {
         @Bindable var boundHomeViewModel = viewModel
 
-        ZStack {
-            Color(.tripCard)
-                .ignoresSafeArea()
-
-            // At the largest text sizes the cards no longer fit on one screen, so they scroll.
-            if dynamicTypeSize.isAccessibilitySize {
-                ScrollView {
-                    homeContent
-                        .padding(.vertical, 24)
-                }
-                .scrollBounceBehavior(.basedOnSize)
-            } else {
-                VStack(spacing: 0) {
-                    homeContent
-                        .padding(.top, 72)
-
-                    Spacer(minLength: 16)
-                }
-            }
-        }
+        HomeSplitStage(
+            flow: viewModel.splitFlow,
+            progress: viewModel.splitProgress,
+            destination: viewModel.splitDestination,
+            isMoving: viewModel.isSplitMoving,
+            stepStart: viewModel.splitStepStart,
+            preparesLeadScreen: isSetRoutePrepared,
+            onLead: OpenSetRoute,
+            onJoin: { RunSplit(viewModel.JoinTapped()) },
+            leadScreen: { setRouteScreen },
+            joinScreen: { joinTripScreen }
+        )
         .preferredColorScheme(.dark)
         .overlay {
             transitionOverlay
@@ -106,6 +94,7 @@ struct HomeView: View {
             onDismiss: {
                 viewModel.activeTripSession = nil
                 viewModel.CheckActiveDraftTrip()
+                Task { await viewModel.RefreshActiveTrip(tripService: tripService) }
             },
             content: { session in
                 TripRoomView(
@@ -140,8 +129,14 @@ struct HomeView: View {
                 )
             }
         )
-        .modifier(Prompts(viewModel: viewModel))
+        .modifier(Prompts(viewModel: viewModel, onConfirmContinue: ContinueDraftTrip))
         .onAppear { viewModel.onAppear() }
+        .task { await viewModel.RefreshActiveTrip(tripService: tripService) }
+        .task {
+            // After Home's first frames, so building Set Route's map does not hold up the launch.
+            try? await Task.sleep(for: .milliseconds(500))
+            isSetRoutePrepared = true
+        }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
         .onOpenURL { url in
             viewModel.OpenInviteLink(url)
@@ -162,17 +157,12 @@ struct HomeView: View {
         .onChange(of: viewModel.plannedDestination) { _, destination in
             guard let destination else { return }
             mapViewModel.onAppear(searchingFor: destination)
-            isSetRoutePresented = true
+            viewModel.ShowSplitDestination(.lead)
             viewModel.plannedDestination = nil
         }
         .onChange(of: viewModel.inviteRoomCode) { _, roomCode in
-            guard roomCode != nil else { return }
-            isJoinTripPresented = true
-        }
-        .onChange(of: isJoinTripPresented) { _, isPresented in
-            if !isPresented {
-                viewModel.inviteRoomCode = nil
-            }
+            guard roomCode != nil, viewModel.splitDestination != .join else { return }
+            viewModel.ShowSplitDestination(.join)
         }
         .onChange(of: viewModel.mapService.userLocation) { _, newLocation in
             viewModel.onUserLocationChanged(newLocation)
@@ -180,166 +170,103 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Header & Cards
+// MARK: - Split Home
 
 private extension HomeView {
-    var homeContent: some View {
-        VStack(spacing: 24) {
-            headerView
-            cardsSection
-        }
-        .padding(.horizontal, 24)
+    var setRouteScreen: some View {
+        SetRouteView(
+            viewModel: mapViewModel,
+            onBack: CloseSetRoute,
+            onTripCreated: { session in
+                // The route now belongs to the trip; the next new trip starts from an empty plan.
+                handleSetRouteDismissed()
+                viewModel.ResetSplit()
+                viewModel.onTripJoined(session)
+            },
+            onDismiss: CloseSetRoute
+        )
     }
 
-    @ViewBuilder
-    var headerView: some View {
-        HStack {
-            Image("LezgoIcon")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 42)
-                .accessibilityLabel(Text(verbatim: "Lezgo"))
-
-            Spacer()
-
-            Button {
-                isTripHistoryPresented = true
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(Color(white: 0.16).opacity(0.92))
-                        .frame(width: 44, height: 44)
-
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.callout.weight(.bold))
-                        .foregroundStyle(.white)
+    var joinTripScreen: some View {
+        JoinTripView(
+            isPresented: joinTripIsPresented,
+            viewModel: JoinTripViewModel(
+                roomCode: viewModel.inviteRoomCode ?? "",
+                tripService: tripService,
+                storage: viewModel.activeTripStorage
+            ),
+            incomingRoomCode: viewModel.inviteRoomCode,
+            onNavigateToTripRoom: { session in
+                pendingJoinedSession = session
+            },
+            onClose: {
+                RunSplit(viewModel.BackTapped()) {
+                    viewModel.inviteRoomCode = nil
                 }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("Trip History"))
-        }
+        )
     }
 
-    @ViewBuilder
-    var cardsSection: some View {
-        VStack(spacing: 16) {
-            leadTripCard
-            joinTripCard
-        }
-    }
-
-    @ViewBuilder
-    var leadTripCard: some View {
-        Button {
-            navigateToSetRoute()
-        } label: {
-            ZStack(alignment: .trailing) {
-                // Mascot watermark on the right side
-                Image("LeadTripMascot")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 180)
-                    .offset(y: 15)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 54) {
-                    HStack(alignment: .top) {
-                        ZStack {
-                            Circle()
-                                .fill(.black)
-                                .frame(width: 50, height: 50)
-
-                            Image(systemName: "point.topleft.down.to.point.bottomright.curvepath")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(Color.brandYellow)
-                                // The icon must stay inside its 50-point circle.
-                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "arrow.up.right")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(.black)
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Lead a trip")
-                            .font(.title.weight(.bold))
-                            .foregroundStyle(.black)
-
-                        Text("Plan the trip and make a room for friends to join trip!")
-                            .font(.subheadline)
-                            .foregroundStyle(.black)
-                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                            .minimumScaleFactor(0.85)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(22)
+    /// Enter room code sets this to `false` once it has joined; Home then hands the trip over.
+    var joinTripIsPresented: Binding<Bool> {
+        Binding(
+            get: { viewModel.splitDestination == .join },
+            set: { isPresented in
+                if !isPresented { FinishJoin() }
             }
-            .frame(maxWidth: .infinity)
-            .background(Color.brandYellow)
-            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-        }
-        .buttonStyle(.pressable)
+        )
     }
 
-    @ViewBuilder
-    var joinTripCard: some View {
-        Button {
-            isJoinTripPresented = true
-        } label: {
-            ZStack(alignment: .trailing) {
-                // Mascot watermark on the right side
-                Image("JoinTripMascot")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 160)
-                    .offset(x: -10, y: -8)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 54) {
-                    HStack(alignment: .top) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.brandYellow)
-                                .frame(width: 50, height: 50)
-
-                            Image(systemName: "door.left.hand.open")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(.black)
-                                // The icon must stay inside its 50-point circle.
-                                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "arrow.up.right")
-                            .font(.title3.weight(.bold))
-                            .foregroundStyle(Color(white: 0.6))
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Join a trip")
-                            .font(.title.weight(.bold))
-                            .foregroundStyle(.white)
-
-                        Text("Got a room code from friend leader? Join the room now!")
-                            .font(.subheadline)
-                            .foregroundStyle(Color(white: 0.6))
-                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                            .minimumScaleFactor(0.8)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(22)
-            }
-            .frame(maxWidth: .infinity)
-            .background(cardDarkBackground)
-            .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+    func OpenSetRoute() {
+        let steps = viewModel.LeadTapped()
+        guard !steps.isEmpty else { return }
+        // LEAD on the JOIN home only swings back; Set Route opens on the next tap.
+        if steps.last?.flow == .lead {
+            isSetRoutePrepared = true
+            mapViewModel.onAppear()
         }
-        .buttonStyle(.pressable)
+        RunSplit(steps)
+    }
+
+    func CloseSetRoute() {
+        RunSplit(viewModel.BackTapped(), then: handleSetRouteDismissed)
+    }
+
+    func FinishJoin() {
+        viewModel.inviteRoomCode = nil
+        viewModel.ResetSplit()
+        if let session = pendingJoinedSession {
+            pendingJoinedSession = nil
+            viewModel.onTripJoined(session)
+        }
+    }
+
+    /// Plays the split's steps one after another. A tap during the motion gives no steps and is ignored.
+    func RunSplit(_ steps: [HomeSplitMotion.Step], then finish: @escaping () -> Void = {}) {
+        guard !steps.isEmpty else { return }
+        PlaySplitStep(steps[...], then: finish)
+    }
+
+    func PlaySplitStep(_ steps: ArraySlice<HomeSplitMotion.Step>, then finish: @escaping () -> Void) {
+        guard let step = steps.first else {
+            viewModel.FinishSplitMotion()
+            finish()
+            return
+        }
+        // Every flow shares the LEAD home at 0 and the JOIN home at `joinHome`, so a step goes on from where the
+        // last one stopped.
+        let start = viewModel.splitProgress
+        let duration = HomeSplitMotion.Duration(of: step.flow, from: start, to: step.target)
+        // With Reduce Motion each step is a short fade; the halves jump and the next screen fades in or out.
+        let animation = reduceMotion ? Animation.lezgoFade : .linear(duration: duration)
+        withAnimation(animation) {
+            viewModel.BeginSplitStep(step)
+        } completion: {
+            withAnimation(reduceMotion ? .lezgoFade : nil) {
+                viewModel.FinishSplitStep(step)
+            }
+            PlaySplitStep(steps.dropFirst(), then: finish)
+        }
     }
 }
 
@@ -372,9 +299,8 @@ private extension HomeView {
                     storage: viewModel.activeTripStorage
                 ),
                 onContinueTrip: {
-                    Task {
-                        await viewModel.continueDraftTrip(tripService: tripService)
-                    }
+                    viewModel.RequestContinue()
+                    if viewModel.isConfirmingContinue == false { ContinueDraftTrip() }
                 },
                 onNewTrip: {
                     withAnimation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion)) {
@@ -392,9 +318,11 @@ private extension HomeView {
         }
     }
 
-    func navigateToSetRoute() {
-        mapViewModel.onAppear()
-        isSetRoutePresented = true
+    /// Takes the saved trip over on this phone (ADR 0031).
+    func ContinueDraftTrip() {
+        Task {
+            await viewModel.continueDraftTrip(tripService: tripService)
+        }
     }
 
     func handleSetRouteDismissed() {
