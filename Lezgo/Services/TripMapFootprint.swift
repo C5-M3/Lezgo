@@ -278,8 +278,10 @@ final class TripMapFootprint {
         switch direction {
         case .left: .tripMapFootprintTurnLeft
         case .right: .tripMapFootprintTurnRight
-        case .uTurn: .tripMapFootprintUTurn
-        case .straight, .roundabout: .tripMapFootprintFollow
+        case .uTurnLeft, .uTurnRight: .tripMapFootprintUTurn
+        // The footprint's own turns come from the road's shape, which only gives left, right, U-turn or straight.
+        case .straight, .slightLeft, .slightRight, .keepLeft, .keepRight, .mergeLeft, .mergeRight:
+            .tripMapFootprintFollow
         }
     }
 }

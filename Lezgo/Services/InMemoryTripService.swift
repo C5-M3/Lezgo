@@ -19,10 +19,12 @@ final class InMemoryTripService: TripService {
     /// When set, every call except `TripUpdates` throws this error, so previews and tests can show error states.
     var simulatedFailure: TripServiceError?
 
-    private let store: InMemoryTripStore
-    private let userRecordID: String
+    let store: InMemoryTripStore
+    let userRecordID: String
     private let clock: () -> Date
     private let makeRoomCode: () -> String
+    /// The session this phone holds in each trip it joined, to tell when another phone takes the seat (ADR 0031).
+    var heldSessions: [UUID: UUID] = [:]
 
     /// - Parameters:
     ///   - store: the trips; share one store between services to act as several phones.
@@ -46,6 +48,7 @@ final class InMemoryTripService: TripService {
     func CreateTrip(plan: TripPlan, profile: ParticipantProfile?) async throws -> TripSession {
         try ThrowSimulatedFailure()
         try Validate(plan)
+        guard store.LiveSeat(forAccount: userRecordID) == nil else { throw TripServiceError.alreadyInTrip }
         let tripID = UUID()
         let leader = Participant.Joining(
             tripID: tripID,
@@ -72,6 +75,7 @@ final class InMemoryTripService: TripService {
             route: Route(id: UUID(), tripID: tripID, version: 1, polyline: plan.polyline)
         )
         store.Save(state)
+        ClaimSeat(tripID: tripID, participantID: leader.id)
         return TripSession(myParticipantID: leader.id, state: state)
     }
 
@@ -81,7 +85,10 @@ final class InMemoryTripService: TripService {
         guard matches.isEmpty == false else { throw TripServiceError.notFound }
         guard var state = matches.first(where: { $0.trip.status.isOpen }) else { throw TripServiceError.tripEnded }
 
+        let seat = store.LiveSeat(forAccount: userRecordID)
+        if let seat, seat.tripID != state.trip.id { throw TripServiceError.alreadyInTrip }
         if let existing = state.participants.first(where: { $0.userRecordID == userRecordID }) {
+            ClaimSeat(tripID: state.trip.id, participantID: existing.id)
             return TripSession(myParticipantID: existing.id, state: state)
         }
         let member = Participant.Joining(
@@ -93,6 +100,7 @@ final class InMemoryTripService: TripService {
         )
         state.participants.append(member)
         store.Save(state)
+        ClaimSeat(tripID: state.trip.id, participantID: member.id)
         return TripSession(myParticipantID: member.id, state: state)
     }
 
@@ -244,7 +252,7 @@ final class InMemoryTripService: TripService {
 
     // MARK: Helpers
 
-    private func ThrowSimulatedFailure() throws {
+    func ThrowSimulatedFailure() throws {
         if let simulatedFailure { throw simulatedFailure }
     }
 

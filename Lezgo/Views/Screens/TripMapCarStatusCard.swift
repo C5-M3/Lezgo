@@ -7,8 +7,9 @@
 
 import SwiftUI
 
-/// The top of the trip map's bottom card when a car is tapped: its robot, the driver and car, the time left, and what
-/// the car is doing. A tap elsewhere on the map, or pulling the card down, closes it (`specs/UserStories.md` → US-06).
+/// The top of the trip map's bottom card when a car is tapped: its robot, the driver and car, what the car is doing,
+/// and the time left to where it is heading. A tap elsewhere on the map, or pulling the card down, closes it
+/// (`specs/UserStories.md` → US-06).
 struct TripMapCarStatusCard: View {
     let status: TripMapCarStatus
     let onClose: () -> Void
@@ -18,31 +19,35 @@ struct TripMapCarStatusCard: View {
 
     /// The mascot's body fills only part of its image; the rest is transparent margin.
     private static let mascotImageSize = 130.0
+    /// The mascot is drawn larger than the room it takes, so the time and the next stop still fit on one line.
+    private static let mascotScale = 1.4
 
-    /// As in the hi-fi ("04 Trip Started", a tapped car): the name with what the car is doing beside it, the car,
-    /// then where it is and how long it has left, and the whole mascot on the right.
+    /// As in the hi-fi ("04 Trip Started", a tapped car): the name, the car, "Status: Driving" in yellow, then the time
+    /// left with where the car is heading, and the whole mascot on the right.
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) { NameAndStatus() }
-                    VStack(alignment: .leading, spacing: 4) { NameAndStatus() }
-                }
+                Text(verbatim: status.displayName)
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
                 if status.carDescription.isEmpty == false {
                     Text(verbatim: status.carDescription)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(.tripCardText))
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
-                if HasDetail() {
-                    Text(verbatim: status.statusLine)
+                Text(verbatim: status.cardStatusLine)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(StatusColor())
+                if let lastSeenLine = status.lastSeenLine {
+                    Text(verbatim: lastSeenLine)
                         .font(.callout)
                         .foregroundStyle(Color(.tripCardSubtext))
                 }
                 if let timeLeft = status.timeLeft {
-                    Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
-                        .font(.system(size: timeSize, weight: .black))
-                        .foregroundStyle(Color(.brandYellow))
-                        .contentTransition(.numericText(countsDown: true))
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) { TimeAndNextStop(timeLeft) }
+                        VStack(alignment: .leading, spacing: 2) { TimeAndNextStop(timeLeft) }
+                    }
                 }
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -52,6 +57,7 @@ struct TripMapCarStatusCard: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: Self.mascotImageSize, height: Self.mascotImageSize)
+                .scaleEffect(Self.mascotScale)
                 .opacity(IsOffline() ? 0.4 : 1)
                 .accessibilityHidden(true)
         }
@@ -63,61 +69,31 @@ struct TripMapCarStatusCard: View {
     }
 
     @ViewBuilder
-    private func NameAndStatus() -> some View {
-        Text(verbatim: status.displayName)
-            .font(.title2.bold())
+    private func TimeAndNextStop(_ timeLeft: Duration) -> some View {
+        Text(timeLeft.formatted(TripMapCarStatus.durationStyle))
+            .font(.system(size: timeSize, weight: .black))
             .foregroundStyle(.white)
-        Chip(activity: status.activity)
+            .contentTransition(.numericText(countsDown: true))
+        if let nextStopLine = status.nextStopLine {
+            Text(verbatim: nextStopLine)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.white)
+        }
+    }
+
+    /// Yellow while driving, as in the hi-fi; red once stopped, like the "has stopped" banner; white when offline.
+    /// The words say the status too, so colour is never the only sign.
+    private func StatusColor() -> Color {
+        switch status.activity {
+        case .driving: Color(.brandYellow)
+        case .stopped: Color(.tripAlertRed)
+        case .offline: Color(.tripCardText)
+        }
     }
 
     private func IsOffline() -> Bool {
         if case .offline = status.activity { return true }
         return false
-    }
-
-    /// The line under the chip says where the car is or when it was last seen. Without a street it would only repeat
-    /// the chip.
-    private func HasDetail() -> Bool {
-        switch status.activity {
-        case .driving(street: nil), .stopped(street: nil): false
-        default: true
-        }
-    }
-}
-
-extension TripMapCarStatusCard {
-    /// What the car is doing, by icon, text and colour.
-    struct Chip: View {
-        let activity: TripMapCarStatus.Activity
-
-        var body: some View {
-            // Yellow while driving, as in the hi-fi; grey once stopped or offline. The icon carries the meaning too.
-            Label(Title(), systemImage: Symbol())
-                .contentTransition(.symbolEffect(.replace))
-                .font(.subheadline.bold())
-                .foregroundStyle(IsDriving() ? Color(.brandYellow) : Color(.tripCardSubtext))
-        }
-
-        private func IsDriving() -> Bool {
-            if case .driving = activity { return true }
-            return false
-        }
-
-        private func Title() -> LocalizedStringResource {
-            switch activity {
-            case .driving: .tripMapCarDriving
-            case .stopped: .tripMapCarStopped
-            case .offline: .tripMapCarOffline
-            }
-        }
-
-        private func Symbol() -> String {
-            switch activity {
-            case .driving: "car.fill"
-            case .stopped: "pause.fill"
-            case .offline: "wifi.slash"
-            }
-        }
     }
 }
 
@@ -127,7 +103,9 @@ extension TripMapCarStatusCard {
             id: UUID(),
             displayName: "Budi",
             activity: .driving(street: "Ahmad Yani Street"),
-            timeLeft: .seconds(3_000)
+            timeLeft: .seconds(3_600),
+            nextStopName: "Tunjungan Plaza",
+            carDescription: "Toyota Avanza Black"
         ),
         onClose: {}
     )
@@ -156,7 +134,8 @@ extension TripMapCarStatusCard {
             id: UUID(),
             displayName: "Bartholomew Alexander Wicaksono",
             activity: .driving(street: "Jalan Raya Prapen Indah Blok A No. 12, Tenggilis Mejoyo, Surabaya"),
-            timeLeft: .seconds(4_500)
+            timeLeft: .seconds(4_500),
+            nextStopName: "Jalan Raya Prapen Indah Blok A No. 12, Tenggilis Mejoyo, Surabaya"
         ),
         onClose: {}
     )

@@ -55,6 +55,10 @@ import SwiftUI
 /// | `tripMapArrivals` | The arrival robots and count with cars arriving one by one | N |
 /// | `tripMapStartPoint` | Trip Started map on Budi's phone with ten cars still together at the start point | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
+/// | `tripRoomTakenOver` | Trip Room on Agus's phone when his other phone takes the trip over after 2 s | O |
+/// | `tripMapTakenOver` | Trip Started map on Agus's phone when his other phone takes the trip over after 2 s | N |
+/// | `homeFromAnotherPhone` | Home on a phone without a saved trip while the account's other phone is in a trip | R |
+/// | `joinWhileInATrip` | Room code sheet with another trip's code while the account is in a trip | R |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
 ///
 /// ## How to add your screen
@@ -87,6 +91,10 @@ enum DebugScreen: String, CaseIterable {
     case tripMapMemberNewRoute
     case tripMapMemberRouteUpdated
     case tripMapStartPoint
+    case tripRoomTakenOver
+    case tripMapTakenOver
+    case homeFromAnotherPhone
+    case joinWhileInATrip
     case syncCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
@@ -131,8 +139,20 @@ enum DebugScreen: String, CaseIterable {
             SimulatedArrivalsScreen(totalCount: 7)
         case .tripMapStartPoint:
             SimulatedStartPointScreen()
-        case .syncCheck:
-            SyncCheckView()
+        case .tripRoomTakenOver, .tripMapTakenOver, .homeFromAnotherPhone, .joinWhileInATrip, .syncCheck:
+            MakeAccountScreen()
+        }
+    }
+
+    /// The screens about one iCloud account on two phones (ADR 0031), and the real-iCloud sync check.
+    @ViewBuilder
+    private func MakeAccountScreen() -> some View {
+        switch self {
+        case .tripRoomTakenOver: SimulatedTakenOverRoomScreen()
+        case .tripMapTakenOver: SimulatedTakenOverMapScreen()
+        case .homeFromAnotherPhone: SimulatedHomeFromAnotherPhoneScreen()
+        case .joinWhileInATrip: SimulatedJoinWhileInATripScreen()
+        default: SyncCheckView()
         }
     }
 

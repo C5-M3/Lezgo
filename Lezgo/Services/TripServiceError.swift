@@ -23,6 +23,8 @@ enum TripServiceError: Error, Hashable {
     case notAllowed
     /// Another car in the trip already has this name (ignoring upper/lower case and spaces at the ends).
     case nameAlreadyUsed
+    /// This iCloud account is already in another open trip (ADR 0031): one account is in one trip at a time.
+    case alreadyInTrip
 
     var message: LocalizedStringResource {
         switch self {
@@ -33,6 +35,7 @@ enum TripServiceError: Error, Hashable {
         case .conflict: .tripServiceErrorConflict
         case .notAllowed: .tripServiceErrorNotAllowed
         case .nameAlreadyUsed: .tripServiceErrorNameAlreadyUsed
+        case .alreadyInTrip: .tripServiceErrorAlreadyInTrip
         }
     }
 }

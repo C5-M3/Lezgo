@@ -24,6 +24,7 @@ struct TripRoomAlertsModifier: ViewModifier {
             .leaveAlert(viewModel: viewModel, isPresented: $showingLeave, dismissAction: dismissAction)
             .removedAlert(viewModel: viewModel, dismissAction: dismissAction)
             .endedByLeaderAlert(viewModel: viewModel, dismissAction: dismissAction)
+            .takenOverAlert(viewModel: viewModel, dismissAction: dismissAction)
             .errorAlert(viewModel: viewModel)
     }
 }
@@ -107,6 +108,20 @@ private extension View {
                 set: { viewModel.wasEndedByLeader = $0 }
             ),
             title: Text(.tripRoomLeaderEndedTrip),
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: dismissAction
+        )
+    }
+
+    /// Another phone of this iCloud account joined the trip; this one returns to Home, which offers the trip again.
+    func takenOverAlert(viewModel: TripRoomViewModel, dismissAction: @escaping () -> Void) -> some View {
+        confirmDialog(
+            isPresented: Binding(
+                get: { viewModel.wasTakenOver },
+                set: { viewModel.wasTakenOver = $0 }
+            ),
+            title: Text(.tripSeatTakenOver),
             cancelTitle: nil,
             confirmTitle: .tripRoomOK,
             onConfirm: dismissAction

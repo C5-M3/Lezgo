@@ -44,7 +44,10 @@ struct LiveTripServiceTests {
         let session = try await Phone("_agus0001").CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
 
         let types = server.records.values.map(\.recordType).sorted()
-        #expect(types == ["Participant", "Route", "Trip", "Waypoint", "Waypoint", "Waypoint"])
+        // The "Trail" is the account's seat (ADR 0031), not a footprint: the footprint is saved when the leader drives.
+        #expect(types == ["Participant", "Route", "Trail", "Trip", "Waypoint", "Waypoint", "Waypoint"])
+        let seat = try #require(server.records[TripRecordMapper.SeatRecordID(forAccount: "_agus0001")])
+        #expect(TripRecordMapper.MakeSeat(from: seat)?.tripID == session.state.trip.id)
         let trip = try #require(server.records[TripRecordMapper.RecordID(session.state.trip.id)])
         #expect(trip["roomCode"] as? String == "897654")
     }

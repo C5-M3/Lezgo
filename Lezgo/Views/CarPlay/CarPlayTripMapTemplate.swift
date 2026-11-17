@@ -199,14 +199,14 @@ extension CarPlayTripMapTemplate {
         let estimates = CPTravelEstimates(distanceRemaining: RoadDistance(maneuver.distance), timeRemaining: 0)
         // Only the distance changed: CarPlay moves the number without redrawing the turn.
         if let shownManeuver, shownManeuver.maneuver.instructionVariants == maneuver.instructionVariants,
-           shownManeuver.maneuver.symbolName == maneuver.symbolName {
+           shownManeuver.maneuver.direction == maneuver.direction {
             session.updateEstimates(estimates, for: shownManeuver.template)
             self.shownManeuver = (maneuver, shownManeuver.template)
             return
         }
         let template = CPManeuver()
         template.instructionVariants = maneuver.instructionVariants
-        template.symbolImage = ManeuverSymbol(maneuver.symbolName)
+        template.symbolImage = ManeuverSymbol(maneuver.direction)
         template.initialTravelEstimates = estimates
         session.upcomingManeuvers = [template]
         shownManeuver = (maneuver, template)
@@ -250,22 +250,27 @@ extension CarPlayTripMapTemplate {
     /// Above 50 pt wide, CarPlay treats the turn arrow as a wide image and puts it on top of the distance alone,
     /// which makes the turn card tall on small (@2x) CarPlay screens.
     static let maxCompactManeuverSymbolWidth: CGFloat = 50
-    private static let maneuverSymbolPointSize: CGFloat = 28
+    /// The arrow's height on the car screen, close to the 28 pt bold SF Symbol it replaced.
+    private static let maneuverSymbolHeight: CGFloat = 32
 
     /// The yellow arrow for the dark turn card. Drawn into a bitmap at the car screen's scale: CarPlay sends the
     /// image on to the car's screen, and a `@3x` bitmap unpacked on a `@2x` screen would become 1.5x wider.
-    private func ManeuverSymbol(_ symbolName: String) -> UIImage? {
-        Self.ManeuverSymbol(symbolName, scale: interfaceController?.carTraitCollection.displayScale ?? 2)
+    private func ManeuverSymbol(_ direction: TripMapGuidance.TurnDirection) -> UIImage? {
+        Self.ManeuverSymbol(direction, scale: interfaceController?.carTraitCollection.displayScale ?? 2)
     }
 
-    static func ManeuverSymbol(_ symbolName: String, scale: CGFloat) -> UIImage? {
-        let configuration = UIImage.SymbolConfiguration(pointSize: maneuverSymbolPointSize, weight: .bold)
-        guard let symbol = UIImage(systemName: symbolName, withConfiguration: configuration)?
-            .withTintColor(UIColor(resource: .brandYellow), renderingMode: .alwaysOriginal) else { return nil }
+    static func ManeuverSymbol(_ direction: TripMapGuidance.TurnDirection, scale: CGFloat) -> UIImage? {
+        let arrow = UIImage(resource: direction.image)
+            .withTintColor(UIColor(resource: .brandYellow), renderingMode: .alwaysOriginal)
+        guard arrow.size.height > 0 else { return nil }
+        let size = CGSize(
+            width: (arrow.size.width * maneuverSymbolHeight / arrow.size.height).rounded(),
+            height: maneuverSymbolHeight
+        )
         let format = UIGraphicsImageRendererFormat()
         format.scale = max(scale, 2)
-        return UIGraphicsImageRenderer(size: symbol.size, format: format).image { _ in
-            symbol.draw(at: .zero)
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            arrow.draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }

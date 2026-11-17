@@ -47,6 +47,10 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
         )
     }
 
+    func TimeLeft(from position: Coordinate, to point: Coordinate) async throws -> Duration {
+        .seconds(Int(position.Distance(to: point) / Self.averageMetresPerSecond))
+    }
+
     /// The first route point from `start` where the road bends by more than the threshold, or the destination.
     private func NextTurn(in route: [Coordinate], after start: Int) -> (Int, TripMapGuidance.TurnDirection) {
         guard start >= 1 else { return (route.count - 1, .straight) }
@@ -83,8 +87,13 @@ struct SimulatedTripMapNavigator: TripMapNavigator {
         case .left: "Turn left"
         case .right: "Turn right"
         case .straight: "Continue to the destination"
-        case .roundabout: "At the roundabout, take the exit"
-        case .uTurn: "Make a U-turn"
+        case .slightLeft: "Bear left"
+        case .slightRight: "Bear right"
+        case .keepLeft: "Keep left"
+        case .keepRight: "Keep right"
+        case .mergeLeft: "Bear left to merge"
+        case .mergeRight: "Bear right to merge"
+        case .uTurnLeft, .uTurnRight: "Make a U-turn"
         }
     }
 }

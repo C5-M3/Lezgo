@@ -132,6 +132,22 @@ struct JoinTripViewModelTest {
         #expect(viewModel.joinedSession == nil)
     }
 
+    @Test("Submit code while the iCloud account is in another trip should say so (ADR 0031)")
+    func submitCodeWhileInAnotherTrip() async throws {
+        let store = InMemoryTripStore()
+        let me = InMemoryTripService(store: store, userRecordID: "_me")
+        let other = InMemoryTripService(store: store, userRecordID: "_other")
+        _ = try await me.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        let otherTrip = try await other.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        let viewModel = JoinTripViewModel(roomCode: otherTrip.state.trip.roomCode, tripService: me)
+
+        let success = await viewModel.submitCode()
+
+        #expect(success == false)
+        #expect(viewModel.errorMessage == String(localized: TripServiceError.alreadyInTrip.message))
+        #expect(viewModel.joinedSession == nil)
+    }
+
     @Test("Submit code with valid code in lobby should succeed and prepare session for Trip Room")
     func submitValidCodeInLobby() async {
         let service = SampleTrip.Service(status: .lobby)

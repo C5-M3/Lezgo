@@ -296,7 +296,7 @@ extension TripMapView {
                 viewModel.manualArrival.confirmation != nil,
                 viewModel.manualArrival.errorMessage != nil,
                 viewModel.leaveErrorMessage != nil,
-                viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed
+                viewModel.closedElsewhereMessage != nil
             ]
         }
 
@@ -319,11 +319,8 @@ extension TripMapView {
                 Message(Text(verbatim: error), onOK: viewModel.manualArrival.DismissError)
             } else if let error = viewModel.leaveErrorMessage {
                 Message(Text(verbatim: error), onOK: viewModel.DismissLeaveError)
-            } else if viewModel.closeReason == .endedByLeader || viewModel.closeReason == .removed {
-                Message(
-                    Text(viewModel.closeReason == .removed ? .tripMapRemovedFromTrip : .tripMapLeaderEndedTrip),
-                    onOK: close
-                )
+            } else if let message = viewModel.closedElsewhereMessage {
+                Message(Text(message), onOK: close)
             }
         }
 

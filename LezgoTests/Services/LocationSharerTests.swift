@@ -66,6 +66,33 @@ struct LocationSharerTests {
         #expect(sharer.sentCount > 0)
     }
 
+    /// ADR 0031: a phone whose place another phone took must stop moving the car at once, before anyone taps OK.
+    @Test func StoppedSharerSendsNothingMore() async throws {
+        let group = try await phones.MakeGroupOnTheRoad()
+        let sharer = LocationSharer(
+            tripService: phones.budi,
+            locationProvider: gps,
+            tripID: group.tripID,
+            participantID: group.budiID,
+            interval: .milliseconds(10)
+        )
+        let run = Task { await sharer.Run() }
+        try await Task.sleep(for: .milliseconds(5))
+        gps.Send(Reading(TripFixtures.tunjunganPlaza))
+        try await Task.sleep(for: .milliseconds(80))
+
+        sharer.Stop()
+        let sentBefore = sharer.sentCount
+        gps.Send(Reading(TripFixtures.ciputraWorld))
+        try await Task.sleep(for: .milliseconds(80))
+        run.cancel()
+        await run.value
+
+        #expect(sentBefore > 0)
+        #expect(sharer.sentCount == sentBefore)
+        #expect(try await phones.Budi(in: group)?.coordinate != TripFixtures.ciputraWorld)
+    }
+
     @Test func NothingIsSentBeforeTheFirstReading() async throws {
         let group = try await phones.MakeGroupOnTheRoad()
 

@@ -21,11 +21,14 @@ struct TripMapTurnCard: View {
             : AnyLayout(HStackLayout(spacing: 22))
 
         layout {
-            Image(systemName: guidance.direction.symbolName)
-                .font(.system(size: arrowSize, weight: .bold))
+            Image(guidance.direction.image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: arrowSize, height: arrowSize)
                 .foregroundStyle(Color(.brandYellow))
-                // The new arrow replaces the old one instead of blinking in.
-                .contentTransition(.symbolEffect(.replace))
+                // The new arrow fades in over the old one instead of blinking in.
+                .id(guidance.direction)
+                .transition(.opacity)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -122,4 +125,22 @@ extension TripMapTurnCard {
     )
     .padding()
     .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Every arrow") {
+    ScrollView {
+        VStack(spacing: 8) {
+            ForEach(TripMapGuidance.TurnDirection.allCases, id: \.self) { direction in
+                TripMapTurnCard(
+                    guidance: TripMapGuidance(
+                        direction: direction,
+                        instruction: String(describing: direction),
+                        distanceToTurn: Measurement(value: 200, unit: .meters),
+                        timeLeft: .seconds(3_000)
+                    )
+                )
+            }
+        }
+        .padding()
+    }
 }

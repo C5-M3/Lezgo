@@ -29,6 +29,9 @@ final class TripRoomViewModel {
     var wasRemovedFromTrip: Bool = false
     /// Set when the trip was cancelled or ended by the leader while I am a member, so the room tells me and closes.
     var wasEndedByLeader = false
+    /// Set when another phone of this iCloud account joined the trip and took this phone's place (ADR 0031), so the
+    /// room tells me and closes; the trip goes on there.
+    var wasTakenOver = false
     private(set) var hasTripStarted = false
     private(set) var isStartingTrip = false
     private(set) var isSavingProfile = false
@@ -347,9 +350,20 @@ extension TripRoomViewModel {
             if let locationSharer {
                 group.addTask { await locationSharer.Run() }
             }
+            group.addTask { await self.FollowSeat() }
             await FollowTrip()
             group.cancelAll()
         }
+    }
+
+    /// When another phone takes this phone's place, this phone stops moving the car at once and forgets the trip; the
+    /// other phone is the one in it now.
+    private func FollowSeat() async {
+        await tripService.SeatTakenOver(tripID: tripID)
+        guard Task.isCancelled == false else { return }
+        locationSharer?.Stop()
+        activeTripStorage.ClearActiveTrip()
+        wasTakenOver = true
     }
 
     private func FollowTrip() async {

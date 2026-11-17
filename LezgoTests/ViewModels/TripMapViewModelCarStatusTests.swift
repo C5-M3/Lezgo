@@ -59,10 +59,11 @@ struct TripMapViewModelCarStatusTests {
         #expect(viewModel.selectedCarStatus == nil)
     }
 
-    /// Scenario "Tap a car": Budi drives on Ahmad Yani Street, 50 minutes from the destination.
+    /// Scenario "Tap a car": Budi drives on Ahmad Yani Street, 50 minutes from the destination. Every checkpoint is
+    /// visited, so the next stop is the destination.
     @Test func TappingACarShowsItsDriverStreetAndTimeLeft() async throws {
         let navigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance(minutesLeft: 50))])
-        let viewModel = MakeViewModel(navigator: navigator)
+        let viewModel = MakeViewModel(states: [Fixtures.State(currentWaypointIndex: 2)], navigator: navigator)
         await viewModel.Start()
 
         viewModel.SelectCar(Fixtures.budiID)
@@ -73,6 +74,36 @@ struct TripMapViewModelCarStatusTests {
         #expect(status.displayName == "Budi")
         #expect(status.statusLine == "Driving at Ahmad Yani Street")
         #expect(status.timeLeft == .seconds(50 * 60))
+        #expect(status.nextStopName == "Pakuwon mall")
+        #expect(navigator.requestedPoints.isEmpty)
+    }
+
+    /// The hi-fi says "To <next stop>": with a checkpoint ahead, the card names it and counts the time to it.
+    @Test func WithACheckpointAheadTheCardCountsTheTimeToTheCheckpoint() async throws {
+        let navigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance(minutesLeft: 50))])
+        navigator.timeToPointResult = .success(.seconds(12 * 60))
+        let viewModel = MakeViewModel(navigator: navigator)
+        await viewModel.Start()
+
+        viewModel.SelectCar(Fixtures.budiID)
+        await viewModel.RefreshSelectedCarStatus()
+
+        let status = try #require(viewModel.selectedCarStatus)
+        #expect(status.nextStopName == "Ciputra World")
+        #expect(status.timeLeft == .seconds(12 * 60))
+        #expect(navigator.requestedPoints == [Fixtures.checkpoint.coordinate])
+    }
+
+    @Test func WithACheckpointAheadAFailedLookupKeepsTheCardWithoutATime() async throws {
+        let navigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance())])
+        navigator.timeToPointResult = .failure(.init())
+        let viewModel = MakeViewModel(navigator: navigator)
+        await viewModel.Start()
+
+        viewModel.SelectCar(Fixtures.budiID)
+        await viewModel.RefreshSelectedCarStatus()
+
+        #expect(viewModel.selectedCarStatus?.timeLeft == nil)
     }
 
     @Test func StreetAndTimeLeftAreMeasuredFromTheTappedCar() async throws {
@@ -148,7 +179,7 @@ struct TripMapViewModelCarStatusTests {
 
     @Test func CardWithoutRoutingShowsNoTimeLeft() async throws {
         let navigator = MockTripMapNavigator(results: [.failure(.init())])
-        let viewModel = MakeViewModel(navigator: navigator)
+        let viewModel = MakeViewModel(states: [Fixtures.State(currentWaypointIndex: 2)], navigator: navigator)
         await viewModel.Start()
 
         viewModel.SelectCar(Fixtures.budiID)
@@ -188,7 +219,12 @@ struct TripMapViewModelCarStatusTests {
             .failure(.init())
         ])
         let streetNames = MockStreetNameService(results: [.success("Ahmad Yani Street"), .failure(.init())])
-        let viewModel = MakeViewModel(navigator: navigator, streetNames: streetNames, clock: { now })
+        let viewModel = MakeViewModel(
+            states: [Fixtures.State(currentWaypointIndex: 2)],
+            navigator: navigator,
+            streetNames: streetNames,
+            clock: { now }
+        )
         await viewModel.Start()
         viewModel.SelectCar(Fixtures.budiID)
         await viewModel.RefreshSelectedCarStatus()
