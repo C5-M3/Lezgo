@@ -45,6 +45,17 @@ struct AvatarImage: View {
 }
 
 extension Avatar {
+    /// The robot seen from the front, as on the Draft Trip card.
+    var frontImage: ImageResource {
+        switch self {
+        case .yellow: .frontballActiveYellow
+        case .blue: .frontballActiveBlue
+        case .green: .frontballActiveGreen
+        case .pink: .frontballActivePink
+        case .purple: .frontballActivePurple
+        }
+    }
+
     /// What VoiceOver says for this avatar, for example "Blue avatar".
     var accessibilityName: String {
         switch self {

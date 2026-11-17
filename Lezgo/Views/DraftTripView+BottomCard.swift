@@ -103,7 +103,7 @@ extension DraftTripView {
 
                 HStack(spacing: -40) {
                     ForEach(avatars.indices, id: \.self) { index in
-                        Image("FrontballActive\(avatars[index].rawValue)")
+                        Image(avatars[index].frontImage)
                             .resizable()
                             .scaledToFit()
                             .frame(width: 80, height: 80)
