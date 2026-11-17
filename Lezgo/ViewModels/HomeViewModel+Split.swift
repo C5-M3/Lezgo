@@ -13,41 +13,23 @@ extension HomeViewModel {
     private typealias Motion = HomeSplitMotion
     private typealias Step = HomeSplitMotion.Step
 
-    /// What a tap on a half does. The team tries both on phones; the build picks one.
-    enum TapStyle: Equatable {
-        /// A tap on either half goes to its next screen, swinging the split first if that half is dark.
-        case oneTap
-        /// A tap on the dark half only swings it to yellow; a tap on the yellow half goes to its next screen.
-        case twoTap
-
-        /// Two taps when the app is built with the `LEZGO_HOME_TWO_TAP` compilation condition, one tap otherwise.
-        static var build: TapStyle {
-            #if LEZGO_HOME_TWO_TAP
-            .twoTap
-            #else
-            .oneTap
-            #endif
-        }
-    }
-
     /// `true` on the JOIN home, where JOIN is the yellow half.
     var isOnJoinHome: Bool {
         isOnAHome && splitProgress > 0
     }
 
-    /// LEAD: Set Route. From the JOIN home the split swings back first, and with two taps it stops there.
+    /// LEAD on the LEAD home opens Set Route. On the JOIN home LEAD is the dark half, so the tap only swings the
+    /// split back; the next tap opens Set Route.
     func LeadTapped() -> [HomeSplitMotion.Step] {
         guard isOnAHome else { return [] }
-        guard isOnJoinHome else { return [Step(flow: .lead, target: 1)] }
-        let swingBack = Step(flow: .swingBack, target: 0)
-        return tapStyle == .twoTap ? [swingBack] : [swingBack, Step(flow: .lead, target: 1)]
+        return [isOnJoinHome ? Step(flow: .swingBack, target: 0) : Step(flow: .lead, target: 1)]
     }
 
-    /// JOIN: Enter room code. From the LEAD home the split swings first, and with two taps it stops on the JOIN home.
+    /// JOIN on the JOIN home opens Enter room code. On the LEAD home JOIN is the dark half, so the tap only swings
+    /// the split to the JOIN home; the next tap opens Enter room code.
     func JoinTapped() -> [HomeSplitMotion.Step] {
         guard isOnAHome else { return [] }
-        let target = tapStyle == .twoTap && !isOnJoinHome ? Motion.joinHome : 1
-        return [Step(flow: .join, target: target)]
+        return [Step(flow: .join, target: isOnJoinHome ? 1 : Motion.joinHome)]
     }
 
     /// Back from Set Route returns to the LEAD home; Back from Enter room code stops on the JOIN home.

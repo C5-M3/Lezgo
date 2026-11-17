@@ -34,7 +34,6 @@ struct HomeView: View {
             isMoving: viewModel.isSplitMoving,
             stepStart: viewModel.splitStepStart,
             preparesLeadScreen: isSetRoutePrepared,
-            tapStyle: viewModel.tapStyle,
             onLead: OpenSetRoute,
             onJoin: { RunSplit(viewModel.JoinTapped()) },
             leadScreen: { setRouteScreen },
@@ -176,7 +175,7 @@ private extension HomeView {
     func OpenSetRoute() {
         let steps = viewModel.LeadTapped()
         guard !steps.isEmpty else { return }
-        // With two taps, LEAD on the JOIN home only swings back; Set Route opens on the next tap.
+        // LEAD on the JOIN home only swings back; Set Route opens on the next tap.
         if steps.last?.flow == .lead {
             isSetRoutePrepared = true
             mapViewModel.onAppear()

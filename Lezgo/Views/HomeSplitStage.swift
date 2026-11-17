@@ -22,7 +22,6 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
     let stepStart: Double
     /// `true` once Set Route should be built: it then stays in place, hidden until LEAD brings it in.
     let preparesLeadScreen: Bool
-    let tapStyle: HomeViewModel.TapStyle
     let onLead: () -> Void
     let onJoin: () -> Void
     let leadScreen: LeadScreen
@@ -38,7 +37,6 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         isMoving: Bool = false,
         stepStart: Double = 0,
         preparesLeadScreen: Bool = false,
-        tapStyle: HomeViewModel.TapStyle = .oneTap,
         onLead: @escaping () -> Void,
         onJoin: @escaping () -> Void,
         @ViewBuilder leadScreen: () -> LeadScreen,
@@ -50,7 +48,6 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         self.isMoving = isMoving
         self.stepStart = stepStart
         self.preparesLeadScreen = preparesLeadScreen
-        self.tapStyle = tapStyle
         self.onLead = onLead
         self.onJoin = onJoin
         self.leadScreen = leadScreen()
@@ -102,8 +99,8 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
             if destination == nil {
                 HalfButton(
                     title: "Lead a trip",
-                    // With two taps the dark half only comes to the front, so its hint says so.
-                    hint: tapStyle == .twoTap && isOnJoinHome
+                    // A tap on the dark half only brings it to the front, so its hint says so.
+                    hint: isOnJoinHome
                         ? "Brings Lead a trip to the front."
                         : "Plan the trip and make a room for friends to join trip!",
                     area: Area(isOnJoinHome ? .overBottomSlab : .topSlab),
@@ -111,7 +108,7 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
                 )
                 HalfButton(
                     title: "Join a trip",
-                    hint: tapStyle == .twoTap && !isOnJoinHome
+                    hint: !isOnJoinHome
                         ? "Brings Join a trip to the front."
                         : "Got a room code from friend leader? Join the room now!",
                     area: Area(isOnJoinHome ? .bottomSlab : .underTopSlab),
