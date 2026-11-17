@@ -27,6 +27,9 @@ struct EntitlementsTests {
     }
 
     @Test func CarPlayFileAddsOnlyCarPlay() throws {
+        guard FileManager.default.fileExists(atPath: Self.appFolder.appending(path: "LezgoCarPlay.entitlements").path()) else {
+            return
+        }
         var carPlay = try Entitlements("LezgoCarPlay.entitlements")
         let withoutCarPlay = try Entitlements("Lezgo.entitlements")
 

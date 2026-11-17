@@ -98,9 +98,27 @@ struct TripRecapDetailViewModelTests {
             destinationCoordinate: Coordinate(latitude: -7.8, longitude: 112.4),
             polyline: [],
             participants: [
-                TripRecapParticipant(id: UUID(), displayName: "Agus", carDescription: "Avanza", avatar: .yellow, isLeader: true),
-                TripRecapParticipant(id: UUID(), displayName: "Budi", carDescription: "Brio", avatar: .yellow, isLeader: false),
-                TripRecapParticipant(id: UUID(), displayName: "Citra", carDescription: "Jazz", avatar: .yellow, isLeader: false)
+                TripRecapParticipant(
+                    id: UUID(),
+                    displayName: "Agus",
+                    carDescription: "Avanza",
+                    avatar: .yellow,
+                    isLeader: true
+                ),
+                TripRecapParticipant(
+                    id: UUID(),
+                    displayName: "Budi",
+                    carDescription: "Brio",
+                    avatar: .yellow,
+                    isLeader: false
+                ),
+                TripRecapParticipant(
+                    id: UUID(),
+                    displayName: "Citra",
+                    carDescription: "Jazz",
+                    avatar: .yellow,
+                    isLeader: false
+                )
             ]
         )
 

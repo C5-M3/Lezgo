@@ -29,9 +29,20 @@ final class CloudKitTripRecapService: TripRecapService, @unchecked Sendable {
     }
 
     func fetchRecaps() async throws -> [TripRecap] {
-        var tripIDs: [UUID] = []
+        var tripIDs = try await fetchParticipantTripIDs()
+        if tripIDs.isEmpty {
+            tripIDs = try await fetchEndedTripIDs()
+        }
 
-        // 1. Ambil trip yang diikuti oleh pengguna saat ini dari record Participant
+        let uniqueTripIDs = Array(Set(tripIDs))
+        guard !uniqueTripIDs.isEmpty else { return [] }
+
+        var loadedRecaps = await loadTripRecaps(for: uniqueTripIDs)
+        loadedRecaps.sort { $0.date > $1.date }
+        return loadedRecaps
+    }
+
+    private func fetchParticipantTripIDs() async throws -> [UUID] {
         let userRecordName: String?
         do {
             userRecordName = try await database.CurrentUserRecordName()
@@ -39,50 +50,45 @@ final class CloudKitTripRecapService: TripRecapService, @unchecked Sendable {
             userRecordName = nil
         }
 
-        if let userRecordName {
-            let participantRecords = try await database.Query(
-                recordType: TripRecordMapper.participantType,
-                matching: ["userRecordID": userRecordName]
+        guard let userRecordName else { return [] }
+
+        let participantRecords = try await database.Query(
+            recordType: TripRecordMapper.participantType,
+            matching: ["userRecordID": userRecordName]
+        )
+        return participantRecords.compactMap { record in
+            guard let reference = record["tripID"] as? CKRecord.Reference else { return nil }
+            return UUID(uuidString: reference.recordID.recordName)
+        }
+    }
+
+    private func fetchEndedTripIDs() async throws -> [UUID] {
+        do {
+            let endedTripRecords = try await database.Query(
+                recordType: TripRecordMapper.tripType,
+                matching: ["status": TripStatus.ended.rawValue]
             )
-            tripIDs = participantRecords.compactMap { record in
-                guard let reference = record["tripID"] as? CKRecord.Reference else { return nil }
-                return UUID(uuidString: reference.recordID.recordName)
+            return endedTripRecords.compactMap { record in
+                UUID(uuidString: record.recordID.recordName)
+            }
+        } catch {
+            let allTrips = try await database.Query(
+                recordType: TripRecordMapper.tripType,
+                matching: [:]
+            )
+            return allTrips.compactMap { record in
+                guard let statusStr = record["status"] as? String,
+                      let status = TripStatus(rawValue: statusStr),
+                      status == .ended || status == .cancelled else { return nil }
+                return UUID(uuidString: record.recordID.recordName)
             }
         }
+    }
 
-        // 2. Jika tidak ada record partisipan khusus (misal di simulator / anonymous),
-        // cari trip dengan status ENDED langsung dari database.
-        if tripIDs.isEmpty {
-            do {
-                let endedTripRecords = try await database.Query(
-                    recordType: TripRecordMapper.tripType,
-                    matching: ["status": TripStatus.ended.rawValue]
-                )
-                tripIDs = endedTripRecords.compactMap { record in
-                    UUID(uuidString: record.recordID.recordName)
-                }
-            } catch {
-                // Fallback pencarian semua trip jika query status tidak terindeks
-                let allTrips = try await database.Query(
-                    recordType: TripRecordMapper.tripType,
-                    matching: [:]
-                )
-                tripIDs = allTrips.compactMap { record in
-                    guard let statusStr = record["status"] as? String,
-                          let status = TripStatus(rawValue: statusStr),
-                          status == .ended || status == .cancelled else { return nil }
-                    return UUID(uuidString: record.recordID.recordName)
-                }
-            }
-        }
-
-        let uniqueTripIDs = Array(Set(tripIDs))
-        guard !uniqueTripIDs.isEmpty else { return [] }
-
-        // 3. Muat setiap trip secara paralel menggunakan TaskGroup
+    private func loadTripRecaps(for tripIDs: [UUID]) async -> [TripRecap] {
         var loadedRecaps: [TripRecap] = []
         await withTaskGroup(of: TripRecap?.self) { group in
-            for id in uniqueTripIDs {
+            for id in tripIDs {
                 group.addTask { [reader] in
                     do {
                         let state = try await reader.LoadState(tripID: id, loadTrail: false)
@@ -99,8 +105,6 @@ final class CloudKitTripRecapService: TripRecapService, @unchecked Sendable {
                 }
             }
         }
-
-        loadedRecaps.sort { $0.date > $1.date }
         return loadedRecaps
     }
 }

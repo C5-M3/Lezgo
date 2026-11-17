@@ -8,7 +8,6 @@
 import CoreLocation
 import Foundation
 import MapKit
-import SwiftUI
 
 /// Alias untuk kompatibilitas kode pengujian dan komponen terdahulu.
 typealias TripRecapItem = TripRecap
@@ -119,15 +118,15 @@ struct TripRecap: Identifiable, Hashable, Codable, Sendable {
 
         if result.count < participantCount {
             let allAvatars = Avatar.allCases
-            for i in result.count..<participantCount {
-                let color = allAvatars[i % allAvatars.count]
+            for index in result.count..<participantCount {
+                let color = allAvatars[index % allAvatars.count]
                 result.append(color)
             }
         }
 
         if result.count > 1 && Set(result).count == 1 {
             let allAvatars = Avatar.allCases
-            result = result.enumerated().map { index, _ in
+            result = result.indices.map { index in
                 allAvatars[index % allAvatars.count]
             }
         }
@@ -143,23 +142,23 @@ struct TripRecap: Identifiable, Hashable, Codable, Sendable {
         let dynAvatars = dynamicAvatars
         if let participants, !participants.isEmpty {
             return participants.enumerated().map { index, participant in
-                var p = participant
+                var participantCopy = participant
                 if index < dynAvatars.count {
-                    p.avatar = dynAvatars[index]
+                    participantCopy.avatar = dynAvatars[index]
                 } else {
                     let allAvatars = Avatar.allCases
-                    p.avatar = allAvatars[index % allAvatars.count]
+                    participantCopy.avatar = allAvatars[index % allAvatars.count]
                 }
-                return p
+                return participantCopy
             }
         }
         let count = max(participantCount, dynAvatars.count, 1)
         var result: [TripRecapParticipant] = []
         let allAvatars = Avatar.allCases
-        for i in 0..<count {
-            let avatar = i < dynAvatars.count ? dynAvatars[i] : allAvatars[i % allAvatars.count]
-            let isLeader = (i == 0)
-            let name = isLeader ? "Agus" : (i == 1 ? "Budi" : (i == 2 ? "Citra" : "Member \(i + 1)"))
+        for index in 0..<count {
+            let avatar = index < dynAvatars.count ? dynAvatars[index] : allAvatars[index % allAvatars.count]
+            let isLeader = (index == 0)
+            let name = isLeader ? "Agus" : (index == 1 ? "Budi" : (index == 2 ? "Citra" : "Member \(index + 1)"))
             result.append(TripRecapParticipant(
                 id: UUID(),
                 displayName: name,
@@ -189,7 +188,7 @@ struct TripRecap: Identifiable, Hashable, Codable, Sendable {
 
 extension TripRecap {
     /// Membuat ringkasan perjalanan dari `TripState` CloudKit.
-    nonisolated init?(state: TripState) {
+    init?(state: TripState) {
         guard let destination = state.destination else { return nil }
         self.id = state.trip.id
         self.destinationName = destination.name
@@ -204,39 +203,14 @@ extension TripRecap {
             coordinates = state.waypoints.map(\.coordinate)
         }
         self.polyline = coordinates
-
-        var meters: CLLocationDistance = 0
-        if coordinates.count > 1 {
-            for i in 0..<(coordinates.count - 1) {
-                meters += coordinates[i].Distance(to: coordinates[i + 1])
-            }
-        }
-        let km = Int(round(meters / 1000.0))
-        if km > 0 {
-            self.distanceText = "\(km) km"
-        } else if meters > 0 {
-            self.distanceText = "< 1 km"
-        } else {
-            self.distanceText = "0 km"
-        }
+        self.distanceText = Self.calculateDistance(coordinates: coordinates)
 
         let sortedParticipants = state.participants.sorted { p1, p2 in
             p1.id == state.trip.leaderParticipantID && p2.id != state.trip.leaderParticipantID
         }
-        var participantAvatars = sortedParticipants.map(\.avatar)
-
-        if participantAvatars.isEmpty {
-            participantAvatars = [.yellow]
-        }
-
-        if participantAvatars.count > 1 && Set(participantAvatars).count == 1 {
-            let allCases = Avatar.allCases
-            participantAvatars = participantAvatars.enumerated().map { index, _ in
-                allCases[index % allCases.count]
-            }
-        }
-
+        let participantAvatars = Self.resolveAvatars(for: sortedParticipants)
         self.avatars = participantAvatars
+
         let startWaypoint = state.waypoints.first(where: { $0.kind == .start })
         let startCoord = startWaypoint?.coordinate
             ?? coordinates.first
@@ -246,20 +220,11 @@ extension TripRecap {
 
         self.startPointName = startWaypoint?.name ?? "Starting Point"
         self.numberOfStops = state.waypoints.filter { $0.kind == .checkpoint }.count
-
-        // Durasi perjalanan (Time Spent)
-        let startTime = state.trip.startedAt ?? state.trip.createdAt
-        let endTime = state.trip.endedAt ?? Date()
-        let seconds = max(0, endTime.timeIntervalSince(startTime))
-        let hours = Int(seconds) / 3600
-        let minutes = (Int(seconds) % 3600) / 60
-        if hours > 0 {
-            self.durationText = "\(hours)h \(minutes)m"
-        } else if minutes > 0 {
-            self.durationText = "\(minutes)m"
-        } else {
-            self.durationText = "< 1m"
-        }
+        self.durationText = Self.formatDuration(
+            startedAt: state.trip.startedAt,
+            createdAt: state.trip.createdAt,
+            endedAt: state.trip.endedAt
+        )
 
         self.participants = sortedParticipants.enumerated().map { index, participant in
             TripRecapParticipant(
@@ -270,6 +235,52 @@ extension TripRecap {
                 isLeader: participant.IsLeader(in: state.trip)
             )
         }
+    }
+
+    private static func calculateDistance(coordinates: [Coordinate]) -> String {
+        var meters: CLLocationDistance = 0
+        if coordinates.count > 1 {
+            for index in 0..<(coordinates.count - 1) {
+                meters += coordinates[index].Distance(to: coordinates[index + 1])
+            }
+        }
+        let km = Int(round(meters / 1000.0))
+        if km > 0 {
+            return "\(km) km"
+        } else if meters > 0 {
+            return "< 1 km"
+        } else {
+            return "0 km"
+        }
+    }
+
+    private static func formatDuration(startedAt: Date?, createdAt: Date, endedAt: Date?) -> String {
+        let startTime = startedAt ?? createdAt
+        let endTime = endedAt ?? Date()
+        let seconds = max(0, endTime.timeIntervalSince(startTime))
+        let hours = Int(seconds) / 3600
+        let minutes = (Int(seconds) % 3600) / 60
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "< 1m"
+        }
+    }
+
+    private static func resolveAvatars(for sortedParticipants: [Participant]) -> [Avatar] {
+        var participantAvatars = sortedParticipants.map(\.avatar)
+        if participantAvatars.isEmpty {
+            participantAvatars = [.yellow]
+        }
+        if participantAvatars.count > 1 && Set(participantAvatars).count == 1 {
+            let allCases = Avatar.allCases
+            participantAvatars = participantAvatars.indices.map { index in
+                allCases[index % allCases.count]
+            }
+        }
+        return participantAvatars
     }
 }
 
@@ -302,9 +313,27 @@ extension TripRecap {
         numberOfStops: 6,
         durationText: "4h 18m",
         participants: [
-            TripRecapParticipant(id: UUID(), displayName: "Agus", carDescription: "White Avanza", avatar: .yellow, isLeader: true),
-            TripRecapParticipant(id: UUID(), displayName: "Budi", carDescription: "Black Brio", avatar: .purple, isLeader: false),
-            TripRecapParticipant(id: UUID(), displayName: "Citra", carDescription: "Red Jazz", avatar: .pink, isLeader: false)
+            TripRecapParticipant(
+                id: UUID(),
+                displayName: "Agus",
+                carDescription: "White Avanza",
+                avatar: .yellow,
+                isLeader: true
+            ),
+            TripRecapParticipant(
+                id: UUID(),
+                displayName: "Budi",
+                carDescription: "Black Brio",
+                avatar: .purple,
+                isLeader: false
+            ),
+            TripRecapParticipant(
+                id: UUID(),
+                displayName: "Citra",
+                carDescription: "Red Jazz",
+                avatar: .pink,
+                isLeader: false
+            )
         ]
     )
 }

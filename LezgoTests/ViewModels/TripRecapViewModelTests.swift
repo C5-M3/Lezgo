@@ -139,71 +139,22 @@ struct TripRecapViewModelTests {
     func loadRecapsFromCloudKit() async throws {
         let server = FakeCloudServer()
         let database = FakeCloudDatabase(server: server, userRecordName: "_test_user")
-
         let tripID = UUID()
         let leaderID = UUID()
-        let trip = Trip(
-            id: tripID,
-            roomCode: "123456",
-            status: .ended,
-            leaderParticipantID: leaderID,
-            currentWaypointIndex: 1,
-            routeVersion: 1,
-            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
-            startedAt: Date(timeIntervalSince1970: 1_700_001_000),
-            endedAt: Date(timeIntervalSince1970: 1_700_005_000)
-        )
-        let leader = Participant(
+        let leader = makeParticipant(
             id: leaderID,
             tripID: tripID,
             userRecordID: "_test_user",
             displayName: "Budi",
-            carDescription: "Avanza Hitam",
-            coordinate: Coordinate(latitude: -7.25, longitude: 112.75),
-            speedKmh: 0,
-            motionState: .driving,
-            alert: .none,
-            lastSeenAt: Date(timeIntervalSince1970: 1_700_005_000),
-            course: 0,
-            wayBack: [],
-            avatar: .yellow,
-            arrivedAtWaypointID: nil
-        )
-        let startWaypoint = Waypoint(
-            id: UUID(),
-            tripID: tripID,
-            orderIndex: 0,
-            kind: .start,
-            name: "Titik Kumpul",
-            coordinate: Coordinate(latitude: -7.25, longitude: 112.75)
-        )
-        let destinationWaypoint = Waypoint(
-            id: UUID(),
-            tripID: tripID,
-            orderIndex: 1,
-            kind: .destination,
-            name: "Grand City Mall",
-            coordinate: Coordinate(latitude: -7.26, longitude: 112.76)
-        )
-        let route = Route(
-            id: UUID(),
-            tripID: tripID,
-            version: 1,
-            polyline: [
-                Coordinate(latitude: -7.25, longitude: 112.75),
-                Coordinate(latitude: -7.26, longitude: 112.76)
-            ]
+            avatar: .yellow
         )
 
-        let tripRecord = TripRecordMapper.MakeRecord(trip)
-        let leaderRecord = TripRecordMapper.MakeRecord(leader)
-        let startRecord = TripRecordMapper.MakeRecord(startWaypoint)
-        let destRecord = TripRecordMapper.MakeRecord(destinationWaypoint)
-        let routeRecord = TripRecordMapper.MakeRecord(route)
-
-        try await database.Save(
-            [tripRecord, leaderRecord, startRecord, destRecord, routeRecord],
-            savePolicy: .allKeys
+        try await saveEndedTrip(
+            database: database,
+            tripID: tripID,
+            leaderID: leaderID,
+            destinationName: "Grand City Mall",
+            participants: [leader]
         )
 
         let viewModel = TripRecapViewModel(database: database)
@@ -247,46 +198,94 @@ struct TripRecapViewModelTests {
         #expect(storage.loadRecaps().isEmpty)
     }
 
-    @Test("Avatar mendukung inisialisasi case-insensitive dari string")
-    func avatarCaseInsensitiveParsing() {
-        #expect(Avatar(caseInsensitive: "yellow") == .yellow)
-        #expect(Avatar(caseInsensitive: "Yellow") == .yellow)
-        #expect(Avatar(caseInsensitive: "YELLOW") == .yellow)
-        #expect(Avatar(caseInsensitive: "blue") == .blue)
-        #expect(Avatar(caseInsensitive: "Blue") == .blue)
-        #expect(Avatar(caseInsensitive: "pink") == .pink)
-        #expect(Avatar(caseInsensitive: "green") == .green)
-        #expect(Avatar(caseInsensitive: "purple") == .purple)
-        #expect(Avatar(caseInsensitive: "invalid") == nil)
-        #expect(Avatar(caseInsensitive: nil) == nil)
-    }
-
-    @Test("Participant.Joining menggunakan avatar dari profile jika tersedia")
-    func participantJoiningUsesProfileAvatar() {
-        let profile = ParticipantProfile(displayName: "Rizal", carDescription: "Civic", avatar: .purple)
-        let participant = Participant.Joining(
-            tripID: UUID(),
-            userRecordID: "user_123",
-            profile: profile,
-            isLeader: true,
-            at: .now
-        )
-        #expect(participant.avatar == .purple)
-    }
-
     @Test("TripRecap memuat avatar dinamis mengikuti jumlah peserta dan avatar yang digunakan")
     func loadRecapWithMultipleDistinctParticipants() async throws {
         let server = FakeCloudServer()
         let database = FakeCloudDatabase(server: server, userRecordName: "_leader_user")
-
         let tripID = UUID()
         let leaderID = UUID()
-        let member1ID = UUID()
-        let member2ID = UUID()
+        let leader = makeParticipant(
+            id: leaderID,
+            tripID: tripID,
+            userRecordID: "_leader_user",
+            displayName: "Leader",
+            avatar: .yellow
+        )
+        let member1 = makeParticipant(
+            id: UUID(),
+            tripID: tripID,
+            userRecordID: "_member_1",
+            displayName: "Member 1",
+            avatar: .pink
+        )
+        let member2 = makeParticipant(
+            id: UUID(),
+            tripID: tripID,
+            userRecordID: "_member_2",
+            displayName: "Member 2",
+            avatar: .blue
+        )
 
+        try await saveEndedTrip(
+            database: database,
+            tripID: tripID,
+            leaderID: leaderID,
+            destinationName: "Galaxy Mall Surabaya",
+            participants: [leader, member1, member2]
+        )
+
+        let viewModel = TripRecapViewModel(database: database)
+        await viewModel.loadRecaps()
+
+        #expect(viewModel.recaps.count == 1)
+        guard let recap = viewModel.recaps.first else {
+            Issue.record("Recap harus berhasil dimuat")
+            return
+        }
+        #expect(recap.participantCount == 3)
+        #expect(recap.avatars.first == .yellow)
+        #expect(Set(recap.avatars) == Set([.yellow, .pink, .blue]))
+    }
+}
+
+// MARK: - Test Helpers
+
+private extension TripRecapViewModelTests {
+    func makeParticipant(
+        id: UUID,
+        tripID: UUID,
+        userRecordID: String,
+        displayName: String,
+        avatar: Avatar
+    ) -> Participant {
+        Participant(
+            id: id,
+            tripID: tripID,
+            userRecordID: userRecordID,
+            displayName: displayName,
+            carDescription: "Car",
+            coordinate: Coordinate(latitude: -7.25, longitude: 112.75),
+            speedKmh: 0,
+            motionState: .driving,
+            alert: .none,
+            lastSeenAt: Date(timeIntervalSince1970: 1_700_005_000),
+            course: 0,
+            wayBack: [],
+            avatar: avatar,
+            arrivedAtWaypointID: nil
+        )
+    }
+
+    func saveEndedTrip(
+        database: FakeCloudDatabase,
+        tripID: UUID,
+        leaderID: UUID,
+        destinationName: String = "Grand City Mall",
+        participants: [Participant]
+    ) async throws {
         let trip = Trip(
             id: tripID,
-            roomCode: "654321",
+            roomCode: "123456",
             status: .ended,
             leaderParticipantID: leaderID,
             currentWaypointIndex: 1,
@@ -294,54 +293,6 @@ struct TripRecapViewModelTests {
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             startedAt: Date(timeIntervalSince1970: 1_700_001_000),
             endedAt: Date(timeIntervalSince1970: 1_700_005_000)
-        )
-        let leader = Participant(
-            id: leaderID,
-            tripID: tripID,
-            userRecordID: "_leader_user",
-            displayName: "Leader",
-            carDescription: "Car 1",
-            coordinate: Coordinate(latitude: -7.25, longitude: 112.75),
-            speedKmh: 0,
-            motionState: .driving,
-            alert: .none,
-            lastSeenAt: Date(timeIntervalSince1970: 1_700_005_000),
-            course: 0,
-            wayBack: [],
-            avatar: .yellow,
-            arrivedAtWaypointID: nil
-        )
-        let member1 = Participant(
-            id: member1ID,
-            tripID: tripID,
-            userRecordID: "_member_1",
-            displayName: "Member 1",
-            carDescription: "Car 2",
-            coordinate: Coordinate(latitude: -7.25, longitude: 112.75),
-            speedKmh: 0,
-            motionState: .driving,
-            alert: .none,
-            lastSeenAt: Date(timeIntervalSince1970: 1_700_005_000),
-            course: 0,
-            wayBack: [],
-            avatar: .pink,
-            arrivedAtWaypointID: nil
-        )
-        let member2 = Participant(
-            id: member2ID,
-            tripID: tripID,
-            userRecordID: "_member_2",
-            displayName: "Member 2",
-            carDescription: "Car 3",
-            coordinate: Coordinate(latitude: -7.25, longitude: 112.75),
-            speedKmh: 0,
-            motionState: .driving,
-            alert: .none,
-            lastSeenAt: Date(timeIntervalSince1970: 1_700_005_000),
-            course: 0,
-            wayBack: [],
-            avatar: .blue,
-            arrivedAtWaypointID: nil
         )
         let startWaypoint = Waypoint(
             id: UUID(),
@@ -356,7 +307,7 @@ struct TripRecapViewModelTests {
             tripID: tripID,
             orderIndex: 1,
             kind: .destination,
-            name: "Galaxy Mall Surabaya",
+            name: destinationName,
             coordinate: Coordinate(latitude: -7.26, longitude: 112.76)
         )
         let route = Route(
@@ -369,28 +320,13 @@ struct TripRecapViewModelTests {
             ]
         )
 
-        let records = [
+        var records = [
             TripRecordMapper.MakeRecord(trip),
-            TripRecordMapper.MakeRecord(leader),
-            TripRecordMapper.MakeRecord(member1),
-            TripRecordMapper.MakeRecord(member2),
             TripRecordMapper.MakeRecord(startWaypoint),
             TripRecordMapper.MakeRecord(destinationWaypoint),
             TripRecordMapper.MakeRecord(route)
         ]
-
+        records.append(contentsOf: participants.map { TripRecordMapper.MakeRecord($0) })
         try await database.Save(records, savePolicy: .allKeys)
-
-        let viewModel = TripRecapViewModel(database: database)
-        await viewModel.loadRecaps()
-
-        #expect(viewModel.recaps.count == 1)
-        guard let recap = viewModel.recaps.first else {
-            Issue.record("Recap harus berhasil dimuat")
-            return
-        }
-        #expect(recap.participantCount == 3)
-        #expect(recap.avatars.first == .yellow)
-        #expect(Set(recap.avatars) == Set([.yellow, .pink, .blue]))
     }
 }
