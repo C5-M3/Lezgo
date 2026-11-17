@@ -133,6 +133,7 @@ struct SetRouteView: View {
             isDestructive: true,
             onConfirm: HandleBack
         )
+        .routeTooFarDialog(viewModel: viewModel)
         .confirmDialog(
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },

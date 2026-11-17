@@ -20,6 +20,7 @@ extension MapViewModel {
 
         isLoadingRoute = true
         errorMessage = nil
+        isRouteTooFar = false
 
         routeTask = Task {
             do {
@@ -39,7 +40,11 @@ extension MapViewModel {
                     self.routeLegs = []
                     self.routedPoints = []
                     self.isLoadingRoute = false
-                    self.errorMessage = Self.RouteFailureMessage(for: error)
+                    if case RoutingError.noRoute = error {
+                        self.isRouteTooFar = true
+                    } else {
+                        self.errorMessage = Self.RouteFailureMessage(for: error)
+                    }
                 }
                 // MapKit will answer again after its minute is over; ask then, unless the stops changed meanwhile
                 // (a change cancels this task, and asks on its own).
@@ -50,6 +55,13 @@ extension MapViewModel {
                 }
             }
         }
+    }
+
+    /// The "too far" dialog's button: closes it and opens the search of the point changed last, or of the last stop
+    /// when none was changed yet (a plan opened with Edit Route, say).
+    func EditTooFarPoint() {
+        isRouteTooFar = false
+        activeSelectionSheet = lastEditedPoint ?? .destination(index: max(destinations.count - 1, 0))
     }
 
     static func RouteFailureMessage(for error: any Error) -> String {

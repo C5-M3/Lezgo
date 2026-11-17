@@ -87,6 +87,10 @@ final class MapViewModel {
     }
     var isLoadingRoute: Bool = false
     var errorMessage: String?
+    /// `true` while the "too far" dialog is open: no road leads from the start point through the stops.
+    var isRouteTooFar = false
+    /// The start point or stop the person changed last, so the "too far" dialog offers to edit that one.
+    var lastEditedPoint: ActivePointSelection?
 
     var canCreateTrip: Bool {
         !isLoadingRoute && !isCreatingTrip && MakeTripPlan() != nil
@@ -199,6 +203,7 @@ final class MapViewModel {
             subtitle: "GPS Location",
             coordinate: current
         )
+        lastEditedPoint = .start
         closeSearch()
         findRoute()
         // A route moves the map to fit it once found; without a destination there is none, so show the start.
@@ -227,12 +232,14 @@ final class MapViewModel {
         switch active {
         case .start:
             startPoint = resolved
+            lastEditedPoint = .start
         case .destination(let index):
             if index < destinations.count {
                 destinations[index] = resolved
             } else {
                 destinations.append(resolved)
             }
+            lastEditedPoint = .destination(index: min(index, destinations.count - 1))
         }
 
         closeSearch()

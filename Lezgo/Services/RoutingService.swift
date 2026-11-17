@@ -157,18 +157,33 @@ final class RoutingService: RouteCalculating {
         } catch {
             throw Self.Translated(error)
         }
+        guard routes.isEmpty == false else { throw RoutingError.noRoute }
         if cachedLegRoutes.count >= Self.cacheLimit { cachedLegRoutes.removeAll() }
         cachedLegRoutes[key] = routes
         return routes
     }
 
-    /// MapKit's "too many requests" becomes `RoutingError.throttled`; every other error stays as it is. MapKit says
-    /// when it answers again under `timeUntilReset`, a key Apple does not document, so a missing one means a guess.
+    /// MapKit's "too many requests" becomes `RoutingError.throttled` and "no drivable route" becomes
+    /// `RoutingError.noRoute`; every other error stays as it is. MapKit says when it answers again under
+    /// `timeUntilReset`, a key Apple does not document, so a missing one means a guess.
+    ///
+    /// On iOS the answer for stops with no road between them (Surabaya to Tokyo) is not `directionsNotFound` but
+    /// `serverFailure`, which is also the code of a server that could not be reached. What tells them apart is
+    /// `MKErrorDirectionsErrorInfoKey`, another key Apple does not document: it is there only when the server
+    /// answered and said there are no directions. Without it the error stays, so a bad connection is never called
+    /// "too far".
     private static func Translated(_ error: any Error) -> any Error {
+        if IsNoRoute(error) { return RoutingError.noRoute }
         guard let mapKitError = error as? MKError, mapKitError.code == .loadingThrottled else { return error }
         let details = mapKitError.errorUserInfo["MKErrorGEOErrorUserInfo"] as? [String: Any]
         let seconds = (details?["timeUntilReset"] as? NSNumber)?.doubleValue ?? defaultThrottleWait
         return RoutingError.throttled(retryAfter: min(max(seconds, 1), longestThrottleWait))
+    }
+
+    private static func IsNoRoute(_ error: any Error) -> Bool {
+        guard let mapKitError = error as? MKError else { return false }
+        if mapKitError.code == .directionsNotFound { return true }
+        return mapKitError.code == .serverFailure && mapKitError.errorUserInfo["MKErrorDirectionsErrorInfoKey"] != nil
     }
 
     private static func FetchFromMapKit(
@@ -195,10 +210,6 @@ final class RoutingService: RouteCalculating {
             directions.cancel()
         }
 
-        guard !response.routes.isEmpty else {
-            let errorInfo = [NSLocalizedDescriptionKey: "No drivable route found for leg."]
-            throw NSError(domain: "RoutingService", code: 404, userInfo: errorInfo)
-        }
         return response.routes
     }
 }

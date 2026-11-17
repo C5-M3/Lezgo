@@ -67,6 +67,7 @@ struct SetRouteSheet: View {
                 isDestructive: true,
                 onConfirm: { onBack?() }
             )
+            .routeTooFarDialog(viewModel: viewModel)
             .confirmDialog(
                 isPresented: Binding(
                     get: { viewModel.errorMessage != nil },
