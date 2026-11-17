@@ -28,14 +28,14 @@ struct LocationSearchSheet: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "location.fill")
                                     .accessibilityHidden(true)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color(.tripCardSubtext))
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Current Location")
                                         .font(.body)
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(Color(.tripCardText))
                                     Text("Use GPS position")
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color(.tripCardSubtext))
                                 }
                                 Spacer()
                             }
@@ -77,7 +77,7 @@ struct LocationSearchSheet: View {
                                         if !result.subtitle.isEmpty {
                                             Text(result.subtitle)
                                                 .font(.caption)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(Color(.tripCardSubtext))
                                                 .lineLimit(2)
                                         }
                                     }
@@ -90,11 +90,11 @@ struct LocationSearchSheet: View {
                                                 .formatted(.measurement(width: .abbreviated, usage: .road))
                                         )
                                             .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Color(.tripCardSubtext))
                                             .transition(.opacity)
                                     } else if result.isCalculatingDistance {
                                         RoundedRectangle(cornerRadius: 4)
-                                            .fill(Color.secondary.opacity(0.2))
+                                            .fill(Color(LezgoSurface.level1.color))
                                             .frame(width: 44, height: 14)
                                             .redacted(reason: .placeholder)
                                             .transition(.opacity)
@@ -139,6 +139,8 @@ struct LocationSearchSheet: View {
             .onChange(of: viewModel.searchQuery) { _, newValue in
                 viewModel.onSearchQueryChanged(newValue)
             }
+            .scrollContentBackground(.hidden)
+            .containerBackground(Color(LezgoSurface.page.color), for: .navigation)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") {

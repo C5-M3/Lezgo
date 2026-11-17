@@ -38,26 +38,26 @@ struct PreciseLocationNotice: View {
                 } label: {
                     Text(.preciseLocationOpenSettings)
                 }
-                .buttonStyle(.yellowCapsule(minHeight: 48))
+                .lezgoGlassButton(.main)
                 .padding(.top, 4)
             }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .foregroundStyle(Color(.tripCardText))
-        .background(Color(.tripCard), in: .rect(cornerRadius: 24))
+        .lezgoSurface(.page, radius: LezgoRadius.card)
     }
 }
 
 #Preview("Precise Location off") {
     PreciseLocationNotice()
         .padding()
-        .background(.black)
+        .background(Color(.tripCard))
 }
 
 #Preview("Largest text") {
     PreciseLocationNotice()
         .padding()
-        .background(.black)
+        .background(Color(.tripCard))
         .dynamicTypeSize(.accessibility5)
 }

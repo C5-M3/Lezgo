@@ -69,7 +69,8 @@ struct MapPickerView: View {
         HStack {
             Button("Back", systemImage: "chevron.left", action: onClose)
                 .labelStyle(.iconOnly)
-                .buttonStyle(RoundMapButtonStyle())
+                .font(.callout.weight(.bold))
+                .lezgoGlassButton(.round)
 
             Spacer()
 
@@ -116,21 +117,6 @@ private struct MapPickerPin: View {
         .accessibilityLabel("Selected location")
         .accessibilityValue(street ?? "")
         .allowsHitTesting(false)
-    }
-}
-
-/// A dark round button for the back icon over the map, in the color of the address card, so it stands out from the
-/// top fade. The icon is a map graphic, so it stops growing before it would leave the circle.
-private struct RoundMapButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.callout.weight(.bold))
-            .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-            .foregroundStyle(.white)
-            .frame(width: 40, height: 40)
-            .background(Color(.routeCard), in: .circle)
-            .contentShape(.circle)
-            .pressFeedback(isPressed: configuration.isPressed)
     }
 }
 
@@ -224,14 +210,14 @@ private struct MapPickerAddressCard: View {
                     if shownName == nil {
                         Text(isLoadingAddress ? "Looking for the address…" : "No address found here")
                             .font(.body)
-                            .foregroundStyle(Color(white: 0.6))
+                            .foregroundStyle(Color(.tripCardSubtext))
                     }
                 }
                 .opacity(isMoving ? 0.45 : 1)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
-        .background(Color(.routeCard), in: .rect(cornerRadius: 20))
+        .lezgoSurface(.page, radius: LezgoRadius.field)
         .accessibilityElement(children: .combine)
     }
 }
@@ -265,7 +251,7 @@ private struct MapPickerCard: View {
                 if showsNearby {
                     Text("Other areas around here...")
                         .font(.caption)
-                        .foregroundStyle(Color(white: 0.6))
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
             }
             .padding(.horizontal, 10)
@@ -282,7 +268,7 @@ private struct MapPickerCard: View {
             }
 
             Button("Confirm", action: onConfirm)
-                .buttonStyle(.yellowCapsule(minHeight: 54))
+                .lezgoGlassButton(.main)
                 .accessibilityLabel("Confirm Location")
                 .padding(.top, showsNearby ? 11 - chipTapOverhang : 11)
         }
@@ -290,7 +276,7 @@ private struct MapPickerCard: View {
         .padding(.top, 21)
         .padding(.bottom, 24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 32, style: .continuous).fill(Color(.tripCard)))
+        .lezgoSurface(.page, radius: LezgoRadius.card)
         .shadow(color: .black.opacity(0.5), radius: 12, x: 0, y: 8)
         .padding(.horizontal, 12)
     }
@@ -303,10 +289,10 @@ private struct MapPickerCard: View {
                         Text(place.name)
                             .lineLimit(1)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Color(.tripCardText))
                             .padding(.horizontal, 14)
                             .frame(minHeight: 30)
-                            .background(Color(white: 0.18), in: .capsule)
+                            .background(Color(LezgoSurface.level1.color), in: .capsule)
                             .frame(minHeight: 30 + chipTapOverhang * 2)
                             .contentShape(.rect)
                     }
@@ -336,7 +322,7 @@ private struct NearbyPlaceholderChips: View {
             HStack(spacing: 8) {
                 ForEach(chipWidths, id: \.self) { width in
                     Capsule()
-                        .fill(Color(white: 0.18))
+                        .fill(Color(LezgoSurface.level1.color))
                         .frame(width: width, height: 30)
                 }
             }

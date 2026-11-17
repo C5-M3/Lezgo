@@ -27,9 +27,10 @@ struct RouteMetricsBottomCard: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(.routeCard))
+            RoundedRectangle(cornerRadius: LezgoRadius.card, style: .continuous)
+                .fill(Color(LezgoSurface.page.color))
         )
+        .lezgoCardEdge()
         .shadow(color: .black.opacity(0.3), radius: 14, x: 0, y: 6)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -52,33 +53,21 @@ struct RouteMetricsBottomCard: View {
             if !isLoadingRoute {
                 Text(formattedSummaryText)
                     .font(.subheadline)
-                    .foregroundStyle(Color(white: 0.65))
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
         }
     }
 
     private var saveButton: some View {
         Button(action: onSave) {
-            HStack {
-                Spacer()
-                if isSaving {
-                    ProgressView()
-                        .tint(.black)
-                } else {
-                    Text(saveTitle)
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.black)
-                }
-                Spacer()
+            if isSaving {
+                ProgressView()
+            } else {
+                Text(saveTitle)
             }
-            .frame(height: 52)
-            .background(
-                Capsule()
-                    .fill(Color(.brandYellow))
-            )
         }
         .disabled(!canSave || isSaving)
-        .opacity((canSave && !isSaving) ? 1.0 : 0.45)
+        .lezgoGlassButton(.main)
         .accessibilityLabel(Text(saveTitle))
     }
 

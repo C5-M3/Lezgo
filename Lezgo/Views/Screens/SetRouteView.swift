@@ -74,7 +74,7 @@ struct SetRouteView: View {
                 .ignoresSafeArea()
 
             if viewModel.isSearching {
-                Color.black.opacity(0.88)
+                Color.black.opacity(0.82)
                     .ignoresSafeArea()
                     .transition(.opacity)
             } else {

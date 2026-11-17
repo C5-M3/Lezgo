@@ -23,7 +23,7 @@ extension RoutePlanCard {
                         Image(systemName: "mappin.circle.fill")
                             .font(.callout)
                             .foregroundStyle(Color(.brandYellow))
-                            .background(Color(.routeCard))
+                            .background(Color(LezgoSurface.page.color))
                             .frame(width: 24, height: 24)
                             .accessibilityHidden(true)
                     }
@@ -45,7 +45,7 @@ extension RoutePlanCard {
                 .padding(.vertical, 4)
 
                 Divider()
-                    .overlay(Color(white: 0.22))
+                    .overlay(Color(.surfaceSeparator))
                     .padding(.leading, 36)
             }
             .contentShape(Rectangle())
@@ -71,7 +71,7 @@ extension RoutePlanCard {
 
             if !(isFinalDestination && !canAddDestination) {
                 Divider()
-                    .overlay(Color(white: 0.22))
+                    .overlay(Color(.surfaceSeparator))
                     .padding(.leading, 36)
             }
         }
@@ -98,7 +98,7 @@ extension RoutePlanCard {
             Image(systemName: isFinalDestination ? "flag.checkered" : "mappin.circle.fill")
                 .font(.callout)
                 .foregroundStyle(Color(.brandYellow))
-                .background(Color(.routeCard))
+                .background(Color(LezgoSurface.page.color))
                 .frame(width: 24, height: 24)
                 .accessibilityHidden(true)
         }
@@ -122,7 +122,7 @@ extension RoutePlanCard {
 
             Image(systemName: "line.3.horizontal")
                 .font(.subheadline)
-                .foregroundStyle(Color(white: 0.35))
+                .foregroundStyle(Color(.tripCardSubtext))
                 .frame(width: 28, height: 28)
                 .contentShape(Rectangle())
                 .accessibilityLabel("Reorder")
@@ -168,7 +168,7 @@ extension RoutePlanCard {
                 Button(action: onClearSearch) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.callout)
-                        .foregroundStyle(Color(white: 0.55))
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search text")
@@ -177,7 +177,7 @@ extension RoutePlanCard {
         .padding(.horizontal, 12)
         .frame(height: 38)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: LezgoRadius.small, style: .continuous)
                 .strokeBorder(Color(.brandYellow), lineWidth: 1.5)
         )
     }
