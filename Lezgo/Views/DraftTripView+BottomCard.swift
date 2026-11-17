@@ -99,18 +99,11 @@ extension DraftTripView {
 
         private var participantsSection: some View {
             HStack(spacing: 0) {
-                let avatarNames = [
-                    "FrontballActiveYellow",
-                    "FrontballActivePink",
-                    "FrontballActiveBlue",
-                    "FrontballActivePurple",
-                    "FrontballActiveGreen"
-                ]
-                let count = min(max(viewModel.memberCount, 1), avatarNames.count)
+                let avatars = Array(viewModel.memberAvatars.prefix(5))
 
                 HStack(spacing: -40) {
-                    ForEach(0..<count, id: \.self) { index in
-                        Image(avatarNames[index])
+                    ForEach(avatars.indices, id: \.self) { index in
+                        Image("FrontballActive\(avatars[index].rawValue)")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 80, height: 80)

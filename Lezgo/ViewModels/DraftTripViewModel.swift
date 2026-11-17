@@ -59,6 +59,14 @@ final class DraftTripViewModel {
         summary.memberNames.joined(separator: ", ")
     }
 
+    /// One avatar per participant. A trip saved before avatars were kept has none yet, so the card shows a yellow
+    /// leader and blue members until the trip's next update brings the real colours.
+    var memberAvatars: [Avatar] {
+        let saved = summary.memberAvatars
+        guard saved.count < summary.memberNames.count else { return saved }
+        return saved + (saved.count..<summary.memberNames.count).map { $0 == 0 ? .yellow : .blue }
+    }
+
     var memberCount: Int {
         summary.memberNames.count
     }
@@ -208,6 +216,7 @@ final class DraftTripViewModel {
         refreshedSummary.status = state.trip.status
         refreshedSummary.isLeader = state.trip.leaderParticipantID == summary.myParticipantID
         refreshedSummary.memberNames = state.participants.map(state.DisplayName)
+        refreshedSummary.memberAvatars = state.participants.map(\.avatar)
 
         if let start = state.waypoints.first(where: { $0.kind == .start })?.coordinate {
             refreshedSummary.startCoordinate = start
@@ -244,6 +253,7 @@ extension DraftTripViewModel {
             destinationName: "Ciputra World Surabaya",
             distanceText: "9 km",
             memberNames: ["Agus", "Budi", "Citra", "Doni"],
+            memberAvatars: [.yellow, .purple, .pink, .blue],
             status: .lobby,
             isLeader: false,
             startCoordinate: Coordinate(latitude: -7.2858, longitude: 112.6318),
@@ -265,6 +275,7 @@ extension DraftTripViewModel {
             destinationName: "Ciputra World Surabaya",
             distanceText: "9 km",
             memberNames: ["Agus", "Budi", "Citra", "Doni"],
+            memberAvatars: [.yellow, .purple, .pink, .blue],
             status: .lobby,
             isLeader: true,
             startCoordinate: Coordinate(latitude: -7.2858, longitude: 112.6318),

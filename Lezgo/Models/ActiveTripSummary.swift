@@ -19,6 +19,9 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
     var destinationName: String
     var distanceText: String?
     var memberNames: [String]
+    /// The avatar of each participant, in the same order as `memberNames`. Empty for a summary saved before avatars
+    /// were kept; the next update from the trip fills it.
+    var memberAvatars: [Avatar]
     var status: TripStatus
     var isLeader: Bool
     var startCoordinate: Coordinate?
@@ -37,6 +40,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         case destinationName
         case distanceText
         case memberNames
+        case memberAvatars
         case status
         case isLeader
         case startCoordinate
@@ -54,6 +58,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         destinationName: String,
         distanceText: String? = nil,
         memberNames: [String] = [],
+        memberAvatars: [Avatar] = [],
         status: TripStatus = .lobby,
         isLeader: Bool = false,
         startCoordinate: Coordinate? = nil,
@@ -69,6 +74,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         self.destinationName = destinationName
         self.distanceText = distanceText
         self.memberNames = memberNames
+        self.memberAvatars = memberAvatars
         self.status = status
         self.isLeader = isLeader
         self.startCoordinate = startCoordinate
@@ -87,6 +93,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
         destinationName = try container.decode(String.self, forKey: .destinationName)
         distanceText = try container.decodeIfPresent(String.self, forKey: .distanceText)
         memberNames = (try? container.decode([String].self, forKey: .memberNames)) ?? []
+        memberAvatars = (try? container.decode([Avatar].self, forKey: .memberAvatars)) ?? []
         status = (try? container.decode(TripStatus.self, forKey: .status)) ?? .lobby
         isLeader = (try? container.decode(Bool.self, forKey: .isLeader)) ?? false
         startCoordinate = try container.decodeIfPresent(Coordinate.self, forKey: .startCoordinate)
@@ -116,6 +123,7 @@ struct ActiveTripSummary: Codable, Hashable, Sendable {
             destinationName: destination,
             distanceText: distanceText,
             memberNames: memberNames,
+            memberAvatars: session.state.participants.map(\.avatar),
             status: session.state.trip.status,
             isLeader: isLeader,
             startCoordinate: startWaypoint?.coordinate,
