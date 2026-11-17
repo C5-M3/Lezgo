@@ -235,6 +235,40 @@ struct DraftTripViewModelTests {
         listeningTask.cancel()
     }
 
+    @Test("A trip saved before avatars were kept still shows one avatar per participant, until the trip refreshes it")
+    func savedTripWithoutAvatarsStillShowsOneAvatarPerParticipant() {
+        var summary = makeLeaderSummary()
+        summary.memberAvatars = []
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
+
+        #expect(viewModel.memberAvatars == [.yellow, .blue])
+    }
+
+    @Test("Listening keeps the avatars in step with the Trip Room")
+    func listeningKeepsTheAvatarsInStepWithTheTripRoom() async throws {
+        let initialState = SampleTrip.State()
+        let store = InMemoryTripStore(trips: [initialState])
+        let service = InMemoryTripService(store: store, userRecordID: "_budi")
+        let otherPhoneService = InMemoryTripService(store: store, userRecordID: "_citra")
+        var summary = ActiveTripSummary.From(
+            session: TripSession(myParticipantID: SampleTrip.budiID, state: initialState)
+        )
+        summary.memberAvatars = []
+        let viewModel = DraftTripViewModel(summary: summary, tripService: service)
+
+        let listeningTask = Task { await viewModel.Listen() }
+        await Task.yield()
+        try await otherPhoneService.ExitTrip(tripID: SampleTrip.tripID, participantID: SampleTrip.citraID)
+
+        for _ in 0..<10 where viewModel.memberAvatars.count != 4 {
+            await Task.yield()
+        }
+
+        #expect(viewModel.memberAvatars == [.yellow, .purple, .blue, .green])
+        listeningTask.cancel()
+    }
+
     @Test("Listening presents cancelled notice and clears storage when leader ends or cancels the trip")
     func listeningPresentsCancelledNoticeWhenLeaderCancelsTrip() async throws {
         let initialState = SampleTrip.State()
