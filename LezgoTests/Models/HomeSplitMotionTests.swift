@@ -49,7 +49,8 @@ struct HomeSplitMotionTests {
     }
 
     @Test func TheSwingBackStartsFromTheJoinHome() {
-        #expect(Motion.FrameAt(.swingBack, progress: Motion.joinHome) == Motion.FrameAt(.join, progress: Motion.joinHome))
+        let joinHome = Motion.FrameAt(.join, progress: Motion.joinHome)
+        #expect(Motion.FrameAt(.swingBack, progress: Motion.joinHome) == joinHome)
     }
 
     @Test func JoinHomeMatchesTheDesign() {

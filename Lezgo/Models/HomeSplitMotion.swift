@@ -8,16 +8,22 @@
 import Foundation
 
 /// The split-screen Home (issue #329) as a pure function of progress: a yellow LEAD half on top, a dark JOIN half
-/// below, and the motion from each half into Set Route or Enter room code. Progress runs from 0 (the LEAD home) to
-/// 1 (the next screen covers Home); Back plays the same frames backwards. Positions are in points on the 402 × 874
-/// design frame ("Wild 1 · Split screen" on the Sketch page "Home Options"); the view scales them to the screen.
+/// below, and the motion from each half into Set Route or Enter room code. In every flow progress 0 is the LEAD home
+/// and `joinHome` the JOIN home, so a run can go on in another flow from where the last one stopped. Progress moves at
+/// an even pace through time. Positions are in points on the 402 × 874 design frame ("Wild 1 · Split screen" on the
+/// Sketch page "Home Options"); the view scales them to the screen. The timings follow the approved mockups: the
+/// "A · Swing" flip and the one-run "Proposed" motion into the next screen.
 enum HomeSplitMotion {
-    /// Which half was tapped, and so which screen comes in.
+    /// Which motion is on screen.
     enum Flow: Equatable {
-        /// LEAD: Set Route wipes in from the top.
+        /// LEAD: from the LEAD home, Set Route wipes in from the top.
         case lead
-        /// JOIN: Enter room code wipes up from the bottom.
+        /// JOIN: the yellow swings from the LEAD home to the JOIN home (0 to `joinHome`), then Enter room code wipes
+        /// up from the bottom (`joinHome` to 1). Back plays the wipe backwards.
         case join
+        /// The yellow swings back from the JOIN home (`joinHome`) to the LEAD home (0). It is its own motion, turning
+        /// the other way, not the forward swing played backwards.
+        case swingBack
     }
 
     /// One run of the motion towards `target`; a tap can need a few in a row.
@@ -40,18 +46,29 @@ enum HomeSplitMotion {
         let opacity: Double
     }
 
-    /// The lead mascot: how far it moved up or down, its squash and its tilt.
+    /// The lead mascot: how far it moved up or down and to the right, its squash and its tilt.
     struct MascotPose: Equatable {
         let offset: Double
+        var shift: Double = 0
         let scaleX: Double
         let scaleY: Double
         let rotation: Double
     }
 
-    /// One crew mascot on the JOIN half: how far below its place it is, and its size.
+    /// One crew mascot on the JOIN half: how far below its place it is, its size and how visible it is.
     struct CrewPose: Equatable {
         let offset: Double
         let scale: Double
+        var opacity: Double = 1
+    }
+
+    /// The yellow during the Swing: one half-plane whose edge passes through (`x`, `y`) at `angle` radians (y grows
+    /// downwards). The yellow lies on the left of the edge's direction, so at the LEAD tilt it is above the edge and
+    /// at the JOIN tilt plus a half turn it is below it.
+    struct Sheet: Equatable {
+        let x: Double
+        let y: Double
+        let angle: Double
     }
 
     /// A rectangle on the design frame.
@@ -75,6 +92,8 @@ enum HomeSplitMotion {
 
     /// Everything on screen at one moment.
     struct Frame: Equatable {
+        /// During the Swing the yellow is this one sheet, and the two slabs below are not used.
+        var sheet: Sheet?
         /// The lower edge of the yellow LEAD half.
         var topSlab: Edge
         /// The upper edge of the yellow JOIN half.
@@ -96,8 +115,16 @@ enum HomeSplitMotion {
 
     static let canvasWidth = 402.0
     static let canvasHeight = 874.0
-    /// Where Back from Enter room code stops: JOIN big and yellow, LEAD small on the dark half.
-    static let joinHome = 0.43
+    /// How long the Swing between the two homes takes, in seconds.
+    static let swingDuration = 0.68
+    /// How long the join flow takes from the JOIN home until Enter room code covers Home, in seconds.
+    static let joinWipeDuration = 0.855
+    /// Where Back from Enter room code stops: JOIN big and yellow, LEAD small on the dark half. The Swing takes the
+    /// join flow's progress up to here.
+    static let joinHome = swingDuration / (swingDuration + joinWipeDuration)
+    /// The split's tilt on the LEAD home and on the JOIN home, in radians.
+    static let leadTilt = atan2(480.0 - 550.0, canvasWidth)
+    static let joinTilt = atan2(335.0 - 383.0, canvasWidth)
 
     static let leadWordSize = (width: 297.0, height: 152.0)
     static let joinWordSize = (width: 139.0, height: 76.0)
@@ -116,15 +143,22 @@ enum HomeSplitMotion {
     private static let destinationTilt = 90.0
     /// The front of the pile pops up first.
     private static let crewPopOrder = [4, 3, 2, 1, 0]
+    /// The JOIN home on the mockup's join timeline, which runs from the LEAD home (0) to Enter room code (1).
+    private static let joinHomeTime = 0.43
+    /// When Set Route and Enter room code start to wipe in, on their mockup timelines.
+    private static let leadRevealStart = 0.30
+    private static let joinRevealStart = 0.56
+    /// The sheet's angle on the JOIN home: the JOIN tilt turned half a turn, so the yellow is below the edge.
+    private static let joinSheetAngle = joinTilt + .pi
 
     static func FitOn(width: Double, height: Double) -> Fit {
         let scale = min(width / canvasWidth, height / canvasHeight)
         return Fit(scale: scale, left: (width - canvasWidth * scale) / 2)
     }
 
-    /// How long the whole motion takes, in seconds.
+    /// How long the whole motion, progress 0 to 1, takes in seconds.
     static func TotalDuration(of flow: Flow) -> Double {
-        flow == .lead ? 1.25 : 1.65
+        flow == .lead ? 1.05 : swingDuration + joinWipeDuration
     }
 
     /// How long a run from `start` to `target` takes, in seconds.
@@ -134,12 +168,25 @@ enum HomeSplitMotion {
 
     /// The progress at which the next screen starts to wipe in. Until then it is not on screen.
     static func RevealStart(of flow: Flow) -> Double {
-        flow == .lead ? 0.38 : 0.64
+        flow == .lead ? leadRevealStart : Lerp(joinHome, 1, (joinRevealStart - joinHomeTime) / (1 - joinHomeTime))
     }
 
     static func FrameAt(_ flow: Flow, progress: Double) -> Frame {
-        let time = Clamp(progress)
-        return flow == .lead ? LeadFrame(at: time) : JoinFrame(at: time)
+        let progress = Clamp(progress)
+        switch flow {
+        case .lead:
+            return LeadFrame(at: progress)
+        case .join:
+            guard progress > joinHome else { return SwingFrame(at: progress / joinHome) }
+            return JoinFrame(at: progress >= 1 ? 1 : Lerp(joinHomeTime, 1, (progress - joinHome) / (1 - joinHome)))
+        case .swingBack:
+            return SwingBackFrame(at: 1 - min(progress / joinHome, 1))
+        }
+    }
+
+    /// `true` while the yellow is one sheet, so the view draws the yellow layers as one.
+    static func IsSwinging(_ flow: Flow, progress: Double) -> Bool {
+        flow != .lead && progress > 0 && progress < joinHome
     }
 
     // MARK: - Frames
@@ -157,19 +204,20 @@ enum HomeSplitMotion {
         joinDestinationOffset: 40
     )
 
-    /// The yellow half sweeps down, the mascot squashes and springs up, then Set Route wipes in from the top.
+    /// The yellow half sweeps down, the mascot squashes and springs up, and Set Route follows it in from the top, all
+    /// in one run ("leadStateNew" in the mockup).
     private static func LeadFrame(at time: Double) -> Frame {
         var frame = restFrame
-        let expand = InOutCubic(Segment(time, 0, 0.42))
+        let expand = InOutCubic(Segment(time, 0, 0.45))
         frame.topSlab = Edge(left: Lerp(550, 964, expand), right: Lerp(480, 894, expand))
 
-        let drop = Segment(time, 0, 0.24)
+        let drop = Segment(time, 0, 0.26)
         frame.joinWord = Placement(x: 24, y: 588 + 60 * InCubic(drop), scale: 1, opacity: 1 - drop)
 
-        let squash = sin(.pi * Segment(time, 0, 0.14))
-        let rise = OutBack(Segment(time, 0.08, 0.44), overshoot: 1.6)
-        let revealStart = RevealStart(of: .lead)
-        let reveal = InOutQuart(Segment(time, revealStart, 1))
+        let squash = sin(.pi * Segment(time, 0, 0.15))
+        let rise = OutBack(Segment(time, 0.09, 0.50), overshoot: 1.6)
+        let revealStart = leadRevealStart
+        let reveal = InOutCubic(Segment(time, revealStart, 1))
         frame.mascot = MascotPose(
             offset: 8 * squash - 28 * rise + 70 * reveal,
             scaleX: 1 + 0.05 * squash,
@@ -184,8 +232,9 @@ enum HomeSplitMotion {
         return frame
     }
 
-    /// The split flips (JOIN grows, LEAD shrinks) while the crew pops up, yellow fills to the top, then Enter room
-    /// code wipes up from the bottom.
+    /// From the JOIN home (`time` 0.43 of the mockup's join timeline, "joinStateNew") the yellow fills to the top while
+    /// Enter room code follows it up from the bottom. Before 0.43 this is the old flip, which the Swing replaced; it is
+    /// kept because the JOIN home is its frame at 0.43.
     private static func JoinFrame(at time: Double) -> Frame {
         var frame = restFrame
         let flip = InOutCubic(Segment(time, 0, 0.36))
@@ -206,8 +255,8 @@ enum HomeSplitMotion {
         )
         frame.mascot = MascotPose(offset: -80 * flip, scaleX: 1, scaleY: 1, rotation: 6 * flip)
 
-        let revealStart = RevealStart(of: .join)
-        let reveal = InOutQuart(Segment(time, revealStart, 1))
+        let revealStart = joinRevealStart
+        let reveal = InOutCubic(Segment(time, revealStart, 1))
         frame.joinWord = Placement(
             x: Lerp(24, 10, flip),
             y: Lerp(588, 409, flip) - 60 * reveal,
@@ -247,10 +296,6 @@ enum HomeSplitMotion {
         value < 0.5 ? 4 * value * value * value : 1 - pow(-2 * value + 2, 3) / 2
     }
 
-    private static func InOutQuart(_ value: Double) -> Double {
-        value < 0.5 ? 8 * pow(value, 4) : 1 - pow(-2 * value + 2, 4) / 2
-    }
-
     private static func OutCubic(_ value: Double) -> Double {
         1 - pow(1 - value, 3)
     }
@@ -265,5 +310,87 @@ enum HomeSplitMotion {
         if value <= 0 { return 0 }
         if value >= 1 { return 1 }
         return 1 + (overshoot + 1) * pow(value - 1, 3) + overshoot * pow(value - 1, 2)
+    }
+}
+
+// MARK: - Swing
+
+extension HomeSplitMotion {
+    /// "A · Swing", from the LEAD home (`turn` 0) to the JOIN home (1): the yellow turns clockwise as one sheet, top
+    /// to right to bottom, while the lead mascot slips out to the right and the crew pops in.
+    private static func SwingFrame(at turn: Double) -> Frame {
+        if turn <= 0 { return restFrame }
+        if turn >= 1 { return JoinFrame(at: joinHomeTime) }
+        var frame = restFrame
+        let ease = InOutCubic(turn)
+        frame.sheet = Sheet(x: 201, y: Lerp(515, 359, ease), angle: Lerp(leadTilt, joinSheetAngle, SwingTurn(turn)))
+        PlaceWords(in: &frame, towardsJoin: ease)
+
+        let slip = Segment(turn, 0, 0.45)
+        frame.mascot = MascotPose(offset: 0, shift: 340 * InCubic(slip), scaleX: 1, scaleY: 1, rotation: 14 * slip)
+
+        for (order, index) in crewPopOrder.enumerated() {
+            let start = 0.50 + Double(order) * 0.05
+            let pop = Segment(turn, start, min(1, 0.85 + Double(order) * 0.05))
+            let land = OutBack(pop, overshoot: 1.6)
+            frame.crew[index] = CrewPose(
+                offset: (1 - land) * 140,
+                scale: 0.75 + 0.25 * land,
+                opacity: turn < start ? 0 : Clamp(pop / 0.25)
+            )
+        }
+        return frame
+    }
+
+    /// The Swing back, from the JOIN home (`turn` 0) to the LEAD home (1): the crew ducks away, the yellow turns
+    /// counter-clockwise, bottom to right to top, and the lead mascot springs back in from the right.
+    private static func SwingBackFrame(at turn: Double) -> Frame {
+        if turn <= 0 { return JoinFrame(at: joinHomeTime) }
+        if turn >= 1 { return restFrame }
+        var frame = restFrame
+        let ease = InOutCubic(turn)
+        frame.sheet = Sheet(x: 201, y: Lerp(359, 515, ease), angle: Lerp(joinSheetAngle, leadTilt, SwingTurn(turn)))
+        PlaceWords(in: &frame, towardsJoin: 1 - ease)
+
+        let back = Segment(turn, 0.50, 1)
+        frame.mascot = MascotPose(
+            offset: 0,
+            shift: 340 * (1 - OutBack(back, overshoot: 1.2)),
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 14 * (1 - back)
+        )
+
+        for (order, index) in crewPopOrder.reversed().enumerated() {
+            let start = Double(order) * 0.025
+            let duck = InCubic(Segment(turn, start, start + 0.25))
+            frame.crew[index] = CrewPose(
+                offset: 140 * duck,
+                scale: 1 - 0.25 * duck,
+                opacity: turn >= 0.35 ? 0 : 1 - duck
+            )
+        }
+        return frame
+    }
+
+    /// How far the sheet has turned: eased, with a small overshoot near the end so it settles.
+    private static func SwingTurn(_ turn: Double) -> Double {
+        Lerp(InOutCubic(turn), OutBack(turn, overshoot: 0.7), turn)
+    }
+
+    /// The words between their places on the LEAD home (0) and on the JOIN home (1).
+    private static func PlaceWords(in frame: inout Frame, towardsJoin amount: Double) {
+        frame.leadWord = Placement(
+            x: Lerp(24, 22, amount),
+            y: Lerp(144, 146, amount),
+            scale: Lerp(1, 149.0 / 297.0, amount),
+            opacity: 1
+        )
+        frame.joinWord = Placement(
+            x: Lerp(24, 10, amount),
+            y: Lerp(588, 409, amount),
+            scale: Lerp(1, 2, amount),
+            opacity: 1
+        )
     }
 }
