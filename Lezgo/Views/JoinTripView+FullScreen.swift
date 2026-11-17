@@ -39,6 +39,21 @@ extension JoinTripView {
         }
     }
 
+    /// As a sheet, the keyboard comes up by itself once the sheet shows.
+    func FocusSheetField() async {
+        guard !isFullScreen else { return }
+        // Memunculkan keyboard secara otomatis saat sheet tampil
+        try? await Task.sleep(for: .milliseconds(150))
+        isFieldFocused = true
+    }
+
+    /// Full screen on the split Home, the keyboard rises once Enter room code has landed, not see-through over the
+    /// wipe, and drops as soon as Back starts.
+    func FocusFullScreenField(canRaise: Bool) {
+        guard isFullScreen else { return }
+        isFieldFocused = canRaise
+    }
+
     func Close() {
         // The keyboard goes down with the screen instead of staying over Home.
         isFieldFocused = false

@@ -58,6 +58,8 @@ struct JoinTripView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) var textSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// `false` while Enter room code still wipes in over the split Home (issue #329).
+    @Environment(\.canRaiseKeyboard) private var canRaiseKeyboard
 
     @State private var sheetHeight: CGFloat = 290
     @State private var shakeAttempts: Int = 0
@@ -134,7 +136,8 @@ struct JoinTripView: View {
         .padding(.top, isFullScreen ? 4 : 30)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity, maxHeight: isFullScreen ? .infinity : nil, alignment: .top)
-        .background(isFullScreen ? Color(.tripCard) : .clear, ignoresSafeAreaEdges: .all)
+        // Under the keyboard too, so Home never shows through it while it rises or drops.
+        .background { (isFullScreen ? Color(.tripCard) : .clear).ignoresSafeArea() }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { newHeight in
             sheetHeight = newHeight
         }
@@ -146,11 +149,8 @@ struct JoinTripView: View {
         .presentationCompactAdaptation(.sheet)
         .preferredColorScheme(.dark)
         .sensoryFeedback(.error, trigger: shakeAttempts)
-        .task {
-            // Memunculkan keyboard secara otomatis saat sheet tampil
-            try? await Task.sleep(for: .milliseconds(150))
-            isFieldFocused = true
-        }
+        .task { await FocusSheetField() }
+        .onChange(of: canRaiseKeyboard, initial: true) { FocusFullScreenField(canRaise: $1) }
         .onAppear {
             viewModel.setTripServiceIfNeeded(tripService)
         }
