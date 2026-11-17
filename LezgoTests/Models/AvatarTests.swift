@@ -32,4 +32,26 @@ struct AvatarTests {
             #expect(Avatar.Default(isLeader: false) != .yellow)
         }
     }
+
+    @Test func UnselectedImagesMatchMainUnselectedAssets() {
+        #expect(Avatar.yellow.unselectedImage == .mainUnselectedYellow)
+        #expect(Avatar.blue.unselectedImage == .mainUnselectedBlue)
+        #expect(Avatar.green.unselectedImage == .mainUnselectedGreen)
+        #expect(Avatar.pink.unselectedImage == .mainUnselectedPink)
+        #expect(Avatar.purple.unselectedImage == .mainUnselectedPurple)
+    }
+
+    @Test("Avatar mendukung inisialisasi case-insensitive dari string")
+    func avatarCaseInsensitiveParsing() {
+        #expect(Avatar(caseInsensitive: "yellow") == .yellow)
+        #expect(Avatar(caseInsensitive: "Yellow") == .yellow)
+        #expect(Avatar(caseInsensitive: "YELLOW") == .yellow)
+        #expect(Avatar(caseInsensitive: "blue") == .blue)
+        #expect(Avatar(caseInsensitive: "Blue") == .blue)
+        #expect(Avatar(caseInsensitive: "pink") == .pink)
+        #expect(Avatar(caseInsensitive: "green") == .green)
+        #expect(Avatar(caseInsensitive: "purple") == .purple)
+        #expect(Avatar(caseInsensitive: "invalid") == nil)
+        #expect(Avatar(caseInsensitive: nil) == nil)
+    }
 }

@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
     @State private var pendingJoinedSession: TripSession?
+    @State private var isTripHistoryPresented: Bool = false
     /// Set Route is built once Home has settled, hidden, so its map is ready before LEAD runs into it.
     @State private var isSetRoutePrepared = false
     /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
@@ -43,6 +44,10 @@ struct HomeView: View {
         .overlay {
             transitionOverlay
             draftTripOverlay
+            tripHistoryOverlay
+        }
+        .fullScreenCover(isPresented: $isTripHistoryPresented) {
+            TripRecapView()
         }
         .fullScreenCover(
             item: $boundHomeViewModel.activeTripSession,
@@ -228,6 +233,36 @@ private extension HomeView {
 // MARK: - Overlays & Logic
 
 private extension HomeView {
+    @ViewBuilder
+    var tripHistoryOverlay: some View {
+        if !shouldHideHomeControls, viewModel.splitDestination == nil {
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        isTripHistoryPresented = true
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color(white: 0.16).opacity(0.92))
+                                .frame(width: 44, height: 44)
+
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.callout.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Trip History"))
+                    .padding(.trailing, 24)
+                    .padding(.top, 16)
+                }
+                Spacer()
+            }
+            .zIndex(100)
+        }
+    }
+
     @ViewBuilder
     var transitionOverlay: some View {
         if viewModel.isTransitioningToTripMap {
