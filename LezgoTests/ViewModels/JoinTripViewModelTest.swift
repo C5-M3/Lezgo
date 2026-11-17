@@ -80,7 +80,7 @@ struct JoinTripViewModelTest {
         #expect(viewModel.joinedSession == nil)
     }
 
-    @Test("A late member joins a trip that already started and stays in it, ready for the map (US-02)")
+    @Test("A trip that already started turns a new member away with a notice and adds nobody (US-02)")
     func submitCodeWhenTripAlreadyBegun() async throws {
         let service = SampleTrip.Service(status: .inTrip, me: UUID())
         let storage = FakeActiveTripStorage()
@@ -94,13 +94,31 @@ struct JoinTripViewModelTest {
 
         let success = await viewModel.submitCode()
 
-        #expect(success == true)
-        #expect(viewModel.errorMessage == nil)
-        let session = try #require(viewModel.joinedSession)
-        #expect(session.state.trip.status == .inTrip)
+        #expect(success == false)
+        #expect(viewModel.isTripAlreadyStarted)
+        #expect(viewModel.errorMessage == "The trip you are trying to join has already started.")
+        #expect(viewModel.joinedSession == nil)
+        #expect(storage.storedSummary == nil)
         let state = try await service.FetchTrip(tripID: SampleTrip.tripID)
-        #expect(state.participants.contains { $0.id == session.myParticipantID })
-        #expect(storage.storedSummary?.status == .inTrip)
+        #expect(state.participants.count == 5)
+    }
+
+    @Test("Entering the code again after the notice clears it")
+    func submittingAgainClearsTheStartedNotice() async {
+        let service = SampleTrip.Service(status: .inTrip, me: UUID())
+        let viewModel = JoinTripViewModel(
+            roomCode: SampleTrip.roomCode,
+            tripService: service,
+            storage: FakeActiveTripStorage(),
+            profileStorage: FakeProfileStorage()
+        )
+        _ = await viewModel.submitCode()
+        viewModel.roomCode = "000000"
+
+        _ = await viewModel.submitCode()
+
+        #expect(viewModel.isTripAlreadyStarted == false)
+        #expect(viewModel.errorMessage == "No trip found with this code.")
     }
 
     @Test("Joining shows the group the name saved on this phone (US-04)")

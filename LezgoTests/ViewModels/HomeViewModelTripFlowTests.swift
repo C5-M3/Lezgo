@@ -9,12 +9,12 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// Which screen Home opens as a trip moves on: the map for a late member (US-02), and the Trip Room again after a
+/// Which screen Home opens as a trip moves on: the map for a trip that already started, and the Trip Room again after a
 /// New Destination (US-07).
 @MainActor
 struct HomeViewModelTripFlowTests {
-    @Test("JoinTrip on a trip that already started opens the map for the late member (US-02)")
-    func joinTripInProgressOpensMap() async {
+    @Test("JoinTrip on a trip that already started is refused and opens nothing (US-02)")
+    func joinTripInProgressIsRefused() async {
         let fakeStorage = FakeActiveTripStorage()
         let service = SampleTrip.Service(status: .inTrip, me: UUID())
         // A fake profile, so a name this phone saved in an earlier run cannot clash with the sample group.
@@ -27,10 +27,10 @@ struct HomeViewModelTripFlowTests {
 
         let success = await viewModel.JoinTrip(roomCode: SampleTrip.roomCode, tripService: service)
 
-        #expect(success == true)
-        #expect(viewModel.activeMapSession?.state.trip.status == .inTrip)
+        #expect(success == false)
+        #expect(viewModel.activeMapSession == nil)
         #expect(viewModel.activeTripSession == nil)
-        #expect(fakeStorage.storedSummary?.status == .inTrip)
+        #expect(fakeStorage.storedSummary == nil)
     }
 
     @Test("onTripJoined with a trip that already started opens the map, not the Trip Room (US-02)")

@@ -51,8 +51,11 @@ struct TripRecordReaderTests {
         #expect(next.participants.map(\.id) == state.participants.map(\.id))
     }
 
+    /// The trip is still in the lobby: a started trip takes no new people (US-02).
     @Test func NewMemberAppearsWhenMembersAreDiscovered() async throws {
-        let (state, _) = try await MakeTrip()
+        let created = try await agus.CreateTrip(plan: TripPlanFixtures.tunjunganToPakuwon, profile: nil)
+        _ = try await budi.JoinTrip(roomCode: created.state.trip.roomCode, profile: nil)
+        let state = try await agus.FetchTrip(tripID: created.state.trip.id)
         _ = try await LiveTripService(database: FakeCloudDatabase(server: server, userRecordName: "_citra42C"))
             .JoinTrip(roomCode: state.trip.roomCode, profile: nil)
 
