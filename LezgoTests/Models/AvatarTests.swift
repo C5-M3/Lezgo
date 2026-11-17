@@ -32,4 +32,12 @@ struct AvatarTests {
             #expect(Avatar.Default(isLeader: false) != .yellow)
         }
     }
+
+    @Test func UnselectedImagesMatchMainUnselectedAssets() {
+        #expect(Avatar.yellow.unselectedImage == .mainUnselectedYellow)
+        #expect(Avatar.blue.unselectedImage == .mainUnselectedBlue)
+        #expect(Avatar.green.unselectedImage == .mainUnselectedGreen)
+        #expect(Avatar.pink.unselectedImage == .mainUnselectedPink)
+        #expect(Avatar.purple.unselectedImage == .mainUnselectedPurple)
+    }
 }

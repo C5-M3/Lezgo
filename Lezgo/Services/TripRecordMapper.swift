@@ -126,7 +126,7 @@ enum TripRecordMapper {
             course: reader.OptionalValue("course"),
             wayBack: (reader.OptionalValue("wayBack") as Data?).flatMap(Polyline(from:)) ?? [],
             // Records from before avatars, or with an avatar a newer build added, show the leader's yellow.
-            avatar: (reader.OptionalValue("avatar") as String?).flatMap(Avatar.init(rawValue:)) ?? .yellow,
+            avatar: (reader.OptionalValue("avatar") as String?).flatMap(Avatar.init(caseInsensitive:)) ?? .yellow,
             arrivedAtWaypointID: (reader.OptionalValue("arrivedAtWaypointID") as String?)
                 .flatMap(UUID.init(uuidString:))
         )

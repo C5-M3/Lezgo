@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var isJoinTripPresented: Bool = false
     @State private var pendingJoinedSession: TripSession?
     @State private var isSetRoutePresented: Bool = false
+    @State private var isTripHistoryPresented: Bool = false
     /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
     private let siriHandoff = SiriHandoff.shared
 
@@ -96,6 +97,9 @@ struct HomeView: View {
                     isSetRoutePresented = false
                 }
             )
+        }
+        .fullScreenCover(isPresented: $isTripHistoryPresented) {
+            TripRecapView()
         }
         .fullScreenCover(
             item: $boundHomeViewModel.activeTripSession,
@@ -189,14 +193,30 @@ private extension HomeView {
 
     @ViewBuilder
     var headerView: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Only the logo, as in the hi-fi ("N1 Home · No map"): the two cards say what the app does.
+        HStack {
             Image("LezgoIcon")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 42)
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityLabel(Text(verbatim: "Lezgo"))
+
+            Spacer()
+
+            Button {
+                isTripHistoryPresented = true
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color(white: 0.16).opacity(0.92))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(.white)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Trip History"))
         }
     }
 

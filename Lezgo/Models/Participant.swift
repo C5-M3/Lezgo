@@ -60,6 +60,7 @@ struct Participant: Identifiable, Hashable, Codable {
         at date: Date
     ) -> Participant {
         let profile = profile ?? ParticipantProfile.unnamed
+        let avatar = profile.avatar ?? Avatar.Default(isLeader: isLeader)
         return Participant(
             id: UUID(),
             tripID: tripID,
@@ -71,7 +72,7 @@ struct Participant: Identifiable, Hashable, Codable {
             motionState: .stopped,
             alert: .none,
             lastSeenAt: date,
-            avatar: Avatar.Default(isLeader: isLeader)
+            avatar: avatar
         )
     }
 }
