@@ -63,10 +63,14 @@ final class HomeViewModel {
     /// The split-screen Home (issue #329): which half's motion is on screen and how far it has played.
     var splitFlow: HomeSplitMotion.Flow = .lead
     var splitProgress: Double = 0
+    /// Where the running step started, so a screen that comes in with it starts its wipe from there.
+    var splitStepStart: Double = 0
     /// The screen that covers part or all of Home: Set Route (`.lead`) or Enter room code (`.join`).
     var splitDestination: HomeSplitMotion.Flow?
     /// `true` while the split moves, so a second tap cannot start another motion halfway.
     var isSplitMoving = false
+    /// What a tap on a half of the split Home does.
+    let tapStyle: TapStyle
     /// `true` from a New Destination until the Trip Room is open, so closing the map does not end the trip here.
     private(set) var isReturningToTripRoom = false
     var lastTripEndedNotice: String?
@@ -106,9 +110,11 @@ final class HomeViewModel {
         mapService: any MapServiceProtocol,
         searchService: any LocationSearchServiceProtocol,
         activeTripStorage: (any ActiveTripStorage)? = nil,
-        profileStorage: (any ProfileStorage)? = nil
+        profileStorage: (any ProfileStorage)? = nil,
+        tapStyle: TapStyle = .build
     ) {
         self.mapService = mapService
+        self.tapStyle = tapStyle
         self.searchService = searchService
         let storage = activeTripStorage ?? UserDefaultsActiveTripStorage()
         self.activeTripStorage = storage
