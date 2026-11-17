@@ -101,7 +101,7 @@ struct JoinTripView: View {
             VStack(alignment: .leading, spacing: 12) {
                 codeBoxesSection
 
-                if let errorMessage = viewModel.errorMessage {
+                if let errorMessage = viewModel.errorMessage, viewModel.isTripAlreadyStarted == false {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.circle.fill")
                             .font(.subheadline)
@@ -135,6 +135,14 @@ struct JoinTripView: View {
         .presentationCompactAdaptation(.sheet)
         .preferredColorScheme(.dark)
         .sensoryFeedback(.error, trigger: shakeAttempts)
+        .confirmDialog(
+            isPresented: $viewModel.isTripAlreadyStarted,
+            title: Text(.joinTripUnableTitle),
+            message: Text(.tripServiceErrorTripAlreadyStarted),
+            cancelTitle: nil,
+            confirmTitle: .tripRoomOK,
+            onConfirm: { }
+        )
         .task {
             // Memunculkan keyboard secara otomatis saat sheet tampil
             try? await Task.sleep(for: .milliseconds(150))

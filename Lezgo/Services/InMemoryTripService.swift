@@ -91,6 +91,8 @@ final class InMemoryTripService: TripService {
             ClaimSeat(tripID: state.trip.id, participantID: existing.id)
             return TripSession(myParticipantID: existing.id, state: state)
         }
+        // A started trip takes no new people; only the members it already has can come back.
+        guard state.trip.status == .lobby else { throw TripServiceError.tripAlreadyStarted }
         let member = Participant.Joining(
             tripID: state.trip.id,
             userRecordID: userRecordID,

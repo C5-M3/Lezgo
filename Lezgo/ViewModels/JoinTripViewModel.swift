@@ -26,11 +26,15 @@ final class JoinTripViewModel {
             if errorMessage != nil {
                 errorMessage = nil
             }
+            isTripAlreadyStarted = false
         }
     }
 
     var isSubmitting: Bool = false
     var errorMessage: String?
+    /// `true` after the code of a trip that already started: the screen answers with a dialog instead of the red line
+    /// under the code, because the code itself is fine (US-02).
+    var isTripAlreadyStarted = false
     private(set) var joinedSession: TripSession?
 
     // MARK: - Dependencies
@@ -92,6 +96,7 @@ final class JoinTripViewModel {
 
         isSubmitting = true
         errorMessage = nil
+        isTripAlreadyStarted = false
         joinedSession = nil
 
         defer {
@@ -101,8 +106,8 @@ final class JoinTripViewModel {
         do {
             let session = try await tripService.JoinTrip(roomCode: roomCode, profile: profileStorage.LoadProfile())
 
-            // A LOBBY trip opens the Trip Room and an IN_TRIP trip opens the map for a late member (US-02); the
-            // service already turns away ended and cancelled trips.
+            // The service turns away ended and cancelled trips, and a started trip for anyone who is not in it yet
+            // (US-02).
             let summary = ActiveTripSummary.From(session: session)
             storage.SaveActiveTrip(summary)
             self.joinedSession = session
@@ -113,6 +118,9 @@ final class JoinTripViewModel {
                 errorMessage = String(localized: .tripServiceErrorNotFound)
             case .tripEnded:
                 errorMessage = String(localized: .tripServiceErrorTripEnded)
+            case .tripAlreadyStarted:
+                errorMessage = String(localized: error.message)
+                isTripAlreadyStarted = true
             default:
                 errorMessage = String(localized: error.message)
             }

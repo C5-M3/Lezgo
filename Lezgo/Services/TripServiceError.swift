@@ -17,6 +17,8 @@ enum TripServiceError: Error, Hashable {
     case notFound
     /// The trip is `ENDED` or `CANCELLED`, so it cannot be joined or changed.
     case tripEnded
+    /// The trip is already on the road (`IN_TRIP`), and a started trip takes no new people (US-02).
+    case tripAlreadyStarted
     /// Someone else changed the same thing first, for example two people picked a new leader at once.
     case conflict
     /// The action is not allowed for this person or in this trip status, for example a member removing someone.
@@ -32,6 +34,7 @@ enum TripServiceError: Error, Hashable {
         case .notSignedInToICloud: .tripServiceErrorNotSignedInToICloud
         case .notFound: .tripServiceErrorNotFound
         case .tripEnded: .tripServiceErrorTripEnded
+        case .tripAlreadyStarted: .tripServiceErrorTripAlreadyStarted
         case .conflict: .tripServiceErrorConflict
         case .notAllowed: .tripServiceErrorNotAllowed
         case .nameAlreadyUsed: .tripServiceErrorNameAlreadyUsed

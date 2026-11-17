@@ -59,6 +59,7 @@ import SwiftUI
 /// | `tripMapTakenOver` | Trip Started map on Agus's phone when his other phone takes the trip over after 2 s | N |
 /// | `homeFromAnotherPhone` | Home on a phone without a saved trip while the account's other phone is in a trip | R |
 /// | `joinWhileInATrip` | Room code sheet with another trip's code while the account is in a trip | R |
+/// | `joinStartedTrip` | Room code sheet with the code of a trip that already started: "Unable to join trip" | R |
 /// | `syncCheck` | Sync Check: create, join and hand over a trip through real iCloud, to test sync between phones | N |
 ///
 /// ## How to add your screen
@@ -95,6 +96,7 @@ enum DebugScreen: String, CaseIterable {
     case tripMapTakenOver
     case homeFromAnotherPhone
     case joinWhileInATrip
+    case joinStartedTrip
     case syncCheck
 
     /// The launch argument that names the screen, followed by the screen's name.
@@ -139,7 +141,8 @@ enum DebugScreen: String, CaseIterable {
             SimulatedArrivalsScreen(totalCount: 7)
         case .tripMapStartPoint:
             SimulatedStartPointScreen()
-        case .tripRoomTakenOver, .tripMapTakenOver, .homeFromAnotherPhone, .joinWhileInATrip, .syncCheck:
+        case .tripRoomTakenOver, .tripMapTakenOver, .homeFromAnotherPhone, .joinWhileInATrip, .joinStartedTrip,
+             .syncCheck:
             MakeAccountScreen()
         }
     }
@@ -152,6 +155,7 @@ enum DebugScreen: String, CaseIterable {
         case .tripMapTakenOver: SimulatedTakenOverMapScreen()
         case .homeFromAnotherPhone: SimulatedHomeFromAnotherPhoneScreen()
         case .joinWhileInATrip: SimulatedJoinWhileInATripScreen()
+        case .joinStartedTrip: SimulatedJoinStartedTripScreen()
         default: SyncCheckView()
         }
     }

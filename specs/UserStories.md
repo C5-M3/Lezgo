@@ -62,7 +62,7 @@ LOBBY ──leader leaves──► CANCELLED
 ```
 
 - The leader owns the trip. When the leader leaves on purpose (Exit, New Trip, End Trip), the trip ends for everyone, after a warning, like "End meeting for all" in Zoom. To leave without ending it, the leader hands over the lead first.
-- A trip can be joined in `LOBBY` (opens the Trip Room) and `IN_TRIP` (late joiner, opens the map). `ENDED` and `CANCELLED` reject joins.
+- A trip can be joined only in `LOBBY` (opens the Trip Room). `IN_TRIP` rejects anyone who is not in the trip yet ("The trip you are trying to join has already started."), and `ENDED` and `CANCELLED` reject joins. A member who is already in the trip can come back with the code at any status that is still open.
 
 ### Data model
 
@@ -179,7 +179,7 @@ Feature: Plan a route
 - "Enter room code" opens from the join button on Home. The field uses the number pad: digits only, exactly 6. "Enter" is disabled until 6 digits are typed.
 - An invite link opens the same dialog with the code filled in. A link with no valid 6-digit code is ignored.
 - No form, and the app never asks for a name. iOS does not tell apps the iCloud account's name, so a car whose driver typed no name is called "Leader" (the leader) or "Car 2", "Car 3", … (members, in the order they joined; the leader counts as car 1). A name typed in "Edit my name and car" (US-04) is shown instead and saved on the phone for every later trip I create or join.
-- `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → I join as a late member and the map opens.
+- `LOBBY` → I join as a member and the Trip Room opens. `IN_TRIP` → a dialog "Unable to join trip" says "The trip you are trying to join has already started." and I am not added. If I am already in the trip, I return to my own car.
 - `ENDED` or `CANCELLED` → join is rejected.
 - Joining the same trip again with the same iCloud account returns to my existing record; it never adds a second car. This holds from any phone of the account: the phone that joins last takes the trip over, and the phone that was in it is told (US-03).
 - One iCloud account is in one trip at a time. Joining a different trip while in an open one is refused: "You are already in a trip. Leave it first, or continue it from Home."
@@ -201,10 +201,18 @@ Feature: Join a trip
     When I tap "Enter"
     Then the Trip Room opens
 
-  Scenario: Join late
+  Scenario: Join after the trip started
     Given trip "897654" is IN_TRIP
+    And I am not in the trip
     When I enter "897654" and tap "Enter"
-    Then I am a member of the trip and the map opens with the current route
+    Then I see a dialog "Unable to join trip" with "The trip you are trying to join has already started."
+    And I am not added to the trip
+
+  Scenario: Come back to a trip that started
+    Given trip "897654" is IN_TRIP
+    And I am already a member of the trip
+    When I enter "897654" and tap "Enter"
+    Then I return to my own car without a second car
 
   Scenario: Wrong or closed code
     When I enter "000000" and tap "Enter"

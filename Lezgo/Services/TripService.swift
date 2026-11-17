@@ -29,8 +29,9 @@ protocol TripService {
     /// - Parameter profile: the member's name and car; `nil` uses "Member" plus the end of the iCloud user ID.
     /// Joining the trip this account is already in from another phone takes the account's place over: the other phone
     /// is told through `SeatTakenOver` (ADR 0031).
-    /// - Throws: `.notFound` for an unknown code, `.tripEnded` for an `ENDED` or `CANCELLED` trip, `.alreadyInTrip`
-    ///   when this account is in another open trip.
+    /// - Throws: `.notFound` for an unknown code, `.tripEnded` for an `ENDED` or `CANCELLED` trip,
+    ///   `.tripAlreadyStarted` for an `IN_TRIP` trip when this account is not in it yet (a started trip takes no new
+    ///   people), `.alreadyInTrip` when this account is in another open trip.
     func JoinTrip(roomCode: String, profile: ParticipantProfile?) async throws -> TripSession
 
     /// The open trip this iCloud account is in, with this account's participant, or `nil` when it is in none

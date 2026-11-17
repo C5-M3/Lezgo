@@ -95,6 +95,8 @@ final class LiveTripService: TripService {
                 try await ClaimSeat(tripID: trip.id, participantID: known)
                 return TripSession(myParticipantID: known, state: try await reader.LoadState(tripID: trip.id))
             }
+            // A started trip takes no new people; only the members it already has can come back.
+            guard trip.status == .lobby else { throw TripServiceError.tripAlreadyStarted }
             let taken = try await Run { try await reader.LoadState(tripID: trip.id) }
             let member = Participant.Joining(
                 tripID: trip.id, userRecordID: me, profile: profile.map { taken.WithoutTakenName($0) },
