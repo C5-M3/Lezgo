@@ -8,20 +8,19 @@
 import Testing
 @testable import Lezgo
 
-/// Which runs the split-screen Home plays for LEAD, JOIN and Back in both tap styles, and when Set Route or Enter
-/// room code is on screen (issue #329).
+/// Which runs the split-screen Home plays for LEAD, JOIN and Back, and when Set Route or Enter room code is on
+/// screen (issue #329). A tap on the dark half only swings it to yellow; a tap on the yellow half opens its screen.
 @MainActor
 struct HomeViewModelSplitTests {
     private typealias Motion = HomeSplitMotion
     private typealias Step = HomeSplitMotion.Step
 
-    private func MakeViewModel(_ tapStyle: HomeViewModel.TapStyle = .oneTap) -> HomeViewModel {
+    private func MakeViewModel() -> HomeViewModel {
         HomeViewModel(
             mapService: MockMapService(),
             searchService: MockLocationSearchService(),
             activeTripStorage: FakeActiveTripStorage(),
-            profileStorage: FakeProfileStorage(),
-            tapStyle: tapStyle
+            profileStorage: FakeProfileStorage()
         )
     }
 
@@ -34,12 +33,9 @@ struct HomeViewModelSplitTests {
         viewModel.FinishSplitMotion()
     }
 
-    /// Goes from the LEAD home to the JOIN home the way each tap style does.
+    /// Goes from the LEAD home to the JOIN home with a tap on the dark JOIN half.
     private func GoToTheJoinHome(_ viewModel: HomeViewModel) {
         Play(viewModel.JoinTapped(), on: viewModel)
-        if viewModel.splitDestination == .join {
-            Play(viewModel.BackTapped(), on: viewModel)
-        }
     }
 
     @Test func HomeOpensOnTheLeadHome() {
@@ -48,46 +44,6 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitFlow == .lead)
         #expect(viewModel.splitProgress == 0)
         #expect(viewModel.splitDestination == nil)
-    }
-
-    @Test func TheTapStyleComesFromTheBuild() {
-        #if LEZGO_HOME_TWO_TAP
-        #expect(HomeViewModel.TapStyle.build == .twoTap)
-        #else
-        #expect(HomeViewModel.TapStyle.build == .oneTap)
-        #endif
-    }
-
-    // MARK: - One tap
-
-    @Test func LeadRunsIntoSetRouteInOneGo() {
-        let viewModel = MakeViewModel()
-
-        #expect(viewModel.LeadTapped() == [Step(flow: .lead, target: 1)])
-    }
-
-    @Test func JoinSwingsAndRunsIntoRoomCodeInOneGo() {
-        let viewModel = MakeViewModel()
-
-        #expect(viewModel.JoinTapped() == [Step(flow: .join, target: 1)])
-    }
-
-    @Test func JoinOnTheJoinHomeGoesStraightToRoomCode() {
-        let viewModel = MakeViewModel()
-        GoToTheJoinHome(viewModel)
-
-        #expect(viewModel.JoinTapped() == [Step(flow: .join, target: 1)])
-    }
-
-    @Test func LeadOnTheJoinHomeSwingsBackThenRunsIntoSetRoute() {
-        let viewModel = MakeViewModel()
-        GoToTheJoinHome(viewModel)
-
-        let steps = viewModel.LeadTapped()
-        Play(steps, on: viewModel)
-
-        #expect(steps == [Step(flow: .swingBack, target: 0), Step(flow: .lead, target: 1)])
-        #expect(viewModel.splitDestination == .lead)
     }
 
     @Test func TheNextScreenIsOnFromTheStartOfTheRun() {
@@ -117,10 +73,10 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitStepStart == Motion.joinHome)
     }
 
-    // MARK: - Two taps
+    // MARK: - Taps on the halves
 
-    @Test func TwoTapsJoinOnTheLeadHomeOnlySwingsToTheJoinHome() {
-        let viewModel = MakeViewModel(.twoTap)
+    @Test func JoinOnTheLeadHomeOnlySwingsToTheJoinHome() {
+        let viewModel = MakeViewModel()
 
         let steps = viewModel.JoinTapped()
         Play(steps, on: viewModel)
@@ -130,8 +86,8 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitDestination == nil)
     }
 
-    @Test func TwoTapsJoinOnTheJoinHomeGoesToRoomCode() {
-        let viewModel = MakeViewModel(.twoTap)
+    @Test func JoinOnTheJoinHomeGoesToRoomCode() {
+        let viewModel = MakeViewModel()
         GoToTheJoinHome(viewModel)
 
         let steps = viewModel.JoinTapped()
@@ -141,8 +97,8 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitDestination == .join)
     }
 
-    @Test func TwoTapsLeadOnTheJoinHomeOnlySwingsBack() {
-        let viewModel = MakeViewModel(.twoTap)
+    @Test func LeadOnTheJoinHomeOnlySwingsBack() {
+        let viewModel = MakeViewModel()
         GoToTheJoinHome(viewModel)
 
         let steps = viewModel.LeadTapped()
@@ -153,14 +109,14 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitDestination == nil)
     }
 
-    @Test func TwoTapsLeadOnTheLeadHomeGoesToSetRoute() {
-        let viewModel = MakeViewModel(.twoTap)
+    @Test func LeadOnTheLeadHomeGoesToSetRoute() {
+        let viewModel = MakeViewModel()
 
         #expect(viewModel.LeadTapped() == [Step(flow: .lead, target: 1)])
     }
 
-    @Test func TwoTapsLeadAfterSwingingBackGoesToSetRoute() {
-        let viewModel = MakeViewModel(.twoTap)
+    @Test func LeadAfterSwingingBackGoesToSetRoute() {
+        let viewModel = MakeViewModel()
         GoToTheJoinHome(viewModel)
         Play(viewModel.LeadTapped(), on: viewModel)
 
@@ -168,9 +124,8 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.JoinTapped() == [Step(flow: .join, target: Motion.joinHome)])
     }
 
-    @Test(arguments: [HomeViewModel.TapStyle.oneTap, .twoTap])
-    func BackFromRoomCodeStopsOnTheJoinHome(_ tapStyle: HomeViewModel.TapStyle) {
-        let viewModel = MakeViewModel(tapStyle)
+    @Test func BackFromRoomCodeStopsOnTheJoinHome() {
+        let viewModel = MakeViewModel()
         GoToTheJoinHome(viewModel)
         Play(viewModel.JoinTapped(), on: viewModel)
 
@@ -182,9 +137,8 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitDestination == nil)
     }
 
-    @Test(arguments: [HomeViewModel.TapStyle.oneTap, .twoTap])
-    func BackFromSetRouteReturnsToTheLeadHome(_ tapStyle: HomeViewModel.TapStyle) {
-        let viewModel = MakeViewModel(tapStyle)
+    @Test func BackFromSetRouteReturnsToTheLeadHome() {
+        let viewModel = MakeViewModel()
         Play(viewModel.LeadTapped(), on: viewModel)
 
         let steps = viewModel.BackTapped()
@@ -195,11 +149,10 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitDestination == nil)
     }
 
-    // MARK: - Both styles
+    // MARK: - Motion in progress
 
-    @Test(arguments: [HomeViewModel.TapStyle.oneTap, .twoTap])
-    func TheDestinationStaysOnScreenWhileItWipesAway(_ tapStyle: HomeViewModel.TapStyle) {
-        let viewModel = MakeViewModel(tapStyle)
+    @Test func TheDestinationStaysOnScreenWhileItWipesAway() {
+        let viewModel = MakeViewModel()
         Play(viewModel.LeadTapped(), on: viewModel)
         #expect(viewModel.splitDestination == .lead)
 
@@ -211,9 +164,8 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.splitDestination == nil)
     }
 
-    @Test(arguments: [HomeViewModel.TapStyle.oneTap, .twoTap])
-    func TapsDuringTheMotionAreIgnored(_ tapStyle: HomeViewModel.TapStyle) {
-        let viewModel = MakeViewModel(tapStyle)
+    @Test func TapsDuringTheMotionAreIgnored() {
+        let viewModel = MakeViewModel()
         let steps = viewModel.JoinTapped()
         viewModel.BeginSplitStep(steps[0])
 
@@ -222,22 +174,20 @@ struct HomeViewModelSplitTests {
         #expect(viewModel.BackTapped().isEmpty)
     }
 
-    @Test(arguments: [HomeViewModel.TapStyle.oneTap, .twoTap])
-    func FastRepeatedTapsOnTheSwingBackAreIgnored(_ tapStyle: HomeViewModel.TapStyle) {
-        let viewModel = MakeViewModel(tapStyle)
+    @Test func FastRepeatedTapsOnTheSwingBackAreIgnored() {
+        let viewModel = MakeViewModel()
         GoToTheJoinHome(viewModel)
         let steps = viewModel.LeadTapped()
         viewModel.BeginSplitStep(steps[0])
         viewModel.FinishSplitStep(steps[0])
 
-        // Between the swing back and the run into Set Route the motion is still going.
+        // Until the view reports the motion finished, the split is still moving.
         #expect(viewModel.LeadTapped().isEmpty)
         #expect(viewModel.JoinTapped().isEmpty)
     }
 
-    @Test(arguments: [HomeViewModel.TapStyle.oneTap, .twoTap])
-    func BackOnTheHomeDoesNothing(_ tapStyle: HomeViewModel.TapStyle) {
-        let viewModel = MakeViewModel(tapStyle)
+    @Test func BackOnTheHomeDoesNothing() {
+        let viewModel = MakeViewModel()
 
         #expect(viewModel.BackTapped().isEmpty)
         GoToTheJoinHome(viewModel)
