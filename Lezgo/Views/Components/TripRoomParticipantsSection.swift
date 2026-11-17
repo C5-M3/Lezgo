@@ -85,21 +85,25 @@ private struct ParticipantCell: View {
     let onHold: () -> Void
 
     private var isLeader: Bool { viewModel.IsLeader(participant: participant) }
-    private var isReady: Bool { viewModel.IsParticipantReady(participant) }
     private var actions: [TripRoomViewModel.ParticipantAction] { viewModel.ManagementActions(for: participant) }
     private var displayName: String { viewModel.DisplayName(of: participant) }
 
     var body: some View {
-        if actions.isEmpty {
-            card
-        } else {
-            card
-                .onLongPressGesture(minimumDuration: 0.4, perform: onHold)
-                .accessibilityAction(named: Text("Show actions"), onHold)
+        // Ready depends on how old the car's last location is, so it is worked out again every second: a car that lost
+        // its signal sends nothing, and no new trip update would come to redraw it.
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let isReady = viewModel.IsParticipantReady(participant, at: context.date)
+            if actions.isEmpty {
+                card(isReady: isReady)
+            } else {
+                card(isReady: isReady)
+                    .onLongPressGesture(minimumDuration: 0.4, perform: onHold)
+                    .accessibilityAction(named: Text("Show actions"), onHold)
+            }
         }
     }
 
-    private var card: some View {
+    private func card(isReady: Bool) -> some View {
         VStack(spacing: 4) {
             AvatarImage(avatar: participant.avatar, isSelected: isReady)
                 .frame(width: AvatarImage.roomSize, height: AvatarImage.roomSize)
@@ -132,12 +136,12 @@ private struct ParticipantCell: View {
         .frame(maxWidth: .infinity)
         .contentShape(.rect)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(accessibilityLabel(isReady: isReady))
         .accessibilityHint(actions.isEmpty ? Text(verbatim: "") : Text("Opens a menu with actions"))
         .padding(.top, -15)
     }
 
-    private var accessibilityLabel: String {
+    private func accessibilityLabel(isReady: Bool) -> String {
         let parts = [
             displayName,
             participant.carDescription.isEmpty ? nil : participant.carDescription,

@@ -13,6 +13,9 @@ import Foundation
 struct Participant: Identifiable, Hashable, Codable {
     /// How long a phone may go without sending a location before it counts as offline.
     static let offlineAfter: TimeInterval = 120
+    /// A car counts as ready at the start point only while its last location is this recent. Much shorter than
+    /// `offlineAfter`, so the Trip Room drops a car that lost its signal long before the map calls it offline.
+    static let readyFreshFor: TimeInterval = 15
 
     /// The CloudKit record name.
     let id: UUID

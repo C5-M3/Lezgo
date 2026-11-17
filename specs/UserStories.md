@@ -369,7 +369,7 @@ Feature: Resume an unfinished trip
 
 **Ready**
 - Detected automatically; nobody taps a button.
-- Ready = within 100 m of the start point. Unknown location (no permission or offline) = not ready.
+- Ready = within 100 m of the start point. Unknown location (no permission or no signal) = not ready. A car whose last location is more than 15 seconds old (for example in airplane mode) is not ready, even though the map shows it offline only after 2 minutes.
 - Each avatar shows it: the selected image (with the burst behind the mascot) when ready, the unselected image when not. The two differ in shape, not only colour, and VoiceOver reads "Ready at start point" or "Not ready at start point".
 - Not ready never blocks the start; it only adds a warning (US-05).
 

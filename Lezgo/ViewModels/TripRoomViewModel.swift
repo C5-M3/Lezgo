@@ -252,7 +252,7 @@ final class TripRoomViewModel {
     }
 
     func IsParticipantReady(_ participant: Participant, at date: Date = .now) -> Bool {
-        guard participant.IsOnline(at: date),
+        guard date.timeIntervalSince(participant.lastSeenAt) <= Participant.readyFreshFor,
               let startCoord = startPoint?.coordinate,
               let participantCoord = participant.coordinate else { return false }
         let startLocation = CLLocation(latitude: startCoord.latitude, longitude: startCoord.longitude)
