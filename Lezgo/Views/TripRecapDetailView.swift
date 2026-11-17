@@ -45,7 +45,7 @@ struct TripRecapDetailView: View {
         .scrollBounceBehavior(.basedOnSize)
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
-        .background(Color.black)
+        .background(Color(LezgoSurface.page.color))
         .preferredColorScheme(.dark)
         .navigationBarBackButtonHidden(true)
         .toolbarVisibility(.hidden, for: .navigationBar)
@@ -149,62 +149,23 @@ private extension TripRecapDetailView {
         .padding(.top, 8)
     }
 
-    @ViewBuilder
     var backButton: some View {
-        if #available(iOS 18.0, *) {
-            Button {
-                hideKeyboard()
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-            }
-            .buttonStyle(.glass)
-            .accessibilityLabel(Text("Back"))
-        } else {
-            Button {
-                hideKeyboard()
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-                    .background {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-            }
-            .accessibilityLabel(Text("Back"))
+        Button("Back", systemImage: "chevron.left") {
+            hideKeyboard()
+            dismiss()
         }
+        .labelStyle(.iconOnly)
+        .font(.callout.weight(.bold))
+        .lezgoGlassButton(.round)
     }
 
-    @ViewBuilder
     var shareButton: some View {
-        if #available(iOS 18.0, *) {
-            ShareLink(item: viewModel.shareSummary) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-            }
-            .buttonStyle(.glass)
-            .accessibilityLabel(Text("Share Trip Recap"))
-        } else {
-            ShareLink(item: viewModel.shareSummary) {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-                    .background {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-            }
-            .accessibilityLabel(Text("Share Trip Recap"))
+        ShareLink(item: viewModel.shareSummary) {
+            Image(systemName: "square.and.arrow.up")
+                .font(.callout.weight(.bold))
         }
+        .lezgoGlassButton(.round)
+        .accessibilityLabel(Text("Share Trip Recap"))
     }
 }
 
@@ -279,7 +240,7 @@ private extension TripRecapDetailView {
             if viewModel.participants.isEmpty {
                 Text("No participants")
                     .font(.subheadline)
-                    .foregroundStyle(Color(white: 0.6))
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.top, 8)
             } else {
@@ -307,12 +268,12 @@ private struct OverviewItem: View {
         VStack(alignment: .leading, spacing: 6) {
             Image(systemName: systemImage)
                 .font(.system(size: 22))
-                .foregroundStyle(Color(white: 0.6))
+                .foregroundStyle(Color(.tripCardSubtext))
                 .accessibilityHidden(true)
 
             Text(title)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(Color(white: 0.6))
+                .foregroundStyle(Color(.tripCardSubtext))
 
             Text(value)
                 .font(.headline.weight(.bold))
@@ -352,7 +313,7 @@ private struct ParticipantCell: View {
             if !participant.carDescription.isEmpty {
                 Text(participant.carDescription)
                     .font(.subheadline)
-                    .foregroundStyle(Color(white: 0.6))
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }
