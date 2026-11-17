@@ -28,9 +28,9 @@ struct LiveLocationProviderTests {
         )
     }
 
-    /// The reading from a fix taken just now.
-    private func Read(_ fix: CLLocation) -> LocationReading? {
-        LiveLocationProvider.Reading(from: fix, now: TripFixtures.now)
+    /// The reading from a fix taken just now, with Precise Location on unless `hasFullAccuracy` says otherwise.
+    private func Read(_ fix: CLLocation, hasFullAccuracy: Bool = true) -> LocationReading? {
+        LiveLocationProvider.Reading(from: fix, hasFullAccuracy: hasFullAccuracy, now: TripFixtures.now)
     }
 
     @Test func GoodFixBecomesAReadingInKilometresPerHour() throws {
@@ -52,11 +52,18 @@ struct LiveLocationProviderTests {
     }
 
     @Test(arguments: [51.0, 101, 3_000])
-    func RoughFixIsMarkedImprecise(accuracy: CLLocationAccuracy) throws {
+    func EveryFixIsImpreciseWhilePreciseLocationIsOff(accuracy: CLLocationAccuracy) throws {
         // With Precise Location off, every fix is kilometres wide: the sharer must know, to tell the person.
-        let reading = try #require(Read(Fix(accuracy: accuracy, speed: 10)))
+        let reading = try #require(Read(Fix(accuracy: accuracy, speed: 10), hasFullAccuracy: false))
 
         #expect(reading.isPrecise == false)
+    }
+
+    @Test(arguments: [51.0, 101, 3_000])
+    func WeakFixWithPreciseLocationOnIsSkippedNotCalledImprecise(accuracy: CLLocationAccuracy) {
+        // A weak signal (indoors, the first fix) is not the Precise Location setting: it counts as no signal, so the
+        // notice does not send the person to Settings for nothing.
+        #expect(Read(Fix(accuracy: accuracy, speed: 10), hasFullAccuracy: true) == nil)
     }
 
     @Test func FixWithinFiftyMetresIsPrecise() throws {
