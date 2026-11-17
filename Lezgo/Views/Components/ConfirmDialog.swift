@@ -58,7 +58,7 @@ struct ConfirmDialog<Confirm: View>: View {
         VStack(spacing: 10) {
             title
                 .font(.title3.bold())
-                .foregroundStyle(.white)
+                .foregroundStyle(Color(.tripCardText))
                 .accessibilityAddTraits(.isHeader)
             if let message {
                 message
@@ -75,7 +75,7 @@ struct ConfirmDialog<Confirm: View>: View {
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
         .padding(20)
-        .background(Color(.tripCardButton), in: .rect(cornerRadius: 30))
+        .lezgoSurface(.level1, radius: LezgoRadius.card)
         // Named after its title, so VoiceOver and the UI tests find the dialog by what it asks.
         .accessibilityElement(children: .contain)
         .accessibilityLabel(title)
@@ -85,23 +85,13 @@ struct ConfirmDialog<Confirm: View>: View {
     @ViewBuilder
     private func Buttons() -> some View {
         if let cancelTitle {
-            Button(action: onCancel) {
-                Text(cancelTitle)
-                    .modifier(ButtonLabel(foreground: .white, background: Color(.tripCardSubtext).opacity(0.25)))
-            }
-            .buttonStyle(.pressable)
+            Button(action: onCancel) { Text(cancelTitle) }
+                .lezgoGlassButton(.second)
         }
-        Button(action: onConfirm) {
-            confirm
-                .modifier(ButtonLabel(
-                    foreground: Color(.tripCard),
-                    background: isDestructive ? Color(.tripAlertRed) : Color(.brandYellow)
-                ))
-        }
-        .buttonStyle(.pressable)
-        .disabled(isConfirmDisabled)
-        .opacity(isConfirmDisabled ? 0.5 : 1)
-        .animation(.lezgoFade, value: isConfirmDisabled)
+        Button(action: onConfirm) { confirm }
+            .lezgoGlassButton(isDestructive ? .destructive : .main)
+            .disabled(isConfirmDisabled)
+            .animation(.lezgoFade, value: isConfirmDisabled)
     }
 }
 
@@ -127,24 +117,6 @@ extension ConfirmDialog where Confirm == Text {
             onConfirm: onConfirm,
             confirm: { Text(confirmTitle) }
         )
-    }
-}
-
-extension ConfirmDialog {
-    /// The text of a dialog button, in its coloured capsule.
-    struct ButtonLabel: ViewModifier {
-        let foreground: Color
-        let background: Color
-
-        func body(content: Content) -> some View {
-            content
-                .font(.body.bold())
-                .foregroundStyle(foreground)
-                .padding(.horizontal, 12)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(background, in: .capsule)
-                .contentShape(.capsule)
-        }
     }
 }
 
