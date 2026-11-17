@@ -20,6 +20,7 @@ struct TripMapCameraControls: View {
     private var isFollowingMyCar: Bool { cameraMode == .followMyCar }
 
     var body: some View {
+        GlassEffectContainer(spacing: 14) {
         VStack(spacing: 14) {
             TripMapCompass(heading: mapHeading)
 
@@ -41,27 +42,16 @@ struct TripMapCameraControls: View {
             )
         }
         .labelStyle(.iconOnly)
-        .buttonStyle(RoundStyle())
+        .font(.title.weight(.semibold))
+        .lezgoGlassButton(.round, side: Self.buttonSide)
         // The icons change into each other instead of blinking.
         .contentTransition(.symbolEffect(.replace))
         .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: cameraMode)
-    }
-}
-
-extension TripMapCameraControls {
-    /// A dark circle of a fixed size. The icon is a map graphic, so it stops growing before it would leave the circle.
-    struct RoundStyle: ButtonStyle {
-        func makeBody(configuration: Configuration) -> some View {
-            configuration.label
-                .font(.title.weight(.semibold))
-                .dynamicTypeSize(...DynamicTypeSize.xxLarge)
-                .foregroundStyle(Color(.tripCardText))
-                .frame(width: 61, height: 61)
-                .background(Color(.tripCard), in: .circle)
-                .contentShape(.circle)
-                .pressFeedback(isPressed: configuration.isPressed)
         }
     }
+
+    /// The size of every round map button, as in the Hi-Fi.
+    static let buttonSide: CGFloat = 61
 }
 
 #Preview("Following my car") {

@@ -27,7 +27,7 @@ struct TripMapCompass: View {
                     }
                     .rotationEffect(.degrees(-heading.degrees))
                 }
-                .buttonStyle(TripMapCameraControls.RoundStyle())
+                .lezgoGlassButton(.round, side: TripMapCameraControls.buttonSide)
                 .accessibilityLabel(Text(.tripMapPointNorth))
                 .transition(.opacity)
             }

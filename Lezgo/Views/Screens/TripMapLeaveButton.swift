@@ -7,19 +7,18 @@
 
 import SwiftUI
 
-/// The red button at the bottom of the trip map: "End Trip" for the leader, "Exit Trip" for a member. Both ask for
-/// confirmation first (`specs/UserStories.md` → US-07, "Leave and end").
+/// The dark button with red text at the bottom of the trip map: "End Trip" for the leader, "Exit Trip" for a
+/// member. Both ask for confirmation first (`specs/UserStories.md` → US-07, "Leave and end").
 struct TripMapLeaveButton: View {
     let isLeader: Bool
     let action: () -> Void
 
     var body: some View {
-        // The role tells VoiceOver this leaves the trip; the red is the same as the confirmation's red button.
+        // The role tells VoiceOver this leaves the trip; the red text matches the confirmation's destructive button.
         Button(role: .destructive, action: action) {
             Text(isLeader ? .tripMapEndTrip : .tripMapExitTrip)
-                .foregroundStyle(Color(.tripAlertRed))
         }
-        .buttonStyle(TripMapCardButtonStyle())
+        .lezgoGlassButton(.destructive)
     }
 }
 
