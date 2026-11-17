@@ -209,6 +209,8 @@ extension View {
                 .resizable()
                 .scaledToFit()
                 .frame(height: 22)
+                // Drawn larger than the room it takes, so the button is as high as the Cancel button.
+                .scaleEffect(1.8)
                 .accessibilityLabel("Start")
         }
     )
