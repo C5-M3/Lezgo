@@ -15,18 +15,14 @@ struct TripRoomLeaveButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(role: .destructive, action: action) {
-            Image(systemName: "chevron.left")
-                .font(.callout.weight(.bold))
-                .foregroundStyle(.white)
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(Color(white: 0.16).opacity(0.92)))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        // The arrow sits in a circle of a fixed size, so it stops growing before it would not fit.
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        Button(
+            viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip",
+            systemImage: "chevron.left",
+            action: action
+        )
+        .labelStyle(.iconOnly)
+        .font(.callout.weight(.bold))
+        .lezgoGlassButton(.round)
         .disabled(viewModel.isLeaving)
-        .accessibilityLabel(viewModel.isCurrentUserLeader ? "End Trip" : "Exit Trip")
     }
 }

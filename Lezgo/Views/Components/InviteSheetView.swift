@@ -47,12 +47,7 @@ struct InviteSheetView: View {
         }
         .scrollBounceBehavior(.basedOnSize)
         .presentationDetents([.height(contentHeight)])
-        .presentationDragIndicator(.visible)
-        .presentationBackground {
-            UnevenRoundedRectangle(topLeadingRadius: 38, topTrailingRadius: 38)
-                .fill(Color.black)
-                .stroke(Color.white.opacity(0.18), lineWidth: 1)
-        }
+        .lezgoSheet()
         // The Trip Room is always dark, and BrandYellow has no contrast on a light sheet.
         .preferredColorScheme(.dark)
         .sensoryFeedback(.success, trigger: copyCount)
@@ -106,8 +101,8 @@ private struct RoomCodeView: View {
         .foregroundStyle(.primary)
         .frame(maxWidth: .infinity)
         .padding(.vertical)
-        .background(Color(.inviteSurface), in: .rect(cornerRadius: 16))
-        .contentShape(.rect(cornerRadius: 16))
+        .lezgoSurface(.level1, radius: LezgoRadius.field)
+        .contentShape(.rect(cornerRadius: LezgoRadius.field))
     }
 }
 

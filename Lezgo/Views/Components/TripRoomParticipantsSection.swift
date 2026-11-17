@@ -46,7 +46,7 @@ struct TripRoomParticipantsSection: View {
             if viewModel.participants.isEmpty {
                 Text("No participants yet")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
             } else {
@@ -68,7 +68,7 @@ struct TripRoomParticipantsSection: View {
                 if !isTransitioning {
                     Text(viewModel.isCurrentUserLeader ? "Hold to manage participants" : "Hold to edit your profile")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                         .frame(maxWidth: .infinity)
                         .padding(.top, 12)
                 }
@@ -124,7 +124,7 @@ private struct ParticipantCell: View {
             if !participant.carDescription.isEmpty {
                 Text(participant.carDescription)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
             }

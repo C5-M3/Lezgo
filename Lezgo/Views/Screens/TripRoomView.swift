@@ -108,7 +108,7 @@ struct TripRoomView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            .background(.black)
+            .background(Color(LezgoSurface.page.color))
         }
         .overlay { heldAvatarOverlay(viewModel: viewModel) }
         .sensoryFeedback(.impact, trigger: heldParticipant?.id)
@@ -249,7 +249,7 @@ private struct TripRoomContent: View {
         .scrollBounceBehavior(.basedOnSize)
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
-        .background(.black)
+        .background(Color(LezgoSurface.page.color))
         .overlay(alignment: .topLeading) {
             if !isTransitioning {
                 TripRoomLeaveButton(viewModel: viewModel, action: onLeave)

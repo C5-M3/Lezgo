@@ -29,7 +29,7 @@ struct TripSummarySection: View {
                         .accessibilityHidden(true)
                     Spacer()
                     Text(String(format: "%.1f km", totalDistance / 1000))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
 
                 HStack {
@@ -37,7 +37,7 @@ struct TripSummarySection: View {
                         .accessibilityHidden(true)
                     Spacer()
                     Text(formatDuration(totalDuration))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
             }
         }
