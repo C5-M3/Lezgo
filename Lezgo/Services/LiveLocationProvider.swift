@@ -16,9 +16,11 @@ import Foundation
 /// readings keep coming with the screen locked or another app in front (`UIBackgroundModes` has `location`). The
 /// background session is only kept with "While Using the App" access: "Always" access needs none, and none is kept
 /// while access is off. Readings without a fix or from more than a few seconds ago are skipped; to the sharer that
-/// is the same as no signal. Rough readings are marked imprecise, so the screens can say why this car is not shared.
+/// is the same as no signal. With Precise Location off, readings are marked imprecise, so the screens can say why
+/// this car is not shared.
 final class LiveLocationProvider: LocationProvider {
-    /// Readings less accurate than this (metres) are imprecise: a car drawn 100 m off sits on the wrong street.
+    /// With Precise Location on, readings less accurate than this (metres) are skipped: a car drawn 100 m off sits on
+    /// the wrong street.
     static let worstPreciseAccuracy: CLLocationAccuracy = 50
     /// Readings older than this (seconds) are skipped: CoreLocation can hand over a cached fix when updates start.
     static let maximumAge: TimeInterval = 5
@@ -78,7 +80,10 @@ final class LiveLocationProvider: LocationProvider {
                                 isAuthorizedAlways: authorization.authorizationStatus == .authorizedAlways
                             )
                         )
-                        guard let reading = Self.Reading(from: update.location) else { continue }
+                        let hasFullAccuracy = authorization.accuracyAuthorization == .fullAccuracy
+                        guard let reading = Self.Reading(from: update.location, hasFullAccuracy: hasFullAccuracy) else {
+                            continue
+                        }
                         continuation.yield(reading)
                     }
                 } catch {
@@ -90,12 +95,20 @@ final class LiveLocationProvider: LocationProvider {
         }
     }
 
-    /// A reading from a CoreLocation fix, or `nil` when there is no fix or it is too old at `now`. A rough fix is
-    /// marked imprecise.
-    static func Reading(from location: CLLocation?, now: Date = .now) -> LocationReading? {
+    /// A reading from a CoreLocation fix, or `nil` when there is no fix, it is too old at `now`, or it is too weak.
+    /// - Parameter hasFullAccuracy: `false` while Precise Location is off in Settings. Then every fix is rough and is
+    ///   marked imprecise, so the screens can tell the person. With Precise Location on, a weak fix (indoors, the
+    ///   first fix after opening the app) is skipped like no signal: it is not the setting, so it must not send the
+    ///   person to Settings.
+    static func Reading(
+        from location: CLLocation?,
+        hasFullAccuracy: Bool = true,
+        now: Date = .now
+    ) -> LocationReading? {
         guard let location,
               location.horizontalAccuracy >= 0,
-              now.timeIntervalSince(location.timestamp) <= maximumAge else {
+              now.timeIntervalSince(location.timestamp) <= maximumAge,
+              hasFullAccuracy == false || location.horizontalAccuracy <= worstPreciseAccuracy else {
             return nil
         }
         return LocationReading(
@@ -103,7 +116,7 @@ final class LiveLocationProvider: LocationProvider {
             speedKmh: max(location.speed, 0) * 3.6,
             recordedAt: location.timestamp,
             course: location.course >= 0 ? location.course : nil,
-            isPrecise: location.horizontalAccuracy <= worstPreciseAccuracy
+            isPrecise: hasFullAccuracy
         )
     }
 }
