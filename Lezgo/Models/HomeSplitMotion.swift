@@ -166,11 +166,6 @@ enum HomeSplitMotion {
         abs(target - start) * TotalDuration(of: flow)
     }
 
-    /// The progress at which the next screen starts to wipe in. Until then it is not on screen.
-    static func RevealStart(of flow: Flow) -> Double {
-        flow == .lead ? leadRevealStart : Lerp(joinHome, 1, (joinRevealStart - joinHomeTime) / (1 - joinHomeTime))
-    }
-
     static func FrameAt(_ flow: Flow, progress: Double) -> Frame {
         let progress = Clamp(progress)
         switch flow {

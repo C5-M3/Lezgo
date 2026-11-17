@@ -14,6 +14,8 @@ struct HomeView: View {
     @State private var viewModel = HomeViewModel()
     @State private var mapViewModel = MapViewModel()
     @State private var pendingJoinedSession: TripSession?
+    /// Set Route is built once Home has settled, hidden, so its map is ready before LEAD runs into it.
+    @State private var isSetRoutePrepared = false
     /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
     private let siriHandoff = SiriHandoff.shared
 
@@ -30,6 +32,9 @@ struct HomeView: View {
             progress: viewModel.splitProgress,
             destination: viewModel.splitDestination,
             isMoving: viewModel.isSplitMoving,
+            stepStart: viewModel.splitStepStart,
+            preparesLeadScreen: isSetRoutePrepared,
+            tapStyle: viewModel.tapStyle,
             onLead: OpenSetRoute,
             onJoin: { RunSplit(viewModel.JoinTapped()) },
             leadScreen: { setRouteScreen },
@@ -83,6 +88,11 @@ struct HomeView: View {
         .modifier(Prompts(viewModel: viewModel, onConfirmContinue: ContinueDraftTrip))
         .onAppear { viewModel.onAppear() }
         .task { await viewModel.RefreshActiveTrip(tripService: tripService) }
+        .task {
+            // After Home's first frames, so building Set Route's map does not hold up the launch.
+            try? await Task.sleep(for: .milliseconds(500))
+            isSetRoutePrepared = true
+        }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
         .onOpenURL { url in
             viewModel.OpenInviteLink(url)
@@ -166,7 +176,11 @@ private extension HomeView {
     func OpenSetRoute() {
         let steps = viewModel.LeadTapped()
         guard !steps.isEmpty else { return }
-        mapViewModel.onAppear()
+        // With two taps, LEAD on the JOIN home only swings back; Set Route opens on the next tap.
+        if steps.last?.flow == .lead {
+            isSetRoutePrepared = true
+            mapViewModel.onAppear()
+        }
         RunSplit(steps)
     }
 
@@ -195,7 +209,9 @@ private extension HomeView {
             finish()
             return
         }
-        let start = viewModel.splitFlow == step.flow ? viewModel.splitProgress : 0
+        // Every flow shares the LEAD home at 0 and the JOIN home at `joinHome`, so a step goes on from where the
+        // last one stopped.
+        let start = viewModel.splitProgress
         let duration = HomeSplitMotion.Duration(of: step.flow, from: start, to: step.target)
         // With Reduce Motion each step is a short fade; the halves jump and the next screen fades in or out.
         let animation = reduceMotion ? Animation.lezgoFade : .linear(duration: duration)

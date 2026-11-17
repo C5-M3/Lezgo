@@ -9,7 +9,8 @@ import SwiftUI
 
 /// One layer of the split-screen Home (issue #329): the logo and the LEAD and JOIN words, in yellow on the dark layer
 /// or in dark on a yellow layer, plus the mascots that belong to that half. The layers sit on top of each other and
-/// the yellow ones are cut to their half, so a word changes color exactly where the diagonal crosses it.
+/// the yellow ones are cut to their half, so a word changes color exactly where the diagonal crosses it. During the
+/// Swing both yellow layers are cut to one sheet and share the work (`HomeSplitSwingVisibility`).
 struct HomeSplitHalf: View {
     enum Look {
         case dark
@@ -32,6 +33,7 @@ struct HomeSplitHalf: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             (isYellow ? Color(.brandYellow) : Color(.tripCard))
+                .modifier(SwingVisibility(hides: look == .yellowJoin))
 
             Image(.lezgoIcon)
                 .renderingMode(.template)
@@ -40,6 +42,7 @@ struct HomeSplitHalf: View {
                 .foregroundStyle(isYellow ? Color(.tripCard) : .white)
                 .frame(height: 21 * scale)
                 .offset(x: fit.left + 22 * scale, y: 92 * scale)
+                .modifier(SwingVisibility(hides: look == .yellowLead))
 
             if look == .yellowLead {
                 let slot = HomeSplitMotion.mascotSlot
@@ -57,11 +60,14 @@ struct HomeSplitHalf: View {
                 }
             }
 
-            Word(.homeLeadWord, size: HomeSplitMotion.leadWordSize)
-                .modifier(HomeSplitPlacement(element: .leadWord, flow: flow, progress: progress, canvas: canvas))
+            Group {
+                Word(.homeLeadWord, size: HomeSplitMotion.leadWordSize)
+                    .modifier(HomeSplitPlacement(element: .leadWord, flow: flow, progress: progress, canvas: canvas))
 
-            Word(.homeJoinWord, size: HomeSplitMotion.joinWordSize)
-                .modifier(HomeSplitPlacement(element: .joinWord, flow: flow, progress: progress, canvas: canvas))
+                Word(.homeJoinWord, size: HomeSplitMotion.joinWordSize)
+                    .modifier(HomeSplitPlacement(element: .joinWord, flow: flow, progress: progress, canvas: canvas))
+            }
+            .modifier(SwingVisibility(hides: look == .yellowLead))
         }
         .frame(width: canvas.width, height: canvas.height, alignment: .topLeading)
         // The two halves are buttons with their own labels; what is drawn here only decorates them.
@@ -72,6 +78,11 @@ struct HomeSplitHalf: View {
     private static let crew: [ImageResource] = [
         .homeCrewGreen, .homeCrewPink, .homeCrewBlue, .homeCrewPurple, .homeCrewYellow
     ]
+
+    /// Hides the part of this layer the other yellow layer draws during the Swing; elsewhere nothing changes.
+    private func SwingVisibility(hides: Bool) -> HomeSplitSwingVisibility {
+        HomeSplitSwingVisibility(flow: flow, progress: progress, hidesWhileSwinging: hides)
+    }
 
     private func Word(_ resource: ImageResource, size: (width: Double, height: Double)) -> some View {
         Image(resource)

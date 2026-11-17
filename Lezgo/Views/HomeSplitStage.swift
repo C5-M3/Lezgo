@@ -9,6 +9,8 @@ import SwiftUI
 
 /// The split-screen Home (issue #329): a yellow LEAD half on top of a dark JOIN half, the two halves as buttons, and
 /// Set Route or Enter room code wiping in over them. Everything moves with `progress`, which the caller animates.
+/// Set Route can be built ahead while Home is idle and kept hidden and inert, so building its map never stalls the
+/// motion.
 struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
     let flow: HomeSplitMotion.Flow
     let progress: Double
@@ -16,6 +18,11 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
     let destination: HomeSplitMotion.Flow?
     /// `true` while the motion runs; Home must stay drawn then, even under a screen that covers it.
     let isMoving: Bool
+    /// Where the running step started; a screen added as the step starts wipes in from there.
+    let stepStart: Double
+    /// `true` once Set Route should be built: it then stays in place, hidden until LEAD brings it in.
+    let preparesLeadScreen: Bool
+    let tapStyle: HomeViewModel.TapStyle
     let onLead: () -> Void
     let onJoin: () -> Void
     let leadScreen: LeadScreen
@@ -29,6 +36,9 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         progress: Double,
         destination: HomeSplitMotion.Flow?,
         isMoving: Bool = false,
+        stepStart: Double = 0,
+        preparesLeadScreen: Bool = false,
+        tapStyle: HomeViewModel.TapStyle = .oneTap,
         onLead: @escaping () -> Void,
         onJoin: @escaping () -> Void,
         @ViewBuilder leadScreen: () -> LeadScreen,
@@ -38,6 +48,9 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         self.progress = progress
         self.destination = destination
         self.isMoving = isMoving
+        self.stepStart = stepStart
+        self.preparesLeadScreen = preparesLeadScreen
+        self.tapStyle = tapStyle
         self.onLead = onLead
         self.onJoin = onJoin
         self.leadScreen = leadScreen()
@@ -48,9 +61,9 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         destination != nil && !isMoving
     }
 
-    /// On the JOIN home the split line sits higher, so the tap areas follow it.
+    /// On the JOIN home the split line sits higher, so the tap areas follow it. Every flow is on the LEAD home at 0.
     private var isOnJoinHome: Bool {
-        flow == .join && progress > 0
+        progress > 0
     }
 
     var body: some View {
@@ -89,13 +102,18 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
             if destination == nil {
                 HalfButton(
                     title: "Lead a trip",
-                    hint: "Plan the trip and make a room for friends to join trip!",
+                    // With two taps the dark half only comes to the front, so its hint says so.
+                    hint: tapStyle == .twoTap && isOnJoinHome
+                        ? "Brings Lead a trip to the front."
+                        : "Plan the trip and make a room for friends to join trip!",
                     area: Area(isOnJoinHome ? .overBottomSlab : .topSlab),
                     action: onLead
                 )
                 HalfButton(
                     title: "Join a trip",
-                    hint: "Got a room code from friend leader? Join the room now!",
+                    hint: tapStyle == .twoTap && !isOnJoinHome
+                        ? "Brings Join a trip to the front."
+                        : "Got a room code from friend leader? Join the room now!",
                     area: Area(isOnJoinHome ? .bottomSlab : .underTopSlab),
                     action: onJoin
                 )
@@ -115,17 +133,40 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
 
     private var destinations: some View {
         ZStack {
-            if destination == .lead {
-                leadScreen
-                    .modifier(HomeSplitWipe(flow: .lead, progress: progress, canvasHeight: canvas.height))
-                    .transition(.homeSplitWipe(.lead, canvasHeight: canvas.height, reduceMotion: reduceMotion))
+            if preparesLeadScreen || destination == .lead {
+                Destination(.lead, leadScreen)
             }
             if destination == .join {
-                joinScreen
-                    .modifier(HomeSplitWipe(flow: .join, progress: progress, canvasHeight: canvas.height))
-                    .transition(.homeSplitWipe(.join, canvasHeight: canvas.height, reduceMotion: reduceMotion))
+                Destination(.join, joinScreen)
             }
         }
+    }
+
+    /// The next screen, wiped in with the motion. It is on screen for the whole run that brings it in or takes it
+    /// away, and takes taps, VoiceOver and the keyboard only once it has landed. A screen built ahead stays hidden
+    /// and inert until its run.
+    private func Destination(_ screenFlow: HomeSplitMotion.Flow, _ screen: some View) -> some View {
+        let isOn = destination == screenFlow
+        return screen
+            .environment(\.canRaiseKeyboard, isOn && !isMoving)
+            .modifier(
+                HomeSplitWipe(
+                    flow: screenFlow,
+                    progress: progress,
+                    canvasHeight: canvas.height,
+                    isWiping: !reduceMotion
+                )
+            )
+            // The wipe shows and hides it; the change of `isOn` never animates, except as a fade with Reduce Motion.
+            .animation(reduceMotion ? .lezgoFade : nil) { $0.opacity(isOn ? 1 : 0) }
+            .allowsHitTesting(isOn && !isMoving)
+            .accessibilityHidden(!isOn)
+            // While hidden it keeps its size when the keyboard comes or goes over another screen, so it is not laid
+            // out again in the middle of a motion.
+            .ignoresSafeArea(isOn && screenFlow == .lead ? [] : .keyboard)
+            .transition(
+                .homeSplitWipe(screenFlow, from: stepStart, canvasHeight: canvas.height, reduceMotion: reduceMotion)
+            )
     }
 }
 

@@ -14,6 +14,8 @@ struct HomeSplitWipe: ViewModifier, Animatable {
     var progress: Double
     /// The screen height the 874-point design is scaled to.
     let canvasHeight: Double
+    /// `false` with Reduce Motion: the screen then only fades.
+    var isWiping = true
 
     var animatableData: Double {
         get { progress }
@@ -24,30 +26,37 @@ struct HomeSplitWipe: ViewModifier, Animatable {
         let frame = HomeSplitMotion.FrameAt(flow, progress: progress)
         let slide = flow == .lead ? frame.leadDestinationOffset : frame.joinDestinationOffset
         content
-            .offset(y: slide * canvasHeight / HomeSplitMotion.canvasHeight)
+            .offset(y: isWiping ? slide * canvasHeight / HomeSplitMotion.canvasHeight : 0)
             .mask {
-                HomeSplitShape(
-                    part: flow == .lead ? .leadDestination : .joinDestination,
-                    flow: flow,
-                    progress: progress
-                )
-                    // The next screen keeps the safe area for its own layout, but the wipe crosses the whole screen.
-                    .ignoresSafeArea()
+                if isWiping {
+                    HomeSplitShape(
+                        part: flow == .lead ? .leadDestination : .joinDestination,
+                        flow: flow,
+                        progress: progress
+                    )
+                        // The next screen keeps the safe area for its own layout, but the wipe crosses the whole
+                        // screen.
+                        .ignoresSafeArea()
+                } else {
+                    Rectangle()
+                        .ignoresSafeArea()
+                }
             }
     }
 }
 
 extension AnyTransition {
-    /// The next screen comes in with the wipe from where it starts, `HomeSplitMotion.RevealStart`, and is fully
-    /// shown at the end. With Reduce Motion it fades instead.
-    static func homeSplitWipe(_ flow: HomeSplitMotion.Flow, canvasHeight: Double, reduceMotion: Bool) -> AnyTransition {
+    /// A screen that is added as its run starts comes in with the wipe from where the run started, `start`, and is
+    /// fully shown at the end. With Reduce Motion it fades instead.
+    static func homeSplitWipe(
+        _ flow: HomeSplitMotion.Flow,
+        from start: Double,
+        canvasHeight: Double,
+        reduceMotion: Bool
+    ) -> AnyTransition {
         guard !reduceMotion else { return .opacity }
         return .modifier(
-            active: HomeSplitWipe(
-                flow: flow,
-                progress: HomeSplitMotion.RevealStart(of: flow),
-                canvasHeight: canvasHeight
-            ),
+            active: HomeSplitWipe(flow: flow, progress: start, canvasHeight: canvasHeight),
             identity: HomeSplitWipe(flow: flow, progress: 1, canvasHeight: canvasHeight)
         )
     }

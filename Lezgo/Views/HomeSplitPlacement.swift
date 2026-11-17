@@ -45,13 +45,17 @@ struct HomeSplitPlacement: ViewModifier, Animatable {
             content
                 .scaleEffect(x: frame.mascot.scaleX, y: frame.mascot.scaleY, anchor: pivot)
                 .rotationEffect(.degrees(frame.mascot.rotation), anchor: pivot)
-                .offset(x: fit.rightPinnedLeft + slot.x * fit.scale, y: (slot.y + frame.mascot.offset) * fit.scale)
+                .offset(
+                    x: fit.rightPinnedLeft + (slot.x + frame.mascot.shift) * fit.scale,
+                    y: (slot.y + frame.mascot.offset) * fit.scale
+                )
         case .crew(let index):
             let slot = HomeSplitMotion.crewSlots[index]
             let pose = frame.crew[index]
             content
                 .scaleEffect(pose.scale, anchor: .topLeading)
                 .offset(x: fit.rightPinnedLeft + slot.x * fit.scale, y: (slot.y + pose.offset) * fit.scale)
+                .opacity(pose.opacity)
         }
     }
 

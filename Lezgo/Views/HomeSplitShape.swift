@@ -11,11 +11,11 @@ import SwiftUI
 /// `progress`, so a yellow half or the next screen sweeps across without the views inside it being rebuilt.
 struct HomeSplitShape: Shape {
     enum Part {
-        /// The yellow LEAD half.
+        /// The yellow LEAD half, or the whole yellow sheet during the Swing.
         case topSlab
         /// The dark area under the yellow LEAD half: JOIN's tap area on the LEAD home.
         case underTopSlab
-        /// The yellow JOIN half.
+        /// The yellow JOIN half, or the whole yellow sheet during the Swing.
         case bottomSlab
         /// The dark area over the yellow JOIN half: LEAD's tap area on the JOIN home.
         case overBottomSlab
@@ -36,6 +36,9 @@ struct HomeSplitShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         let frame = HomeSplitMotion.FrameAt(flow, progress: progress)
+        if let sheet = frame.sheet, part == .topSlab || part == .bottomSlab {
+            return Sheet(sheet, in: rect)
+        }
         switch part {
         case .topSlab: return Above(frame.topSlab, in: rect)
         case .underTopSlab: return Below(frame.topSlab, in: rect)
@@ -72,6 +75,29 @@ struct HomeSplitShape: Shape {
                 CGPoint(x: rect.maxX, y: bottom),
                 CGPoint(x: rect.minX, y: bottom)
             ])
+            path.closeSubpath()
+        }
+    }
+
+    /// The yellow as one half-plane, drawn as a quad far larger than the screen. The design is mapped onto the screen
+    /// the way the slabs are, its width onto the screen's width, so the sheet lines up with them at both homes.
+    private func Sheet(_ sheet: HomeSplitMotion.Sheet, in rect: CGRect) -> Path {
+        let scale = HomeSplitMotion.FitOn(width: rect.width, height: rect.height).scale
+        let across = rect.width / HomeSplitMotion.canvasWidth
+        let reach = 2000.0
+        let along = (x: cos(sheet.angle), y: sin(sheet.angle))
+        // The yellow side: the left of the edge's direction, with y growing downwards.
+        let toYellow = (x: sin(sheet.angle), y: -cos(sheet.angle))
+        let start = (x: sheet.x - reach * along.x, y: sheet.y - reach * along.y)
+        let end = (x: sheet.x + reach * along.x, y: sheet.y + reach * along.y)
+        let corners = [
+            start,
+            end,
+            (x: end.x + reach * toYellow.x, y: end.y + reach * toYellow.y),
+            (x: start.x + reach * toYellow.x, y: start.y + reach * toYellow.y)
+        ]
+        return Path { path in
+            path.addLines(corners.map { CGPoint(x: rect.minX + $0.x * across, y: rect.minY + $0.y * scale) })
             path.closeSubpath()
         }
     }
