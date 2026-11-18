@@ -16,31 +16,38 @@ struct TripMapOnTheGoView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 24
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 15) {
-                Text(.tripMapOnTheGoTitle)
-                    .font(.largeTitle.weight(.heavy))
-                    .lineLimit(1)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 10)
-                    .accessibilityAddTraits(.isHeader)
-                NextStopCard()
-                Text(.tripMapOnTheGoParticipants)
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 3)
-                    .accessibilityAddTraits(.isHeader)
-                ForEach(viewModel.participantRows) { row in
-                    TripMapOnTheGoRow(row: row)
+        VStack(alignment: .leading, spacing: 15) {
+            // The title, the card and the heading stay in place; only the participants scroll under them.
+            Text(.tripMapOnTheGoTitle)
+                .font(.largeTitle.weight(.heavy))
+                .lineLimit(1)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 10)
+                .accessibilityAddTraits(.isHeader)
+            NextStopCard()
+            Text(.tripMapOnTheGoParticipants)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.top, 3)
+                .accessibilityAddTraits(.isHeader)
+            ScrollView {
+                VStack(spacing: 15) {
+                    ForEach(viewModel.participantRows) { row in
+                        TripMapOnTheGoRow(row: row)
+                    }
                 }
+                .padding(.top, 2)
+                // Room for the buttons, so the last row can be scrolled above them.
+                .padding(.bottom, 120)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 40)
-            // Room for the buttons, so the last row can be scrolled above them.
-            .padding(.bottom, 120)
+            .scrollIndicators(.hidden)
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 40)
+        // Solid, so the rows never show through the fixed part while they scroll.
+        .background(Color(.tripCard))
         .overlay(alignment: .bottom) {
             // The rows fade out under the buttons, as in the hi-fi.
             LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
