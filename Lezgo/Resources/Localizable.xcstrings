@@ -2045,6 +2045,30 @@
         }
       }
     },
+    "tripMapOnTheGoStart" : {
+      "comment" : "Caption under the start of the track on the On the Go card (ADR 0034).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start"
+          }
+        }
+      }
+    },
+    "tripMapOnTheGoEnd" : {
+      "comment" : "Caption under the flag at the end of the track on the On the Go card (ADR 0034).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "End"
+          }
+        }
+      }
+    },
     "tripMapEndTrip" : {
       "comment" : "Red button on the trip map for the leader: end the trip for everyone (US-07).",
       "extractionState" : "manual",

@@ -19,7 +19,8 @@ struct TripMapOnTheGoView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 Text(.tripMapOnTheGoTitle)
-                    .font(.largeTitle.weight(.black))
+                    .font(.largeTitle.weight(.heavy))
+                    .lineLimit(1)
                     .foregroundStyle(.white)
                     .accessibilityAddTraits(.isHeader)
                 NextStopCard()
@@ -36,22 +37,34 @@ struct TripMapOnTheGoView: View {
             // Room for the buttons, so the last row can be scrolled above them.
             .padding(.bottom, 120)
         }
-        .overlay(alignment: .bottom) { Buttons() }
+        .overlay(alignment: .bottom) {
+            Buttons()
+                .background(alignment: .bottom) {
+                    // The rows fade out under the buttons, as in the hi-fi.
+                    LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 140)
+                        .ignoresSafeArea()
+                        .allowsHitTesting(false)
+                }
+        }
         .task { await viewModel.TrackAllCars() }
     }
 
     private func NextStopCard() -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(.tripMapOnTheGoNextStop)
-                .font(.headline)
-                .foregroundStyle(.white)
-            Spacer()
-            if let timeToNextStop = viewModel.timeToNextStop {
-                Text(timeToNextStop.formatted(TripMapCarStatus.durationStyle))
-                    .font(.system(size: timeSize, weight: .black))
+        VStack(spacing: 14) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(.tripMapOnTheGoNextStop)
+                    .font(.headline)
                     .foregroundStyle(.white)
-                    .contentTransition(.numericText(countsDown: true))
+                Spacer()
+                if let timeToNextStop = viewModel.timeToNextStop {
+                    Text(timeToNextStop.formatted(TripMapCarStatus.durationStyle))
+                        .font(.system(size: timeSize, weight: .black))
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText(countsDown: true))
+                }
             }
+            TripMapOnTheGoTrack(progress: viewModel.routeProgress)
         }
         .padding(20)
         .lezgoSurface(.level1, radius: LezgoRadius.card)

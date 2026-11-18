@@ -21,16 +21,17 @@ extension TripMapViewModel {
 
     /// Where the cars are between the start and the end of the route, for the track on the On the Go card.
     struct RouteProgress: Hashable {
-        struct Car: Identifiable, Hashable {
-            let id: UUID
-            let carColor: TripMapCarPin.CarColor
-            /// 0 at the start of the route, 1 at its end.
-            let fraction: Double
-        }
-
-        let cars: [Car]
+        let cars: [RouteProgressCar]
         /// How far the car in front has gone: the yellow part of the track.
         let leadFraction: Double
+    }
+
+    /// One car on the track.
+    struct RouteProgressCar: Identifiable, Hashable {
+        let id: UUID
+        let carColor: TripMapCarPin.CarColor
+        /// 0 at the start of the route, 1 at its end.
+        let fraction: Double
     }
 
     /// The track's cars, or `nil` until the trip and its route are known.
@@ -39,11 +40,11 @@ extension TripMapViewModel {
         let path = route
         let length = zip(path, path.dropFirst()).reduce(0) { $0 + $1.0.Distance(to: $1.1) }
         guard length > 0 else { return nil }
-        let cars = state.participants.compactMap { car -> RouteProgress.Car? in
+        let cars = state.participants.compactMap { car -> RouteProgressCar? in
             guard car.IsOnline(at: updatedAt), let coordinate = car.coordinate,
                   let position = RoutePosition.Locate(coordinate, on: path) else { return nil }
             let fraction = min(1, max(0, position.distanceAlongRoute / length))
-            return RouteProgress.Car(id: car.id, carColor: CarColor(of: car, in: state), fraction: fraction)
+            return RouteProgressCar(id: car.id, carColor: CarColor(of: car, in: state), fraction: fraction)
         }
         return RouteProgress(cars: cars, leadFraction: cars.map(\.fraction).max() ?? 0)
     }

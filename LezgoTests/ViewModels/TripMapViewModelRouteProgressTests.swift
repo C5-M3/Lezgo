@@ -24,7 +24,12 @@ struct TripMapViewModelRouteProgressTests {
         )
     }
 
-    private func Car(_ id: UUID, name: String, at coordinate: Coordinate, lastSeenSecondsAgo: Double = 1) -> Participant {
+    private func Car(
+        _ id: UUID,
+        name: String,
+        at coordinate: Coordinate,
+        lastSeenSecondsAgo: Double = 1
+    ) -> Participant {
         var car = Fixtures.Car(id: id, name: name, lastSeenSecondsAgo: lastSeenSecondsAgo)
         car.coordinate = coordinate
         return car

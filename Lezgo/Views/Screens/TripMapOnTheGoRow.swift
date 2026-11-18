@@ -12,40 +12,49 @@ import SwiftUI
 struct TripMapOnTheGoRow: View {
     let row: TripMapViewModel.ParticipantRow
 
-    /// The mascot's body fills only part of its image; the rest is transparent margin.
-    private static let mascotImageSize = 110.0
+    /// The mascot is drawn larger than the card and its feet are cut off, as in the hi-fi.
+    private static let mascotImageSize = 130.0
+    private static let mascotDrop = 18.0
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 8) {
             Image(row.status.carColor.fullBodyImage)
                 .resizable()
                 .scaledToFit()
                 .frame(width: Self.mascotImageSize, height: Self.mascotImageSize)
+                .offset(y: Self.mascotDrop)
                 .opacity(IsOffline() ? 0.4 : 1)
                 .accessibilityHidden(true)
 
+            // One line each: a long name or street is cut off with "…" instead of growing the card.
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: row.status.displayName)
-                    .font(.title.bold())
+                    .font(.title2.weight(.heavy))
                     .foregroundStyle(.white)
+                    .lineLimit(1)
                 Text(verbatim: row.status.statusLine)
-                    .font(.footnote.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(StatusColor())
+                    .lineLimit(1)
                 if row.status.carDescription.isEmpty == false {
                     Text(verbatim: row.status.carDescription)
-                        .font(.footnote.weight(.semibold))
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(Color(.tripCardSubtext))
+                        .lineLimit(1)
                 }
                 if let timeToDestination = row.timeToDestination {
                     Text(.tripMapOnTheGoArrivesIn(timeToDestination.formatted(TripMapCarStatus.durationStyle)))
-                        .font(.footnote.weight(.bold))
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(.white)
+                        .lineLimit(1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
+        .padding(.leading, 4)
+        .padding(.trailing, 16)
+        .frame(height: 100)
+        .clipShape(.rect(cornerRadius: LezgoRadius.card))
         .lezgoSurface(.level1, radius: LezgoRadius.card)
         .accessibilityElement(children: .combine)
     }

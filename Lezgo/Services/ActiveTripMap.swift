@@ -22,14 +22,12 @@ final class ActiveTripMap {
     private(set) var tripMap: TripMapViewModel?
 
     func Show(_ tripMap: TripMapViewModel) {
-        print("TMPCHECK Show")
         self.tripMap = tripMap
     }
 
     /// Only the map that is shown clears it: a new map can open before the old one has gone.
     func Hide(_ tripMap: TripMapViewModel) {
         guard self.tripMap === tripMap else { return }
-        print("TMPCHECK Hide")
         self.tripMap = nil
     }
 }
