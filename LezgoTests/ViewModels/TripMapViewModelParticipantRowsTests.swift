@@ -14,12 +14,13 @@ struct TripMapViewModelParticipantRowsTests {
     private typealias Fixtures = TripMapFixtures
 
     private func MakeViewModel(
+        me: UUID = Fixtures.agusID,
         state: TripState = Fixtures.State(currentWaypointIndex: 2),
         navigator: MockTripMapNavigator = MockTripMapNavigator(results: [.success(Fixtures.Guidance(minutesLeft: 50))])
     ) -> TripMapViewModel {
         TripMapViewModel(
             tripID: Fixtures.tripID,
-            myParticipantID: Fixtures.agusID,
+            myParticipantID: me,
             tripService: MockTripService(states: [state]),
             navigator: navigator,
             streetNameService: MockStreetNameService(),
@@ -37,6 +38,15 @@ struct TripMapViewModelParticipantRowsTests {
         await viewModel.Start()
 
         #expect(viewModel.participantRows.map(\.status.displayName) == ["Agus", "Budi", "Citra"])
+    }
+
+    /// As in the hi-fi, the phone's own car is first and the others follow in the order of the trip.
+    @Test func MyOwnCarIsFirstAndTheOthersFollowInTripOrder() async {
+        let viewModel = MakeViewModel(me: Fixtures.budiID)
+
+        await viewModel.Start()
+
+        #expect(viewModel.participantRows.map(\.status.displayName) == ["Budi", "Agus", "Citra"])
     }
 
     @Test func OnlyMyOwnRowIsMarkedAsMine() async {

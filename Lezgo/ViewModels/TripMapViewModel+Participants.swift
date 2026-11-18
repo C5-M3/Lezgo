@@ -19,7 +19,24 @@ extension TripMapViewModel {
         var id: UUID { status.id }
     }
 
-    /// Every participant, in the order of the trip.
+    /// Where the cars are between the start and the end of the route, for the track on the On the Go card.
+    struct RouteProgress: Hashable {
+        struct Car: Identifiable, Hashable {
+            let id: UUID
+            let carColor: TripMapCarPin.CarColor
+            /// 0 at the start of the route, 1 at its end.
+            let fraction: Double
+        }
+
+        let cars: [Car]
+        /// How far the car in front has gone: the yellow part of the track.
+        let leadFraction: Double
+    }
+
+    /// The track's cars, or `nil` until the trip and its route are known.
+    var routeProgress: RouteProgress? { nil }
+
+    /// Every participant: this phone's own car first, then the others in the order of the trip.
     var participantRows: [ParticipantRow] {
         guard let state else { return [] }
         return state.participants.compactMap { car in
