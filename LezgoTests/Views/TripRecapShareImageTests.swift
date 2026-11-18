@@ -4,9 +4,11 @@
 //
 
 import CoreGraphics
+import CoreTransferable
 import Foundation
 import Testing
 import UIKit
+import UniformTypeIdentifiers
 @testable import Lezgo
 
 @MainActor
@@ -41,6 +43,16 @@ struct TripRecapShareImageTests {
         )
         context?.draw(image, in: CGRect(x: -x, y: -(image.height - 1 - y), width: image.width, height: image.height))
         return pixel[3]
+    }
+
+    @Test func ShareSheetGetsThePngBytesAndNotAFilePath() async throws {
+        let content = TripRecapShareCardContent(recap: .sample)
+        let shareImage = try #require(TripRecapShareImage.Render(content: content, mapPicture: stubMapPicture))
+
+        let exported = try await shareImage.exported(as: .png)
+
+        #expect(exported == (try Data(contentsOf: shareImage.fileURL)))
+        #expect(exported.starts(with: [0x89, 0x50, 0x4E, 0x47]))
     }
 
     @Test func PictureIsNineBySixteenAt1080By1920() throws {

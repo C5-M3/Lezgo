@@ -18,9 +18,13 @@ struct TripRecapShareImage: Transferable, Equatable {
     }
 
     static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(exportedContentType: .png) { image in
-            SentTransferredFile(image.fileURL)
+        // The PNG bytes go to the share sheet themselves. Handing over a file path in this app's temporary folder
+        // left WhatsApp empty and made Instagram say "Content currently unavailable", because those share
+        // extensions could not use the file.
+        DataRepresentation(exportedContentType: .png) { image in
+            try Data(contentsOf: image.fileURL)
         }
+        .suggestedFileName { $0.fileURL.lastPathComponent }
     }
 
     /// Draws the card with `mapPicture` and writes it as a PNG. `nil` when the picture cannot be made.
