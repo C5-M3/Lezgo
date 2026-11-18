@@ -72,7 +72,7 @@ private extension TripRecapView {
             Spacer()
 
             Text("Trip History")
-                .font(.title2.weight(.bold))
+                .font(.lezgoPageTitle)
                 .foregroundStyle(.white)
 
             Spacer()

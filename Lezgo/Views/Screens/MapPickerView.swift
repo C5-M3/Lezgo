@@ -75,7 +75,7 @@ struct MapPickerView: View {
             Spacer()
 
             Text(viewModel.title)
-                .font(.body.weight(.bold))
+                .font(.lezgoPageTitle)
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
