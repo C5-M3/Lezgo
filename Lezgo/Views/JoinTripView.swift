@@ -57,6 +57,7 @@ struct JoinTripView: View {
     @Environment(\.tripService) private var tripService
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) var textSize
+    @Environment(\.verticalSizeClass) var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// `false` while Enter room code still wipes in over the split Home (issue #329).
     @Environment(\.canRaiseKeyboard) private var canRaiseKeyboard
@@ -126,12 +127,22 @@ struct JoinTripView: View {
                 }
             }
 
-            enterButton
+            if !isFullScreen {
+                enterButton
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, isFullScreen ? 4 : 30)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity, maxHeight: isFullScreen ? .infinity : nil, alignment: .top)
+        // Full screen: Enter is a bottom inset, so it rides on top of the keyboard and the mascot takes the room left.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if isFullScreen {
+                enterButton
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+            }
+        }
         // Under the keyboard too, so Home never shows through it while it rises or drops.
         .background { (isFullScreen ? Color(.tripCard) : .clear).ignoresSafeArea() }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { newHeight in
@@ -170,7 +181,7 @@ struct JoinTripView: View {
     var headerSection: some View {
         VStack(alignment: .center, spacing: 4) {
             Text("Enter room code")
-                .font(.title3.weight(.bold))
+                .font(isFullScreen ? .title.weight(.bold) : .title3.weight(.bold))
                 .foregroundStyle(Color(.tripCardText))
 
             Text("Ask the leader for the 6 digits")

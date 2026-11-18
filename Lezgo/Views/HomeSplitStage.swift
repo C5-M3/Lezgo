@@ -159,8 +159,9 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
             .allowsHitTesting(isOn && !isMoving)
             .accessibilityHidden(!isOn)
             // While hidden it keeps its size when the keyboard comes or goes over another screen, so it is not laid
-            // out again in the middle of a motion.
-            .ignoresSafeArea(isOn && screenFlow == .lead ? [] : .keyboard)
+            // out again in the middle of a motion. Once on, it follows the keyboard: Enter room code keeps its Enter
+            // button on top of it.
+            .ignoresSafeArea(isOn ? [] : .keyboard)
             .transition(
                 .homeSplitWipe(screenFlow, from: stepStart, canvasHeight: canvas.height, reduceMotion: reduceMotion)
             )
