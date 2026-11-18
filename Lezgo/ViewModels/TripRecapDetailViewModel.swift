@@ -74,7 +74,15 @@ final class TripRecapDetailViewModel {
     }
 
     /// Makes the picture that the share button sends. `make` is the real renderer in the app and a fake in tests.
-    func PrepareShareImage(using make: (TripRecap) async -> TripRecapShareImage?) async {}
+    func PrepareShareImage(using make: (TripRecap) async -> TripRecapShareImage?) async {
+        guard shareImage == nil, !isPreparingShareImage else { return }
+        isPreparingShareImage = true
+        isShareFailed = false
+        defer { isPreparingShareImage = false }
+
+        shareImage = await make(recap)
+        isShareFailed = shareImage == nil
+    }
 
     var shareSummary: String {
         """
