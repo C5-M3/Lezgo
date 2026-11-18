@@ -29,7 +29,7 @@ struct TripRoomParticipantsSection: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Participants")
-                    .font(.title3.bold())
+                    .font(.lezgoSectionTitle)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if !isTransitioning {
