@@ -14,26 +14,29 @@ struct TripMapOnTheGoView: View {
     let viewModel: TripMapViewModel
 
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 24
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize = 36
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// `true` once the list has scrolled far enough for the card's label to reach the bar, which then takes the title
-    /// over.
+    /// `true` once the list has scrolled far enough for the "On the Go…" title to reach the bar, which then takes the
+    /// title over.
     @State private var showsTitleInBar = false
     /// The height of the status bar and the Dynamic Island, read outside the navigation bar: the list starts just under
     /// it, and the empty navigation bar takes no room above the card.
     @State private var statusBarHeight = 0.0
 
-    /// How far the list scrolls before the title moves from the card to the navigation bar, in points.
-    private static let titleScrollDistance = 24.0
-
-    /// "To Alun Alun Malang"; the plain label until the route is known.
-    private var nextStopTitle: String {
-        viewModel.nextStopTitle ?? String(localized: .tripMapOnTheGoNextStop)
-    }
+    /// How far the list scrolls before the title moves from the top of the list to the navigation bar, in points.
+    private static let titleScrollDistance = 40.0
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 15) {
+                    Text(.tripMapOnTheGoTitle)
+                        .font(.system(size: titleSize, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .accessibilityAddTraits(.isHeader)
                     NextStopCard()
                     Text(.tripMapOnTheGoParticipants)
                         .font(.headline)
@@ -56,13 +59,13 @@ struct TripMapOnTheGoView: View {
             // rows scroll beneath it.
             .ignoresSafeArea(.container, edges: .top)
             .background(Color(.tripCard).ignoresSafeArea())
-            // The system bar centres the title and slides the content under it; the title is only shown once the card,
-            // which carries it, has scrolled up to the bar. `navigationTitle` stays for VoiceOver.
-            .navigationTitle(nextStopTitle)
+            // The system bar centres the title and slides the content under it; the title is only shown once the large
+            // title at the top of the list has scrolled up to the bar. `navigationTitle` stays for VoiceOver.
+            .navigationTitle(Text(.tripMapOnTheGoTitle))
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .title) {
-                    Text(verbatim: nextStopTitle)
+                    Text(.tripMapOnTheGoTitle)
                         .font(.headline)
                         .foregroundStyle(.white)
                         .lineLimit(1)
@@ -70,7 +73,7 @@ struct TripMapOnTheGoView: View {
                 }
             }
             .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
-            // At rest the card sits where the bar is, so the edge effect would dim it; it comes with the title.
+            // At rest the large title sits where the bar is, so the edge effect would dim it; it comes with the title.
             .scrollEdgeEffectStyle(.hard, for: .top)
             .scrollEdgeEffectHidden(showsTitleInBar == false, for: .top)
             .onScrollGeometryChange(for: Bool.self) { geometry in
@@ -96,10 +99,10 @@ struct TripMapOnTheGoView: View {
     private func NextStopCard() -> some View {
         VStack(spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: nextStopTitle)
+                // Wraps at large text sizes instead of being cut, as the label is fixed and short.
+                Text(.tripMapOnTheGoNextStop)
                     .font(.headline)
                     .foregroundStyle(.white)
-                    .lineLimit(1)
                 Spacer()
                 if let timeToNextStop = viewModel.timeToNextStop {
                     Text(timeToNextStop.formatted(TripMapCarStatus.durationStyle))

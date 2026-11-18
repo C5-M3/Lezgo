@@ -2405,6 +2405,18 @@
         }
       }
     },
+    "tripMapOnTheGoTitle" : {
+      "comment" : "Large title at the top of the On the Go list, and the title bar once the list scrolls (ADR 0034).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the Go…"
+          }
+        }
+      }
+    },
     "tripMapPointNorth" : {
       "comment" : "Compass button on the trip map that turns the map back to north.",
       "extractionState" : "manual",
