@@ -125,7 +125,7 @@ private struct ParticipantCell: View {
                 Text(participant.carDescription)
                     .font(.subheadline)
                     .foregroundStyle(Color(.tripCardSubtext))
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .multilineTextAlignment(.center)
             }
         }
