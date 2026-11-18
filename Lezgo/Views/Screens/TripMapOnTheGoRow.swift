@@ -12,8 +12,9 @@ import SwiftUI
 struct TripMapOnTheGoRow: View {
     let row: TripMapViewModel.ParticipantRow
 
-    /// Where the text starts and how tall the card is, as in the hi-fi.
-    private static let textLeading = 132.0
+    /// Where the text starts and how tall the card is: a little further right than in the hi-fi, so the mascot's hand
+    /// does not touch it.
+    private static let textLeading = 150.0
     private static let rowHeight = 92.0
     /// The mascot's size and where its top left corner sits against the card's, measured from the hi-fi: the crest is
     /// just under the card's top edge and the legs reach past the bottom edge, which cuts them off.

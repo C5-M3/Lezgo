@@ -14,57 +14,78 @@ struct TripMapOnTheGoView: View {
     let viewModel: TripMapViewModel
 
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 24
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// `true` once the card with the next stop has scrolled off, so the navigation bar takes the title over.
+    @State private var showsTitleInBar = false
+
+    /// "To Alun Alun Malang"; the plain label until the route is known.
+    private var nextStopTitle: String {
+        viewModel.nextStopTitle ?? String(localized: .tripMapOnTheGoNextStop)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 15) {
-            // The title, the card and the heading stay in place; only the participants scroll under them.
-            Text(.tripMapOnTheGoTitle)
-                .font(.largeTitle.weight(.heavy))
-                .lineLimit(1)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 14)
-                .padding(.bottom, 10)
-                .accessibilityAddTraits(.isHeader)
-            NextStopCard()
-            Text(.tripMapOnTheGoParticipants)
-                .font(.headline)
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.top, 3)
-                .accessibilityAddTraits(.isHeader)
+        NavigationStack {
             ScrollView {
                 VStack(spacing: 15) {
+                    NextStopCard()
+                    Text(.tripMapOnTheGoParticipants)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 3)
+                        .accessibilityAddTraits(.isHeader)
                     ForEach(viewModel.participantRows) { row in
                         TripMapOnTheGoRow(row: row)
                     }
                 }
-                .padding(.top, 2)
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
                 // Room for the buttons, so the last row can be scrolled above them.
                 .padding(.bottom, 120)
             }
             .scrollIndicators(.hidden)
+            .background(Color(.tripCard))
+            // The system bar centres the title and slides the content under it; the title is only shown while the
+            // card, which carries it, is out of sight. `navigationTitle` stays for VoiceOver.
+            .navigationTitle(nextStopTitle)
+            .toolbarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .title) {
+                    Text(verbatim: nextStopTitle)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .opacity(showsTitleInBar ? 1 : 0)
+                }
+            }
+            .toolbarBackground(Color(.tripCard), for: .navigationBar)
+            .toolbarBackgroundVisibility(.visible, for: .navigationBar)
+            .scrollEdgeEffectStyle(.hard, for: .top)
+            .overlay(alignment: .bottom) {
+                // The rows fade out under the buttons, as in the hi-fi.
+                LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 150)
+                    .ignoresSafeArea(edges: .bottom)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .bottom) { Buttons() }
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 40)
-        // Solid, so the rows never show through the fixed part while they scroll.
-        .background(Color(.tripCard))
-        .overlay(alignment: .bottom) {
-            // The rows fade out under the buttons, as in the hi-fi.
-            LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
-                .frame(height: 150)
-                .ignoresSafeArea(edges: .bottom)
-                .allowsHitTesting(false)
-        }
-        .overlay(alignment: .bottom) { Buttons() }
         .task { await viewModel.TrackAllCars() }
     }
 
     private func NextStopCard() -> some View {
         VStack(spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
-                Text(.tripMapOnTheGoNextStop)
+                Text(verbatim: nextStopTitle)
                     .font(.headline)
                     .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .onScrollVisibilityChange { isVisible in
+                        withAnimation(Animation.lezgoFade.Respecting(reduceMotion: reduceMotion)) {
+                            showsTitleInBar = isVisible == false
+                        }
+                    }
                 Spacer()
                 if let timeToNextStop = viewModel.timeToNextStop {
                     Text(timeToNextStop.formatted(TripMapCarStatus.durationStyle))

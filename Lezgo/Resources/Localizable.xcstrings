@@ -1997,18 +1997,6 @@
         }
       }
     },
-    "tripMapOnTheGoTitle" : {
-      "comment" : "Title of the list the phone shows while CarPlay is connected (ADR 0034).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "On the Go…"
-          }
-        }
-      }
-    },
     "tripMapOnTheGoNextStop" : {
       "comment" : "Label of the card on the On the Go list: the time to the next stop (ADR 0034).",
       "extractionState" : "manual",
