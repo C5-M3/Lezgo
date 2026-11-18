@@ -15,8 +15,15 @@ struct TripMapOnTheGoView: View {
 
     @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 24
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// `true` once the card with the next stop has scrolled off, so the navigation bar takes the title over.
+    /// `true` once the list has scrolled far enough for the card's label to reach the bar, which then takes the title
+    /// over.
     @State private var showsTitleInBar = false
+    /// The height of the status bar and the Dynamic Island, read outside the navigation bar: the list starts just under
+    /// it, and the empty navigation bar takes no room above the card.
+    @State private var statusBarHeight = 0.0
+
+    /// How far the list scrolls before the title moves from the card to the navigation bar, in points.
+    private static let titleScrollDistance = 24.0
 
     /// "To Alun Alun Malang"; the plain label until the route is known.
     private var nextStopTitle: String {
@@ -40,14 +47,17 @@ struct TripMapOnTheGoView: View {
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 8)
+                .padding(.top, statusBarHeight + 8)
                 // Room for the buttons, so the last row can be scrolled above them.
                 .padding(.bottom, 120)
             }
             .scrollIndicators(.hidden)
-            .background(Color(.tripCard))
-            // The system bar centres the title and slides the content under it; the title is only shown while the
-            // card, which carries it, is out of sight. `navigationTitle` stays for VoiceOver.
+            // Under the navigation bar too, so the card starts at the top; the bar shows its background only once
+            // rows scroll beneath it.
+            .ignoresSafeArea(.container, edges: .top)
+            .background(Color(.tripCard).ignoresSafeArea())
+            // The system bar centres the title and slides the content under it; the title is only shown once the card,
+            // which carries it, has scrolled up to the bar. `navigationTitle` stays for VoiceOver.
             .navigationTitle(nextStopTitle)
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
@@ -59,9 +69,17 @@ struct TripMapOnTheGoView: View {
                         .opacity(showsTitleInBar ? 1 : 0)
                 }
             }
-            .toolbarBackground(Color(.tripCard), for: .navigationBar)
-            .toolbarBackgroundVisibility(.visible, for: .navigationBar)
+            .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
+            // At rest the card sits where the bar is, so the edge effect would dim it; it comes with the title.
             .scrollEdgeEffectStyle(.hard, for: .top)
+            .scrollEdgeEffectHidden(showsTitleInBar == false, for: .top)
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > Self.titleScrollDistance
+            } action: { _, isScrolled in
+                withAnimation(Animation.lezgoFade.Respecting(reduceMotion: reduceMotion)) {
+                    showsTitleInBar = isScrolled
+                }
+            }
             .overlay(alignment: .bottom) {
                 // The rows fade out under the buttons, as in the hi-fi.
                 LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
@@ -71,6 +89,7 @@ struct TripMapOnTheGoView: View {
             }
             .overlay(alignment: .bottom) { Buttons() }
         }
+        .onGeometryChange(for: Double.self, of: { Double($0.safeAreaInsets.top) }, action: { statusBarHeight = $0 })
         .task { await viewModel.TrackAllCars() }
     }
 
@@ -81,11 +100,6 @@ struct TripMapOnTheGoView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .onScrollVisibilityChange { isVisible in
-                        withAnimation(Animation.lezgoFade.Respecting(reduceMotion: reduceMotion)) {
-                            showsTitleInBar = isVisible == false
-                        }
-                    }
                 Spacer()
                 if let timeToNextStop = viewModel.timeToNextStop {
                     Text(timeToNextStop.formatted(TripMapCarStatus.durationStyle))
