@@ -46,7 +46,7 @@ struct TripMapTurnCard: View {
         .padding(.horizontal, 28)
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.tripCard), in: .rect(cornerRadius: 30))
+        .lezgoSurface(.page, radius: LezgoRadius.card)
         .animation(Animation.lezgoSwap.Respecting(reduceMotion: reduceMotion), value: guidance)
         .accessibilityElement(children: .combine)
     }
@@ -82,7 +82,7 @@ extension TripMapTurnCard {
             .padding(.horizontal, 28)
             .padding(.vertical, 18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.tripCard), in: .rect(cornerRadius: 30))
+            .lezgoSurface(.page, radius: LezgoRadius.card)
             .accessibilityElement(children: .combine)
         }
     }

@@ -27,11 +27,11 @@ extension TripMapCarPin.CarColor {
     /// The whole mascot, arms and feet, as on the car status card in the hi-fi.
     var fullBodyImage: ImageResource {
         switch self {
-        case .yellow: .mainUnselectedYellow
-        case .purple: .mainUnselectedPurple
-        case .pink: .mainUnselectedPink
-        case .blue: .mainUnselectedBlue
-        case .green: .mainUnselectedGreen
+        case .yellow: .mainGreyYellow
+        case .purple: .mainGreyPurple
+        case .pink: .mainGreyPink
+        case .blue: .mainGreyBlue
+        case .green: .mainGreyGreen
         }
     }
 

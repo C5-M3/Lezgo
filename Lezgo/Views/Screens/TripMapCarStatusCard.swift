@@ -20,7 +20,7 @@ struct TripMapCarStatusCard: View {
     /// The mascot's body fills only part of its image; the rest is transparent margin.
     private static let mascotImageSize = 130.0
     /// The mascot is drawn larger than the room it takes, so the time and the next stop still fit on one line.
-    private static let mascotScale = 1.4
+    private static let mascotScale = 1.6
 
     /// As in the hi-fi ("04 Trip Started", a tapped car): the name, the car, "Status: Driving" in yellow, then the time
     /// left with where the car is heading, and the whole mascot on the right.

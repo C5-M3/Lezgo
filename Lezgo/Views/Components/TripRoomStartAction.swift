@@ -20,25 +20,25 @@ struct TripRoomStartAction: View {
                 Text("Starting Trip...")
             }
             .font(.headline)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color(.tripCardSubtext))
             .frame(maxWidth: .infinity, minHeight: 56)
         } else if viewModel.isCurrentUserLeader {
             VStack(spacing: 6) {
                 Button("Start Trip", action: onStartTrip)
-                    .buttonStyle(.yellowCapsule)
+                    .lezgoGlassButton(.main)
                     .disabled(!viewModel.canStartTrip)
                 if !viewModel.canStartTrip {
                     Text("Invite at least one friend to start.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
             }
         } else {
             Text("Waiting for others ...")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.tripCardSubtext))
                 .frame(maxWidth: .infinity, minHeight: 56)
-                .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
+                .lezgoSurface(.level1, radius: LezgoRadius.card)
         }
     }
 }

@@ -40,7 +40,7 @@ struct SiriMuteSnippet: View {
                 }
                 .font(.body.bold())
                 .lineLimit(1)
-                .foregroundStyle(Color(.tripCard))
+                .foregroundStyle(LezgoGlassRole.main.textColor)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .background(Color(.brandYellow), in: .capsule)
             }

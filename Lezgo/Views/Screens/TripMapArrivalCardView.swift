@@ -39,7 +39,7 @@ struct TripMapArrivalCardView: View {
                 }
                 // Yellow once everyone is there. Before that it still works, because the leader is never blocked by
                 // late cars (US-07), but it is not what the leader is expected to do yet.
-                .buttonStyle(TripMapCardButtonStyle(isProminent: card == .everyoneArrived))
+                .lezgoGlassButton(card == .everyoneArrived ? .main : .second)
             }
         }
     }

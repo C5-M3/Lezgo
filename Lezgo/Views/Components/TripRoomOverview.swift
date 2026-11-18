@@ -63,11 +63,11 @@ private struct OverviewItem: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Image(systemName: systemImage)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.tripCardSubtext))
                 .accessibilityHidden(true)
             Text(title)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(.tripCardSubtext))
             Text(value)
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)

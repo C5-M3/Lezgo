@@ -19,6 +19,12 @@ struct DebugScreenTests {
         #expect(DebugScreen.FromLaunchArguments(arguments) == screen)
     }
 
+    @Test func GlassButtonsScreenOpensByItsName() {
+        let arguments = [Self.appPath, "-DebugScreen", "glassButtons"]
+
+        #expect(DebugScreen.FromLaunchArguments(arguments) == .glassButtons)
+    }
+
     @Test func AppStartsNormallyWithoutTheArgument() {
         #expect(DebugScreen.FromLaunchArguments([Self.appPath]) == nil)
     }

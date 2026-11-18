@@ -52,6 +52,8 @@ struct SetRouteSheet: View {
             }
             // Its few rows fit in the sheet; dragging them would fight the sheet's own drag.
             .scrollBounceBehavior(.basedOnSize)
+            .scrollContentBackground(.hidden)
+            .containerBackground(Color(LezgoSurface.page.color), for: .navigation)
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -132,10 +134,10 @@ private extension SetRouteSheet {
                 HStack(spacing: 12) {
                     Image(systemName: "location.fill")
                         .accessibilityHidden(true)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                     Text(viewModel.startPoint?.name ?? "Choose Starting Point...")
                         .font(.body)
-                        .foregroundStyle(viewModel.startPoint == nil ? .secondary : .primary)
+                        .foregroundStyle(viewModel.startPoint == nil ? Color(.tripCardSubtext) : Color(.tripCardText))
                         .lineLimit(1)
                     Spacer()
                 }
@@ -166,11 +168,11 @@ private extension SetRouteSheet {
             HStack(spacing: 12) {
                 Image(systemName: "ellipsis.circle")
                     .accessibilityHidden(true)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.tripCardSubtext))
 
                 Text(intermediateCount == 1 ? "1 stop" : "\(intermediateCount) stops")
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.tripCardSubtext))
 
                 Spacer()
             }
@@ -186,11 +188,11 @@ private extension SetRouteSheet {
                 HStack(spacing: 12) {
                     Image(systemName: "mappin")
                         .accessibilityHidden(true)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
 
                     Text(lastDestination.name)
                         .font(.body)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color(.tripCardText))
                         .lineLimit(1)
 
                     Spacer()
@@ -231,10 +233,10 @@ private extension SetRouteSheet {
                 HStack(spacing: 12) {
                     Image(systemName: "plus")
                         .accessibilityHidden(true)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                     Text("Add...")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
                     Spacer()
                 }
                 .contentShape(Rectangle())
@@ -252,11 +254,11 @@ private extension SetRouteSheet {
                 HStack(spacing: 12) {
                     Image(systemName: "mappin")
                         .accessibilityHidden(true)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(.tripCardSubtext))
 
                     Text(point.name)
                         .font(.body)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color(.tripCardText))
                         .lineLimit(1)
 
                     Spacer()
@@ -268,7 +270,7 @@ private extension SetRouteSheet {
             if isFullPresentation && viewModel.destinations.count > 1 {
                 Image(systemName: "line.3.horizontal")
                     .accessibilityHidden(true)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {

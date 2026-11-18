@@ -100,13 +100,14 @@ struct SetRouteMapView: View {
                     selectionType: sheetType,
                     autoFocus: !CommandLine.arguments.contains("-ui-testing-set-route-map")
                 )
+                .lezgoSheet()
             }
             // Only compact (height) and full (large) — no half pulls
             .presentationDetents(
                 [.height(drawerHeight), .large],
                 selection: $selectedDetent
             )
-            .presentationDragIndicator(.visible)
+            .lezgoSheet()
             .presentationBackgroundInteraction(.enabled(upThrough: .height(drawerHeight)))
             .interactiveDismissDisabled()
         }

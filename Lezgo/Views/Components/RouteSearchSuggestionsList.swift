@@ -23,12 +23,12 @@ struct RouteSearchSuggestionsList: View {
             LazyVStack(spacing: 0) {
                 if selectionType == .start && userLocation != nil {
                     currentLocationRow
-                    Divider().overlay(Color(white: 0.18))
+                    Divider().overlay(Color(.surfaceSeparator))
                 }
 
                 if selectionType != nil {
                     chooseOnMapRow
-                    Divider().overlay(Color(white: 0.18))
+                    Divider().overlay(Color(.surfaceSeparator))
                 }
 
                 if isSearching {
@@ -44,7 +44,7 @@ struct RouteSearchSuggestionsList: View {
                 } else {
                     ForEach(searchResults, id: \.self) { result in
                         suggestionRow(result)
-                        Divider().overlay(Color(white: 0.18))
+                        Divider().overlay(Color(.surfaceSeparator))
                     }
                 }
             }
@@ -86,7 +86,7 @@ struct RouteSearchSuggestionsList: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 Circle()
-                    .fill(Color(white: 0.18))
+                    .fill(Color(LezgoSurface.level1.color))
                     .frame(width: 42, height: 42)
                     .overlay(
                         Image(systemName: systemImage)
@@ -101,7 +101,7 @@ struct RouteSearchSuggestionsList: View {
                         .foregroundStyle(.white)
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundStyle(Color(white: 0.6))
+                        .foregroundStyle(Color(.tripCardSubtext))
                 }
 
                 Spacer()
@@ -118,7 +118,7 @@ struct RouteSearchSuggestionsList: View {
         } label: {
             HStack(spacing: 14) {
                 Circle()
-                    .fill(Color(white: 0.18))
+                    .fill(Color(LezgoSurface.level1.color))
                     .frame(width: 42, height: 42)
                     .overlay(
                         Image(systemName: "mappin")
@@ -136,7 +136,7 @@ struct RouteSearchSuggestionsList: View {
                     if !result.subtitle.isEmpty {
                         Text(result.subtitle)
                             .font(.caption)
-                            .foregroundStyle(Color(white: 0.6))
+                            .foregroundStyle(Color(.tripCardSubtext))
                             .lineLimit(2)
                     }
                 }
@@ -146,7 +146,7 @@ struct RouteSearchSuggestionsList: View {
                 if let meters = result.distanceInMeters {
                     Text(FormattedDistance(meters))
                         .font(.subheadline)
-                        .foregroundStyle(Color(white: 0.65))
+                        .foregroundStyle(Color(.tripCardSubtext))
                 } else if result.isCalculatingDistance {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.white.opacity(0.15))
@@ -165,11 +165,11 @@ struct RouteSearchSuggestionsList: View {
             Spacer().frame(height: 32)
             Image(systemName: "magnifyingglass")
                 .font(.largeTitle)
-                .foregroundStyle(Color(white: 0.5))
+                .foregroundStyle(Color(.tripCardSubtext))
                 .accessibilityHidden(true)
             Text("No places found. Check the spelling.")
                 .font(.subheadline)
-                .foregroundStyle(Color(white: 0.65))
+                .foregroundStyle(Color(.tripCardSubtext))
             Spacer().frame(height: 32)
         }
     }

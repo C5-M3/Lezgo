@@ -89,13 +89,12 @@ struct EditProfileSheetView: View {
                 Button(action: Save) {
                     if viewModel.isSavingProfile {
                         ProgressView()
-                            .tint(.black)
                             .accessibilityLabel("Saving")
                     } else {
                         Text("Save")
                     }
                 }
-                .buttonStyle(.yellowCapsule(disabledBackground: Color(uiColor: .systemGray3)))
+                .lezgoGlassButton(.main)
                 .disabled(!canSave)
                 // The spinner keeps the yellow button: a grey one reads as a screen that has stopped answering.
                 .allowsHitTesting(!viewModel.isSavingProfile)
@@ -141,7 +140,7 @@ struct EditProfileSheetView: View {
             )
         }
         .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+        .lezgoSheet()
         .preferredColorScheme(.dark)
     }
 
@@ -312,7 +311,7 @@ private struct ProfileField: View {
             textField
                 .padding(.horizontal, 20)
                 .frame(minHeight: 52)
-                .background(Color(uiColor: .secondarySystemBackground), in: Capsule())
+                .background(Color(LezgoSurface.level1.color), in: Capsule())
                 .overlay {
                     if error != nil {
                         Capsule().stroke(.red, lineWidth: 2)

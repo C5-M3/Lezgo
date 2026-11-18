@@ -46,8 +46,8 @@ struct TripMapSheet: View {
         }
         .frame(maxWidth: .infinity)
         .foregroundStyle(Color(.tripCardText))
-        .background(Color(.tripCard), in: .rect(cornerRadius: 30))
-        .contentShape(.rect(cornerRadius: 30))
+        .lezgoSurface(.page, radius: LezgoRadius.card)
+        .contentShape(.rect(cornerRadius: LezgoRadius.card))
         // A tapped car, the arrival message and the destination swap in place, and the card grows or shrinks with
         // them instead of jumping to its new height.
         .animation(Animation.lezgoPanel.Respecting(reduceMotion: reduceMotion), value: viewModel.selectedCarID)
@@ -102,14 +102,14 @@ extension TripMapSheet {
                             Button(action: viewModel.RequestEditRoute) {
                                 Text(.tripMapEditRoute)
                             }
-                            .buttonStyle(TripMapCardButtonStyle())
+                            .lezgoGlassButton(.second)
                         }
                         // Near a destination whose point is a little off, such as the far side of a big mall.
                         if viewModel.canMarkArrived {
                             Button(action: viewModel.RequestMarkArrived) {
                                 Text(.tripMapIveArrived)
                             }
-                            .buttonStyle(TripMapCardButtonStyle())
+                            .lezgoGlassButton(.second)
                             .disabled(viewModel.manualArrival.isSaving)
                         }
                         TripMapLeaveButton(isLeader: viewModel.isLeader, action: viewModel.RequestLeave)

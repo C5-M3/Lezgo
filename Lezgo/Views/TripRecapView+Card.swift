@@ -29,8 +29,9 @@ struct TripRecapCard: View {
             mapSection
             infoSection
         }
-        .background(Color(red: 28/255, green: 28/255, blue: 30/255))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Color(LezgoSurface.level1.color))
+        .clipShape(RoundedRectangle(cornerRadius: LezgoRadius.card, style: .continuous))
+        .lezgoCardEdge()
     }
 
     @ViewBuilder
@@ -81,7 +82,7 @@ struct TripRecapCard: View {
 
                 Text(item.formattedDate)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color(white: 0.4))
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
 
             HStack(spacing: 0) {
@@ -102,7 +103,7 @@ struct TripRecapCard: View {
 
                 Text("\(item.participantCount) people · \(item.distanceText)")
                     .font(.subheadline)
-                    .foregroundStyle(Color(white: 0.6))
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
         }
         .padding(18)
@@ -117,30 +118,30 @@ struct TripRecapCardSkeleton: View {
         VStack(alignment: .leading, spacing: 0) {
             // Map placeholder
             Rectangle()
-                .fill(Color(white: 0.16))
+                .fill(Color(LezgoSurface.level2.color))
                 .frame(height: 180)
 
             // Info placeholder
             VStack(alignment: .leading, spacing: 12) {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color(white: 0.22))
+                    .fill(Color(LezgoSurface.level2.color))
                     .frame(width: 180, height: 20)
 
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(Color(white: 0.18))
+                    .fill(Color(LezgoSurface.level2.color))
                     .frame(width: 120, height: 14)
 
                 HStack(spacing: 8) {
                     HStack(spacing: -10) {
                         ForEach(0..<3, id: \.self) { _ in
                             Circle()
-                                .fill(Color(white: 0.24))
+                                .fill(Color(LezgoSurface.level2.color))
                                 .frame(width: 30, height: 30)
                         }
                     }
 
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(Color(white: 0.18))
+                        .fill(Color(LezgoSurface.level2.color))
                         .frame(width: 130, height: 14)
                 }
                 .padding(.top, 4)
@@ -148,8 +149,9 @@ struct TripRecapCardSkeleton: View {
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Color(red: 28/255, green: 28/255, blue: 30/255))
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .background(Color(LezgoSurface.level1.color))
+        .clipShape(RoundedRectangle(cornerRadius: LezgoRadius.card, style: .continuous))
+        .lezgoCardEdge()
     }
 }
 

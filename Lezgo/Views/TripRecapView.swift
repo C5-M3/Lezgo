@@ -84,58 +84,21 @@ private extension TripRecapView {
         .padding(.bottom, 20)
     }
 
-    @ViewBuilder
     private var backButton: some View {
-        if #available(iOS 18.0, *) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-            }
-            .buttonStyle(.glass)
-            .accessibilityLabel(Text("Back to Home"))
-        } else {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-                    .background {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-            }
-            .accessibilityLabel(Text("Back to Home"))
-        }
+        Button("Back to Home", systemImage: "chevron.left") { dismiss() }
+            .labelStyle(.iconOnly)
+            .font(.callout.weight(.bold))
+            .lezgoGlassButton(.round)
     }
 
-    @ViewBuilder
     private var menuButton: some View {
         Menu {
             sortOptions
         } label: {
-            if #available(iOS 18.0, *) {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-            } else {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.title3)
-                    .foregroundStyle(.white)
-                    .frame(width: 25, height: 35)
-                    .background {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                    }
-            }
+            Image(systemName: "line.3.horizontal.decrease")
+                .font(.callout.weight(.bold))
         }
-        .ifAvailableIOS18Glass()
+        .lezgoGlassButton(.round)
         .accessibilityLabel(Text("Sort & Filter Options"))
     }
 
@@ -200,7 +163,7 @@ private extension TripRecapView {
 
             Text("Failed to retrieve trip history from iCloud.")
                 .font(.subheadline)
-                .foregroundStyle(Color(white: 0.5))
+                .foregroundStyle(Color(.tripCardSubtext))
                 .multilineTextAlignment(.center)
 
             Button("Retry") {
@@ -208,9 +171,7 @@ private extension TripRecapView {
                     await viewModel.loadRecaps()
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(.brandYellow))
-            .foregroundStyle(.black)
+            .lezgoGlassButton(.main)
             .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
@@ -241,7 +202,7 @@ private extension TripRecapView {
         VStack(spacing: 12) {
             Image(systemName: "clock.arrow.circlepath")
                 .font(.system(size: 40))
-                .foregroundStyle(Color(white: 0.5))
+                .foregroundStyle(Color(.tripCardSubtext))
                 .accessibilityHidden(true)
 
             if viewModel.searchQuery.isEmpty {
@@ -251,7 +212,7 @@ private extension TripRecapView {
 
                 Text("Completed trips will appear here.")
                     .font(.subheadline)
-                    .foregroundStyle(Color(white: 0.5))
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .multilineTextAlignment(.center)
             } else {
                 Text("No Trips Found")
@@ -260,7 +221,7 @@ private extension TripRecapView {
 
                 Text("Try searching with a different destination name.")
                     .font(.subheadline)
-                    .foregroundStyle(Color(white: 0.5))
+                    .foregroundStyle(Color(.tripCardSubtext))
                     .multilineTextAlignment(.center)
             }
         }
@@ -278,25 +239,10 @@ private extension TripRecapView {
         VStack {
             Spacer()
 
-            if #available(iOS 18.0, *) {
-                searchBarContent
-                    .glassEffect(.regular.interactive(), in: Capsule())
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
-            } else {
-                searchBarContent
-                    .background {
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            .fill(Color(red: 20/255, green: 35/255, blue: 40/255).opacity(0.85))
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                    .stroke(Color.white.opacity(0.12), lineWidth: 1)
-                            }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 8)
-            }
+            searchBarContent
+                .glassEffect(.regular.interactive(), in: Capsule())
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
         }
     }
 
@@ -318,7 +264,7 @@ private extension TripRecapView {
                     viewModel.searchQuery = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Color(white: 0.6))
+                        .foregroundStyle(Color(.tripCardSubtext))
                         .accessibilityHidden(true)
                 }
                 .accessibilityLabel(Text("Clear search text"))
@@ -326,19 +272,6 @@ private extension TripRecapView {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-    }
-}
-
-// MARK: - View Modifiers
-
-private extension View {
-    @ViewBuilder
-    func ifAvailableIOS18Glass() -> some View {
-        if #available(iOS 18.0, *) {
-            self.buttonStyle(.glass)
-        } else {
-            self
-        }
     }
 }
 

@@ -108,7 +108,7 @@ struct TripRoomView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            .background(.black)
+            .background(Color(LezgoSurface.page.color))
         }
         .overlay { heldAvatarOverlay(viewModel: viewModel) }
         .sensoryFeedback(.impact, trigger: heldParticipant?.id)
@@ -121,6 +121,8 @@ struct TripRoomView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(height: 22)
+                    // Drawn larger than the room it takes, so the button is as high as the Cancel button.
+                    .scaleEffect(1.8)
                     .accessibilityLabel("Start")
             }
         )
@@ -249,7 +251,7 @@ private struct TripRoomContent: View {
         .scrollBounceBehavior(.basedOnSize)
         .scrollIndicators(.hidden)
         .ignoresSafeArea(edges: .top)
-        .background(.black)
+        .background(Color(LezgoSurface.page.color))
         .overlay(alignment: .topLeading) {
             if !isTransitioning {
                 TripRoomLeaveButton(viewModel: viewModel, action: onLeave)

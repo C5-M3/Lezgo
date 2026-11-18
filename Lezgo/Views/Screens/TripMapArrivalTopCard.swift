@@ -64,7 +64,7 @@ struct TripMapArrivalTopCard: View {
         }
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, minHeight: 113)
-        .background(.black, in: .rect(cornerRadius: 30))
+        .lezgoSurface(.page, radius: LezgoRadius.card)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(.tripMapArrivedCount(progress.arrivedCount, progress.totalCount)))
         .task(id: progress) { await PlayArrivals() }

@@ -97,10 +97,11 @@ struct RoutePlanCard: View {
         .scrollDisabled(expectedContentHeight <= Self.maximumHeight)
         .frame(height: min(expectedContentHeight, Self.maximumHeight))
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color(.routeCard))
+            RoundedRectangle(cornerRadius: LezgoRadius.field, style: .continuous)
+                .fill(Color(LezgoSurface.page.color))
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: LezgoRadius.field, style: .continuous))
+        .lezgoCardEdge()
         .shadow(color: .black.opacity(0.35), radius: 14, x: 0, y: 6)
         .padding(.horizontal, 16)
         .onChange(of: activeSelection) { _, newActive in
@@ -228,7 +229,7 @@ extension RoutePlanCard {
                     Image(systemName: "house.fill")
                         .font(.callout)
                         .foregroundStyle(Color(.brandYellow))
-                        .background(Color(.routeCard))
+                        .background(Color(LezgoSurface.page.color))
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
                 }
@@ -259,7 +260,7 @@ extension RoutePlanCard {
 
             if showsStartDivider {
                 Divider()
-                    .overlay(Color(white: 0.22))
+                    .overlay(Color(.surfaceSeparator))
                     .padding(.leading, 36)
             }
         }
@@ -301,7 +302,7 @@ extension RoutePlanCard {
                     Image(systemName: "flag.checkered")
                         .font(.callout)
                         .foregroundStyle(Color(.brandYellow))
-                        .background(Color(.routeCard))
+                        .background(Color(LezgoSurface.page.color))
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
                 }
@@ -316,7 +317,7 @@ extension RoutePlanCard {
                     } label: {
                         Text(destinations.last?.name ?? "Choose destination...")
                             .font(.subheadline)
-                            .foregroundStyle(destinations.isEmpty ? Color(white: 0.5) : .white)
+                            .foregroundStyle(destinations.isEmpty ? Color(.tripCardSubtext) : Color(.tripCardText))
                             .lineLimit(1)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .frame(minHeight: 28)
@@ -327,7 +328,7 @@ extension RoutePlanCard {
                     if showsDestinationReorderHandle {
                         Image(systemName: "line.3.horizontal")
                             .font(.subheadline)
-                            .foregroundStyle(Color(white: 0.35))
+                            .foregroundStyle(Color(.tripCardSubtext))
                             .frame(width: 28, height: 28)
                             .contentShape(Rectangle())
                             .accessibilityLabel("Reorder")

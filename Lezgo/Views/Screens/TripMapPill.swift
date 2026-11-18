@@ -43,7 +43,7 @@ struct TripMapPill: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, minHeight: 44)
-        .background(isUrgent ? Color(.tripAlertRed) : Color(.tripCard), in: .rect(cornerRadius: 22))
-        .contentShape(.rect(cornerRadius: 22))
+        .background(isUrgent ? Color(.tripAlertRed) : Color(.tripCard), in: .rect(cornerRadius: LezgoRadius.field))
+        .contentShape(.rect(cornerRadius: LezgoRadius.field))
     }
 }

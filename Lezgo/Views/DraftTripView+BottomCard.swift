@@ -25,7 +25,7 @@ extension DraftTripView {
                 actionButtonsSection
             }
             .frame(maxWidth: .infinity)
-            .background(Color.black)
+            .background(Color(LezgoSurface.page.color))
         }
 
         // MARK: - Sections
@@ -39,7 +39,7 @@ extension DraftTripView {
                 Text("YOU HAVE A TRIP IN PROGRESS")
                     .font(.footnote.weight(.semibold))
                     .tracking(1.2)
-                    .foregroundStyle(Color(white: 0.75))
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 24)
@@ -64,7 +64,7 @@ extension DraftTripView {
                 }
 
                 Rectangle()
-                    .fill(Color(white: 0.35))
+                    .fill(Color(.surfaceSeparator))
                     .clipShape(.capsule)
                     .frame(width: 2, height: 18)
                     .padding(.leading, 11)
@@ -92,7 +92,7 @@ extension DraftTripView {
 
         private var dividerSection: some View {
             Rectangle()
-                .fill(Color(white: 0.22))
+                .fill(Color(.surfaceSeparator))
                 .frame(height: 1)
                 .padding(.horizontal, 24)
         }
@@ -120,7 +120,7 @@ extension DraftTripView {
 
                 Text(viewModel.tripInfoText)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color(white: 0.6))
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -137,37 +137,11 @@ extension DraftTripView {
 
         @ViewBuilder
         private var actionButtons: some View {
-            Button {
-                viewModel.TapNewTrip()
-            } label: {
-                Text("New Trip")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(.white)
-                    .fixedSize()
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background(Color(red: 44 / 255, green: 44 / 255, blue: 46 / 255))
-                    .clipShape(Capsule())
-            }
-            .contentShape(Capsule())
-            .buttonStyle(.pressable)
-            .accessibilityLabel("New Trip")
+            Button("New Trip") { viewModel.TapNewTrip() }
+                .lezgoGlassButton(.second)
 
-            Button {
-                onContinueTrip()
-            } label: {
-                Text("Continue Trip")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(.black)
-                    .fixedSize()
-                    .padding(.horizontal)
-                    .frame(maxWidth: .infinity, minHeight: 54)
-                    .background(Color.brandYellow)
-                    .clipShape(Capsule())
-            }
-            .contentShape(Capsule())
-            .buttonStyle(.pressable)
-            .accessibilityLabel("Continue Trip")
+            Button("Continue Trip") { onContinueTrip() }
+                .lezgoGlassButton(.main)
         }
     }
 }

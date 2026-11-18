@@ -43,7 +43,7 @@ struct TripMapCarGroupView: View {
         .padding(.horizontal, 12)
         .padding(.top, 10)
         .padding(.bottom, 8)
-        .background(Color(.tripCard), in: .rect(cornerRadius: 22))
+        .lezgoSurface(.page, radius: LezgoRadius.field)
         // A map graphic of a fixed size; bigger text would cover the cars around it.
         // VoiceOver still reads every name, and tapping a car shows its full name.
         .dynamicTypeSize(...DynamicTypeSize.large)

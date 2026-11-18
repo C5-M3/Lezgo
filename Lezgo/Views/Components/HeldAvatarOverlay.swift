@@ -63,11 +63,11 @@ struct HeldAvatarOverlay: View {
         VStack(spacing: 2) {
             Text(displayName)
                 .font(.title3.bold())
-                .foregroundStyle(.white)
+                .foregroundStyle(Color(.tripCardText))
             if !participant.carDescription.isEmpty {
                 Text(participant.carDescription)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(.tripCardSubtext))
             }
         }
         .multilineTextAlignment(.center)
@@ -77,7 +77,7 @@ struct HeldAvatarOverlay: View {
     private var menu: some View {
         VStack(spacing: 0) {
             ForEach(Array(actions.enumerated()), id: \.element) { index, action in
-                if index > 0 { Divider().overlay(Color.white.opacity(0.15)) }
+                if index > 0 { Divider().overlay(Color(.surfaceSeparator)) }
                 Button { onSelect(action) } label: {
                     action.label
                         .font(.body)
@@ -86,11 +86,11 @@ struct HeldAvatarOverlay: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(action.isDestructive ? Color.red : Color.white)
+                .foregroundStyle(action.isDestructive ? Color(.tripAlertRed) : Color(.tripCardText))
             }
         }
-        .background(Color(white: 0.1), in: .rect(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.12)))
+        .lezgoSurface(.level1, radius: LezgoRadius.field)
+        .overlay(RoundedRectangle(cornerRadius: LezgoRadius.field).stroke(Color(.surfaceSeparator)))
     }
 }
 
