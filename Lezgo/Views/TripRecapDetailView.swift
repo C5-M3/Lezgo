@@ -16,6 +16,7 @@ struct TripRecapDetailView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 96
     @State private var viewModel: TripRecapDetailViewModel
+    @State private var isShareFailureShown = false
 
     private let mapHeight: CGFloat = 320
 
@@ -52,6 +53,17 @@ struct TripRecapDetailView: View {
         .overlay(alignment: .top) {
             topFloatingBar
         }
+        .task {
+            await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
+        }
+        .confirmDialog(
+            isPresented: $isShareFailureShown,
+            title: Text("Couldn't make the picture"),
+            message: Text("Check your connection and try again."),
+            cancelTitle: nil,
+            confirmTitle: "OK",
+            onConfirm: { }
+        )
     }
 }
 
@@ -159,13 +171,37 @@ private extension TripRecapDetailView {
         .lezgoGlassButton(.round)
     }
 
+    /// Shares the finished picture. Until it is ready the button makes it (again, after a failure), and the share
+    /// sheet opens from the next tap.
+    @ViewBuilder
     var shareButton: some View {
-        ShareLink(item: viewModel.shareSummary) {
-            Image(systemName: "square.and.arrow.up")
-                .font(.callout.weight(.bold))
+        if let shareImage = viewModel.shareImage {
+            ShareLink(
+                item: shareImage,
+                preview: SharePreview(Text(viewModel.title), image: shareImage.previewImage)
+            ) {
+                shareIcon
+            }
+            .lezgoGlassButton(.round)
+            .accessibilityLabel(Text("Share Trip Recap"))
+        } else {
+            Button {
+                Task {
+                    await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
+                    isShareFailureShown = viewModel.isShareFailed
+                }
+            } label: {
+                shareIcon
+            }
+            .disabled(viewModel.isPreparingShareImage)
+            .lezgoGlassButton(.round)
+            .accessibilityLabel(Text("Share Trip Recap"))
         }
-        .lezgoGlassButton(.round)
-        .accessibilityLabel(Text("Share Trip Recap"))
+    }
+
+    var shareIcon: some View {
+        Image(systemName: "square.and.arrow.up")
+            .font(.callout.weight(.bold))
     }
 }
 

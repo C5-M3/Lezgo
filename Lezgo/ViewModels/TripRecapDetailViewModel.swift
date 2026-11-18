@@ -13,6 +13,9 @@ import Observation
 @MainActor
 final class TripRecapDetailViewModel {
     let recap: TripRecap
+    private(set) var shareImage: TripRecapShareImage?
+    private(set) var isShareFailed = false
+    private(set) var isPreparingShareImage = false
 
     init(recap: TripRecap) {
         self.recap = recap
@@ -64,6 +67,21 @@ final class TripRecapDetailViewModel {
 
     var leaderAvatar: Avatar {
         participants.first(where: \.isLeader)?.avatar ?? recap.avatars.first ?? .yellow
+    }
+
+    var shareCardContent: TripRecapShareCardContent {
+        TripRecapShareCardContent(recap: recap)
+    }
+
+    /// Makes the picture that the share button sends. `make` is the real renderer in the app and a fake in tests.
+    func PrepareShareImage(using make: (TripRecap) async -> TripRecapShareImage?) async {
+        guard shareImage == nil, !isPreparingShareImage else { return }
+        isPreparingShareImage = true
+        isShareFailed = false
+        defer { isPreparingShareImage = false }
+
+        shareImage = await make(recap)
+        isShareFailed = shareImage == nil
     }
 
     var shareSummary: String {
