@@ -20,7 +20,7 @@ extension TripMapViewModel {
         var id: UUID { status.id }
     }
 
-    /// Where the cars are between the start and the end of the route, for the track on the On the Go card.
+    /// Where the cars are between the stop the group left and the next stop, for the track on the On the Go card.
     struct RouteProgress: Hashable {
         let cars: [RouteProgressCar]
         /// How far the car in front has gone: the yellow part of the track.
@@ -35,26 +35,31 @@ extension TripMapViewModel {
         let fraction: Double
     }
 
-    /// The track's cars, or `nil` until the trip and its route are known.
+    /// The track's cars, from the stop the group left to the next stop, or `nil` until the route is known.
     var routeProgress: RouteProgress? {
         guard let state, let updatedAt else { return nil }
         let path = route
-        let length = zip(path, path.dropFirst()).reduce(0) { $0 + $1.0.Distance(to: $1.1) }
-        guard length > 0 else { return nil }
+        let index = state.trip.currentWaypointIndex
+        // The track is the part of the route between the stop the group left and the next stop.
+        guard let from = waypoints.last(where: { $0.orderIndex < index }),
+              let next = waypoints.first(where: { $0.orderIndex >= index }),
+              let legStart = RoutePosition.Locate(from.coordinate, on: path)?.distanceAlongRoute,
+              let legEnd = RoutePosition.Locate(next.coordinate, on: path)?.distanceAlongRoute,
+              legEnd > legStart else { return nil }
         let cars = state.participants.compactMap { car -> RouteProgressCar? in
             guard car.IsOnline(at: updatedAt), let coordinate = car.coordinate,
                   let position = RoutePosition.Locate(coordinate, on: path) else { return nil }
-            let fraction = min(1, max(0, position.distanceAlongRoute / length))
+            let fraction = min(1, max(0, (position.distanceAlongRoute - legStart) / (legEnd - legStart)))
             return RouteProgressCar(id: car.id, carColor: CarColor(of: car, in: state), fraction: fraction)
         }
         return RouteProgress(cars: cars, leadFraction: cars.map(\.fraction).max() ?? 0)
     }
 
-    /// Every participant: this phone's own car first, then the others in the order of the trip.
+    /// Every participant: the leader first, then the others in the order of the trip, as in the hi-fi.
     var participantRows: [ParticipantRow] {
         guard let state else { return [] }
-        let cars = state.participants.filter { $0.id == myParticipantID }
-            + state.participants.filter { $0.id != myParticipantID }
+        let cars = state.participants.filter { $0.IsLeader(in: state.trip) }
+            + state.participants.filter { $0.IsLeader(in: state.trip) == false }
         return cars.compactMap { car in
             CarStatus(of: car).map {
                 ParticipantRow(

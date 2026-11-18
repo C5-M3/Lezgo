@@ -17,23 +17,27 @@ struct TripMapOnTheGoView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 15) {
                 Text(.tripMapOnTheGoTitle)
                     .font(.largeTitle.weight(.heavy))
                     .lineLimit(1)
                     .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 10)
                     .accessibilityAddTraits(.isHeader)
                 NextStopCard()
                 Text(.tripMapOnTheGoParticipants)
                     .font(.headline)
                     .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(viewModel.participantRows) { row in
                     TripMapOnTheGoRow(row: row)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
+            .padding(.horizontal, 24)
+            .padding(.top, 40)
             // Room for the buttons, so the last row can be scrolled above them.
             .padding(.bottom, 120)
         }
@@ -64,23 +68,29 @@ struct TripMapOnTheGoView: View {
             }
             TripMapOnTheGoTrack(progress: viewModel.routeProgress)
         }
-        .padding(20)
+        .padding(18)
         .lezgoSurface(.level1, radius: LezgoRadius.card)
+        .overlay {
+            RoundedRectangle(cornerRadius: LezgoRadius.card)
+                .strokeBorder(Color(.surfaceSeparator), lineWidth: 1)
+        }
         .accessibilityElement(children: .combine)
     }
 
     private func Buttons() -> some View {
         HStack(spacing: 12) {
             TripMapLeaveButton(isLeader: viewModel.isLeader, action: viewModel.RequestLeave)
+                .frame(maxWidth: .infinity)
                 .disabled(viewModel.isLeaving)
             if viewModel.canEditRoute {
                 Button(action: viewModel.RequestEditRoute) {
                     Text(.tripMapEditRoute)
                 }
                 .lezgoGlassButton(.main)
+                .frame(maxWidth: .infinity)
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 24)
         .padding(.bottom, 12)
     }
 }

@@ -12,9 +12,11 @@ import SwiftUI
 struct TripMapOnTheGoRow: View {
     let row: TripMapViewModel.ParticipantRow
 
-    /// The mascot is drawn larger than the card and its feet are cut off, as in the hi-fi.
+    /// The mascot's crest nearly touches the top of the card and its feet are cut off at the bottom, as in the hi-fi.
     private static let mascotImageSize = 150.0
-    private static let mascotDrop = 28.0
+    private static let mascotDrop = 8.0
+    private static let mascotRoom = 134.0
+    private static let rowHeight = 90.0
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
@@ -24,39 +26,68 @@ struct TripMapOnTheGoRow: View {
                 .frame(width: Self.mascotImageSize, height: Self.mascotImageSize)
                 .offset(y: Self.mascotDrop)
                 .opacity(IsOffline() ? 0.4 : 1)
+                // The text starts where it does in the hi-fi; the image may be wider than this room.
+                .frame(width: Self.mascotRoom)
                 .accessibilityHidden(true)
 
             // One line each: a long name or street is cut off with "…" instead of growing the card.
             VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: row.status.displayName)
-                    .font(.title2.weight(.heavy))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
+                NameLine()
                 Text(verbatim: row.status.statusLine)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(StatusColor())
                     .lineLimit(1)
                 if row.status.carDescription.isEmpty == false {
                     Text(verbatim: row.status.carDescription)
-                        .font(.caption.weight(.semibold))
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(Color(.tripCardSubtext))
                         .lineLimit(1)
                 }
                 if let timeToDestination = row.timeToDestination {
                     Text(.tripMapOnTheGoArrivesIn(timeToDestination.formatted(TripMapCarStatus.durationStyle)))
-                        .font(.caption.weight(.bold))
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
                 }
             }
+            .padding(.trailing, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.leading, 4)
-        .padding(.trailing, 16)
-        .frame(height: 100)
+        .frame(height: Self.rowHeight)
         .clipShape(.rect(cornerRadius: LezgoRadius.card))
         .lezgoSurface(.level1, radius: LezgoRadius.card)
+        .overlay {
+            RoundedRectangle(cornerRadius: LezgoRadius.card)
+                .strokeBorder(Color(.surfaceSeparator), lineWidth: 1)
+        }
+        .overlay(alignment: .topLeading) {
+            // The crown sits on the card's corner, so it is outside the clip above.
+            if row.isLeader {
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Color(.brandYellow))
+                    .offset(x: 12, y: -8)
+                    .accessibilityHidden(true)
+            }
+        }
         .accessibilityElement(children: .combine)
+    }
+
+    /// The driver's name, with "(You)" beside this phone's own car.
+    private func NameLine() -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(verbatim: row.status.displayName)
+                .font(.title2.weight(.heavy))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+            if row.isMe {
+                Text(verbatim: "(\(String(localized: .tripMapCarYou)))")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color(.tripCardSubtext))
+                    .lineLimit(1)
+                    .layoutPriority(1)
+            }
+        }
     }
 
     /// Yellow while driving, red once stopped, white when offline. The words say the status too, so colour is never

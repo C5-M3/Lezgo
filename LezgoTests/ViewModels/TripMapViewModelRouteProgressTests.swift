@@ -17,7 +17,9 @@ struct TripMapViewModelRouteProgressTests {
         TripMapViewModel(
             tripID: Fixtures.tripID,
             myParticipantID: Fixtures.agusID,
-            tripService: MockTripService(states: [Fixtures.State(cars: cars, currentWaypointIndex: currentWaypointIndex)]),
+            tripService: MockTripService(states: [
+                Fixtures.State(cars: cars, currentWaypointIndex: currentWaypointIndex)
+            ]),
             navigator: MockTripMapNavigator(results: [.success(Fixtures.Guidance())]),
             streetNameService: MockStreetNameService(),
             clock: { Fixtures.now }

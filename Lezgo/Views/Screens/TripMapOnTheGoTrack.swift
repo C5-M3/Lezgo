@@ -14,9 +14,9 @@ struct TripMapOnTheGoTrack: View {
 
     @State private var width = 0.0
 
-    private static let headSize = 28.0
-    private static let ringSize = 14.0
-    private static let lineThickness = 4.0
+    private static let headSize = 26.0
+    private static let ringSize = 15.0
+    private static let lineThickness = 3.0
 
     var body: some View {
         VStack(spacing: 4) {
@@ -32,7 +32,7 @@ struct TripMapOnTheGoTrack: View {
                 }
                 Image(systemName: "flag.checkered")
                     .font(.title3.weight(.bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color(.brandYellow))
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .frame(height: Self.headSize)
@@ -60,7 +60,7 @@ struct TripMapOnTheGoTrack: View {
         let lead = (progress?.leadFraction ?? 0) * max(width - Self.ringSize - Self.headSize, 0)
         return ZStack(alignment: .leading) {
             Capsule()
-                .fill(Color(.surfaceField))
+                .fill(Color(.tripCardSubtext).opacity(0.4))
                 .frame(height: Self.lineThickness)
             Capsule()
                 .fill(Color(.brandYellow))
