@@ -14,9 +14,11 @@ struct TripMapOnTheGoTrack: View {
 
     @State private var width = 0.0
 
-    private static let headSize = 26.0
+    private static let headSize = 40.0
+    /// The width of the flag, where the end of the track is.
+    private static let flagSize = 24.0
     private static let ringSize = 15.0
-    private static let lineThickness = 3.0
+    private static let lineThickness = 4.0
 
     var body: some View {
         VStack(spacing: 4) {
@@ -43,28 +45,31 @@ struct TripMapOnTheGoTrack: View {
                 Spacer()
                 Text(.tripMapOnTheGoEnd)
             }
-            .font(.caption2)
+            .font(.system(size: 9))
             .foregroundStyle(Color(.tripCardSubtext))
         }
         // The track is a picture of the route; the cars are named in the list below.
         .accessibilityHidden(true)
     }
 
-    /// Where the head's left edge goes: the ring is the start and the flag is the end.
+    /// How far a car can go along the track: from the ring's centre to the flag's centre.
+    private var travel: Double {
+        max(width - Self.ringSize / 2 - Self.flagSize / 2, 0)
+    }
+
+    /// Where the head's left edge goes, so that its centre is on the car's place on the track.
     private func Offset(of fraction: Double) -> Double {
-        let travel = max(width - Self.ringSize - Self.headSize, 0)
-        return Self.ringSize / 2 + travel * fraction
+        Self.ringSize / 2 + travel * fraction - Self.headSize / 2
     }
 
     private func Line() -> some View {
-        let lead = (progress?.leadFraction ?? 0) * max(width - Self.ringSize - Self.headSize, 0)
-        return ZStack(alignment: .leading) {
+        ZStack(alignment: .leading) {
             Capsule()
-                .fill(Color(.tripCardSubtext).opacity(0.4))
+                .fill(Color(.surfaceSeparator))
                 .frame(height: Self.lineThickness)
             Capsule()
                 .fill(Color(.brandYellow))
-                .frame(width: Self.ringSize + lead + Self.headSize / 2, height: Self.lineThickness)
+                .frame(width: Self.ringSize / 2 + travel * (progress?.leadFraction ?? 0), height: Self.lineThickness)
         }
     }
 

@@ -13,7 +13,7 @@ import SwiftUI
 struct TripMapOnTheGoView: View {
     let viewModel: TripMapViewModel
 
-    @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 32
+    @ScaledMetric(relativeTo: .largeTitle) private var timeSize = 24
 
     var body: some View {
         ScrollView {
@@ -30,7 +30,7 @@ struct TripMapOnTheGoView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, 3)
                     .accessibilityAddTraits(.isHeader)
                 ForEach(viewModel.participantRows) { row in
                     TripMapOnTheGoRow(row: row)
@@ -61,15 +61,17 @@ struct TripMapOnTheGoView: View {
                 Spacer()
                 if let timeToNextStop = viewModel.timeToNextStop {
                     Text(timeToNextStop.formatted(TripMapCarStatus.durationStyle))
-                        .font(.system(size: timeSize, weight: .black))
+                        .font(.system(size: timeSize, weight: .heavy))
                         .foregroundStyle(.white)
                         .contentTransition(.numericText(countsDown: true))
                 }
             }
             TripMapOnTheGoTrack(progress: viewModel.routeProgress)
         }
-        .padding(18)
-        .lezgoSurface(.level1, radius: LezgoRadius.card)
+        .padding(.horizontal, 18)
+        .padding(.top, 22)
+        .padding(.bottom, 14)
+        .lezgoSurface(.page, radius: LezgoRadius.card)
         .overlay {
             RoundedRectangle(cornerRadius: LezgoRadius.card)
                 .strokeBorder(Color(.surfaceSeparator), lineWidth: 1)
