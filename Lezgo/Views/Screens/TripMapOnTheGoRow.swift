@@ -11,6 +11,7 @@ import SwiftUI
 /// arrives (ADR 0034).
 struct TripMapOnTheGoRow: View {
     let row: TripMapViewModel.ParticipantRow
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     /// Where the text starts and how tall the card is: a little further right than in the hi-fi, so the mascot's hand
     /// does not touch it.
@@ -20,33 +21,44 @@ struct TripMapOnTheGoRow: View {
     /// just under the card's top edge and the legs reach past the bottom edge, which cuts them off.
     private static let mascotSize = CGSize(width: 138, height: 113.6)
     private static let mascotOffset = CGSize(width: -2, height: 3)
+    /// At accessibility text sizes the text goes under the mascot, so it gets the card's whole width.
+    private static let stackedTextTop = 112.0
+
+    /// `true` at accessibility text sizes: the text wraps and goes under the mascot, and the card grows to fit it.
+    private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
+    /// One line beside the mascot, as in the hi-fi; at accessibility sizes as many as the text needs, so nothing is
+    /// cut off.
+    private var lineLimit: Int? { isStacked ? nil : 1 }
 
     var body: some View {
-        // One line each: a long name or street is cut off with "…" instead of growing the card.
+        // One line each at the usual sizes: a long name or street is cut off with "…" instead of growing the card.
         VStack(alignment: .leading, spacing: 3) {
             NameLine()
             Text(verbatim: row.status.statusLine)
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(StatusColor())
-                .lineLimit(1)
+                .lineLimit(lineLimit)
             if row.status.carDescription.isEmpty == false {
                 Text(verbatim: row.status.carDescription)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color(.tripCardSubtext))
-                    .lineLimit(1)
+                    .lineLimit(lineLimit)
             }
             if let timeToDestination = row.timeToDestination {
                 Text(.tripMapOnTheGoArrivesIn(timeToDestination.formatted(TripMapCarStatus.durationStyle)))
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(Color(.tripCardText))
-                    .lineLimit(1)
+                    .lineLimit(lineLimit)
                     .padding(.top, 2)
             }
         }
-        .padding(.leading, Self.textLeading)
+        .padding(.leading, isStacked ? 18 : Self.textLeading)
         .padding(.trailing, 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .frame(height: Self.rowHeight)
+        .padding(.top, isStacked ? Self.stackedTextTop : 0)
+        .padding(.bottom, isStacked ? 16 : 0)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(minHeight: Self.rowHeight)
+        .fixedSize(horizontal: false, vertical: true)
         // The mascot is taller than the card, so it is a background: it never changes the card's size, and the clip
         // below cuts it off at the card's edge.
         .background(alignment: .topLeading) {
@@ -78,11 +90,14 @@ struct TripMapOnTheGoRow: View {
 
     /// The driver's name, with "(You)" beside this phone's own car.
     private func NameLine() -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        let layout = isStacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 4))
+        return layout {
             Text(verbatim: row.status.displayName)
                 .font(.title2.weight(.heavy))
                 .foregroundStyle(.white)
-                .lineLimit(1)
+                .lineLimit(lineLimit)
             if row.isMe {
                 Text(verbatim: "(\(String(localized: .tripMapCarYou)))")
                     .font(.caption2.weight(.semibold))
@@ -141,9 +156,10 @@ struct TripMapOnTheGoRow: View {
 #Preview("Largest text") {
     TripMapOnTheGoRow(row: .init(
         status: TripMapCarStatus(
-            id: UUID(), displayName: "Matthew", activity: .driving(street: "Jl. HR Mayjend Muhammad")
+            id: UUID(), displayName: "Bartholomew Alexander", activity: .driving(street: "Jl. HR Mayjend Muhammad"),
+            carDescription: "Yellow Honda Brio"
         ),
-        timeToDestination: .seconds(26 * 60), isMe: false, isLeader: false
+        timeToDestination: .seconds(26 * 60), isMe: true, isLeader: true
     ))
     .padding()
     .background(Color(.tripCard))
