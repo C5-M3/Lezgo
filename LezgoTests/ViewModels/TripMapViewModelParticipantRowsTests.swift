@@ -132,4 +132,25 @@ struct TripMapViewModelParticipantRowsTests {
 
         #expect(viewModel.timeToNextStop != nil)
     }
+
+    /// The card and the title bar say where the group is heading: the next checkpoint, then the destination.
+    @Test func TheNextStopTitleNamesTheCheckpointAhead() async {
+        let viewModel = MakeViewModel(state: Fixtures.State())
+
+        await viewModel.Start()
+
+        #expect(viewModel.nextStopTitle == "To Ciputra World")
+    }
+
+    @Test func AfterTheCheckpointTheNextStopTitleNamesTheDestination() async {
+        let viewModel = MakeViewModel(state: Fixtures.State(currentWaypointIndex: 2))
+
+        await viewModel.Start()
+
+        #expect(viewModel.nextStopTitle == "To Pakuwon mall")
+    }
+
+    @Test func NoNextStopTitleBeforeTheTripIsKnown() {
+        #expect(MakeViewModel().nextStopTitle == nil)
+    }
 }

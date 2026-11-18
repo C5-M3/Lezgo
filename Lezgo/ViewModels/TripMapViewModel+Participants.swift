@@ -72,6 +72,9 @@ extension TripMapViewModel {
         }
     }
 
+    /// "To Ciputra World": where the group is heading, the next checkpoint or else the destination.
+    var nextStopTitle: String? { nil }
+
     /// How long this car needs to reach its next stop, or `nil` until it is looked up.
     var timeToNextStop: Duration? { carLookups[myParticipantID]?.timeToNextStop }
 
