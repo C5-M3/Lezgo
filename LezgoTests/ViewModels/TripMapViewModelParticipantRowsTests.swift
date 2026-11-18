@@ -94,4 +94,19 @@ struct TripMapViewModelParticipantRowsTests {
 
         #expect(viewModel.timeToNextStop == nil)
     }
+
+    /// The list opens while the trip is still loading: the cars are looked up as soon as the trip is there, not
+    /// after the next 30-second round.
+    @Test func TrackingStartedBeforeTheTripLoadsLooksUpTheCarsAssoonAsItDoes() async throws {
+        let viewModel = MakeViewModel()
+        let tracking = Task { await viewModel.TrackAllCars() }
+        defer { tracking.cancel() }
+
+        await viewModel.Start()
+        for _ in 0..<50 where viewModel.timeToNextStop == nil {
+            try await Task.sleep(for: .milliseconds(100))
+        }
+
+        #expect(viewModel.timeToNextStop != nil)
+    }
 }
