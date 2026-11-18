@@ -156,3 +156,64 @@ struct TripRecapDetailViewModelTests {
         #expect(resolved[3].avatar == .pink)
     }
 }
+
+@MainActor
+struct TripRecapShareCardTests {
+    private let fakeImage = TripRecapShareImage(fileURL: URL(filePath: "/tmp/FakeTripRecap.png"))
+
+    @Test func ShareCardTextComesFromTheSameValuesAsTheDetailScreen() {
+        let viewModel = TripRecapDetailViewModel(recap: .sample)
+        let content = viewModel.shareCardContent
+
+        #expect(content.dateText == viewModel.title)
+        #expect(content.fromText == viewModel.startPointName)
+        #expect(content.timeText == viewModel.timeSpentText)
+        #expect(content.distanceText == viewModel.totalDistanceText)
+        #expect(content.leaderAvatar == viewModel.leaderAvatar)
+    }
+
+    @Test func ShareCardDestinationShowsTheNumberOfStops() {
+        let content = TripRecapDetailViewModel(recap: .sample).shareCardContent
+
+        #expect(content.toText == "Tunjungan Plaza +6 Dest.")
+    }
+
+    @Test func ShareCardDestinationIsAloneWithoutStops() {
+        var recap = TripRecap.sample
+        recap.numberOfStops = nil
+
+        #expect(TripRecapShareCardContent(recap: recap).toText == "Tunjungan Plaza")
+    }
+
+    @Test func PreparingTheImageKeepsItForTheShareButton() async {
+        let viewModel = TripRecapDetailViewModel(recap: .sample)
+
+        await viewModel.PrepareShareImage { _ in fakeImage }
+
+        #expect(viewModel.shareImage == fakeImage)
+        #expect(viewModel.isShareFailed == false)
+        #expect(viewModel.isPreparingShareImage == false)
+    }
+
+    @Test func AFailedPictureIsReportedAndCanBeTriedAgain() async {
+        let viewModel = TripRecapDetailViewModel(recap: .sample)
+
+        await viewModel.PrepareShareImage { _ in nil }
+        #expect(viewModel.shareImage == nil)
+        #expect(viewModel.isShareFailed == true)
+
+        await viewModel.PrepareShareImage { _ in fakeImage }
+        #expect(viewModel.shareImage == fakeImage)
+        #expect(viewModel.isShareFailed == false)
+    }
+
+    @Test func ReadyImageIsNotMadeTwice() async {
+        let viewModel = TripRecapDetailViewModel(recap: .sample)
+        var makeCount = 0
+
+        await viewModel.PrepareShareImage { _ in makeCount += 1; return fakeImage }
+        await viewModel.PrepareShareImage { _ in makeCount += 1; return fakeImage }
+
+        #expect(makeCount == 1)
+    }
+}
