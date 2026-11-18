@@ -46,6 +46,8 @@ import SwiftUI
 /// | `tripRoomMemberLeaderEndsTrip` | Member's Trip Room (Budi) where the leader exits after 1 second | O |
 /// | `tripRoomLeaderOffline` | Trip Room lobby on the leader's phone where every save fails with no network | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
+/// | `tripMapLeaderCarPlay` | The On the Go list on the leader's phone (Agus) while CarPlay is connected | O |
+/// | `tripMapMemberCarPlay` | The On the Go list on a member's phone (Budi) while CarPlay is connected | O |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapLeaderSeesStoppedCar` | Trip Started map on the leader's phone after Budi stops on the road | N |
 /// | `tripMapMemberParkedNearDestination` | Trip Started map on Budi's phone, parked 200 m from the destination | N |
@@ -81,6 +83,8 @@ enum DebugScreen: String, CaseIterable {
     case tripRoomMemberLeaderEndsTrip
     case tripRoomLeaderOffline
     case tripMapLeader
+    case tripMapLeaderCarPlay
+    case tripMapMemberCarPlay
     case tripMapMember
     case tripMapMemberOffRoute
     case tripMapLeaderSeesMemberOffRoute
@@ -126,6 +130,11 @@ enum DebugScreen: String, CaseIterable {
             SimulatedTripMapScreen(
                 myParticipantID: SampleTrip.agusID,
                 startSecond: self == .tripMapArrivedLeader ? 2_000 : 0
+            )
+        case .tripMapLeaderCarPlay, .tripMapMemberCarPlay:
+            SimulatedTripMapScreen(
+                myParticipantID: self == .tripMapLeaderCarPlay ? SampleTrip.agusID : SampleTrip.budiID,
+                carPlayConnected: true
             )
         case .tripMapMember, .tripMapMemberLeaderOffline, .tripMapMemberNewRoute, .tripMapMemberRouteUpdated:
             SimulatedTripMapScreen(

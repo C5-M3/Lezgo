@@ -21,6 +21,8 @@ struct SimulatedTripMapScreen: View {
     let agusIsOffline: Bool
     /// Agus gets a new route on the way.
     let agusChangesRoute: SimulatedDrive.RouteChange?
+    /// Pretends CarPlay is connected, so the phone shows the On the Go list (ADR 0034).
+    let carPlayConnected: Bool
     @State private var tripService: InMemoryTripService
 
     init(
@@ -29,7 +31,8 @@ struct SimulatedTripMapScreen: View {
         budiLeavesRoute: Bool = false,
         budiStops: Bool = false,
         agusIsOffline: Bool = false,
-        agusChangesRoute: SimulatedDrive.RouteChange? = nil
+        agusChangesRoute: SimulatedDrive.RouteChange? = nil,
+        carPlayConnected: Bool = false
     ) {
         self.myParticipantID = myParticipantID
         self.startSecond = startSecond
@@ -37,11 +40,14 @@ struct SimulatedTripMapScreen: View {
         self.budiStops = budiStops
         self.agusIsOffline = agusIsOffline
         self.agusChangesRoute = agusChangesRoute
+        self.carPlayConnected = carPlayConnected
         _tripService = State(initialValue: SampleTrip.Service(status: .inTrip, me: myParticipantID))
     }
 
     var body: some View {
         TripMapView(viewModel: MakeViewModel(), onReturnToTripRoom: { _ in })
+        .onAppear { if carPlayConnected { CarPlaySession.shared.Connected() } }
+        .onDisappear { CarPlaySession.shared.Disconnected() }
         .task {
             await SimulatedDrive(
                 tripService: tripService,

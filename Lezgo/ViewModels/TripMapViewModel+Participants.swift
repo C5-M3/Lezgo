@@ -34,12 +34,26 @@ extension TripMapViewModel {
     }
 
     /// The track's cars, or `nil` until the trip and its route are known.
-    var routeProgress: RouteProgress? { nil }
+    var routeProgress: RouteProgress? {
+        guard let state, let updatedAt else { return nil }
+        let path = route
+        let length = zip(path, path.dropFirst()).reduce(0) { $0 + $1.0.Distance(to: $1.1) }
+        guard length > 0 else { return nil }
+        let cars = state.participants.compactMap { car -> RouteProgress.Car? in
+            guard car.IsOnline(at: updatedAt), let coordinate = car.coordinate,
+                  let position = RoutePosition.Locate(coordinate, on: path) else { return nil }
+            let fraction = min(1, max(0, position.distanceAlongRoute / length))
+            return RouteProgress.Car(id: car.id, carColor: CarColor(of: car, in: state), fraction: fraction)
+        }
+        return RouteProgress(cars: cars, leadFraction: cars.map(\.fraction).max() ?? 0)
+    }
 
     /// Every participant: this phone's own car first, then the others in the order of the trip.
     var participantRows: [ParticipantRow] {
         guard let state else { return [] }
-        return state.participants.compactMap { car in
+        let cars = state.participants.filter { $0.id == myParticipantID }
+            + state.participants.filter { $0.id != myParticipantID }
+        return cars.compactMap { car in
             CarStatus(of: car).map {
                 ParticipantRow(
                     status: $0,
@@ -65,8 +79,10 @@ extension TripMapViewModel {
     /// Apple allows an app to ask of routing.
     func TrackAllCars() async {
         while Task.isCancelled == false {
+            // The list can open before the trip has loaded: look again soon instead of after a whole round.
+            let isTripKnown = state != nil
             await RefreshAllCars()
-            try? await Task.sleep(for: .seconds(Self.carLookupInterval))
+            try? await Task.sleep(for: .seconds(isTripKnown ? Self.carLookupInterval : 1))
         }
     }
 }
