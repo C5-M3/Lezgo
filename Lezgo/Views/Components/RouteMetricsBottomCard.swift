@@ -63,9 +63,8 @@ struct RouteMetricsBottomCard: View {
             LezgoButtonLabel(title: saveTitle, isLoading: isSaving)
         }
         .disabled(!canSave)
-        // The spinner keeps the yellow button: a grey one reads as a screen that has stopped answering.
         .allowsHitTesting(!isSaving)
-        .lezgoGlassButton(.main)
+        .lezgoGlassButton(.main, isWorking: isSaving)
         .accessibilityLabel(Text(saveTitle))
     }
 

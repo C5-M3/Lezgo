@@ -8,8 +8,9 @@ import SwiftUI
 /// The label of a main button that can be working: the title, or a spinner in its place.
 ///
 /// The title stays in the layout, only invisible, so the button has the same size loading or not. The spinner is
-/// black like the title, on the yellow button, and regular size: the button is drawn at the extra large control size,
-/// and a plain `ProgressView` inside it follows that size and fills the button.
+/// yellow and regular size: the button is drawn at the extra large control size, and a plain `ProgressView` inside it
+/// follows that size and fills the button. Give the button `lezgoGlassButton(.main, isWorking:)` too, so it turns into
+/// plain glass and the yellow spinner shows on it.
 struct LezgoButtonLabel: View {
     let title: LocalizedStringResource
     let isLoading: Bool
@@ -24,7 +25,7 @@ struct LezgoButtonLabel: View {
                 if isLoading {
                     ProgressView()
                         .controlSize(.regular)
-                        .tint(.black)
+                        .tint(Color(.brandYellow))
                         .accessibilityLabel(loadingLabel.map { Text($0) } ?? Text(title))
                 }
             }
@@ -36,7 +37,7 @@ struct LezgoButtonLabel: View {
         Button {} label: { LezgoButtonLabel(title: "Save", isLoading: false) }
             .lezgoGlassButton(.main)
         Button {} label: { LezgoButtonLabel(title: "Save", isLoading: true) }
-            .lezgoGlassButton(.main)
+            .lezgoGlassButton(.main, isWorking: true)
     }
     .padding()
     .background(Color(.tripCard))
