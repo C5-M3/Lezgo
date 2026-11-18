@@ -120,12 +120,14 @@ extension RoutePlanCard {
             }
             .buttonStyle(.plain)
 
-            Image(systemName: "line.3.horizontal")
-                .font(.subheadline)
-                .foregroundStyle(Color(.tripCardSubtext))
-                .frame(width: 28, height: 28)
-                .contentShape(Rectangle())
-                .accessibilityLabel("Reorder")
+            if showsReorderHandle {
+                Image(systemName: "line.3.horizontal")
+                    .font(.subheadline)
+                    .foregroundStyle(Color(.tripCardSubtext))
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Reorder")
+            }
         }
     }
 

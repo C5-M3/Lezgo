@@ -28,7 +28,7 @@ struct TripRoomStartAction: View {
                     .lezgoGlassButton(.main)
                     .disabled(!viewModel.canStartTrip)
                 if !viewModel.canStartTrip {
-                    Text("Invite at least one friend to start.")
+                    Text("Invite at least one friend to start")
                         .font(.footnote)
                         .foregroundStyle(Color(.tripCardSubtext))
                 }

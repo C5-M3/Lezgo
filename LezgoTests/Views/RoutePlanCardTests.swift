@@ -200,8 +200,17 @@ struct RoutePlanCardTests {
 
     /// #295: one destination has nothing to reorder with.
     @Test func OneDestinationHasNoReorderHandle() {
-        #expect(!Card(destinations: [dest1]).showsDestinationReorderHandle)
-        #expect(Card(destinations: [dest1, dest2, dest3]).showsDestinationReorderHandle)
+        #expect(!Card(destinations: [dest1]).showsReorderHandle)
+        #expect(Card(destinations: [dest1, dest2, dest3]).showsReorderHandle)
+    }
+
+    /// A stop shows no handle either while the one destination is still alone and a new one is being added.
+    @Test func StopHasNoReorderHandleUntilTheNewDestinationIsAdded() {
+        let card = Card(destinations: [dest1], activeSelection: .destination(index: 1))
+
+        #expect(card.listedRows.map(\.name) == ["Dest 1"])
+        #expect(!card.showsReorderHandle)
+        #expect(Card(destinations: [dest1, dest2], activeSelection: .destination(index: 2)).showsReorderHandle)
     }
 
     /// #296: deleting stops from the opened list until fewer than two are left closes it, so no space is kept for it.

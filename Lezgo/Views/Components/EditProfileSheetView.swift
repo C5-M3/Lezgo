@@ -87,16 +87,10 @@ struct EditProfileSheetView: View {
             .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom) {
                 Button(action: Save) {
-                    if viewModel.isSavingProfile {
-                        ProgressView()
-                            .accessibilityLabel("Saving")
-                    } else {
-                        Text("Save")
-                    }
+                    LezgoButtonLabel(title: "Save", isLoading: viewModel.isSavingProfile, loadingLabel: "Saving")
                 }
-                .lezgoGlassButton(.main)
+                .lezgoGlassButton(.main, isWorking: viewModel.isSavingProfile)
                 .disabled(!canSave)
-                // The spinner keeps the yellow button: a grey one reads as a screen that has stopped answering.
                 .allowsHitTesting(!viewModel.isSavingProfile)
                 .padding()
             }

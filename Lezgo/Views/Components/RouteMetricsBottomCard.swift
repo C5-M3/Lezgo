@@ -60,14 +60,11 @@ struct RouteMetricsBottomCard: View {
 
     private var saveButton: some View {
         Button(action: onSave) {
-            if isSaving {
-                ProgressView()
-            } else {
-                Text(saveTitle)
-            }
+            LezgoButtonLabel(title: saveTitle, isLoading: isSaving)
         }
-        .disabled(!canSave || isSaving)
-        .lezgoGlassButton(.main)
+        .disabled(!canSave)
+        .allowsHitTesting(!isSaving)
+        .lezgoGlassButton(.main, isWorking: isSaving)
         .accessibilityLabel(Text(saveTitle))
     }
 

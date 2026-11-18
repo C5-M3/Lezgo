@@ -176,7 +176,7 @@ private extension SetRouteView {
             Spacer()
 
             Text(navigationTitleText)
-                .font(.body.weight(.bold))
+                .font(.lezgoPageTitle)
                 .foregroundStyle(.white)
 
             Spacer()

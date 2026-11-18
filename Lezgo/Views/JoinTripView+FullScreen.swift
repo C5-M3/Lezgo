@@ -12,30 +12,33 @@ import SwiftUI
 extension JoinTripView {
     var isFullScreen: Bool { onClose != nil }
 
-    /// The title between a round Back button on the left and an empty space of the same width on the right. At
-    /// accessibility text sizes the title needs the full width, so the Back button sits on its own row above it.
+    /// The mascot is decoration: it leaves when the screen has no height to spare, at accessibility text sizes and
+    /// when the screen is short (landscape), so the code boxes and the keyboard keep their room.
+    var showsMascot: Bool {
+        !textSize.isAccessibilitySize && verticalSizeClass != .compact
+    }
+
+    /// The round Back button alone at the top left, then the mascot with the phone and the title, as in the hi-fi.
     @ViewBuilder
     var fullScreenHeader: some View {
-        if textSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
+            HStack {
                 RoundBackButton(action: Close)
-                    .padding(.horizontal, -6)
-
-                headerSection
-                    .frame(maxWidth: .infinity)
-            }
-        } else {
-            HStack(alignment: .top) {
-                RoundBackButton(action: Close)
-
-                headerSection
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 10)
-
-                Color.clear
-                    .frame(width: 44, height: 44)
+                Spacer()
             }
             .padding(.horizontal, -6)
+
+            if showsMascot {
+                Image(.joinPhoneMascot)
+                    .resizable()
+                    .scaledToFit()
+                    // It also shrinks before it pushes the boxes down, on a small screen with the keyboard up.
+                    .frame(maxHeight: 240)
+                    .accessibilityHidden(true)
+            }
+
+            headerSection
+                .frame(maxWidth: .infinity)
         }
     }
 

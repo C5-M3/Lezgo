@@ -43,11 +43,19 @@ extension TripStartIntroView {
         /// The robot's body fills this share of its image; the rest is transparent margin.
         private static let robotBodyShare = 0.426
         private static let robotBodyWidth = 133.0
+        /// The robot's body is not in the middle of its image: its centre is this share of the image's width to the
+        /// right of the image's centre (measured from the opaque pixels), so the image is moved back by it.
+        private static let robotBodyCenterShare = 0.008
 
         /// Fits the logo in a phone of any size, and in landscape.
         private var scale: Double {
             guard size.width > 0, size.height > 0 else { return 1 }
             return min(size.width / 402, size.height / 640)
+        }
+
+        /// The side of the robot's square image.
+        private var robotSide: Double {
+            Self.robotBodyWidth / Self.robotBodyShare * scale
         }
 
         /// Where the hole of the O is on screen.
@@ -104,13 +112,10 @@ extension TripStartIntroView {
                 Image(.frontballActiveYellow)
                     .resizable()
                     .accessibilityHidden(true)
-                    .frame(
-                        width: Self.robotBodyWidth / Self.robotBodyShare * scale,
-                        height: Self.robotBodyWidth / Self.robotBodyShare * scale
-                    )
+                    .frame(width: robotSide, height: robotSide)
                     .scaleEffect(x: frame.robotScaleX, y: frame.robotScaleY)
                     .rotationEffect(.degrees(frame.robotRotationDegrees))
-                    .position(holeOnScreen)
+                    .position(x: holeOnScreen.x - Self.robotBodyCenterShare * robotSide, y: holeOnScreen.y)
                     // On a wide screen the robot must travel further to start and end out of sight.
                     .offset(
                         x: frame.robotOffsetX * max(scale, size.width / 402),

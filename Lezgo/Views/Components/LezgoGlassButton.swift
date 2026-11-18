@@ -53,9 +53,16 @@ enum LezgoGlassRole {
 private struct LezgoGlassButtonModifier: ViewModifier {
     let role: LezgoGlassRole
     let side: CGFloat?
+    let isWorking: Bool
 
     func body(content: Content) -> some View {
         switch role {
+        case .main where isWorking:
+            // Plain glass, not yellow, so the yellow spinner shows on it.
+            content
+                .buttonStyle(.glass)
+                .foregroundStyle(role.textColor)
+                .modifier(CapsuleSize())
         case .main:
             content
                 .buttonStyle(.glassProminent)
@@ -113,8 +120,10 @@ extension View {
     /// Draws the buttons in this view with the system's glass style for the given role.
     ///
     /// A round button can be larger than 44 points with `side`, as the trip map's controls are.
-    func lezgoGlassButton(_ role: LezgoGlassRole, side: CGFloat? = nil) -> some View {
-        modifier(LezgoGlassButtonModifier(role: role, side: side))
+    ///
+    /// `isWorking` turns a main button into plain glass while it works (see `LezgoButtonLabel`).
+    func lezgoGlassButton(_ role: LezgoGlassRole, side: CGFloat? = nil, isWorking: Bool = false) -> some View {
+        modifier(LezgoGlassButtonModifier(role: role, side: side, isWorking: isWorking))
     }
 
     /// Puts a tappable view that holds a picture on tinted glass. Apply it after padding and frame.

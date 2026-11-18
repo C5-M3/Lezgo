@@ -192,8 +192,9 @@ extension RoutePlanCard {
         listedRows.isEmpty || isAddingNewDestination
     }
 
-    /// One destination has nothing to swap with.
-    var showsDestinationReorderHandle: Bool {
+    /// One destination has nothing to swap with, so no row shows the handle, even a stop while a new destination is
+    /// being added.
+    var showsReorderHandle: Bool {
         destinations.count > 1
     }
 
@@ -324,15 +325,6 @@ extension RoutePlanCard {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-
-                    if showsDestinationReorderHandle {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.subheadline)
-                            .foregroundStyle(Color(.tripCardSubtext))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                            .accessibilityLabel("Reorder")
-                    }
                 }
             }
             .frame(minHeight: 36)

@@ -21,7 +21,7 @@ struct TripRoomOverview: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Overview")
-                    .font(.title3.bold())
+                    .font(.lezgoSectionTitle)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if let onEdit {

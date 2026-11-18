@@ -29,7 +29,7 @@ struct TripRoomParticipantsSection: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Participants")
-                    .font(.title3.bold())
+                    .font(.lezgoSectionTitle)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
                 if !isTransitioning {
@@ -125,7 +125,7 @@ private struct ParticipantCell: View {
                 Text(participant.carDescription)
                     .font(.subheadline)
                     .foregroundStyle(Color(.tripCardSubtext))
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .multilineTextAlignment(.center)
             }
         }
