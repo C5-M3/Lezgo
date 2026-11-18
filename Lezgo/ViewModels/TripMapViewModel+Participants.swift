@@ -72,12 +72,6 @@ extension TripMapViewModel {
         }
     }
 
-    /// "To Ciputra World": where the group is heading, the next checkpoint or else the destination.
-    var nextStopTitle: String? {
-        guard let state, let nextStop = state.nextCheckpoint ?? state.destination else { return nil }
-        return String(localized: .tripMapCarTo(nextStop.name))
-    }
-
     /// How long this car needs to reach its next stop, or `nil` until it is looked up.
     var timeToNextStop: Duration? { carLookups[myParticipantID]?.timeToNextStop }
 
