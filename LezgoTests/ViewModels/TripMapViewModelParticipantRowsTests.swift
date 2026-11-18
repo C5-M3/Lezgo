@@ -32,7 +32,7 @@ struct TripMapViewModelParticipantRowsTests {
         #expect(MakeViewModel().participantRows.isEmpty)
     }
 
-    @Test func EveryParticipantHasARowInTripOrder() async {
+    @Test func EveryParticipantHasARow() async {
         let viewModel = MakeViewModel()
 
         await viewModel.Start()
@@ -40,13 +40,26 @@ struct TripMapViewModelParticipantRowsTests {
         #expect(viewModel.participantRows.map(\.status.displayName) == ["Agus", "Budi", "Citra"])
     }
 
-    /// As in the hi-fi, the phone's own car is first and the others follow in the order of the trip.
-    @Test func MyOwnCarIsFirstAndTheOthersFollowInTripOrder() async {
+    /// As in the hi-fi, the leader is first and the others follow in the order of the trip, whoever holds the phone.
+    @Test func TheLeaderIsFirstAndTheOthersFollowInTripOrder() async {
+        let state = Fixtures.State(cars: [
+            Fixtures.Car(id: Fixtures.citraID, name: "Citra"),
+            Fixtures.Car(id: Fixtures.budiID, name: "Budi"),
+            Fixtures.Car(id: Fixtures.agusID, name: "Agus")
+        ])
+        let viewModel = MakeViewModel(me: Fixtures.budiID, state: state)
+
+        await viewModel.Start()
+
+        #expect(viewModel.participantRows.map(\.status.displayName) == ["Agus", "Citra", "Budi"])
+    }
+
+    @Test func OnlyTheLeaderIsMarkedAsTheLeader() async {
         let viewModel = MakeViewModel(me: Fixtures.budiID)
 
         await viewModel.Start()
 
-        #expect(viewModel.participantRows.map(\.status.displayName) == ["Budi", "Agus", "Citra"])
+        #expect(viewModel.participantRows.filter(\.isLeader).map(\.id) == [Fixtures.agusID])
     }
 
     @Test func OnlyMyOwnRowIsMarkedAsMine() async {

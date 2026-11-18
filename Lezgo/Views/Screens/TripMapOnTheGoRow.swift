@@ -82,21 +82,21 @@ struct TripMapOnTheGoRow: View {
                 id: UUID(), displayName: "Oky", activity: .driving(street: "Jl. Adityawarman"),
                 carDescription: "Black Toyota Innova"
             ),
-            timeToDestination: .seconds(21 * 60), isMe: true
+            timeToDestination: .seconds(21 * 60), isMe: true, isLeader: true
         ))
         TripMapOnTheGoRow(row: .init(
             status: TripMapCarStatus(
                 id: UUID(), displayName: "Rizal", activity: .stopped(street: "Jl. Citra Niaga"),
                 carDescription: "Black Toyota Avanza", carColor: .green
             ),
-            timeToDestination: .seconds(51 * 60), isMe: false
+            timeToDestination: .seconds(51 * 60), isMe: false, isLeader: false
         ))
         TripMapOnTheGoRow(row: .init(
             status: TripMapCarStatus(
                 id: UUID(), displayName: "Bartholomew Alexander Wicaksono", activity: .offline(lastSeen: .seconds(180)),
                 carColor: .pink
             ),
-            timeToDestination: nil, isMe: false
+            timeToDestination: nil, isMe: false, isLeader: false
         ))
     }
     .padding()
@@ -109,7 +109,7 @@ struct TripMapOnTheGoRow: View {
         status: TripMapCarStatus(
             id: UUID(), displayName: "Matthew", activity: .driving(street: "Jl. HR Mayjend Muhammad")
         ),
-        timeToDestination: .seconds(26 * 60), isMe: false
+        timeToDestination: .seconds(26 * 60), isMe: false, isLeader: false
     ))
     .padding()
     .background(Color(.tripCard))

@@ -15,6 +15,7 @@ extension TripMapViewModel {
         /// `nil` until it is looked up, and for an offline car, whose last position is out of date.
         let timeToDestination: Duration?
         let isMe: Bool
+        let isLeader: Bool
 
         var id: UUID { status.id }
     }
@@ -59,7 +60,8 @@ extension TripMapViewModel {
                 ParticipantRow(
                     status: $0,
                     timeToDestination: $0.lastSeenLine == nil ? carLookups[car.id]?.timeLeft : nil,
-                    isMe: car.id == myParticipantID
+                    isMe: car.id == myParticipantID,
+                    isLeader: car.IsLeader(in: state.trip)
                 )
             }
         }
