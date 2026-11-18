@@ -20,7 +20,11 @@ final class CarPlaySession {
 
     private(set) var isConnected = false
 
-    func Connected() {}
+    func Connected() {
+        isConnected = true
+    }
 
-    func Disconnected() {}
+    func Disconnected() {
+        isConnected = false
+    }
 }
