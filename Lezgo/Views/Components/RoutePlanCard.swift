@@ -324,15 +324,6 @@ extension RoutePlanCard {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-
-                    if showsDestinationReorderHandle {
-                        Image(systemName: "line.3.horizontal")
-                            .font(.subheadline)
-                            .foregroundStyle(Color(.tripCardSubtext))
-                            .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
-                            .accessibilityLabel("Reorder")
-                    }
                 }
             }
             .frame(minHeight: 36)
