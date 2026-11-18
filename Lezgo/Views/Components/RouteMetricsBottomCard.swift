@@ -61,7 +61,7 @@ struct RouteMetricsBottomCard: View {
     private var saveButton: some View {
         Button(action: onSave) {
             if isSaving {
-                ProgressView()
+                LezgoButtonSpinner()
             } else {
                 Text(saveTitle)
             }

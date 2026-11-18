@@ -88,7 +88,7 @@ struct EditProfileSheetView: View {
             .safeAreaInset(edge: .bottom) {
                 Button(action: Save) {
                     if viewModel.isSavingProfile {
-                        ProgressView()
+                        LezgoButtonSpinner()
                             .accessibilityLabel("Saving")
                     } else {
                         Text("Save")

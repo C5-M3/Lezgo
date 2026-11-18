@@ -270,7 +270,7 @@ struct JoinTripView: View {
             submitRoomCode()
         } label: {
             if viewModel.isSubmitting {
-                ProgressView()
+                LezgoButtonSpinner()
             } else {
                 Text("Enter")
             }
