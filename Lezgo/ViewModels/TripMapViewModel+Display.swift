@@ -208,7 +208,7 @@ extension TripMapViewModel {
     }
 
     /// What a car is doing, with the street and time left once they are looked up for it.
-    private func CarStatus(of car: Participant) -> TripMapCarStatus? {
+    func CarStatus(of car: Participant) -> TripMapCarStatus? {
         guard let state, let updatedAt else { return nil }
         let displayName = state.DisplayName(of: car)
         guard car.IsOnline(at: updatedAt) else {

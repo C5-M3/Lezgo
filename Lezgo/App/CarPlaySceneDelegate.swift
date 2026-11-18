@@ -26,6 +26,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         let activeTripMap = ActiveTripMap.shared
         self.interfaceController = interfaceController
         carWindow = window
+        CarPlaySession.shared.Connected()
         window.rootViewController = UIHostingController(rootView: CarPlayMapView(activeTripMap: activeTripMap))
 
         let tripMapTemplate = CarPlayTripMapTemplate(
@@ -41,6 +42,7 @@ final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegat
         didDisconnect interfaceController: CPInterfaceController,
         from window: CPWindow
     ) {
+        CarPlaySession.shared.Disconnected()
         tripMapTemplate = nil
         carWindow = nil
         self.interfaceController = nil

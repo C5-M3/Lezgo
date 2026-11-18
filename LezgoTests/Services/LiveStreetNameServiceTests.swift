@@ -18,7 +18,7 @@ struct LiveStreetNameServiceTests {
             name: "Ciputra World Surabaya"
         )
 
-        #expect(street == "Jl Kencanasari Barat VII No. L-17 A")
+        #expect(street == "Jl Kencanasari Barat VII")
     }
 
     /// The city is the same for every car in the trip, so it only makes the card longer.
@@ -28,7 +28,24 @@ struct LiveStreetNameServiceTests {
             name: nil
         )
 
-        #expect(street == "Jalan Raya Diponegoro No. 215")
+        #expect(street == "Jalan Raya Diponegoro")
+    }
+
+    /// The status line says where the car is, not which house: the street number is left out.
+    @Test(arguments: [
+        ("Jalan Tegal Sari No. 28, Surabaya", "Jalan Tegal Sari"),
+        ("Jl Mayjend Sungkono no 5, Surabaya", "Jl Mayjend Sungkono"),
+        ("Jl HR Mayjend Muhammad Nomor 12A, Surabaya", "Jl HR Mayjend Muhammad"),
+        ("Jl Adityawarman, Surabaya", "Jl Adityawarman")
+    ])
+    func StreetNumberIsLeftOut(shortAddress: String, expected: String) {
+        #expect(LiveStreetNameService.StreetName(shortAddress: shortAddress, name: nil) == expected)
+    }
+
+    @Test func NameIsUsedWhenOnlyANumberIsLeft() {
+        let street = LiveStreetNameService.StreetName(shortAddress: "No. 28, Surabaya", name: "Tunjungan Plaza")
+
+        #expect(street == "Tunjungan Plaza")
     }
 
     @Test func NameIsUsedWithoutAShortAddress() {

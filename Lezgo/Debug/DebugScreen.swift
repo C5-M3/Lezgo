@@ -46,6 +46,8 @@ import SwiftUI
 /// | `tripRoomMemberLeaderEndsTrip` | Member's Trip Room (Budi) where the leader exits after 1 second | O |
 /// | `tripRoomLeaderOffline` | Trip Room lobby on the leader's phone where every save fails with no network | O |
 /// | `tripMapLeader` | Trip Started map on the leader's phone (Agus), with a simulated drive | N |
+/// | `tripMapLeaderCarPlay` | The On the Go list on the leader's phone (Agus) while CarPlay is connected | O |
+/// | `tripMapMemberCarPlay` | The On the Go list on a member's phone (Budi) while CarPlay is connected | O |
 /// | `tripMapMember` | Trip Started map on a member's phone (Budi), with a simulated drive | N |
 /// | `tripMapLeaderSeesStoppedCar` | Trip Started map on the leader's phone after Budi stops on the road | N |
 /// | `tripMapMemberParkedNearDestination` | Trip Started map on Budi's phone, parked 200 m from the destination | N |
@@ -81,6 +83,8 @@ enum DebugScreen: String, CaseIterable {
     case tripRoomMemberLeaderEndsTrip
     case tripRoomLeaderOffline
     case tripMapLeader
+    case tripMapLeaderCarPlay
+    case tripMapMemberCarPlay
     case tripMapMember
     case tripMapMemberOffRoute
     case tripMapLeaderSeesMemberOffRoute
@@ -135,7 +139,7 @@ enum DebugScreen: String, CaseIterable {
                     : self == .tripMapMemberRouteUpdated ? .newDestination : nil
             )
         case .tripMapMemberOffRoute, .tripMapLeaderSeesMemberOffRoute, .tripMapLeaderSeesStoppedCar,
-             .tripMapMemberParkedNearDestination:
+             .tripMapMemberParkedNearDestination, .tripMapLeaderCarPlay, .tripMapMemberCarPlay:
             MakeBudiScreen()
         case .tripMapArrivals:
             SimulatedArrivalsScreen(totalCount: 7)
@@ -160,8 +164,14 @@ enum DebugScreen: String, CaseIterable {
         }
     }
 
-    /// The trip maps where Budi leaves the route or stops: on the road, or parked 200 m from the destination's point.
+    /// The trip maps for one situation: Budi leaves the route or stops, or CarPlay is connected (ADR 0034).
     private func MakeBudiScreen() -> SimulatedTripMapScreen {
+        if self == .tripMapLeaderCarPlay || self == .tripMapMemberCarPlay {
+            return SimulatedTripMapScreen(
+                myParticipantID: self == .tripMapLeaderCarPlay ? SampleTrip.agusID : SampleTrip.budiID,
+                carPlayConnected: true
+            )
+        }
         if self == .tripMapMemberParkedNearDestination {
             return SimulatedTripMapScreen(
                 myParticipantID: SampleTrip.budiID,

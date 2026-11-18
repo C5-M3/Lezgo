@@ -10,7 +10,8 @@ import MapKit
 /// Names the street at a coordinate with MapKit reverse geocoding.
 ///
 /// MapKit gives the nearest address, for example "Jalan Tegal Sari No. 28", or a place when the address has no street
-/// ("Tunjungan Plaza"). It needs the network; the caller decides how often to ask, because Apple limits how many
+/// ("Tunjungan Plaza"). Only the street is kept ("Jalan Tegal Sari"): the cards say where a car is, not which house.
+/// It needs the network; the caller decides how often to ask, because Apple limits how many
 /// requests an app sends.
 struct LiveStreetNameService: StreetNameService {
     func StreetName(at coordinate: Coordinate) async throws -> String? {
@@ -24,13 +25,19 @@ struct LiveStreetNameService: StreetNameService {
     ///
     /// Next to a building, `name` is the building ("Ciputra World Surabaya") while the short address still starts
     /// with the street ("Jl Kencanasari Barat VII No. L-17 A, Surabaya"). The city after the first comma is left out,
-    /// because it is the same for every car in the trip.
+    /// because it is the same for every car in the trip. The house number ("No. 28" or "Nomor 12A") is left out too:
+    /// only the street name stays.
     static func StreetName(shortAddress: String?, name: String?) -> String? {
         let street = shortAddress?
             .split(separator: ",", maxSplits: 1)
             .first?
             .trimmingCharacters(in: .whitespaces)
-        guard let street, street.isEmpty == false else { return name }
-        return street
+        let withoutNumber = street?.replacingOccurrences(
+            of: #"\s*\b(No|Nomor)\b\.?(\s.*)?$"#,
+            with: "",
+            options: [.regularExpression, .caseInsensitive]
+        )
+        guard let withoutNumber, withoutNumber.isEmpty == false else { return name }
+        return withoutNumber
     }
 }
