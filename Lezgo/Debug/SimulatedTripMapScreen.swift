@@ -71,6 +71,12 @@ struct SimulatedTripMapScreen: View {
     }
 }
 
+private func ConnectedCarPlaySession() -> CarPlaySession {
+    let session = CarPlaySession()
+    session.Connected()
+    return session
+}
+
 #Preview("Leader") {
     SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
 }
@@ -94,6 +100,16 @@ struct SimulatedTripMapScreen: View {
 #Preview("Member, largest text") {
     SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
         .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Leader, CarPlay connected") {
+    SimulatedTripMapScreen(myParticipantID: SampleTrip.agusID)
+        .environment(\.carPlaySession, ConnectedCarPlaySession())
+}
+
+#Preview("Member, CarPlay connected") {
+    SimulatedTripMapScreen(myParticipantID: SampleTrip.budiID)
+        .environment(\.carPlaySession, ConnectedCarPlaySession())
 }
 
 #Preview("Member, dark") {

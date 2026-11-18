@@ -16,6 +16,8 @@ struct TripMapView: View {
     @Environment(\.dismiss) private var dismiss
     /// Where CarPlay finds this map, to mirror it while it is on screen (ADR 0023).
     @Environment(\.activeTripMap) private var activeTripMap
+    /// While CarPlay is connected the car shows the map, and the phone shows the On the Go list instead (ADR 0034).
+    @Environment(\.carPlaySession) private var carPlaySession
     /// Whether the bottom card is pulled up. It starts collapsed, so End Trip and Exit Trip are out of reach while
     /// driving.
     @State private var isSheetExpanded = false
@@ -53,32 +55,13 @@ struct TripMapView: View {
     }
 
     var body: some View {
-        // The map closes the car status on a tap (below) but is not a button, so it gets no button trait;
-        // VoiceOver closes it with its Close button or the escape gesture instead.
-        // swiftlint:disable:next accessibility_trait_for_button
-        MapLayer(viewModel: viewModel, showsCars: isTripScreenRevealed, compassHeading: mapHeading)
-        // Keeps Apple's Maps logo and Legal link above the bottom card, where they must stay visible, and the compass
-        // under the turn card. Fixed, so the map never changes size as the cards come and go.
-        .safeAreaPadding(.vertical, 140)
-        .scaleEffect(mapScale)
-        .opacity(isMapVisible ? 1 : 0)
-        // Tapping the map anywhere but a car closes the car status.
-        .onTapGesture { viewModel.SelectCar(nil) }
-        .overlay(alignment: .top) {
-            if isTripScreenRevealed {
-                TopCards(viewModel: viewModel)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .overlay(alignment: .bottom) {
-            if isTripScreenRevealed {
-                BottomControls(
-                    viewModel: viewModel,
-                    mapHeading: mapHeading,
-                    onNewDestination: NewDestinationAction(),
-                    isSheetExpanded: $isSheetExpanded
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+        // A container that stays the same when its content changes, so `onAppear` and `onDisappear` below do not run
+        // when CarPlay connects: they would take the trip out of `ActiveTripMap` and CarPlay would lose it (ADR 0034).
+        ZStack {
+            if carPlaySession.isConnected {
+                TripMapOnTheGoView(viewModel: viewModel)
+            } else {
+                MapContent()
             }
         }
         .overlay {
@@ -132,6 +115,38 @@ struct TripMapView: View {
                 onReturnToTripRoom?(session)
             }
         }
+    }
+
+    /// The map with the turn card on top and the sheet at the bottom, as in Apple Maps.
+    private func MapContent() -> some View {
+        // The map closes the car status on a tap (below) but is not a button, so it gets no button trait;
+        // VoiceOver closes it with its Close button or the escape gesture instead.
+        // swiftlint:disable:next accessibility_trait_for_button
+        MapLayer(viewModel: viewModel, showsCars: isTripScreenRevealed, compassHeading: mapHeading)
+            // Keeps Apple's Maps logo and Legal link above the bottom card, where they must stay visible, and the
+            // compass under the turn card. Fixed, so the map never changes size as the cards come and go.
+            .safeAreaPadding(.vertical, 140)
+            .scaleEffect(mapScale)
+            .opacity(isMapVisible ? 1 : 0)
+            // Tapping the map anywhere but a car closes the car status.
+            .onTapGesture { viewModel.SelectCar(nil) }
+            .overlay(alignment: .top) {
+                if isTripScreenRevealed {
+                    TopCards(viewModel: viewModel)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if isTripScreenRevealed {
+                    BottomControls(
+                        viewModel: viewModel,
+                        mapHeading: mapHeading,
+                        onNewDestination: NewDestinationAction(),
+                        isSheetExpanded: $isSheetExpanded
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
     }
 
     /// Brings in the map at the right moments of the animation, then removes the yellow.
@@ -365,26 +380,4 @@ extension TripMapView {
             )
         }
     }
-}
-
-extension TripMapView {
-    /// A quiet notice under the turn card while this phone cannot send its position (#220). It is not an alert:
-    /// the driver needs no action, and it goes away by itself when the connection is back.
-    struct ConnectionLostNotice: View {
-        var body: some View {
-            Label(.tripMapConnectionLost, systemImage: "wifi.slash")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color(.tripCardText))
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                // A dark capsule like the other trip map cards, instead of Liquid Glass.
-                .background(Color(.tripCard), in: .capsule)
-                .accessibilityAddTraits(.isStaticText)
-        }
-    }
-}
-
-#Preview("Connection lost") {
-    TripMapView.ConnectionLostNotice()
-        .padding()
 }
