@@ -11,6 +11,12 @@ import UniformTypeIdentifiers
 struct TripRecapShareImage: Transferable, Equatable {
     let fileURL: URL
 
+    /// The picture itself for the share sheet's header, or the logo if the file cannot be read.
+    var previewImage: Image {
+        guard let uiImage = UIImage(contentsOfFile: fileURL.path()) else { return Image(.lezgoBlack) }
+        return Image(uiImage: uiImage)
+    }
+
     static var transferRepresentation: some TransferRepresentation {
         FileRepresentation(exportedContentType: .png) { image in
             SentTransferredFile(image.fileURL)
