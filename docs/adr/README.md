@@ -48,3 +48,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0031](0031-OneTripPerIcloudAccount.md) | One trip per iCloud account, checked in CloudKit | Proposed | 2026-11-16 |
 | [0032](0032-TintedGlassButtons.md) | Apple's glass for every button, always tinted | Proposed | 2026-11-17 |
 | [0033](0033-OneSetOfSurfaceColours.md) | One set of surface colours, text greys and corner radii | Proposed | 2026-11-17 |
+| [0034](0034-OnTheGoScreenWhileCarPlayIsConnected.md) | The iPhone shows the On the Go list while CarPlay is connected | Proposed | 2026-11-18 |
