@@ -164,8 +164,8 @@ private struct MapPickerTopFade: View {
     var body: some View {
         LinearGradient(
             stops: [
-                .init(color: Color(.tripCard).opacity(0.95), location: 0),
-                .init(color: Color(.tripCard).opacity(0.7), location: 0.55),
+                .init(color: Color(.tripCard).opacity(0.6), location: 0),
+                .init(color: Color(.tripCard).opacity(0.35), location: 0.55),
                 .init(color: Color(.tripCard).opacity(0), location: 1)
             ],
             startPoint: .top,
