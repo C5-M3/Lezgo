@@ -13,11 +13,11 @@ struct TripMapOnTheGoRow: View {
     let row: TripMapViewModel.ParticipantRow
 
     /// The mascot is drawn larger than the card and its feet are cut off, as in the hi-fi.
-    private static let mascotImageSize = 130.0
-    private static let mascotDrop = 18.0
+    private static let mascotImageSize = 150.0
+    private static let mascotDrop = 28.0
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
+        HStack(alignment: .center, spacing: 0) {
             Image(row.status.carColor.fullBodyImage)
                 .resizable()
                 .scaledToFit()

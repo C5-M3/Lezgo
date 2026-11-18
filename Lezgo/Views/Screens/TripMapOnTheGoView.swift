@@ -38,15 +38,13 @@ struct TripMapOnTheGoView: View {
             .padding(.bottom, 120)
         }
         .overlay(alignment: .bottom) {
-            Buttons()
-                .background(alignment: .bottom) {
-                    // The rows fade out under the buttons, as in the hi-fi.
-                    LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
-                        .frame(height: 140)
-                        .ignoresSafeArea()
-                        .allowsHitTesting(false)
-                }
+            // The rows fade out under the buttons, as in the hi-fi.
+            LinearGradient(colors: [.clear, Color(.tripCard)], startPoint: .top, endPoint: .bottom)
+                .frame(height: 150)
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
         }
+        .overlay(alignment: .bottom) { Buttons() }
         .task { await viewModel.TrackAllCars() }
     }
 
