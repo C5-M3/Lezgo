@@ -269,13 +269,10 @@ struct JoinTripView: View {
         Button {
             submitRoomCode()
         } label: {
-            if viewModel.isSubmitting {
-                LezgoButtonSpinner()
-            } else {
-                Text("Enter")
-            }
+            LezgoButtonLabel(title: "Enter", isLoading: viewModel.isSubmitting)
         }
-        .disabled(!viewModel.isValidCode || viewModel.isSubmitting)
+        .disabled(!viewModel.isValidCode)
+        // The spinner keeps the yellow button; `submitRoomCode` ignores a second tap while it works.
         .lezgoGlassButton(.main)
         .accessibilityLabel("Enter")
     }

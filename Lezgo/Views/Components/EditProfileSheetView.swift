@@ -87,12 +87,7 @@ struct EditProfileSheetView: View {
             .scrollBounceBehavior(.basedOnSize)
             .safeAreaInset(edge: .bottom) {
                 Button(action: Save) {
-                    if viewModel.isSavingProfile {
-                        LezgoButtonSpinner()
-                            .accessibilityLabel("Saving")
-                    } else {
-                        Text("Save")
-                    }
+                    LezgoButtonLabel(title: "Save", isLoading: viewModel.isSavingProfile, loadingLabel: "Saving")
                 }
                 .lezgoGlassButton(.main)
                 .disabled(!canSave)
