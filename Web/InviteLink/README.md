@@ -8,10 +8,6 @@ The static site behind the invite link `https://lezgo-trip.netlify.app/join?code
 | `_redirects` | Serves that file at `/.well-known/apple-app-site-association`, where iOS reads it. Netlify Drop skips folders starting with a dot, so it cannot live in `.well-known/` |
 | `_headers` | Serves the AASA file as JSON |
 | `join/index.html` | Shown when Lezgo is not installed, or when the link is opened from Safari's address bar |
-| `privacy/index.html` | The privacy policy, served at `/privacy`. App Store Connect links to it as the Privacy Policy URL |
-| `support/index.html` | The support page, served at `/support`. App Store Connect links to it as the Support URL |
-
-Keep `privacy/index.html` in step with the app: when the app shares new data, update this page, `Lezgo/Resources/PrivacyInfo.xcprivacy` and the App Privacy answers in App Store Connect together.
 
 ## Deploy
 
