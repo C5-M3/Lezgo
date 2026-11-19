@@ -44,7 +44,11 @@ extension LiveTripService {
         }
         while let mine = heldSessions[tripID], Task.isCancelled == false {
             try? await Task.sleep(for: pollInterval * Self.seatPollEvery)
-            guard let seat = try? await SeatRecord().seat, seat.sessionID != mine else { continue }
+            // The seat is one per account: another trip in it is a later trip of this account, not a phone that took
+            // this trip over.
+            guard let seat = try? await SeatRecord().seat, seat.tripID == tripID, seat.sessionID != mine else {
+                continue
+            }
             heldSessions[tripID] = nil
             return
         }
