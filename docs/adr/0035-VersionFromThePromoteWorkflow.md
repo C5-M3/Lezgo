@@ -36,7 +36,7 @@ We will set the version from a git tag. When `Promote` moves `main`, the person 
 - The version is no longer visible in the code. Read it from the latest tag (`git describe --tags --abbrev=0`) or the Promote run summary.
 - Promoting `main` with nothing new does not create a tag. Running it again after a failure reuses the tag already on that commit instead of skipping a number.
 - The first tag, `v1.0.0`, marks the commit of the 1.0 release (`b46f274`). The 1.0.1 pull request (#366) is closed in favour of this one: the next fix release becomes 1.0.1 automatically.
-- `ci_scripts/ci_post_clone.sh` is a build script that Xcode Cloud runs before every build. `Scripts/ScanForXcsset.sh` warns about it, as it warns about every script, so reviewers read every change to it.
+- `ci_scripts/ci_post_clone.sh` is a script that Xcode Cloud runs before every build. `Scripts/ScanForXcsset.sh` checks Xcode project files, not this folder, so a change to `ci_scripts/` must be called out in its pull request and read with care.
 - Xcode Cloud must be able to fetch the tags. If the first build cannot, the script fails on `main` with a clear message instead of guessing.
 - The Promote workflow pushes tags, which its `contents: write` permission already allows.
 - See AGENTS.md "Branches" and "Continuous integration".
