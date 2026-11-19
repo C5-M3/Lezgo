@@ -272,8 +272,11 @@ final class HomeViewModel {
     }
 
     /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
+    /// With a trip open on screen the link is ignored too: Join Trip would open behind the trip, with its keyboard
+    /// up over it (US-03: one trip at a time).
     func OpenInviteLink(_ url: URL) {
-        guard let roomCode = InviteLink.RoomCode(from: url) else { return }
+        guard activeTripSession == nil, activeMapSession == nil,
+              let roomCode = InviteLink.RoomCode(from: url) else { return }
         inviteRoomCode = roomCode
     }
 
