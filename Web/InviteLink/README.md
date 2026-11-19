@@ -1,6 +1,8 @@
-# Invite link site
+# Old invite link site
 
-The static site behind the invite link `https://lezgo-trip.netlify.app/join?code=897654` (ADR 0020).
+The static site behind the invite link `https://lezgo-trip.netlify.app/join?code=897654` (ADR 0020), which Lezgo 1.0 shares.
+
+New builds share `https://joinlezgo.app/join?code=897654` instead (ADR 0036). That page and its association file live in [C5-M3/lezgo-website](https://github.com/C5-M3/lezgo-website): add test app IDs there, not here. This folder only keeps the Netlify site running so old invites still open the app; do not change it.
 
 | File | Purpose |
 | --- | --- |
