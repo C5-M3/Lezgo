@@ -9,18 +9,20 @@ import Foundation
 import Testing
 @testable import Lezgo
 
-/// The invite link (US-02, US-04, ADR 0020): built in the Trip Room, read back when it opens the app.
+/// The invite link (US-02, US-04, ADR 0036): built in the Trip Room, read back when it opens the app.
 struct InviteLinkTests {
     @Test func InviteLinkIsAUniversalLinkWithTheRoomCode() {
         let url = InviteLink.Make(roomCode: "897654")
 
-        #expect(url?.absoluteString == "https://lezgo-trip.netlify.app/join?code=897654")
+        #expect(url?.absoluteString == "https://joinlezgo.app/join?code=897654")
     }
 
     @Test(arguments: [
+        "https://joinlezgo.app/join?code=897654",
+        "https://joinlezgo.app/join/?code=897654",
+        "https://JOINLEZGO.APP/join?code=897654",
         "https://lezgo-trip.netlify.app/join?code=897654",
-        "https://lezgo-trip.netlify.app/join/?code=897654",
-        "https://LEZGO-TRIP.netlify.app/join?code=897654",
+        "https://LEZGO-TRIP.netlify.app/join/?code=897654",
         "lezgo://join?code=897654"
     ])
     func OpeningAnInviteLinkGivesTheRoomCode(link: String) throws {
@@ -30,6 +32,13 @@ struct InviteLinkTests {
     }
 
     @Test(arguments: [
+        "https://joinlezgo.app/join",
+        "https://joinlezgo.app/join?code=",
+        "https://joinlezgo.app/join?code=8976",
+        "https://joinlezgo.app/other?code=897654",
+        "http://joinlezgo.app/join?code=897654",
+        "https://www.joinlezgo.app/join?code=897654",
+        "https://joinlezgo.app.example.com/join?code=897654",
         "https://lezgo-trip.netlify.app/join",
         "https://lezgo-trip.netlify.app/join?code=",
         "https://lezgo-trip.netlify.app/join?code=8976",

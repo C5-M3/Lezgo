@@ -37,4 +37,14 @@ struct EntitlementsTests {
         #expect(carPlay.removeValue(forKey: Self.carPlayKey) as? Bool == true)
         #expect(NSDictionary(dictionary: carPlay).isEqual(to: withoutCarPlay))
     }
+
+    /// Universal links open the app only for hosts in Associated Domains (ADR 0036). The old Netlify host stays
+    /// so invites shared from Lezgo 1.0 keep opening the app.
+    @Test func AppOpensInviteLinksOnTheNewAndTheOldHost() throws {
+        let entitlements = try Entitlements("Lezgo.entitlements")
+        let domains = try #require(entitlements["com.apple.developer.associated-domains"] as? [String])
+
+        #expect(domains.contains("applinks:joinlezgo.app"))
+        #expect(domains.contains("applinks:lezgo-trip.netlify.app"))
+    }
 }
