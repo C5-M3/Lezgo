@@ -170,6 +170,24 @@ struct TripServiceSeatTests {
         #expect(await wasTold.value)
     }
 
+    /// The seat is one per account, so a new trip on this same phone changes it too: that is not another phone.
+    @Test(arguments: TripPhones.Kind.allCases)
+    func NewTripOnTheSamePhoneIsNotATakeoverOfTheOldTrip(kind: TripPhones.Kind) async throws {
+        let phones = SeatPhones(kind)
+        let first = phones.first
+        let oldTrip = try await first.CreateTrip(plan: plan, profile: nil)
+        let oldTripID = oldTrip.state.trip.id
+
+        let wasTold = Task { @MainActor in
+            await Finishes(within: .milliseconds(300)) { await first.SeatTakenOver(tripID: oldTripID) }
+        }
+        try await Task.sleep(for: .milliseconds(50))
+        try await first.EndTrip(tripID: oldTripID, by: oldTrip.myParticipantID)
+        _ = try await first.CreateTrip(plan: plan, profile: nil)
+
+        #expect(await wasTold.value == false)
+    }
+
     // MARK: Resuming from Draft Trip
 
     @Test(arguments: TripPhones.Kind.allCases)
