@@ -17,6 +17,7 @@ struct TripRecapDetailView: View {
     @ScaledMetric(relativeTo: .body) private var columnWidth: CGFloat = 96
     @State private var viewModel: TripRecapDetailViewModel
     @State private var isShareFailureShown = false
+    @State private var isSharePreviewShown = false
 
     private let mapHeight: CGFloat = 320
 
@@ -55,6 +56,11 @@ struct TripRecapDetailView: View {
         }
         .task {
             await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
+        }
+        .navigationDestination(isPresented: $isSharePreviewShown) {
+            if let shareImage = viewModel.shareImage {
+                TripRecapSharePreviewView(image: shareImage)
+            }
         }
         .confirmDialog(
             isPresented: $isShareFailureShown,
@@ -171,32 +177,21 @@ private extension TripRecapDetailView {
         .lezgoGlassButton(.round)
     }
 
-    /// Shares the finished picture. Until it is ready the button makes it (again, after a failure), and the share
-    /// sheet opens from the next tap.
-    @ViewBuilder
+    /// Opens the preview screen with the finished picture. If the picture is not ready yet (or failed before), it is
+    /// made first.
     var shareButton: some View {
-        if let shareImage = viewModel.shareImage {
-            ShareLink(
-                item: shareImage,
-                preview: SharePreview(Text(viewModel.title), image: shareImage.previewImage)
-            ) {
-                shareIcon
+        Button {
+            Task {
+                await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
+                isShareFailureShown = viewModel.isShareFailed
+                isSharePreviewShown = viewModel.shareImage != nil
             }
-            .lezgoGlassButton(.round)
-            .accessibilityLabel(Text("Share Trip Recap"))
-        } else {
-            Button {
-                Task {
-                    await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
-                    isShareFailureShown = viewModel.isShareFailed
-                }
-            } label: {
-                shareIcon
-            }
-            .disabled(viewModel.isPreparingShareImage)
-            .lezgoGlassButton(.round)
-            .accessibilityLabel(Text("Share Trip Recap"))
+        } label: {
+            shareIcon
         }
+        .disabled(viewModel.isPreparingShareImage)
+        .lezgoGlassButton(.round)
+        .accessibilityLabel(Text("Share Trip Recap"))
     }
 
     var shareIcon: some View {
