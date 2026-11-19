@@ -1,6 +1,6 @@
 # 0035. The app version comes from a release tag that Promote creates
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-11-19
 - Deciders: Nathan Sudiara
 
