@@ -9,5 +9,13 @@ BUNDLE_IDENTIFIER_PREFIX = com.nathansudiara
 // cannot sign this file and uses Lezgo/Lezgo.entitlements in its Local.xcconfig instead.
 LEZGO_ENTITLEMENTS = Lezgo/LezgoCarPlay.entitlements
 
+// The app version shown on the App Store (ADR 0035). Every target uses it, so the widget always matches the app.
+// Xcode Cloud overrides it in CI.xcconfig with the version from the release tags (ci_scripts/ci_post_clone.sh);
+// this value is only for local builds. Never edit it to make a release: run Promote to main instead.
+MARKETING_VERSION = 1.0.0
+
 // Optional: the build still works when Local.xcconfig does not exist.
 #include? "Local.xcconfig"
+
+// Written by ci_scripts/ci_post_clone.sh on Xcode Cloud only. Included last so its version wins.
+#include? "CI.xcconfig"

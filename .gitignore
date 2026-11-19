@@ -110,9 +110,10 @@ docs/superpowers/
 .superpowers/
 
 # --------------------------------------------------
-# Per-developer signing settings (ADR 0015)
+# Per-developer signing settings (ADR 0015) and the Xcode Cloud version file (ADR 0035)
 # --------------------------------------------------
 Config/Local.xcconfig
+Config/CI.xcconfig
 
 # --------------------------------------------------
 # Secrets files

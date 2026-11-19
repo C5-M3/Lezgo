@@ -2,6 +2,8 @@
 # It runs only when someone starts it (Actions tab > Promote > Run workflow), never on a push.
 # It moves the target branch forward to the source branch's commit (a fast-forward):
 # it never force-pushes, and it refuses a commit whose required checks did not pass.
+# When it moves main, it first tags the commit with the next App Store version (ADR 0035),
+# which Xcode Cloud reads to set the app version (ci_scripts/ci_post_clone.sh).
 
 name: Promote
 
@@ -16,8 +18,16 @@ on:
           - main
           - staging-and-main
         default: staging
+      release:
+        description: "Only when main moves: fix (1.0.1 > 1.0.2), feature (1.0.2 > 1.1.0) or big-update (1.1.0 > 2.0.0)"
+        type: choice
+        options:
+          - fix
+          - feature
+          - big-update
+        default: fix
 
-# The only workflow that writes: it moves a trunk branch forward and reads check results.
+# The only workflow that writes: it moves a trunk branch forward, tags releases and reads check results.
 permissions:
   contents: write
   checks: read
@@ -33,7 +43,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # The input is passed through an environment variable and never pasted into the script with ${{ }}.
+      # The whole history and every tag, so the next version is worked out from all earlier releases.
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # The inputs are passed through environment variables and never pasted into the script with ${{ }}.
       - name: Move the branch forward
         env:
           GH_TOKEN: ${{ github.token }}
@@ -41,6 +58,7 @@ jobs:
           # Add a PROMOTE_TOKEN secret (contents and workflows write) to allow those too.
           PROMOTE_TOKEN: ${{ secrets.PROMOTE_TOKEN || github.token }}
           TARGET: ${{ inputs.target }}
+          RELEASE: ${{ inputs.release }}
         run: |
           set -euo pipefail
           requiredChecks=("Secret Scan" "XCSSET Malware Scan" "SwiftLint")
@@ -67,6 +85,23 @@ jobs:
             done
           }
 
+          # Tags the commit with the next release (vX.Y.Z) before main moves to it, so Xcode Cloud finds the tag.
+          # A commit that already has a release tag keeps it, so running Promote again never skips a number.
+          TagRelease() {
+            local commit="$1" existing version
+            existing="$(git tag --points-at "$commit" --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | tail -n 1 || true)"
+            if [[ -n "$existing" ]]; then
+              Report "${commit:0:7} is already tagged $existing. Releasing it as that version."
+              return
+            fi
+
+            version="$(Scripts/AppVersion.sh next "$RELEASE")" || Fail "Could not work out the next version. Is the last App Store release tagged vX.Y.Z?"
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/v$version" -f sha="$commit" --silent
+            git tag "v$version" "$commit"
+            Report "Tagged ${commit:0:7} as v$version ($RELEASE). Xcode Cloud builds main as version $version."
+          }
+
           # Moves targetBranch forward to sourceBranch's commit.
           PromoteBranch() {
             local sourceBranch="$1" targetBranch="$2" state commit
@@ -85,6 +120,7 @@ jobs:
 
             commit="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$sourceBranch" --jq .object.sha)"
             RequirePassedChecks "$commit"
+            [[ "$targetBranch" != "main" ]] || TagRelease "$commit"
             GH_TOKEN="$PROMOTE_TOKEN" gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/$targetBranch" \
               -f sha="$commit" -F force=false --silent
             Report "Promoted $sourceBranch to $targetBranch at ${commit:0:7}, started by $GITHUB_ACTOR."

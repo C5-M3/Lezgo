@@ -1,6 +1,6 @@
 # Checks that every pull request follows the team workflow in AGENTS.md:
 # branch name, branch flow (feature -> dev -> staging -> main), PR title and commits,
-# and that the architecture decision records in docs/adr stay valid.
+# that the architecture decision records in docs/adr stay valid, and that the app version scripts work.
 
 name: Pull Request Checks
 
@@ -60,3 +60,20 @@ jobs:
 
       - name: Check the ADRs
         run: Scripts/CheckDecisionRecords.sh docs/adr
+
+  app-version:
+    name: App Version Scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The scripts that set the App Store version from the release tags (ADR 0035).
+      - name: Test the version script
+        run: Scripts/Tests/AppVersionTests.sh
+
+      - name: Test the Xcode Cloud version script
+        run: Scripts/Tests/CiPostCloneTests.sh

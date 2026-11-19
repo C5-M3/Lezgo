@@ -126,7 +126,7 @@ Resolve any conflicts during the rebase. Never force-push `main`, `staging` or `
 Xcode Cloud builds the app and ships TestFlight. GitHub Actions checks every pull request:
 
 - **Security Checks:** scans Xcode projects for XCSSET malware and the git history for leaked secrets.
-- **Pull Request Checks:** checks the branch name, the target branch, the PR title, every commit message and the architecture decision records.
+- **Pull Request Checks:** checks the branch name, the target branch, the PR title, every commit message and the architecture decision records, and tests the app version scripts.
 
 - **SwiftLint:** lints the Swift code in strict mode, so any warning fails.
 
@@ -151,7 +151,8 @@ On GitHub:
    - `staging`: moves `staging` to where `dev` is.
    - `main`: moves `main` to where `staging` is.
    - `staging-and-main`: moves both to where `dev` is.
-4. Click **Run workflow**. The run summary says which commit was promoted.
+4. If the target includes `main`, pick the release type (see [Releasing a new App Store version](#releasing-a-new-app-store-version)). For `staging` it is ignored.
+5. Click **Run workflow**. The run summary says which commit was promoted and, for `main`, which version it was tagged with.
 
 Or from the terminal, on any branch. Each command matches one target above:
 
@@ -161,13 +162,13 @@ gh workflow run Promote --repo C5-M3/Lezgo -f target=staging
 ```
 
 ```bash
-# main: moves main to where staging is
-gh workflow run Promote --repo C5-M3/Lezgo -f target=main
+# main: moves main to where staging is, released as a fix (1.0.1 -> 1.0.2)
+gh workflow run Promote --repo C5-M3/Lezgo -f target=main -f release=fix
 ```
 
 ```bash
-# staging-and-main: moves both to where dev is
-gh workflow run Promote --repo C5-M3/Lezgo -f target=staging-and-main
+# staging-and-main: moves both to where dev is, released as a new feature (1.0.2 -> 1.1.0)
+gh workflow run Promote --repo C5-M3/Lezgo -f target=staging-and-main -f release=feature
 ```
 
 Good to know:
@@ -177,3 +178,32 @@ Good to know:
 - It stops if Secret Scan, XCSSET Malware Scan or SwiftLint did not pass on the commit. Wait for the checks on `dev` to finish, then run it again.
 - It stops if the target has commits the source does not have, for example a hotfix on `staging`. Merge `main` into `dev` with a pull request first, then run it again.
 - A promotion that includes changes to `.github/workflows` needs a `PROMOTE_TOKEN` repository secret (a token with contents and workflows write access). Ask a repository admin.
+
+
+## Releasing a new App Store version
+
+**Do not change the version number in Xcode.** The App Store version (`MARKETING_VERSION`, for example 1.0.1) is set by the **Promote** workflow when it moves `main`, and the build number is set by Xcode Cloud (see [ADR 0035](docs/adr/0035-VersionFromThePromoteWorkflow.md)).
+
+When you promote to `main`, choose what kind of release it is:
+
+| Release type | Use it for | Version |
+| --- | --- | --- |
+| `fix` | Bug fixes and small polish | 1.0.1 → **1.0.2** |
+| `feature` | A new feature | 1.0.2 → **1.1.0** |
+| `big-update` | A large change or redesign | 1.1.0 → **2.0.0** |
+
+What happens next:
+
+1. Promote tags the commit with the new version (`v1.0.2`) and moves `main` to it.
+2. Xcode Cloud builds `main`. Before building, `ci_scripts/ci_post_clone.sh` reads the tag and sets that version on the app and the widget.
+3. The build appears in TestFlight (External) with the new version.
+4. In [App Store Connect](https://appstoreconnect.apple.com): **+** next to iOS App, enter the same version, write "What's New in This Version", attach the build, then **Add for Review** and **Submit for Review**. Screenshots and the description carry over from the previous version.
+5. When Apple approves it, press **Release This Version**.
+
+Good to know:
+
+- Builds from `staging` and `dev` carry the *next* fix version (1.0.3 after `v1.0.2`). Apple closes a version number once it is approved, so TestFlight would reject them otherwise.
+- Running Promote to `main` again on the same commit keeps its tag. It never skips a number.
+- Promoting `main` when it already has everything creates no tag and no new version.
+- To see the last release: `Scripts/AppVersion.sh latest`, or the **Tags** list on GitHub.
+- A local build in Xcode shows the fallback version from `Config/Base.xcconfig`. That is expected.
