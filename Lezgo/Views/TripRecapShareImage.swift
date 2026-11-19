@@ -13,8 +13,14 @@ struct TripRecapShareImage: Transferable, Equatable {
 
     /// The picture itself for the share sheet's header, or the logo if the file cannot be read.
     var previewImage: Image {
-        guard let uiImage = UIImage(contentsOfFile: fileURL.path()) else { return Image(.lezgoBlack) }
+        guard let uiImage = previewUIImage else { return Image(.lezgoBlack) }
         return Image(uiImage: uiImage)
+    }
+
+    /// The picture read from its file, or `nil` if it cannot be read. `percentEncoded: false` matters because the
+    /// file name has spaces, and the default `path()` would turn them into `%20` and find no file.
+    var previewUIImage: UIImage? {
+        UIImage(contentsOfFile: fileURL.path(percentEncoded: false))
     }
 
     static var transferRepresentation: some TransferRepresentation {

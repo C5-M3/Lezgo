@@ -55,6 +55,14 @@ struct TripRecapShareImageTests {
         #expect(exported.starts(with: [0x89, 0x50, 0x4E, 0x47]))
     }
 
+    @Test func PreviewShowsTheRenderedPictureEvenWhenTheFileNameHasSpaces() throws {
+        let content = TripRecapShareCardContent(recap: .sample)
+        let shareImage = try #require(TripRecapShareImage.Render(content: content, mapPicture: stubMapPicture))
+
+        #expect(shareImage.fileURL.lastPathComponent.contains(" "))
+        #expect(shareImage.previewUIImage?.cgImage?.width == 1080)
+    }
+
     @Test func PictureIsNineBySixteenAt1080By1920() throws {
         let image = try RenderedImage()
 
