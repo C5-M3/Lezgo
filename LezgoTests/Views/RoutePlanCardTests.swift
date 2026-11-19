@@ -250,4 +250,28 @@ struct RoutePlanCardTests {
         #expect(card.IsFinalDestination(index: 1))
         #expect(!card.showsDestinationRow)
     }
+
+    /// A row can be dragged only where it shows the handle: static rows must not lift.
+    @Test func RowsAreStaticWhenThereIsNothingToReorder() {
+        let card = Card(destinations: [dest1])
+
+        #expect(!card.IsReorderable(index: 0))
+    }
+
+    @Test func EveryListedRowIsReorderableWithSeveralDestinations() {
+        let card = Card(destinations: [dest1, dest2, dest3], isStopsExpanded: true)
+
+        #expect([0, 1, 2].allSatisfy { card.IsReorderable(index: $0) })
+    }
+
+    @Test func RowBeingSearchedIsStatic() {
+        let card = Card(
+            destinations: [dest1, dest2, dest3],
+            activeSelection: .destination(index: 1),
+            isStopsExpanded: true
+        )
+
+        #expect(!card.IsReorderable(index: 1))
+        #expect(card.IsReorderable(index: 0))
+    }
 }
