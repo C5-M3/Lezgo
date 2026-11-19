@@ -25,6 +25,7 @@ NewClone() {
     mkdir -p ci_scripts Scripts Config
     cp "$repoRoot/ci_scripts/ci_post_clone.sh" ci_scripts/ 2>/dev/null
     cp "$repoRoot/Scripts/AppVersion.sh" Scripts/
+    cp "$repoRoot/Config/Base.xcconfig" Config/
     git add . && git commit -q -m "chore: first"
     git tag v1.0.0
     git commit -q --allow-empty -m "chore: second"
