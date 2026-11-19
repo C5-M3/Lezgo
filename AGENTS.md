@@ -148,7 +148,7 @@ Xcode Cloud builds the app and ships TestFlight. GitHub Actions only guards the 
 | `Security Checks` | Every PR, pushes to `main`, `staging`, `dev` | XCSSET malware signs in Xcode projects (`Scripts/ScanForXcsset.sh`), secrets in git history (Gitleaks) |
 | `Pull Request Checks` | Every PR | Branch name, branch flow, PR title and commit messages (`Scripts/CheckPullRequestRules.sh`), ADR format and index (`Scripts/CheckDecisionRecords.sh`) |
 | `SwiftLint` | Every PR, pushes to `main`, `staging`, `dev` | `.swiftlint.yml` rules in strict mode: any warning fails |
-| `Promote` | Only when someone starts it | That the required checks passed on the commit; then it moves `staging` or `main` forward to it, with no pull request ([0026](docs/adr/0026-ManualPromotionWorkflow.md)) |
+| `Promote` | Only when someone starts it | That the required checks passed on the commit; then it moves `staging` or `main` forward to it, with no pull request ([0026](docs/adr/0026-ManualPromotionWorkflow.md)). Moving `main` first tags the commit with the next App Store version ([0035](docs/adr/0035-VersionFromThePromoteWorkflow.md)) |
 
 Run the same checks locally before opening a PR:
 
@@ -160,6 +160,16 @@ git log --format=%s origin/dev..HEAD | Scripts/CheckPullRequestRules.sh "$(git b
 
 Never add a build script phase, scheme pre/post action or build rule without explaining it in the PR. The scanner warns on each one so a reviewer reads it. Pin every third-party GitHub Action to a full commit SHA, and give workflows read-only permissions unless a job needs more.
 
+
+## App version
+
+Decision record: [0035](docs/adr/0035-VersionFromThePromoteWorkflow.md).
+
+Never change the version number (`MARKETING_VERSION`) by hand. It comes from the release tags (`v1.0.1`), and the build number is set by Xcode Cloud.
+
+- **To release to the App Store,** run `Promote` with target `main` (or `staging-and-main`) and pick the kind of release: `fix` (1.0.1 to 1.0.2), `feature` (1.0.2 to 1.1.0) or `big-update` (1.1.0 to 2.0.0). The workflow tags the commit and moves `main`; Xcode Cloud builds it with that version.
+- `ci_scripts/ci_post_clone.sh` runs before every Xcode Cloud build and writes the version into the git-ignored `Config/CI.xcconfig`: the tag on `main`, and the next fix version on `staging` and `dev`, so TestFlight never gets a version Apple has already closed.
+- `Scripts/AppVersion.sh latest` prints the last release. Local builds use the fallback in `Config/Base.xcconfig`.
 
 ## Commits
 
