@@ -1,6 +1,6 @@
 # 0020. Universal invite link on a free Netlify site
 
-- Status: Proposed
+- Status: Superseded by 0036
 - Date: 2026-10-30
 - Deciders: Oky, Rizal
 

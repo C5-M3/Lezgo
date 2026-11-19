@@ -34,7 +34,7 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0017](0017-TripServiceContractFirst.md) | Trip service contract first, with an in-memory service | Accepted | 2026-10-26 |
 | [0018](0018-DebugToolsInTheirOwnFolder.md) | Debug tools in their own folder | Accepted | 2026-10-27 |
 | [0019](0019-SmallTypesStayWithTheirOwner.md) | Small helper types stay with the type that uses them | Accepted | 2026-10-27 |
-| [0020](0020-UniversalInviteLinkOnNetlify.md) | Universal invite link on a free Netlify site | Proposed | 2026-10-30 |
+| [0020](0020-UniversalInviteLinkOnNetlify.md) | Universal invite link on a free Netlify site | Superseded by 0036 | 2026-10-30 |
 | [0021](0021-OneCarPerPhone.md) | One car per phone, not per iCloud account | Proposed | 2026-10-31 |
 | [0022](0022-CustomTripMapControls.md) | Custom trip map cards instead of Apple's sheet and glass | Proposed | 2026-11-05 |
 | [0023](0023-CarPlayMirrorsTheTripMap.md) | CarPlay mirrors the trip map with Apple's templates | Accepted | 2026-11-07 |
@@ -50,3 +50,4 @@ AGENTS.md holds the day-to-day rules; these records hold the reasons behind them
 | [0033](0033-OneSetOfSurfaceColours.md) | One set of surface colours, text greys and corner radii | Proposed | 2026-11-17 |
 | [0034](0034-OnTheGoScreenWhileCarPlayIsConnected.md) | The iPhone shows the On the Go list while CarPlay is connected | Proposed | 2026-11-18 |
 | [0035](0035-VersionFromThePromoteWorkflow.md) | The app version comes from a release tag that Promote creates | Accepted | 2026-11-19 |
+| [0036](0036-InviteLinkAndWebsiteOnJoinlezgoApp.md) | The invite link and the website live on joinlezgo.app | Accepted | 2026-11-19 |
