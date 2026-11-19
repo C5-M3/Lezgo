@@ -198,6 +198,12 @@ extension RoutePlanCard {
         destinations.count > 1
     }
 
+    /// Whether `listedRows[index]` can be dragged: only where it shows the handle. A row being searched shows a
+    /// text field, and the standalone destination row has no handle, so those stay static.
+    func IsReorderable(index: Int) -> Bool {
+        showsReorderHandle && activeSelection != .destination(index: index)
+    }
+
     var isSearchingDestination: Bool {
         guard let activeSelection = activeSelection else { return false }
         switch activeSelection {
@@ -280,6 +286,7 @@ extension RoutePlanCard {
                     ConnectorLine(reachesUp: true, reachesDown: !IsFinalDestination(index: index), insets: insets)
                 )
                 .listRowSeparator(.hidden)
+                .moveDisabled(!IsReorderable(index: index))
         }
         .onDelete { indexSet in
             for index in indexSet.sorted().reversed() {
@@ -339,14 +346,6 @@ extension RoutePlanCard {
                 }
             }
         }
-        .modifier(
-            PointDragDropModifier(
-                point: destinations.last,
-                index: lastIndex,
-                destinations: destinations,
-                onMoveDestination: onMoveDestination
-            )
-        )
     }
 }
 

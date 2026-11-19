@@ -86,6 +86,7 @@ extension RoutePlanCard {
             PointDragDropModifier(
                 point: stop,
                 index: index,
+                isEnabled: IsReorderable(index: index),
                 destinations: destinations,
                 onMoveDestination: onMoveDestination
             )
