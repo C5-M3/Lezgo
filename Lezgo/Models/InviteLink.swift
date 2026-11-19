@@ -9,13 +9,17 @@ import Foundation
 
 /// The invite link a group shares to join a trip (US-02, US-04).
 ///
-/// It is a universal link on a static Netlify site (ADR 0020), because chat apps only let people tap `https://`
-/// links. The older `lezgo://join?code=` link is still read, so invites sent before the change keep working.
+/// It is a universal link on the Lezgo website (ADR 0036), because chat apps only let people tap `https://` links.
+/// Links from older builds, on the Netlify site (ADR 0020) or `lezgo://join?code=`, are still read, so invites sent
+/// before the change keep working.
 enum InviteLink {
-    static let host = "lezgo-trip.netlify.app"
+    static let host = "joinlezgo.app"
     static let path = "/join"
 
-    /// For example `https://lezgo-trip.netlify.app/join?code=897654`.
+    /// Hosts that older builds shared invites on.
+    private static let olderHosts: Set<String> = ["lezgo-trip.netlify.app"]
+
+    /// For example `https://joinlezgo.app/join?code=897654`.
     static func Make(roomCode: String) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
@@ -40,7 +44,8 @@ enum InviteLink {
         switch url.scheme?.lowercased() {
         case "https":
             let isJoinPath = url.path == path || url.path == path + "/"
-            return url.host?.lowercased() == host && isJoinPath
+            guard let urlHost = url.host?.lowercased() else { return false }
+            return (urlHost == host || olderHosts.contains(urlHost)) && isJoinPath
         case "lezgo":
             return url.host?.lowercased() == "join"
         default:
