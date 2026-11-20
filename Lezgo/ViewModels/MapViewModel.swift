@@ -140,8 +140,18 @@ final class MapViewModel {
     }
 
     // MARK: - Lifecycle
-    func onAppear() {
+    /// Asks for the location and starts the GPS. Set Route calls it once it is really on screen: it is built hidden
+    /// on Home ahead of time, and `onAppear` runs then.
+    func StartLocation() {
         locationService.requestPermission()
+    }
+
+    /// Turns the GPS off, as Set Route leaves the screen or the app leaves the foreground.
+    func StopLocation() {
+        locationService.StopUpdating()
+    }
+
+    func onAppear() {
         // Prompt the user for destination first if not set
         if destinations.isEmpty {
             activeSelectionSheet = .destination(index: 0)

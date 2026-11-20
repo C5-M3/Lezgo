@@ -47,7 +47,10 @@ extension SetRouteView {
                 position: $boundViewModel.cameraPosition,
                 interactionModes: [.pan, .zoom]
             ) {
-                UserAnnotation()
+                // MapKit starts the GPS for the user dot, so it is drawn only while this screen wants the location.
+                if wantsLocation {
+                    UserAnnotation()
+                }
 
                 RoutePlanMapContent(viewModel: viewModel)
             }

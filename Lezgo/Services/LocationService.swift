@@ -21,8 +21,9 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
     }
 
     var onFirstLocationFound: ((CLLocationCoordinate2D) -> Void)?
-    /// Set once the planner asks for the location; until then the GPS stays off.
-    private var isWanted = false
+    /// Set while the planner is on screen and wants the location; until then, and after `StopUpdating()`, the GPS
+    /// stays off.
+    private(set) var isWanted = false
     private var hasReceivedInitialAuthCallback = false
 
     override init() {
@@ -47,6 +48,13 @@ final class LocationService: NSObject, CLLocationManagerDelegate {
         } else if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
             StartUpdating()
         }
+    }
+
+    /// Turns the GPS off when the planner leaves the screen or the app leaves the foreground: a GPS left running
+    /// keeps the location arrow in the Dynamic Island while the app is in the background.
+    func StopUpdating() {
+        isWanted = false
+        locationManager.stopUpdatingLocation()
     }
 
     /// Starts the GPS. It never asks for precise location "just this once": iOS forgets that answer as soon as the app
