@@ -141,3 +141,9 @@ tasks/
 
 # mock routes
 *.gpx
+
+# --------------------------------------------------
+# Local knowledge graph from graphify (graphify-out/).
+# Built per developer; never push.
+# --------------------------------------------------
+graphify-out/
