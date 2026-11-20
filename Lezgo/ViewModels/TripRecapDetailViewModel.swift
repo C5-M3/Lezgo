@@ -13,7 +13,8 @@ import Observation
 @MainActor
 final class TripRecapDetailViewModel {
     let recap: TripRecap
-    private(set) var shareImage: TripRecapShareImage?
+    /// The finished pictures, one for every share format. Empty until they are made.
+    private(set) var shareOptions: [TripRecapShareOption] = []
     private(set) var isShareFailed = false
     private(set) var isPreparingShareImage = false
 
@@ -73,15 +74,16 @@ final class TripRecapDetailViewModel {
         TripRecapShareCardContent(recap: recap)
     }
 
-    /// Makes the picture that the share button sends. `make` is the real renderer in the app and a fake in tests.
-    func PrepareShareImage(using make: (TripRecap) async -> TripRecapShareImage?) async {
-        guard shareImage == nil, !isPreparingShareImage else { return }
+    /// Makes the pictures that the share button sends, one for every format. `make` is the real renderer in the app
+    /// and a fake in tests; it returns nothing when the pictures cannot be made.
+    func PrepareShareImages(using make: (TripRecap) async -> [TripRecapShareOption]) async {
+        guard shareOptions.isEmpty, !isPreparingShareImage else { return }
         isPreparingShareImage = true
         isShareFailed = false
         defer { isPreparingShareImage = false }
 
-        shareImage = await make(recap)
-        isShareFailed = shareImage == nil
+        shareOptions = await make(recap)
+        isShareFailed = shareOptions.isEmpty
     }
 
     var shareSummary: String {

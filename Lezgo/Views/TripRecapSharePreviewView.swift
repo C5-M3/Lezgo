@@ -12,23 +12,26 @@ struct TripRecapSharePreviewView: View {
     @State private var viewModel: TripRecapSharePreviewViewModel
     @State private var isSaveFailureShown = false
 
-    init(image: TripRecapShareImage) {
-        _viewModel = State(initialValue: TripRecapSharePreviewViewModel(image: image))
+    init(options: [TripRecapShareOption]) {
+        _viewModel = State(initialValue: TripRecapSharePreviewViewModel(options: options))
     }
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 8) {
             topBar
 
-            viewModel.image.previewImage
-                .resizable()
-                .scaledToFit()
-                .background { Checkerboard() }
-                .clipShape(.rect(cornerRadius: 28))
-                .accessibilityLabel(Text("Trip recap picture"))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            TripRecapShareCarousel(options: viewModel.options, selectedIndex: selectedIndex)
+
+            if viewModel.options.count > 1 {
+                TripRecapShareDots(
+                    options: viewModel.options,
+                    selectedIndex: viewModel.selectedIndex,
+                    select: { viewModel.Select(index: $0) }
+                )
+            }
 
             actionButtons
+                .padding(.top, 8)
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
@@ -76,22 +79,39 @@ private extension TripRecapSharePreviewView {
     @ViewBuilder
     var buttons: some View {
         Button(action: Save) {
-            Text(saveTitle)
+            saveLabel
         }
-        .disabled(viewModel.saveState == .saving || viewModel.saveState == .saved)
         .lezgoGlassButton(.second)
+        .sensoryFeedback(trigger: viewModel.saveState) { _, newState in
+            switch newState {
+            case .saved: .success
+            case .failed: .error
+            default: nil
+            }
+        }
 
         ShareLink(
-            item: viewModel.image,
-            preview: SharePreview(Text("Trip recap picture"), image: viewModel.image.previewImage)
+            item: viewModel.selectedOption.image,
+            preview: SharePreview(Text("Trip recap picture"), image: viewModel.selectedOption.image.previewImage)
         ) {
             Text("Share")
         }
         .lezgoGlassButton(.main)
     }
 
-    var saveTitle: LocalizedStringKey {
-        viewModel.saveState == .saved ? "Saved" : "Save"
+    var selectedIndex: Binding<Int> {
+        Binding(get: { viewModel.selectedIndex }, set: { viewModel.Select(index: $0) })
+    }
+
+    /// "Save", a spinner while saving, and a checkmark with "Saved" when it is done. Tapping again does nothing:
+    /// the view model ignores a save that is running or done.
+    @ViewBuilder
+    var saveLabel: some View {
+        if viewModel.saveState == .saved {
+            Label("Saved", systemImage: "checkmark")
+        } else {
+            LezgoButtonLabel(title: "Save", isLoading: viewModel.saveState == .saving)
+        }
     }
 
     func Save() {
@@ -102,33 +122,14 @@ private extension TripRecapSharePreviewView {
     }
 }
 
-/// Light and dark grey squares, the usual way to show that a picture is see-through.
-private struct Checkerboard: View {
-    private let squareSize: CGFloat = 20
-
-    var body: some View {
-        Canvas { context, size in
-            let columns = Int((size.width / squareSize).rounded(.up))
-            let rows = Int((size.height / squareSize).rounded(.up))
-            for row in 0..<rows {
-                for column in 0..<columns {
-                    let isLight = (row + column).isMultiple(of: 2)
-                    let square = CGRect(
-                        x: CGFloat(column) * squareSize, y: CGFloat(row) * squareSize,
-                        width: squareSize, height: squareSize
-                    )
-                    context.fill(Path(square), with: .color(isLight ? Color(white: 0.30) : Color(white: 0.24)))
-                }
-            }
-        }
-        .accessibilityHidden(true)
-    }
-}
-
 #if DEBUG
 #Preview {
     NavigationStack {
-        TripRecapSharePreviewView(image: TripRecapShareImage(fileURL: URL(filePath: "/tmp/Preview.png")))
+        TripRecapSharePreviewView(
+            options: TripRecapShareFormat.allCases.map {
+                TripRecapShareOption(format: $0, image: TripRecapShareImage(fileURL: URL(filePath: "/tmp/Preview.png")))
+            }
+        )
     }
 }
 #endif

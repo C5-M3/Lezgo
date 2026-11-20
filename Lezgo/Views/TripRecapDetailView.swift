@@ -55,11 +55,11 @@ struct TripRecapDetailView: View {
             topFloatingBar
         }
         .task {
-            await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
+            await viewModel.PrepareShareImages(using: TripRecapShareImage.MakeAll)
         }
         .navigationDestination(isPresented: $isSharePreviewShown) {
-            if let shareImage = viewModel.shareImage {
-                TripRecapSharePreviewView(image: shareImage)
+            if !viewModel.shareOptions.isEmpty {
+                TripRecapSharePreviewView(options: viewModel.shareOptions)
             }
         }
         .confirmDialog(
@@ -182,9 +182,9 @@ private extension TripRecapDetailView {
     var shareButton: some View {
         Button {
             Task {
-                await viewModel.PrepareShareImage(using: TripRecapShareImage.Make)
+                await viewModel.PrepareShareImages(using: TripRecapShareImage.MakeAll)
                 isShareFailureShown = viewModel.isShareFailed
-                isSharePreviewShown = viewModel.shareImage != nil
+                isSharePreviewShown = !viewModel.shareOptions.isEmpty
             }
         } label: {
             shareIcon

@@ -159,7 +159,14 @@ struct TripRecapDetailViewModelTests {
 
 @MainActor
 struct TripRecapShareCardTests {
-    private let fakeImage = TripRecapShareImage(fileURL: URL(filePath: "/tmp/FakeTripRecap.png"))
+    private let fakeOptions = [
+        TripRecapShareOption(
+            format: .classic, image: TripRecapShareImage(fileURL: URL(filePath: "/tmp/FakeTripRecap.png"))
+        ),
+        TripRecapShareOption(
+            format: .routeLine, image: TripRecapShareImage(fileURL: URL(filePath: "/tmp/FakeTripRecapRoute.png"))
+        )
+    ]
 
     @Test func ShareCardTextComesFromTheSameValuesAsTheDetailScreen() {
         let viewModel = TripRecapDetailViewModel(recap: .sample)
@@ -185,12 +192,12 @@ struct TripRecapShareCardTests {
         #expect(TripRecapShareCardContent(recap: recap).toText == "Tunjungan Plaza")
     }
 
-    @Test func PreparingTheImageKeepsItForTheShareButton() async {
+    @Test func PreparingTheImagesKeepsThemForTheShareButton() async {
         let viewModel = TripRecapDetailViewModel(recap: .sample)
 
-        await viewModel.PrepareShareImage { _ in fakeImage }
+        await viewModel.PrepareShareImages { _ in fakeOptions }
 
-        #expect(viewModel.shareImage == fakeImage)
+        #expect(viewModel.shareOptions == fakeOptions)
         #expect(viewModel.isShareFailed == false)
         #expect(viewModel.isPreparingShareImage == false)
     }
@@ -198,12 +205,12 @@ struct TripRecapShareCardTests {
     @Test func AFailedPictureIsReportedAndCanBeTriedAgain() async {
         let viewModel = TripRecapDetailViewModel(recap: .sample)
 
-        await viewModel.PrepareShareImage { _ in nil }
-        #expect(viewModel.shareImage == nil)
+        await viewModel.PrepareShareImages { _ in [] }
+        #expect(viewModel.shareOptions.isEmpty)
         #expect(viewModel.isShareFailed == true)
 
-        await viewModel.PrepareShareImage { _ in fakeImage }
-        #expect(viewModel.shareImage == fakeImage)
+        await viewModel.PrepareShareImages { _ in fakeOptions }
+        #expect(viewModel.shareOptions == fakeOptions)
         #expect(viewModel.isShareFailed == false)
     }
 
@@ -211,8 +218,8 @@ struct TripRecapShareCardTests {
         let viewModel = TripRecapDetailViewModel(recap: .sample)
         var makeCount = 0
 
-        await viewModel.PrepareShareImage { _ in makeCount += 1; return fakeImage }
-        await viewModel.PrepareShareImage { _ in makeCount += 1; return fakeImage }
+        await viewModel.PrepareShareImages { _ in makeCount += 1; return fakeOptions }
+        await viewModel.PrepareShareImages { _ in makeCount += 1; return fakeOptions }
 
         #expect(makeCount == 1)
     }
