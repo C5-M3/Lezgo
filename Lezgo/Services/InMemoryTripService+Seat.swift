@@ -40,7 +40,9 @@ extension InMemoryTripService {
             while Task.isCancelled == false { try? await Task.sleep(for: .seconds(1)) }
             return
         }
-        for await seat in store.ListenToSeat(forAccount: userRecordID) where seat.sessionID != mine {
+        // Another trip in the seat is a later trip of this account, not a phone that took this trip over.
+        for await seat in store.ListenToSeat(forAccount: userRecordID)
+        where seat.tripID == tripID && seat.sessionID != mine {
             heldSessions[tripID] = nil
             return
         }

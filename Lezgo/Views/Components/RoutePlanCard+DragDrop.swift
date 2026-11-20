@@ -8,14 +8,16 @@
 import SwiftUI
 
 struct PointDragDropModifier: ViewModifier {
-    let point: RoutePoint?
-    let index: Int?
+    let point: RoutePoint
+    let index: Int
+    /// `false` leaves the row static: it neither lifts nor accepts a drop.
+    let isEnabled: Bool
     let destinations: [RoutePoint]
     let onMoveDestination: ((IndexSet, Int) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
-        if let point = point, let index = index, destinations.count > 1 {
+        if isEnabled {
             content
                 .draggable(point.id.uuidString)
                 .dropDestination(for: String.self) { items, _ in

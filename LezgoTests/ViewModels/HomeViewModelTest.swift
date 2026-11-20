@@ -139,24 +139,18 @@ struct HomeViewModelTest {
         #expect(viewModel.isLoadingLocation == false)
     }
 
-    @Test("onAppear should request permission and start updating if authorized")
-    func onAppearBehavior() {
+    /// Home needs no location: a GPS started here keeps running while the app is in the background.
+    @Test("onAppear should neither ask for location nor start the GPS")
+    func onAppearDoesNotUseTheLocation() {
         let mockMap = MockMapService()
         let mockSearch = MockLocationSearchService()
         let viewModel = HomeViewModel(mapService: mockMap, searchService: mockSearch)
 
-        // When not yet authorized
-        mockMap.authorizationStatus = .notDetermined
-        viewModel.onAppear()
-        #expect(mockMap.requestLocationPermissionCalled == true)
-        #expect(mockMap.startUpdatingLocationCalled == false)
-
-        // When already authorized
-        mockMap.requestLocationPermissionCalled = false
         mockMap.authorizationStatus = .authorizedWhenInUse
         viewModel.onAppear()
-        #expect(mockMap.requestLocationPermissionCalled == true)
-        #expect(mockMap.startUpdatingLocationCalled == true)
+
+        #expect(mockMap.requestLocationPermissionCalled == false)
+        #expect(mockMap.startUpdatingLocationCalled == false)
     }
 
     @Test("onSearchTextChanged should update query only when focused")

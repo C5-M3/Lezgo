@@ -12,6 +12,20 @@ struct SetRouteView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.tripService) var tripService
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    /// `false` while Set Route is built ahead on Home, hidden, or still wiping in or out.
+    @Environment(\.canRaiseKeyboard) private var canRaiseKeyboard
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// Whether this screen may use the location now: only while it is shown with the app in front. Set Route is
+    /// built hidden on Home ahead of time, and both the GPS and the map's user dot (MapKit starts the GPS for it)
+    /// would otherwise run on Home and on with the app in the background, with the location arrow showing.
+    static func WantsLocation(isShown: Bool, scenePhase: ScenePhase) -> Bool {
+        isShown && scenePhase == .active
+    }
+
+    var wantsLocation: Bool {
+        Self.WantsLocation(isShown: canRaiseKeyboard, scenePhase: scenePhase)
+    }
     @State var viewModel: MapViewModel
     @State var isShowingBackConfirmation: Bool = false
     @State var activeMapSession: TripSession?
@@ -154,6 +168,14 @@ struct SetRouteView: View {
         .onAppear {
             viewModel.onAppear()
         }
+        .onChange(of: wantsLocation, initial: true) { _, wantsLocation in
+            if wantsLocation {
+                viewModel.StartLocation()
+            } else {
+                viewModel.StopLocation()
+            }
+        }
+        .onDisappear { viewModel.StopLocation() }
     }
 }
 

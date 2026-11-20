@@ -127,13 +127,11 @@ final class HomeViewModel {
 
     // MARK: - Lifecycle & Events
 
-    /// Dipanggil saat tampilan muncul untuk meminta izin dan memperbarui lokasi serta memeriksa draf perjalanan.
+    /// Dipanggil saat tampilan muncul untuk memeriksa draf perjalanan.
     func onAppear() {
+        // No GPS here: Home needs no location, and a GPS left running keeps the location arrow in the Dynamic
+        // Island while the app is in the background. Set Route, the Trip Room and the map start their own.
         CheckActiveDraftTrip()
-        mapService.requestLocationPermission()
-        if mapService.isAuthorized {
-            mapService.startUpdatingLocation()
-        }
     }
 
     /// Memeriksa apakah ada draf perjalanan yang tersimpan di perangkat (US-03).
@@ -272,8 +270,11 @@ final class HomeViewModel {
     }
 
     /// Reads the room code from an invite link (US-02). Any other link is ignored, so a bad link never clears a code.
+    /// With a trip open on screen the link is ignored too: Join Trip would open behind the trip, with its keyboard
+    /// up over it (US-03: one trip at a time).
     func OpenInviteLink(_ url: URL) {
-        guard let roomCode = InviteLink.RoomCode(from: url) else { return }
+        guard activeTripSession == nil, activeMapSession == nil,
+              let roomCode = InviteLink.RoomCode(from: url) else { return }
         inviteRoomCode = roomCode
     }
 
