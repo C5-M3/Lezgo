@@ -33,15 +33,21 @@ struct TripRecapShareImage: Transferable, Equatable {
         .suggestedFileName { $0.fileURL.lastPathComponent }
     }
 
-    /// Draws the card with `mapPicture` and writes it as a PNG. `nil` when the picture cannot be made.
+    /// Draws the card in `format` with `mapPicture` and writes it as a PNG. `nil` when the picture cannot be made.
     @MainActor
-    static func Render(content: TripRecapShareCardContent, mapPicture: TripRecapMapPicture) -> TripRecapShareImage? {
-        let renderer = ImageRenderer(content: TripRecapShareCardView(content: content, mapPicture: mapPicture))
+    static func Render(
+        content: TripRecapShareCardContent,
+        mapPicture: TripRecapMapPicture,
+        format: TripRecapShareFormat
+    ) -> TripRecapShareImage? {
+        let renderer = ImageRenderer(content: Card(format: format, content: content, mapPicture: mapPicture))
         renderer.scale = TripRecapMapPicture.scale
         renderer.isOpaque = false
         guard let data = renderer.uiImage?.pngData() else { return nil }
 
-        let fileURL = FileManager.default.temporaryDirectory.appending(path: "Lezgo Trip \(content.dateText).png")
+        let fileURL = FileManager.default.temporaryDirectory.appending(
+            path: "Lezgo Trip \(content.dateText)\(format.fileNameSuffix).png"
+        )
         do {
             try data.write(to: fileURL, options: .atomic)
         } catch {
@@ -50,10 +56,31 @@ struct TripRecapShareImage: Transferable, Equatable {
         return TripRecapShareImage(fileURL: fileURL)
     }
 
-    /// Makes the map picture and the PNG for a recap. `nil` when either step fails.
+    /// Makes the map picture and then one PNG for every format. Empty when any step fails, so the user never sees
+    /// a half-filled set of styles.
     @MainActor
-    static func Make(recap: TripRecap) async -> TripRecapShareImage? {
-        guard let mapPicture = await TripRecapMapPicture.Make(recap: recap) else { return nil }
-        return Render(content: TripRecapShareCardContent(recap: recap), mapPicture: mapPicture)
+    static func MakeAll(recap: TripRecap) async -> [TripRecapShareOption] {
+        guard let mapPicture = await TripRecapMapPicture.Make(recap: recap) else { return [] }
+        let content = TripRecapShareCardContent(recap: recap)
+        let options = TripRecapShareFormat.allCases.compactMap { format in
+            Render(content: content, mapPicture: mapPicture, format: format)
+                .map { TripRecapShareOption(format: format, image: $0) }
+        }
+        return options.count == TripRecapShareFormat.allCases.count ? options : []
+    }
+
+    @MainActor @ViewBuilder
+    private static func Card(
+        format: TripRecapShareFormat,
+        content: TripRecapShareCardContent,
+        mapPicture: TripRecapMapPicture
+    ) -> some View {
+        switch format {
+        case .classic: TripRecapShareCardView(content: content, mapPicture: mapPicture)
+        case .routeLine: TripRecapRouteLineCardView(content: content, mapPicture: mapPicture)
+        case .mapCenter: TripRecapMapCenterCardView(content: content, mapPicture: mapPicture)
+        case .together: TripRecapTogetherCardView(content: content, mapPicture: mapPicture)
+        case .convoy: TripRecapConvoyCardView(content: content, mapPicture: mapPicture)
+        }
     }
 }
