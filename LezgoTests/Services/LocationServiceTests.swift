@@ -16,6 +16,18 @@ struct LocationServiceTests {
         #expect(service.userLocation == nil)
     }
 
+    /// The GPS runs only while a screen wants it: stopping must drop the wish, or it restarts on the next
+    /// authorization change.
+    @Test func StopUpdatingDropsTheWishForTheLocation() {
+        let service = LocationService()
+
+        service.requestPermission()
+        #expect(service.isWanted)
+        service.StopUpdating()
+
+        #expect(service.isWanted == false)
+    }
+
     @Test func LocationManagerDidChangeAuthorizationUpdatesStatus() {
         let service = LocationService()
         let manager = CLLocationManager()
