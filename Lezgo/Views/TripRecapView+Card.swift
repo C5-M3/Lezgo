@@ -101,7 +101,7 @@ struct TripRecapCard: View {
                     .padding(.vertical, -Self.avatarVerticalOffset)
                 }
 
-                Text("\(item.participantCount) people · \(item.distanceText)")
+                Text(item.peopleAndDistanceText)
                     .font(.subheadline)
                     .foregroundStyle(Color(.tripCardSubtext))
             }

@@ -28,7 +28,7 @@ struct TripRecapConvoyCardView: View {
                 .foregroundStyle(.white.opacity(0.6))
                 .lineLimit(2)
 
-            Text("Convoy Drive")
+            Text(content.convoyTitleText)
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.top, 4)

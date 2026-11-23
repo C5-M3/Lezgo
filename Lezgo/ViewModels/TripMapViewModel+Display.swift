@@ -272,6 +272,7 @@ extension TripMapViewModel {
         guard let state, let updatedAt else { return nil }
         let arrival = TripMapArrival.Check(state, myParticipantID: myParticipantID, at: updatedAt)
         guard arrival.hasArrived else { return nil }
+        if state.participants.count == 1 { return .arrivedAlone }
         return arrival.everyoneHasArrived ? .everyoneArrived : .waitingForEveryone
     }
 

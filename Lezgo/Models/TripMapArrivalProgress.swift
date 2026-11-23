@@ -22,6 +22,11 @@ struct TripMapArrivalProgress: Hashable {
         "\(arrivedCount)/\(totalCount)"
     }
 
+    /// Only one car in the trip: a count like "1/1" says nothing, so it is not shown.
+    var isAlone: Bool {
+        totalCount == 1
+    }
+
     /// One arrived car on the top card.
     struct Robot: Identifiable, Hashable {
         let id: UUID

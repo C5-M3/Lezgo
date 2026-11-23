@@ -28,7 +28,7 @@ struct TripRecapTogetherCardView: View {
                     .foregroundStyle(.white.opacity(0.55))
             }
 
-            Text("WE DROVE")
+            Text(content.togetherLeadText)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(.white.opacity(0.55))
                 .padding(.top, 52)
@@ -36,7 +36,7 @@ struct TripRecapTogetherCardView: View {
             number
                 .padding(.top, 20)
 
-            Text("together.")
+            Text(content.togetherClosingText)
                 .font(.system(size: 56, weight: .heavy))
                 .foregroundStyle(.white)
                 .padding(.top, 22)

@@ -62,11 +62,14 @@ extension TripMapViewModel {
         case waitingForEveryone
         /// "Everyone has arrived!" (and, for the leader, "Continue your trip?")
         case everyoneArrived
+        /// The leader drove alone: "You have arrived!" and "Continue your trip?", with nobody to wait for.
+        case arrivedAlone
 
         var title: LocalizedStringResource {
             switch self {
             case .waitingForEveryone: .tripMapYouHaveArrived
             case .everyoneArrived: .tripMapEveryoneHasArrived
+            case .arrivedAlone: .tripMapYouHaveArrivedAlone
             }
         }
 
@@ -74,7 +77,7 @@ extension TripMapViewModel {
         func Subtitle(isLeader: Bool) -> LocalizedStringResource? {
             switch self {
             case .waitingForEveryone: .tripMapWaitingForEveryone
-            case .everyoneArrived: isLeader ? .tripMapContinueYourTrip : nil
+            case .everyoneArrived, .arrivedAlone: isLeader ? .tripMapContinueYourTrip : nil
             }
         }
     }
