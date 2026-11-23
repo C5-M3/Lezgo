@@ -134,6 +134,28 @@ struct TripRoomViewModelStartTripTests {
         #expect(updated.trip.status == .inTrip)
     }
 
+    @Test func LeaderAloneStartsTheTrip() async throws {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        try await service.RemoveParticipants(
+            [SampleTrip.budiID, SampleTrip.citraID], tripID: SampleTrip.tripID, by: SampleTrip.agusID
+        )
+        let aloneState = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: aloneState,
+            activeTripStorage: FakeActiveTripStorage()
+        )
+
+        try await viewModel.StartTrip()
+
+        #expect(viewModel.hasTripStarted == true)
+        let updated = try await service.FetchTrip(tripID: SampleTrip.tripID)
+        #expect(updated.trip.status == .inTrip)
+        #expect(updated.participants.map(\.id) == [SampleTrip.agusID])
+    }
+
     @Test func CanStartTripIsFalseAfterStart() async throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)

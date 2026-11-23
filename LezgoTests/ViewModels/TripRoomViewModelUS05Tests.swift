@@ -12,7 +12,7 @@ import Testing
 
 @MainActor
 struct TripRoomViewModelUS05Tests {
-    @Test func CanStartTripRequiresNonLeaderParticipants() {
+    @Test func CanStartTripOnlyForTheLeader() {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)
         let viewModel = TripRoomViewModel(
@@ -36,7 +36,8 @@ struct TripRoomViewModelUS05Tests {
             myParticipantID: SampleTrip.agusID,
             initialState: agusOnlyState
         )
-        #expect(aloneViewModel.canStartTrip == false)
+        // The leader may start alone; the confirmation asks first (US-05, "Leader alone").
+        #expect(aloneViewModel.canStartTrip == true)
 
         let memberViewModel = TripRoomViewModel(
             tripService: service,
@@ -192,6 +193,55 @@ struct TripRoomViewModelUS05Tests {
 
         #expect(allReadyViewModel.isEveryoneReady == true)
         #expect(allReadyViewModel.startTripConfirmationTitle == "Start Trip?")
+    }
+
+    @Test func LeaderAloneSeesTheSoloStartTitle() {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let state = SampleTrip.State(status: .lobby)
+        let agusOnlyState = TripState(
+            trip: state.trip,
+            waypoints: state.waypoints,
+            participants: state.participants.filter { $0.id == SampleTrip.agusID },
+            route: state.route
+        )
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: agusOnlyState
+        )
+
+        #expect(viewModel.isLeaderAlone == true)
+        // Alone wins over "not yet ready": being alone is the bigger surprise, and the leader's own readiness
+        // is something they can see for themselves.
+        #expect(
+            viewModel.startTripConfirmationTitle
+            == "You are the only one in this trip. Start the trip alone?"
+        )
+    }
+
+    @Test func LeaderWithMembersIsNotAlone() {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID,
+            initialState: SampleTrip.State(status: .lobby)
+        )
+
+        #expect(viewModel.isLeaderAlone == false)
+    }
+
+    @Test func NoTripLoadedIsNotAlone() {
+        let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
+        let viewModel = TripRoomViewModel(
+            tripService: service,
+            tripID: SampleTrip.tripID,
+            myParticipantID: SampleTrip.agusID
+        )
+
+        #expect(viewModel.isLeaderAlone == false)
+        #expect(viewModel.canStartTrip == false)
     }
 
     @Test func ListenDetectsWhenCurrentMemberIsRemoved() async throws {
