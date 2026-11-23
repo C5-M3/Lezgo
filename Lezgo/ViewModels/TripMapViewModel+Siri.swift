@@ -42,12 +42,15 @@ extension TripMapViewModel {
             manualArrival.DismissError()
             return TripAnswers.arrivalFailed
         }
-        guard var arrived = state else { return TripAnswers.Arrived(everyoneHasArrived: false) }
+        guard var arrived = state else { return TripAnswers.Arrived(everyoneHasArrived: false, isAlone: false) }
         // The trip stream brings the saved arrival a moment later; count this car as arrived already.
         if let index = arrived.participants.firstIndex(where: { $0.id == myParticipantID }) {
             arrived.participants[index].arrivedAtWaypointID = confirmation.destinationID
         }
         let arrival = TripMapArrival.Check(arrived, myParticipantID: myParticipantID, at: updatedAt ?? .now)
-        return TripAnswers.Arrived(everyoneHasArrived: arrival.everyoneHasArrived)
+        return TripAnswers.Arrived(
+            everyoneHasArrived: arrival.everyoneHasArrived,
+            isAlone: arrived.participants.count == 1
+        )
     }
 }
