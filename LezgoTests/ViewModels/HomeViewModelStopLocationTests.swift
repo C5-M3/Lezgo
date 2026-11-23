@@ -59,4 +59,17 @@ struct HomeViewModelStopLocationTests {
 
         #expect(counter.stops == 0)
     }
+
+    @Test func UnreachableICloudLeavesLocationAloneUntilItAnswers() async {
+        let counter = StopCounter()
+        let viewModel = MakeViewModel(counter: counter)
+        let offline = MakePhone()
+        offline.simulatedFailure = .noNetwork
+
+        await viewModel.RefreshActiveTrip(tripService: offline)
+        #expect(counter.stops == 0)
+
+        await viewModel.RefreshActiveTrip(tripService: MakePhone())
+        #expect(counter.stops == 1)
+    }
 }
