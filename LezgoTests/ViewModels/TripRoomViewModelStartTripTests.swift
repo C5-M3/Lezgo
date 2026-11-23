@@ -136,9 +136,8 @@ struct TripRoomViewModelStartTripTests {
 
     @Test func LeaderAloneStartsTheTrip() async throws {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
-        try await service.RemoveParticipants(
-            [SampleTrip.budiID, SampleTrip.citraID], tripID: SampleTrip.tripID, by: SampleTrip.agusID
-        )
+        let members = SampleTrip.State(status: .lobby).participants.map(\.id).filter { $0 != SampleTrip.agusID }
+        try await service.RemoveParticipants(members, tripID: SampleTrip.tripID, by: SampleTrip.agusID)
         let aloneState = try await service.FetchTrip(tripID: SampleTrip.tripID)
         let viewModel = TripRoomViewModel(
             tripService: service,
