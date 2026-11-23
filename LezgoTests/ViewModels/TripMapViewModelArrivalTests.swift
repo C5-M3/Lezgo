@@ -75,4 +75,19 @@ struct TripMapViewModelArrivalTests {
 
         #expect(viewModel.arrivalCard == .everyoneArrived)
     }
+
+    /// A leader who started alone has nobody to wait for, so the card does not talk about "everyone".
+    @Test func LeaderAloneArrivesAlone() async {
+        let alone = Fixtures.State(cars: [Fixtures.CarNearDestination(id: Fixtures.agusID, name: "Agus", metres: 5)])
+        let viewModel = MakeViewModel(me: Fixtures.agusID, states: [alone])
+
+        await viewModel.Start()
+
+        #expect(viewModel.arrivalCard == .arrivedAlone)
+        #expect(String(localized: TripMapViewModel.ArrivalCard.arrivedAlone.title) == "You have arrived!")
+        #expect(
+            TripMapViewModel.ArrivalCard.arrivedAlone.Subtitle(isLeader: true).map { String(localized: $0) }
+            == "Continue your trip?"
+        )
+    }
 }
