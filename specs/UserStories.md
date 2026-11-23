@@ -539,8 +539,8 @@ Only the leader sees these actions, and only in the Trip Room. The hi-fi has no 
 - Handing over is how a leader leaves without ending the trip: hand over, then "Exit Trip" as a member.
 
 **Start the trip**
-- "Start Trip" needs at least one member besides the leader; otherwise it is disabled with "Invite at least one friend to start."
-- Everyone ready → "Start Trip?". Someone not ready → "Some participants are not yet ready, are you sure you want to start the trip?". Both → "Cancel" / the LEZGO logo button (VoiceOver: "Start").
+- The leader can start the trip alone. "Start Trip" is never disabled for the leader in the lobby; it is disabled only while the start is saving.
+- Leader alone → "You are the only one in this trip. Start the trip alone?". Otherwise: everyone ready → "Start Trip?"; someone not ready → "Some participants are not yet ready, are you sure you want to start the trip?". The alone title wins over the not-ready title. All three → "Cancel" / the LEZGO logo button (VoiceOver: "Start").
 - Start sets the trip to `IN_TRIP` and moves every phone to the map within 1 second.
 
 ### Acceptance criteria
@@ -588,7 +588,10 @@ Feature: Manage the group and start
 
   Scenario: Leader alone
     Given every member left
-    Then "Start Trip" is disabled with "Invite at least one friend to start."
+    When "Agus" taps "Start Trip"
+    Then "Agus" sees "You are the only one in this trip. Start the trip alone?"
+    When "Agus" taps the LEZGO button
+    Then the trip is IN_TRIP
 ```
 
 ### Data

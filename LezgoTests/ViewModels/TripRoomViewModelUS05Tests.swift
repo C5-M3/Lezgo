@@ -12,7 +12,7 @@ import Testing
 
 @MainActor
 struct TripRoomViewModelUS05Tests {
-    @Test func CanStartTripRequiresNonLeaderParticipants() {
+    @Test func CanStartTripOnlyForTheLeader() {
         let service = SampleTrip.Service(status: .lobby, me: SampleTrip.agusID)
         let state = SampleTrip.State(status: .lobby)
         let viewModel = TripRoomViewModel(
@@ -36,7 +36,8 @@ struct TripRoomViewModelUS05Tests {
             myParticipantID: SampleTrip.agusID,
             initialState: agusOnlyState
         )
-        #expect(aloneViewModel.canStartTrip == false)
+        // The leader may start alone; the confirmation asks first (US-05, "Leader alone").
+        #expect(aloneViewModel.canStartTrip == true)
 
         let memberViewModel = TripRoomViewModel(
             tripService: service,

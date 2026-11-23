@@ -86,25 +86,9 @@ final class TripRoomViewModel {
         state?.trip.status ?? .lobby
     }
 
-    var canStartTrip: Bool {
-        guard isCurrentUserLeader, !isStartingTrip, !hasTripStarted, let state else { return false }
-        return state.participants.count > 1
-    }
-
-    var isEveryoneReady: Bool {
-        guard !participants.isEmpty else { return false }
-        return participants.allSatisfy { IsParticipantReady($0) }
-    }
-
     /// What Exit asks first (`specs/UserStories.md` → US-07, "Leave and end").
     var leaveConfirmation: LeaveConfirmation {
         isCurrentUserLeader ? .endTripForEveryone : .exitRoom
-    }
-
-    var startTripConfirmationTitle: String {
-        isEveryoneReady
-            ? "Start Trip?"
-            : "Some participants are not yet ready, are you sure you want to start the trip?"
     }
 
     var inviteURL: URL {

@@ -23,16 +23,9 @@ struct TripRoomStartAction: View {
             .foregroundStyle(Color(.tripCardSubtext))
             .frame(maxWidth: .infinity, minHeight: 56)
         } else if viewModel.isCurrentUserLeader {
-            VStack(spacing: 6) {
-                Button("Start Trip", action: onStartTrip)
-                    .lezgoGlassButton(.main)
-                    .disabled(!viewModel.canStartTrip)
-                if !viewModel.canStartTrip {
-                    Text("Invite at least one friend to start")
-                        .font(.footnote)
-                        .foregroundStyle(Color(.tripCardSubtext))
-                }
-            }
+            Button("Start Trip", action: onStartTrip)
+                .lezgoGlassButton(.main)
+                .disabled(!viewModel.canStartTrip)
         } else {
             Text("Waiting for others ...")
                 .font(.headline)
