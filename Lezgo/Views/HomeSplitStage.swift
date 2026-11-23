@@ -9,8 +9,8 @@ import SwiftUI
 
 /// The split-screen Home (issue #329): a yellow LEAD half on top of a dark JOIN half, the two halves as buttons, and
 /// Set Route or Enter room code wiping in over them. Everything moves with `progress`, which the caller animates.
-/// Set Route can be built ahead while Home is idle and kept hidden and inert, so building its map never stalls the
-/// motion.
+/// Set Route is built when its run starts and removed when the run that takes it away ends, so nothing of it exists
+/// while Home is idle.
 struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
     let flow: HomeSplitMotion.Flow
     let progress: Double
