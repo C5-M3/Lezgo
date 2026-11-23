@@ -32,7 +32,8 @@ struct TripActivityLockScreenView: View {
     }
 }
 
-/// "50 min" to the next stop, "3/4" in yellow once arrived, or a dash before the time is known.
+/// "50 min" to the next stop, "3/4" in yellow once arrived, nothing once a leader alone arrived, or a dash before
+/// the time is known.
 struct TripActivityTime: View {
     let state: TripActivityAttributes.ContentState
     let size: CGFloat
@@ -43,6 +44,8 @@ struct TripActivityTime: View {
             Text(count)
                 .font(.system(size: size, weight: .bold))
                 .foregroundStyle(Color(.brandYellow))
+        } else if state.stage == .arrived {
+            EmptyView()
         } else {
             Text((isShort ? state.shortTimeText : state.timeText) ?? "–")
                 .font(.system(size: size, weight: .bold))

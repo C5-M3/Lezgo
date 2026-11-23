@@ -134,6 +134,14 @@ private extension TripActivityAttributes.ContentState {
         state.reached = 1
         return state
     }
+
+    /// A leader alone: no count and no time, so nothing sits next to "You have arrived!".
+    static var previewArrivedAlone: Self {
+        var state = previewArrived
+        state.title = "You have arrived!"
+        state.countText = nil
+        return state
+    }
 }
 
 #Preview("Lock Screen", as: .content, using: TripActivityAttributes(title: "To Ciputra World")) {
@@ -142,6 +150,7 @@ private extension TripActivityAttributes.ContentState {
     TripActivityAttributes.ContentState.preview
     TripActivityAttributes.ContentState.previewLastLeg
     TripActivityAttributes.ContentState.previewArrived
+    TripActivityAttributes.ContentState.previewArrivedAlone
 }
 
 #Preview("Island expanded", as: .dynamicIsland(.expanded), using: TripActivityAttributes(title: "To Ciputra")) {
@@ -149,6 +158,7 @@ private extension TripActivityAttributes.ContentState {
 } contentStates: {
     TripActivityAttributes.ContentState.preview
     TripActivityAttributes.ContentState.previewArrived
+    TripActivityAttributes.ContentState.previewArrivedAlone
 }
 
 #Preview("Island compact", as: .dynamicIsland(.compact), using: TripActivityAttributes(title: "To Ciputra")) {
@@ -157,4 +167,5 @@ private extension TripActivityAttributes.ContentState {
     TripActivityAttributes.ContentState.preview
     TripActivityAttributes.ContentState.previewLastLeg
     TripActivityAttributes.ContentState.previewArrived
+    TripActivityAttributes.ContentState.previewArrivedAlone
 }
