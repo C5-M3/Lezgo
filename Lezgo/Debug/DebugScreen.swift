@@ -57,6 +57,7 @@ import SwiftUI
 /// | `tripMapArrivals` | The arrival robots and count with cars arriving one by one | N |
 /// | `tripMapStartPoint` | Trip Started map on Budi's phone with ten cars still together at the start point | N |
 /// | `tripMapArrivedLeader` | Trip Started map on the leader's phone after arriving, before everyone else | N |
+/// | `tripMapArrivedLeaderAlone` | Trip Started map on the leader's phone after arriving on a trip started alone | N |
 /// | `tripRoomTakenOver` | Trip Room on Agus's phone when his other phone takes the trip over after 2 s | O |
 /// | `tripMapTakenOver` | Trip Started map on Agus's phone when his other phone takes the trip over after 2 s | N |
 /// | `homeFromAnotherPhone` | Home on a phone without a saved trip while the account's other phone is in a trip | R |
@@ -89,6 +90,7 @@ enum DebugScreen: String, CaseIterable {
     case tripMapMemberOffRoute
     case tripMapLeaderSeesMemberOffRoute
     case tripMapArrivedLeader
+    case tripMapArrivedLeaderAlone
     case tripMapArrivals
     case tripMapLeaderSeesStoppedCar
     case tripMapMemberParkedNearDestination
@@ -126,10 +128,11 @@ enum DebugScreen: String, CaseIterable {
             DraftTripView.Simulated(isLeader: true)
         case .tripRoomLeader, .tripRoomMember, .tripRoomMemberLeaderEndsTrip, .tripRoomLeaderOffline:
             MakeTripRoomScreen()
-        case .tripMapLeader, .tripMapArrivedLeader:
+        case .tripMapLeader, .tripMapArrivedLeader, .tripMapArrivedLeaderAlone:
             SimulatedTripMapScreen(
                 myParticipantID: SampleTrip.agusID,
-                startSecond: self == .tripMapArrivedLeader ? 2_000 : 0
+                startSecond: self == .tripMapLeader ? 0 : 2_000,
+                isAlone: self == .tripMapArrivedLeaderAlone
             )
         case .tripMapMember, .tripMapMemberLeaderOffline, .tripMapMemberNewRoute, .tripMapMemberRouteUpdated:
             SimulatedTripMapScreen(

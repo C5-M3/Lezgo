@@ -46,7 +46,7 @@ enum TripActivityContent {
             timeText: timeToStop?.formatted(TripMapCarStatus.durationStyle),
             shortTimeText: timeToStop.map(ShortTime),
             distanceText: stage == .driving ? DistanceToStop(input, leg: leg, on: road) : nil,
-            countText: stage == .arrived ? input.arrivalProgress?.countText : nil,
+            countText: stage == .arrived ? input.arrivalProgress.flatMap { $0.isAlone ? nil : $0.countText } : nil,
             legStartLabel: LegStartLabel(input, leg: leg),
             legEndLabel: LegEndLabel(leg),
             robots: robots,

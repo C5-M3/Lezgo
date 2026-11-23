@@ -95,6 +95,16 @@ struct TripActivityContentTests {
         #expect(state.title == "To Ciputra World")
     }
 
+    /// "1/1" says nothing when the leader drives alone.
+    @Test func ArrivedAloneHasNoCount() {
+        let progress = TripMapArrivalProgress(robots: [], arrivedCount: 1, totalCount: 1)
+        let state = TripActivityContent.State(
+            Sample.Input(currentWaypointIndex: 3, arrivalCard: .arrivedAlone, arrivalProgress: progress)
+        )
+        #expect(state.title == "You have arrived!")
+        #expect(state.countText == nil)
+    }
+
     @Test func ArrivedShowsTheTitleCountAndWhatIsNext() {
         let progress = TripMapArrivalProgress(robots: [], arrivedCount: 3, totalCount: 4)
         let state = TripActivityContent.State(

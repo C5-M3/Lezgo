@@ -167,6 +167,17 @@ struct TripMapViewModelSiriTests {
         #expect(answer == "Everyone has arrived!")
     }
 
+    @Test func ALeaderAloneHearsYouHaveArrived() async {
+        var state = Fixtures.State()
+        state.participants = state.participants.filter { $0.id == Fixtures.budiID }
+        let (viewModel, _) = MakeViewModel(state: state)
+        await viewModel.Start()
+
+        let answer = await viewModel.ArriveFromSiri(Confirmation())
+
+        #expect(answer == "You have arrived!")
+    }
+
     @Test func AFailedSaveIsSpokenNotLeftOnTheMap() async {
         let (viewModel, service) = MakeViewModel()
         service.nextMarkArrivedFailure = .noNetwork

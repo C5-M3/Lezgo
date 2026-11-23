@@ -829,8 +829,10 @@ Feature: Drive together
 | --- | --- | --- |
 | Member who arrived | "You have arrived" · "Waiting for everyone to arrive" | "Everyone has arrived!" |
 | Leader who arrived | "You have arrived" · "Waiting for everyone to arrive" + "New Destination" + "End Trip" | "Everyone has arrived!" · "Continue your trip?" + "New Destination" + "End Trip" |
+| Leader alone (US-05, "Leader alone") | — | "You have arrived!" · "Continue your trip?" + "New Destination" (yellow) + "End Trip" |
 
 - The leader is never blocked by late cars.
+- A leader alone has nobody to wait for, so the card never says "everyone", and the map, CarPlay and the Live Activity show no "1/1" count.
 
 **New Destination**
 - Opens the planner (US-01) with the start point locked to the current destination.
@@ -898,6 +900,12 @@ Feature: Arrive, continue, leave and end
     When "Agus", "Budi" and "Citra" have all arrived
     Then "Agus" sees "Everyone has arrived!", "Continue your trip?", "New Destination" and "End Trip"
     And "Budi" and "Citra" see "Everyone has arrived!"
+
+  Scenario: Leader arrives alone
+    Given "Agus" started the trip alone
+    When "Agus" arrives
+    Then "Agus" sees "You have arrived!", "Continue your trip?", "New Destination" and "End Trip"
+    And the map, CarPlay and the Live Activity show no arrived count
 
   Scenario: Continue to a new destination
     When "Agus" taps "New Destination"

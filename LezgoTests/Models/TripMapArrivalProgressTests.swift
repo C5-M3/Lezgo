@@ -106,4 +106,9 @@ struct TripMapArrivalProgressTests {
 
         #expect(order.ids.isEmpty)
     }
+
+    @Test func OneCarIsAlone() {
+        #expect(TripMapArrivalProgress(robots: [], arrivedCount: 1, totalCount: 1).isAlone)
+        #expect(TripMapArrivalProgress(robots: [], arrivedCount: 1, totalCount: 2).isAlone == false)
+    }
 }

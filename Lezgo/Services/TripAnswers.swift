@@ -235,9 +235,10 @@ struct TripAnswers {
         String(localized: .siriArrivedQuestion(confirmation.destinationName))
     }
 
-    /// After saving "I've Arrived".
-    static func Arrived(everyoneHasArrived: Bool) -> String {
-        String(localized: everyoneHasArrived ? .tripMapEveryoneHasArrived : .siriArrivedWaiting)
+    /// After saving "I've Arrived". A leader alone never hears "everyone" (US-07).
+    static func Arrived(everyoneHasArrived: Bool, isAlone: Bool) -> String {
+        if isAlone { return String(localized: .tripMapYouHaveArrivedAlone) }
+        return String(localized: everyoneHasArrived ? .tripMapEveryoneHasArrived : .siriArrivedWaiting)
     }
 
     // MARK: Distances

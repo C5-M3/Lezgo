@@ -37,9 +37,10 @@ struct TripMapArrivalCardView: View {
                 Button(action: onNewDestination) {
                     Text(.tripMapNewDestination)
                 }
-                // Yellow once everyone is there. Before that it still works, because the leader is never blocked by
-                // late cars (US-07), but it is not what the leader is expected to do yet.
-                .lezgoGlassButton(card == .everyoneArrived ? .main : .second)
+                // Yellow once everyone is there, or straight away for a leader alone. Before that it still works,
+                // because the leader is never blocked by late cars (US-07), but it is not what the leader is expected
+                // to do yet.
+                .lezgoGlassButton(card == .waitingForEveryone ? .second : .main)
             }
         }
     }
@@ -65,6 +66,19 @@ struct TripMapArrivalCardView: View {
 
 #Preview("Leader, everyone arrived, largest text") {
     TripMapArrivalCardView(card: .everyoneArrived, isLeader: true, onNewDestination: {})
+        .padding()
+        .background(Color(.tripCard))
+        .dynamicTypeSize(.accessibility5)
+}
+
+#Preview("Leader, alone") {
+    TripMapArrivalCardView(card: .arrivedAlone, isLeader: true, onNewDestination: {})
+        .padding()
+        .background(Color(.tripCard))
+}
+
+#Preview("Leader, alone, largest text") {
+    TripMapArrivalCardView(card: .arrivedAlone, isLeader: true, onNewDestination: {})
         .padding()
         .background(Color(.tripCard))
         .dynamicTypeSize(.accessibility5)

@@ -30,6 +30,8 @@ struct TripRecapShareCardContent: Equatable {
     /// The robots of the participants, leader first, at most `maxRobots`; the rest are counted in `hiddenRobotCount`.
     let robots: [Avatar]
     let hiddenRobotCount: Int
+    /// The leader drove alone, so the big-letter cards say "I" and "solo" instead of "we" and "convoy".
+    let isSolo: Bool
 
     static let maxRobots = 6
 
@@ -59,6 +61,22 @@ struct TripRecapShareCardContent: Equatable {
         let allRobots = recap.resolvedParticipants.map(\.avatar)
         robots = Array(allRobots.prefix(Self.maxRobots))
         hiddenRobotCount = max(0, allRobots.count - Self.maxRobots)
+        isSolo = recap.participantCount == 1
+    }
+
+    /// "WE DROVE" over the distance on the Together card.
+    var togetherLeadText: LocalizedStringResource {
+        isSolo ? "I DROVE" : "WE DROVE"
+    }
+
+    /// "together." under the distance on the Together card.
+    var togetherClosingText: LocalizedStringResource {
+        isSolo ? "solo." : "together."
+    }
+
+    /// The name of the drive on the Convoy card.
+    var convoyTitleText: LocalizedStringResource {
+        isSolo ? "Solo Drive" : "Convoy Drive"
     }
 
     /// "60 km" becomes ("60", "km"). Text that does not start with a number is kept whole, with no unit.

@@ -66,7 +66,7 @@ extension CarPlayTripMapTemplate {
         case .cars(let cars): cars.map(CarRow)
         case .car(let car): CarStatusRows(car)
         case .arrival(let arrival):
-            [arrival.subtitle.map { Row($0) }, Row(String(localized: .carPlayArrivedCount(arrival.count)))]
+            [arrival.subtitle.map { Row($0) }, arrival.count.map { Row(String(localized: .carPlayArrivedCount($0))) }]
                 .compactMap { $0 }
         }
         return [CPMapPanelSection(title: nil, items: items)]

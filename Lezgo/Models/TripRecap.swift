@@ -103,6 +103,11 @@ struct TripRecap: Identifiable, Hashable, Codable, Sendable {
         numberOfStops ?? 0
     }
 
+    /// "3 people · 60 km", or "1 person · 60 km" for a leader who drove alone (plural rule in the String Catalog).
+    var peopleAndDistanceText: LocalizedStringResource {
+        "\(participantCount) people · \(distanceText)"
+    }
+
     var resolvedDurationText: String {
         if let durationText, !durationText.isEmpty {
             return durationText

@@ -36,6 +36,23 @@ struct TripRecapShareCardContentTests {
         #expect(Content().numericDateText == "08.10.2026")
     }
 
+    @Test func GroupTripSaysTogetherAndConvoy() {
+        let content = Content(cars: 3)
+
+        #expect(String(localized: content.togetherLeadText) == "WE DROVE")
+        #expect(String(localized: content.togetherClosingText) == "together.")
+        #expect(String(localized: content.convoyTitleText) == "Convoy Drive")
+    }
+
+    /// A leader who started alone drove alone, so the big-letter cards do not say "we" or "convoy".
+    @Test func SoloTripSaysSolo() {
+        let content = Content(cars: 1)
+
+        #expect(String(localized: content.togetherLeadText) == "I DROVE")
+        #expect(String(localized: content.togetherClosingText) == "solo.")
+        #expect(String(localized: content.convoyTitleText) == "Solo Drive")
+    }
+
     @Test func CarsAndStopsAreCountedInWords() {
         #expect(Content(cars: 3, stops: 6).carsText == "3 cars")
         #expect(Content(cars: 1, stops: 1).carsText == "1 car")
