@@ -15,8 +15,6 @@ struct HomeView: View {
     @State private var mapViewModel = MapViewModel()
     @State private var pendingJoinedSession: TripSession?
     @State private var isTripHistoryPresented: Bool = false
-    /// Set Route is built once Home has settled, hidden, so its map is ready before LEAD runs into it.
-    @State private var isSetRoutePrepared = false
     /// What Siri hands over inside the app (US-08): a joined trip or a plan link.
     private let siriHandoff = SiriHandoff.shared
 
@@ -34,7 +32,6 @@ struct HomeView: View {
             destination: viewModel.splitDestination,
             isMoving: viewModel.isSplitMoving,
             stepStart: viewModel.splitStepStart,
-            preparesLeadScreen: isSetRoutePrepared,
             onLead: OpenSetRoute,
             onJoin: { RunSplit(viewModel.JoinTapped()) },
             leadScreen: { setRouteScreen },
@@ -92,11 +89,6 @@ struct HomeView: View {
         .modifier(Prompts(viewModel: viewModel, onConfirmContinue: ContinueDraftTrip))
         .onAppear { viewModel.onAppear() }
         .task { await viewModel.RefreshActiveTrip(tripService: tripService) }
-        .task {
-            // After Home's first frames, so building Set Route's map does not hold up the launch.
-            try? await Task.sleep(for: .milliseconds(500))
-            isSetRoutePrepared = true
-        }
         // Universal invite links and the older `lezgo://join` links both arrive here (US-02).
         .onOpenURL { url in
             viewModel.OpenInviteLink(url)
@@ -182,7 +174,6 @@ private extension HomeView {
         guard !steps.isEmpty else { return }
         // LEAD on the JOIN home only swings back; Set Route opens on the next tap.
         if steps.last?.flow == .lead {
-            isSetRoutePrepared = true
             mapViewModel.onAppear()
         }
         RunSplit(steps)

@@ -20,8 +20,6 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
     let isMoving: Bool
     /// Where the running step started; a screen added as the step starts wipes in from there.
     let stepStart: Double
-    /// `true` once Set Route should be built: it then stays in place, hidden until LEAD brings it in.
-    let preparesLeadScreen: Bool
     let onLead: () -> Void
     let onJoin: () -> Void
     let leadScreen: LeadScreen
@@ -36,7 +34,6 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         destination: HomeSplitMotion.Flow?,
         isMoving: Bool = false,
         stepStart: Double = 0,
-        preparesLeadScreen: Bool = false,
         onLead: @escaping () -> Void,
         onJoin: @escaping () -> Void,
         @ViewBuilder leadScreen: () -> LeadScreen,
@@ -47,7 +44,6 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         self.destination = destination
         self.isMoving = isMoving
         self.stepStart = stepStart
-        self.preparesLeadScreen = preparesLeadScreen
         self.onLead = onLead
         self.onJoin = onJoin
         self.leadScreen = leadScreen()
@@ -130,7 +126,7 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
 
     private var destinations: some View {
         ZStack {
-            if preparesLeadScreen || destination == .lead {
+            if destination == .lead {
                 Destination(.lead, leadScreen)
             }
             if destination == .join {
@@ -139,9 +135,9 @@ struct HomeSplitStage<LeadScreen: View, JoinScreen: View>: View {
         }
     }
 
-    /// The next screen, wiped in with the motion. It is on screen for the whole run that brings it in or takes it
-    /// away, and takes taps, VoiceOver and the keyboard only once it has landed. A screen built ahead stays hidden
-    /// and inert until its run.
+    /// The next screen, wiped in with the motion. It is built when its run starts and removed when the run that takes
+    /// it away ends, so nothing of it (its map, its location) exists while Home is showing. It takes taps,
+    /// VoiceOver and the keyboard only once it has landed.
     private func Destination(_ screenFlow: HomeSplitMotion.Flow, _ screen: some View) -> some View {
         let isOn = destination == screenFlow
         return screen
