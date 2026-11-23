@@ -205,11 +205,14 @@ extension TripMapView {
 
         var body: some View {
             VStack(alignment: .trailing) {
-                // After arriving there is no next turn, so the card counts who is there. While a new route is on its
-                // way, the card says so instead of showing a turn that no longer fits.
+                // After arriving there is no next turn, so the card counts who is there; a leader alone has nobody to
+                // count, so no card. While a new route is on its way, the card says so instead of showing a turn that
+                // no longer fits.
                 if let arrivalProgress = viewModel.arrivalProgress {
-                    TripMapArrivalTopCard(progress: arrivalProgress)
-                        .transition(.opacity)
+                    if arrivalProgress.isAlone == false {
+                        TripMapArrivalTopCard(progress: arrivalProgress)
+                            .transition(.opacity)
+                    }
                 } else if viewModel.isRerouting {
                     TripMapTurnCard.Rerouting(isLeader: viewModel.isLeader)
                         .transition(.opacity)

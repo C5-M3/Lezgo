@@ -166,7 +166,7 @@ final class CarPlayTripViewModel {
         return Arrival(
             title: String(localized: card.title),
             subtitle: card.Subtitle(isLeader: tripMap.isLeader).map { String(localized: $0) },
-            count: "\(progress.arrivedCount)/\(progress.totalCount)"
+            count: progress.isAlone ? nil : "\(progress.arrivedCount)/\(progress.totalCount)"
         )
     }
 
@@ -336,7 +336,8 @@ extension CarPlayTripViewModel {
     struct Arrival: Hashable {
         var title: String
         var subtitle: String?
-        var count: String
+        /// "2/3"; `nil` for a leader alone, where a count says nothing.
+        var count: String?
     }
 
     /// A row in the Cars panel.
