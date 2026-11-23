@@ -285,7 +285,11 @@ struct TripAnswersTests {
         (true, "Everyone has arrived!")
     ])
     func ArrivedSaysWhoIsStillComing(everyoneHasArrived: Bool, expected: String) {
-        #expect(TripAnswers.Arrived(everyoneHasArrived: everyoneHasArrived) == expected)
+        #expect(TripAnswers.Arrived(everyoneHasArrived: everyoneHasArrived, isAlone: false) == expected)
+    }
+
+    @Test func ALeaderAloneNeverHearsEveryone() {
+        #expect(TripAnswers.Arrived(everyoneHasArrived: true, isAlone: true) == "You have arrived!")
     }
 
     @Test func StaticAnswersMatchTheSpec() {
