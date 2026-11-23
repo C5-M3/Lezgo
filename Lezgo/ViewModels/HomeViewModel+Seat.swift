@@ -27,6 +27,7 @@ extension HomeViewModel {
         // The person may have created or opened a trip while iCloud was answering; that is newer than the answer.
         guard activeDraftTrip == before, activeTripSession == nil, activeMapSession == nil else { return }
         guard let session = found else {
+            StopLeftoverLocationOnce()
             ClearActiveDraftTrip()
             isDraftTripFromAnotherPhone = false
             return

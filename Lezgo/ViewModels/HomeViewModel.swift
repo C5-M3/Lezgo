@@ -50,6 +50,9 @@ final class HomeViewModel {
     let activeTripStorage: any ActiveTripStorage
     /// My name and car once I typed them in the Trip Room, shown to every group I join after that.
     let profileStorage: any ProfileStorage
+    /// Ends a location session an earlier run of the app left open. `BackgroundLocationKeeper.EndLeftover` on a phone.
+    private let stopsLeftoverLocation: () -> Void
+    @ObservationIgnored private var hasStoppedLeftoverLocation = false
 
     // MARK: - State Properties
     var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
@@ -108,8 +111,10 @@ final class HomeViewModel {
         mapService: any MapServiceProtocol,
         searchService: any LocationSearchServiceProtocol,
         activeTripStorage: (any ActiveTripStorage)? = nil,
-        profileStorage: (any ProfileStorage)? = nil
+        profileStorage: (any ProfileStorage)? = nil,
+        stopsLeftoverLocation: @escaping () -> Void = { BackgroundLocationKeeper.EndLeftover() }
     ) {
+        self.stopsLeftoverLocation = stopsLeftoverLocation
         self.mapService = mapService
         self.searchService = searchService
         let storage = activeTripStorage ?? UserDefaultsActiveTripStorage()
@@ -132,6 +137,14 @@ final class HomeViewModel {
         // No GPS here: Home needs no location, and a GPS left running keeps the location arrow in the Dynamic
         // Island while the app is in the background. Set Route, the Trip Room and the map start their own.
         CheckActiveDraftTrip()
+    }
+
+    /// The first time Home finds the account has no trip, location use left running from an earlier run is ended: with
+    /// no trip, nothing may hold the GPS or its location arrow. Later calls do nothing.
+    func StopLeftoverLocationOnce() {
+        guard hasStoppedLeftoverLocation == false else { return }
+        hasStoppedLeftoverLocation = true
+        stopsLeftoverLocation()
     }
 
     /// Memeriksa apakah ada draf perjalanan yang tersimpan di perangkat (US-03).
