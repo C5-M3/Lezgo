@@ -23,6 +23,8 @@ struct SimulatedTripMapScreen: View {
     let agusChangesRoute: SimulatedDrive.RouteChange?
     /// Pretends CarPlay is connected, so the phone shows the On the Go list (ADR 0034).
     let carPlayConnected: Bool
+    /// The leader started the trip alone (US-05, "Leader alone"): every member is removed before the drive.
+    let isAlone: Bool
     @State private var tripService: InMemoryTripService
 
     init(
@@ -32,7 +34,8 @@ struct SimulatedTripMapScreen: View {
         budiStops: Bool = false,
         agusIsOffline: Bool = false,
         agusChangesRoute: SimulatedDrive.RouteChange? = nil,
-        carPlayConnected: Bool = false
+        carPlayConnected: Bool = false,
+        isAlone: Bool = false
     ) {
         self.myParticipantID = myParticipantID
         self.startSecond = startSecond
@@ -41,6 +44,7 @@ struct SimulatedTripMapScreen: View {
         self.agusIsOffline = agusIsOffline
         self.agusChangesRoute = agusChangesRoute
         self.carPlayConnected = carPlayConnected
+        self.isAlone = isAlone
         _tripService = State(initialValue: SampleTrip.Service(status: .inTrip, me: myParticipantID))
     }
 
@@ -49,6 +53,7 @@ struct SimulatedTripMapScreen: View {
         .onAppear { if carPlayConnected { CarPlaySession.shared.Connected() } }
         .onDisappear { CarPlaySession.shared.Disconnected() }
         .task {
+            if isAlone { await RemoveMembers() }
             await SimulatedDrive(
                 tripService: tripService,
                 startSecond: startSecond,
@@ -58,6 +63,11 @@ struct SimulatedTripMapScreen: View {
                 agusChangesRoute: agusChangesRoute
             ).Run()
         }
+    }
+
+    private func RemoveMembers() async {
+        let members = SampleTrip.State(status: .inTrip).participants.map(\.id).filter { $0 != SampleTrip.agusID }
+        try? await tripService.RemoveParticipants(members, tripID: SampleTrip.tripID, by: SampleTrip.agusID)
     }
 
     /// The simulated drive speaks like a real trip, so voice guidance can be heard on a phone without other cars.
