@@ -76,3 +76,10 @@ struct TripMapArrivalCardView: View {
         .padding()
         .background(Color(.tripCard))
 }
+
+#Preview("Leader, alone, largest text") {
+    TripMapArrivalCardView(card: .arrivedAlone, isLeader: true, onNewDestination: {})
+        .padding()
+        .background(Color(.tripCard))
+        .dynamicTypeSize(.accessibility5)
+}
