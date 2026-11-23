@@ -86,32 +86,9 @@ final class TripRoomViewModel {
         state?.trip.status ?? .lobby
     }
 
-    /// The leader may start alone; `startTripConfirmationTitle` asks first (US-05, "Leader alone").
-    var canStartTrip: Bool {
-        isCurrentUserLeader && !isStartingTrip && !hasTripStarted
-    }
-
-    /// True when the leader is the only car in the room, so starting means driving alone.
-    var isLeaderAlone: Bool {
-        guard isCurrentUserLeader else { return false }
-        return participants.allSatisfy { $0.id == myParticipantID }
-    }
-
-    var isEveryoneReady: Bool {
-        guard !participants.isEmpty else { return false }
-        return participants.allSatisfy { IsParticipantReady($0) }
-    }
-
     /// What Exit asks first (`specs/UserStories.md` → US-07, "Leave and end").
     var leaveConfirmation: LeaveConfirmation {
         isCurrentUserLeader ? .endTripForEveryone : .exitRoom
-    }
-
-    var startTripConfirmationTitle: String {
-        if isLeaderAlone { return "You are the only one in this trip. Start the trip alone?" }
-        return isEveryoneReady
-            ? "Start Trip?"
-            : "Some participants are not yet ready, are you sure you want to start the trip?"
     }
 
     var inviteURL: URL {
