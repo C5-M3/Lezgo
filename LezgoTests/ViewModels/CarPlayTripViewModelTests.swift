@@ -214,6 +214,19 @@ struct CarPlayTripViewModelTests {
         #expect(arrival.count == "3/3")
     }
 
+    /// A leader who started alone has no "1/1" row: the count says nothing with one car.
+    @Test func LeaderAloneArrivesWithoutACount() async throws {
+        let alone = TripMapFixtures.State(cars: [
+            TripMapFixtures.CarNearDestination(id: TripMapFixtures.agusID, name: "Agus", metres: 5)
+        ])
+        let tripMap = Fixtures.TripMap(me: TripMapFixtures.agusID, states: [alone])
+        let viewModel = await Fixtures.CarPlay(mirroring: tripMap)
+
+        let arrival = try #require(viewModel.arrival)
+        #expect(arrival.title == String(localized: .tripMapYouHaveArrivedAlone))
+        #expect(arrival.count == nil)
+    }
+
     @Test func OnTheWayThereIsNoArrival() async {
         let viewModel = await Fixtures.CarPlay(mirroring: Fixtures.TripMap(states: [Fixtures.State()]))
 
